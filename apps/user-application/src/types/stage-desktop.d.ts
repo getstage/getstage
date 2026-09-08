@@ -15,6 +15,9 @@ import type {
   EngineStatus,
   IntegrationOAuthResult,
   PermissionKind,
+  ProjectExportAppsResponse,
+  ProjectExportRequest,
+  ProjectExportResponse,
 } from "@shared/models/desktop";
 import type {
   ProviderId,
@@ -47,6 +50,10 @@ export type StageDesktopApi = {
   };
   clipboard: {
     writeText: (text: string) => Promise<void>;
+  };
+  project: {
+    export: (request: ProjectExportRequest) => Promise<ProjectExportResponse>;
+    listExportApps: () => Promise<ProjectExportAppsResponse>;
   };
   engine: {
     getStatus: () => Promise<EngineStatus>;

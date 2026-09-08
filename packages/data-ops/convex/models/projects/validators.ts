@@ -38,6 +38,19 @@ export const createProjectArgsValidator = {
   phases: v.optional(v.array(phaseCreationInputValidator)),
 } as const;
 
+/** Keep in sync with `skillHubIdSchema` in user-application/shared/models/safeHttpsUrl.ts */
+const SKILL_HUB_ID_PATTERN = /^[a-z][a-z0-9-]{0,62}$/;
+
+export function normalizeCatalogIds(ids: string[]): string[] {
+  return Array.from(
+    new Set(
+      ids
+        .map((id) => id.trim())
+        .filter((id) => SKILL_HUB_ID_PATTERN.test(id)),
+    ),
+  ).slice(0, 32);
+}
+
 /** Convex `v.object` for `Infer<>` / desktop handlers. */
 export const createProjectArgsObject = v.object(createProjectArgsValidator);
 

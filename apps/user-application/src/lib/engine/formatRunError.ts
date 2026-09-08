@@ -63,8 +63,8 @@ function sessionLimitHint(text: string) {
 function sessionLimitUserMessage(label: string, text: string) {
   const hint = sessionLimitHint(text);
   return hint
-    ? `${label} usage limit reached. ${hint}`
-    : `${label} usage limit reached. Wait until the limit resets, then try again.`;
+    ? `Your connected ${label} account has reached its usage limit. Stage credits are unaffected. ${hint}`
+    : `Your connected ${label} account has reached its usage limit. Stage credits are unaffected. Choose another provider or wait until the limit resets.`;
 }
 
 function looksLikeTechnicalResearchFailure(text: string) {

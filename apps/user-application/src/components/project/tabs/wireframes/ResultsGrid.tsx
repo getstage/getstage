@@ -4,12 +4,18 @@ import { formatRelativeTime } from "@/lib/utils";
 import type { WireframeKind } from "@/types/project/wireframesTab";
 import { Badge, PrimaryButton, SecondaryButton } from "./WireframePrimitives";
 import { FidelityToggle } from "./FidelityToggle";
-import { ArrowRightIcon, CheckIcon, ImageIcon, SparkleIcon } from "./wireframesIcons";
+import { ArrowRightIcon, CheckIcon, ImageIcon, PlusIcon, SparkleIcon } from "./wireframesIcons";
 import { WireframeBlockPreview } from "./WireframeBlockPreview";
 import {
   WireframeHtmlPreviewDialog,
   WireframeHtmlThumbnail,
 } from "./WireframeHtmlPreview";
+
+export function hasLofiPreview(cards: WireframeResultCard[]) {
+  return cards.some((card) =>
+    card.sections?.some((section) => section.blocks.length > 0),
+  );
+}
 
 export function ResultsGrid({
   wireframeKind,
@@ -24,6 +30,14 @@ export function ResultsGrid({
   onCancelRegenerate,
   onToggleRegenerateSelection,
   onConfirmRegenerate,
+  onManageScreens,
+  deleteMode = false,
+  selectedDeleteIds = new Set<string>(),
+  onStartDelete,
+  onCancelDelete,
+  onToggleDeleteSelection,
+  onConfirmDelete,
+  isDeleting = false,
   // Optional slot rendered above the grid during regenerate mode. The parent
   // owns the source picker + style-direction select so this grid stays a pure
   // presentation component; the confirm reads whatever state the parent wired
@@ -42,16 +56,31 @@ export function ResultsGrid({
   onCancelRegenerate: () => void;
   onToggleRegenerateSelection: (cardId: string) => void;
   onConfirmRegenerate: () => void;
+  onManageScreens: () => void;
+  deleteMode?: boolean;
+  selectedDeleteIds?: Set<string>;
+  onStartDelete: () => void;
+  onCancelDelete: () => void;
+  onToggleDeleteSelection: (cardId: string) => void;
+  onConfirmDelete: () => void;
+  isDeleting?: boolean;
   regeneratePicker?: ReactNode;
 }) {
-  const selectedCount = selectedRegenerateIds.size;
+  const selectedCount = regenerateMode
+    ? selectedRegenerateIds.size
+    : selectedDeleteIds.size;
+  const selectionMode = regenerateMode || deleteMode;
   const regeneratingSet = new Set(regeneratingScreenIds ?? []);
-  // A Hi-Fi artifact keeps each screen's Lo-Fi blocks alongside its rendered
-  // design, so the user can flip the whole grid back to the Lo-Fi view after
-  // converting. Lo-Fi-only artifacts have nothing to toggle to.
-  const canToggleFidelity = wireframeKind === "hifi" && cards.some((card) => card.html?.trim());
+  // Lo-Fi is the fallback when a Hi-Fi render is missing or fails. Its toggle
+  // must therefore depend on the retained blocks, not on successful Hi-Fi HTML.
+  const canToggleFidelity =
+    wireframeKind === "hifi" && hasLofiPreview(cards);
   const [view, setView] = useState<WireframeKind>(wireframeKind);
   const effectiveView = canToggleFidelity ? view : wireframeKind;
+
+  useEffect(() => {
+    setView(wireframeKind);
+  }, [wireframeKind]);
 
   return (
     <div className="rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
@@ -64,7 +93,34 @@ export function ResultsGrid({
           </h2>
         )}
         <div className="flex flex-wrap items-center justify-end gap-2">
-          {wireframeKind === "hifi" ? (
+          {!selectionMode ? (
+            <>
+              <SecondaryButton onClick={onManageScreens} disabled={isGenerating}>
+                <PlusIcon />
+                Add or edit screens
+              </SecondaryButton>
+              {cards.length > 0 ? (
+                <SecondaryButton onClick={onStartDelete} disabled={isGenerating}>
+                  Delete screens
+                </SecondaryButton>
+              ) : null}
+            </>
+          ) : null}
+          {deleteMode ? (
+            <>
+              <SecondaryButton onClick={onCancelDelete}>Cancel</SecondaryButton>
+              <button
+                type="button"
+                onClick={onConfirmDelete}
+                disabled={selectedCount === 0 || isDeleting}
+                className="inline-flex h-[38px] items-center justify-center rounded-[6px] border border-[#F5A5A5] bg-[#C62A2F] px-3 text-[13px] font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Delete {selectedCount > 0 ? selectedCount : ""} screen
+                {selectedCount === 1 ? "" : "s"}
+              </button>
+            </>
+          ) : null}
+          {wireframeKind === "hifi" && !deleteMode ? (
             regenerateMode ? (
               <>
                 <SecondaryButton onClick={onCancelRegenerate}>Cancel</SecondaryButton>
@@ -83,7 +139,7 @@ export function ResultsGrid({
               </SecondaryButton>
             )
           ) : null}
-          {wireframeKind === "lofi" ? (
+          {wireframeKind === "lofi" && !selectionMode ? (
             <SecondaryButton purple onClick={onConvert} disabled={isGenerating}>
               Convert to High-fi
               <ArrowRightIcon />
@@ -101,10 +157,18 @@ export function ResultsGrid({
             card={card}
             view={effectiveView}
             onExport={() => onExport(card.id)}
-            regenerateMode={regenerateMode}
-            isSelected={selectedRegenerateIds.has(card.id)}
+            regenerateMode={selectionMode}
+            isSelected={
+              deleteMode
+                ? selectedDeleteIds.has(card.id)
+                : selectedRegenerateIds.has(card.id)
+            }
             isRegenerating={regeneratingSet.has(card.id)}
-            onToggleRegenerate={() => onToggleRegenerateSelection(card.id)}
+            onToggleRegenerate={() =>
+              deleteMode
+                ? onToggleDeleteSelection(card.id)
+                : onToggleRegenerateSelection(card.id)
+            }
           />
         ))}
       </div>

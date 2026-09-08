@@ -102,6 +102,11 @@ export async function getOverviewHandler(ctx: QueryCtx) {
       accentColor: user.defaultPortalAccentColor ?? previewConfig?.accentColor ?? DEFAULT_PORTAL_COLOR,
     },
     previewPortalUrl: previewConfig?.shareUrl ? `${previewConfig.shareUrl}?preview=1` : null,
+    skillHub: {
+      installedSkillIds: user.installedSkillIds ?? null,
+      enabledSkillIds: user.enabledSkillIds ?? null,
+      enabledComponentPackIds: user.enabledComponentPackIds ?? null,
+    },
   };
 }
 
@@ -261,5 +266,65 @@ export async function deleteAccountHandler(ctx: ActionCtx, args: { confirmation:
 
   return {
     deleted: true,
+  };
+}
+
+/** Keep in sync with `skillHubIdSchema` in user-application/shared/models/safeHttpsUrl.ts */
+const SKILL_HUB_ID_PATTERN = /^[a-z][a-z0-9-]{0,62}$/;
+const MAX_SKILL_HUB_IDS = 64;
+
+function assertSkillHubIds(ids: string[], label: string) {
+  if (ids.length > MAX_SKILL_HUB_IDS) {
+    throw new Error(`${label} exceeds ${MAX_SKILL_HUB_IDS} entries.`);
+  }
+  for (const id of ids) {
+    if (!SKILL_HUB_ID_PATTERN.test(id)) {
+      throw new Error(`${label} contains an invalid id.`);
+    }
+  }
+}
+
+export const updateSkillHubPrefsArgs = {
+  installedSkillIds: v.optional(v.array(v.string())),
+  enabledSkillIds: v.optional(v.array(v.string())),
+  enabledComponentPackIds: v.optional(v.array(v.string())),
+};
+
+export async function updateSkillHubPrefsHandler(
+  ctx: MutationCtx,
+  args: {
+    installedSkillIds?: string[];
+    enabledSkillIds?: string[];
+    enabledComponentPackIds?: string[];
+  },
+) {
+  const user = await requireAuthUser(ctx);
+  if (args.installedSkillIds !== undefined) {
+    assertSkillHubIds(args.installedSkillIds, "installedSkillIds");
+  }
+  if (args.enabledSkillIds !== undefined) {
+    assertSkillHubIds(args.enabledSkillIds, "enabledSkillIds");
+  }
+  if (args.enabledComponentPackIds !== undefined) {
+    assertSkillHubIds(args.enabledComponentPackIds, "enabledComponentPackIds");
+  }
+  const timestamp = now();
+  await ctx.db.patch(user._id, {
+    ...(args.installedSkillIds !== undefined
+      ? { installedSkillIds: args.installedSkillIds }
+      : {}),
+    ...(args.enabledSkillIds !== undefined
+      ? { enabledSkillIds: args.enabledSkillIds }
+      : {}),
+    ...(args.enabledComponentPackIds !== undefined
+      ? { enabledComponentPackIds: args.enabledComponentPackIds }
+      : {}),
+    updatedAt: timestamp,
+  });
+  return {
+    installedSkillIds: args.installedSkillIds ?? user.installedSkillIds ?? null,
+    enabledSkillIds: args.enabledSkillIds ?? user.enabledSkillIds ?? null,
+    enabledComponentPackIds:
+      args.enabledComponentPackIds ?? user.enabledComponentPackIds ?? null,
   };
 }

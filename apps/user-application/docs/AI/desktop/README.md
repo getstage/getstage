@@ -6,6 +6,8 @@
 |----------|---------|
 | **[`2026-06-08!!!-PROJECT_OPERATING_PLAN.md`](./2026-06-08!!!-PROJECT_OPERATING_PLAN.md)** | **!!! VERY IMPORTANT** — Notion + docs + git + Greptile + exports + what now |
 | **[`2026-06-07!!!-DESKTOP_IDLE_ENERGY_PLAN.md`](./2026-06-07!!!-DESKTOP_IDLE_ENERGY_PLAN.md)** | **!!! VERY IMPORTANT** — idle energy, terminal tests, lightweight Stage |
+| [`PROJECT_EXPORT_CLEANUP_PLAN.md`](./PROJECT_EXPORT_CLEANUP_PLAN.md) | STA-33 export handoff, readable Markdown, Codex prompt boundary, Wireframes recovery scope, and branch cleanup checklist |
+| **Repo root:** [`docs/NEW_VERSION_START_SEPTEMBER_2026.md`](../../../../../docs/NEW_VERSION_START_SEPTEMBER_2026.md) | September 2026 product cut — **next:** Lo-Fi-only Wireframes UI |
 | **Repo root:** [`PROJECT_STATUS.md`](../../../../../PROJECT_STATUS.md) · [`ARCHITECTURE.md`](../../../../../ARCHITECTURE.md) · [`AGENTS.md`](../../../../../AGENTS.md) | Living dev truth (read these first) |
 | **[`DESKTOP_PERFORMANCE.md`](./DESKTOP_PERFORMANCE.md)** | **Main doc** — speed, bugs, 2026-06-06 notes, IPC (later), action plan |
 | [`../infra/R2_PUBLIC_DOMAIN_AUDIT.md`](../infra/R2_PUBLIC_DOMAIN_AUDIT.md) | R2 custom domain + **desktop upload CORS** (`app://stage`) |

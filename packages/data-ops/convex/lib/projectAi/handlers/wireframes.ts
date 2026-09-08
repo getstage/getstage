@@ -14,7 +14,9 @@ import {
   createRunRecord,
   findRunningRunForProjectModule,
 } from "../domain/runStore";
+import { deleteOldR2Asset } from "../../../r2";
 import { normalizeOptional } from "../domain/normalize";
+import { collectR2KeysFromJson } from "../domain/r2Keys";
 import { resolveAssetContentJson } from "../domain/researchContent";
 import { now } from "../domain/time";
 import { projectAiProviderId } from "../domain/validators";
@@ -272,6 +274,66 @@ export async function updateWireframesArtifactHandler(
     artifactId: String(args.artifactId),
     updatedAt: timestamp,
   };
+}
+
+export const clearWireframeScreensArgs = {
+  projectId: v.id("projects"),
+  screenIds: v.array(v.string()),
+};
+
+export async function clearWireframeScreensHandler(
+  ctx: MutationCtx,
+  args: { projectId: Id<"projects">; screenIds: string[] },
+) {
+  await requireProjectAccess(ctx, args.projectId);
+  const artifact = await findLatestArtifact(
+    ctx,
+    args.projectId,
+    "generate",
+    "wireframesArtifact",
+  );
+  if (!artifact?.contentJson || args.screenIds.length === 0) {
+    return { cleared: false as const, screensRemoved: 0 };
+  }
+
+  const content = parseWireframesContentJson(artifact.contentJson, args.projectId);
+  const generated = Array.isArray(content.generatedScreens) ? content.generatedScreens : [];
+  const removeIds = new Set(args.screenIds);
+  const isRemoved = (screen: unknown) =>
+    isRecord(screen) && typeof screen.id === "string" && removeIds.has(screen.id);
+  const removed = generated.filter(isRemoved);
+  if (removed.length === 0) {
+    return { cleared: false as const, screensRemoved: 0 };
+  }
+
+  const kept = generated.filter((screen) => !isRemoved(screen));
+  const r2Keys = new Set<string>();
+  for (const screen of removed) {
+    collectR2KeysFromJson(screen, r2Keys);
+  }
+
+  const nextContent: Record<string, unknown> = { ...content, generatedScreens: kept };
+  if (Array.isArray(content.configureScreens)) {
+    nextContent.configureScreens = content.configureScreens.map((screen) =>
+      isRemoved(screen) ? { ...screen, selected: false } : screen,
+    );
+  }
+  if (kept.length === 0) {
+    collectR2KeysFromJson(content.cssUrl, r2Keys);
+    delete nextContent.cssUrl;
+    nextContent.wireframeKind = "lofi";
+  }
+
+  for (const key of r2Keys) {
+    await deleteOldR2Asset(ctx, key);
+  }
+
+  await ctx.db.patch(artifact._id, {
+    contentJson: JSON.stringify(nextContent),
+    updatedAt: now(),
+  });
+
+  return { cleared: true as const, screensRemoved: removed.length };
 }
 
 function parseWireframesContentJson(contentJson: string, projectId: Id<"projects">) {

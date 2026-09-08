@@ -27,6 +27,7 @@ import {
   captureWireframeHtmlPng,
 } from "./helpers/wireframe-screenshot";
 import { IPC_CHANNELS } from "@shared/ipc/channels";
+import { parsePublicHttpsUrl } from "@shared/models/safeHttpsUrl";
 import {
   captureWindowRequestSchema,
   chatAttachmentTargetSchema,
@@ -36,6 +37,7 @@ import {
   desktopSessionSchema,
   engineStatusSchema,
   permissionKindSchema,
+  projectExportRequestSchema,
   type ActiveAppInfo,
   type DesktopPermissionStatus,
   type DesktopSession,
@@ -77,6 +79,7 @@ import {
   RUN_EVENT_STREAM_MAX_MS,
   RUN_EVENT_STREAM_RECONNECT_DELAY_MS,
 } from "./helpers/engine-constants";
+import { exportStageProject, listExportApps } from "./helpers/project-export";
 
 const activeRunStreams = new Map<string, AbortController>();
 
@@ -159,6 +162,14 @@ export function registerIpcHandlers({
       throw new Error("Clipboard text must be a string.");
     }
     clipboard.writeText(text);
+  });
+
+  ipcMain.handle(IPC_CHANNELS.projectExport, async (_event, request: unknown) => {
+    return exportStageProject(projectExportRequestSchema.parse(request));
+  });
+
+  ipcMain.handle(IPC_CHANNELS.projectListExportApps, async () => {
+    return listExportApps();
   });
 
   ipcMain.handle(IPC_CHANNELS.engineGetStatus, async () => {
@@ -555,16 +566,8 @@ export function registerIpcHandlers({
   });
 
   ipcMain.handle(IPC_CHANNELS.shellOpenExternal, async (_event, url: unknown) => {
-    if (typeof url !== "string") {
-      throw new Error("External URL must be a string.");
-    }
-
-    const parsedUrl = new URL(url);
-    if (parsedUrl.protocol !== "https:") {
-      throw new Error("Only HTTPS external URLs are allowed.");
-    }
-
-    await shell.openExternal(parsedUrl.toString());
+    const parsedUrl = parsePublicHttpsUrl(url);
+    await shell.openExternal(parsedUrl);
   });
 
   ipcMain.handle(IPC_CHANNELS.integrationsGetOAuthReturnUrl, (_event, provider: unknown) => {

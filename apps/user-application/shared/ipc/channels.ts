@@ -5,6 +5,8 @@ export const IPC_CHANNELS = {
   authGetAccessToken: "auth:get-access-token",
   authSessionChanged: "auth:session-changed",
   clipboardWriteText: "clipboard:write-text",
+  projectExport: "project:export",
+  projectListExportApps: "project:list-export-apps",
   engineGetStatus: "engine:get-status",
   engineListProviders: "engine:list-providers",
   engineRefreshProviders: "engine:refresh-providers",

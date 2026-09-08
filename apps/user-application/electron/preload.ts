@@ -12,6 +12,9 @@ import type {
   ImportChatImageBytesRequest,
   IntegrationOAuthResult,
   PermissionKind,
+  ProjectExportRequest,
+  ProjectExportResponse,
+  ProjectExportAppsResponse,
 } from "@shared/models/desktop";
 import type {
   CreateFigmaExportRequest,
@@ -47,6 +50,12 @@ const stageDesktop = {
   },
   clipboard: {
     writeText: (text: string) => ipcRenderer.invoke(IPC_CHANNELS.clipboardWriteText, text),
+  },
+  project: {
+    export: (request: ProjectExportRequest): Promise<ProjectExportResponse> =>
+      ipcRenderer.invoke(IPC_CHANNELS.projectExport, request),
+    listExportApps: (): Promise<ProjectExportAppsResponse> =>
+      ipcRenderer.invoke(IPC_CHANNELS.projectListExportApps),
   },
   engine: {
     getStatus: () => ipcRenderer.invoke(IPC_CHANNELS.engineGetStatus),
