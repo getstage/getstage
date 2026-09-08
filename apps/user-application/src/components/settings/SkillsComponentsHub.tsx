@@ -1,61 +1,12 @@
 import { useMemo, useState, type ReactNode } from "react";
 import { SkillDetailPanel } from "./SkillDetailPanel";
-import { useMutation as useConvexMutation } from "convex/react";
-import { api } from "@/lib/convex";
-import { useSettingsOverviewQuery } from "@/hooks/convex-data";
+import { useSkillHubPrefs } from "@/hooks/settings/useSkillHubPrefs";
 import {
   COMPONENT_PACK_CATALOG,
   DISCOVER_SKILL_CATALOG,
-  defaultEnabledComponentPackIds,
-  defaultEnabledSkillIds,
-  defaultInstalledSkillIds,
   type ComponentPackCatalogItem,
   type SkillCatalogItem,
 } from "@/lib/settings/skillsCatalog";
-
-function useSkillHubPrefs() {
-  const overview = useSettingsOverviewQuery();
-  const updatePrefs = useConvexMutation(api.settings.updateSkillHubPrefs);
-
-  const installedSkillIds =
-    overview.data?.skillHub?.installedSkillIds ?? defaultInstalledSkillIds();
-  const enabledSkillIds =
-    overview.data?.skillHub?.enabledSkillIds ?? defaultEnabledSkillIds();
-  const enabledComponentPackIds =
-    overview.data?.skillHub?.enabledComponentPackIds ??
-    defaultEnabledComponentPackIds();
-
-  async function setSkillEnabled(id: string, enabled: boolean) {
-    const next = enabled
-      ? Array.from(new Set([...enabledSkillIds, id]))
-      : enabledSkillIds.filter((entry) => entry !== id);
-    await updatePrefs({ enabledSkillIds: next });
-  }
-
-  async function addSkill(id: string) {
-    await updatePrefs({
-      installedSkillIds: Array.from(new Set([...installedSkillIds, id])),
-      enabledSkillIds: Array.from(new Set([...enabledSkillIds, id])),
-    });
-  }
-
-  async function setPackEnabled(id: string, enabled: boolean) {
-    const next = enabled
-      ? Array.from(new Set([...enabledComponentPackIds, id]))
-      : enabledComponentPackIds.filter((entry) => entry !== id);
-    await updatePrefs({ enabledComponentPackIds: next });
-  }
-
-  return {
-    installedSkillIds,
-    enabledSkillIds,
-    enabledComponentPackIds,
-    setSkillEnabled,
-    addSkill,
-    setPackEnabled,
-    isLoading: overview.isLoading,
-  };
-}
 
 export function SkillsHubPanel() {
   const prefs = useSkillHubPrefs();
@@ -178,6 +129,17 @@ export function MarketplaceHubPanel({
     }
   }
 
+  async function uninstallSkill(skill: SkillCatalogItem) {
+    setBusyId(skill.id);
+    try {
+      await prefs.uninstallSkill(skill.id);
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : "Could not uninstall skill.");
+    } finally {
+      setBusyId(null);
+    }
+  }
+
   async function addLibrary(pack: ComponentPackCatalogItem) {
     try {
       await prefs.setPackEnabled(pack.id, true);
@@ -232,6 +194,10 @@ export function MarketplaceHubPanel({
           onAddSkill={(id) => {
             const target = DISCOVER_SKILL_CATALOG.find((entry) => entry.id === id);
             if (target) void addSkill(target);
+          }}
+          onUninstallSkill={(id) => {
+            const target = DISCOVER_SKILL_CATALOG.find((entry) => entry.id === id);
+            if (target) void uninstallSkill(target);
           }}
           onOpenSkill={setOpenSkillId}
         />
@@ -308,6 +274,7 @@ export function MarketplaceHubPanel({
                   busy={busyId === skill.id}
                   disabled={prefs.isLoading}
                   onAdd={() => void addSkill(skill)}
+                  onUninstall={() => void uninstallSkill(skill)}
                   onOpen={() => setOpenSkillId(skill.id)}
                 />
               );
@@ -395,6 +362,7 @@ function MarketplaceSkillCard({
   busy,
   disabled,
   onAdd,
+  onUninstall,
   onOpen,
 }: {
   skill: SkillCatalogItem;
@@ -402,6 +370,7 @@ function MarketplaceSkillCard({
   busy: boolean;
   disabled: boolean;
   onAdd: () => void;
+  onUninstall: () => void;
   onOpen: () => void;
 }) {
   return (
@@ -427,11 +396,11 @@ function MarketplaceSkillCard({
         </div>
         <button
           type="button"
-          disabled={disabled || busy || installed}
-          onClick={onAdd}
+          disabled={disabled || busy}
+          onClick={() => (installed ? onUninstall() : onAdd())}
           className="mt-auto inline-flex h-[30px] w-fit items-center rounded-[6px] bg-[#F5F5F5] px-[10px] text-[12px] font-medium text-[#171717] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.2)] disabled:text-[#A3A3A3]"
         >
-          {busy ? "Adding…" : installed ? "Added" : "+ Add Skill"}
+          {busy ? (installed ? "Removing…" : "Adding…") : installed ? "Uninstall" : "+ Add Skill"}
         </button>
       </div>
     </article>
@@ -533,7 +502,7 @@ function SkillTypeIcon() {
   );
 }
 
-function PackIcon({
+export function PackIcon({
   src,
   name,
   compact = false,

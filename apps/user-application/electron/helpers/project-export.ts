@@ -29,20 +29,25 @@ const EXPORT_APP_LABELS: Record<ProjectExportProvider, string> = {
   codex: "Codex",
   cursor: "Cursor",
   vscode: "VS Code",
+  zed: "Zed",
+  antigravity: "Antigravity",
+  windsurf: "Windsurf",
 };
 
-const EXPORT_APP_BINARIES: Record<ProjectExportProvider, string> = {
+const EXPORT_APP_BINARIES: Partial<Record<ProjectExportProvider, string>> = {
   claude: "claude",
   codex: "codex",
-  cursor: "cursor",
-  vscode: "code",
 };
 
-const EXPORT_APP_MAC_NAMES: Record<ProjectExportProvider, string> = {
-  claude: "Claude",
-  codex: "Codex",
-  cursor: "Cursor",
-  vscode: "Visual Studio Code",
+/** Launch Services names. GUI IDEs never use PATH binaries (agent shims). */
+const EXPORT_APP_MAC_NAMES: Record<ProjectExportProvider, readonly string[]> = {
+  claude: ["Claude"],
+  codex: ["Codex"],
+  cursor: ["Cursor"],
+  vscode: ["Visual Studio Code"],
+  zed: ["Zed"],
+  antigravity: ["Antigravity IDE", "Antigravity"],
+  windsurf: ["Windsurf"],
 };
 
 async function resolveBinary(binary: string): Promise<string | null> {
@@ -76,7 +81,20 @@ async function macAppAvailable(appName: string) {
 }
 
 function usesGuiApp(id: ProjectExportProvider) {
-  return id === "cursor" || id === "vscode";
+  return (
+    id === "cursor" ||
+    id === "vscode" ||
+    id === "zed" ||
+    id === "antigravity" ||
+    id === "windsurf"
+  );
+}
+
+async function resolveMacAppName(id: ProjectExportProvider): Promise<string | null> {
+  for (const name of EXPORT_APP_MAC_NAMES[id]) {
+    if (await macAppAvailable(name)) return name;
+  }
+  return null;
 }
 
 export async function listExportApps() {
@@ -86,11 +104,12 @@ export async function listExportApps() {
       if (!isDarwin) {
         return { id, available: false };
       }
+      const binary = EXPORT_APP_BINARIES[id];
       return {
         id,
         available: usesGuiApp(id)
-          ? await macAppAvailable(EXPORT_APP_MAC_NAMES[id])
-          : Boolean(await resolveBinary(EXPORT_APP_BINARIES[id])),
+          ? Boolean(await resolveMacAppName(id))
+          : Boolean(binary && (await resolveBinary(binary))),
       };
     }),
   );
@@ -273,7 +292,8 @@ async function launchProvider(
 
   const pathValue = augmentPathForProviderClis(process.env.PATH);
   const label = EXPORT_APP_LABELS[provider];
-  const binary = await resolveBinary(EXPORT_APP_BINARIES[provider]);
+  const binaryName = EXPORT_APP_BINARIES[provider];
+  const binary = binaryName ? await resolveBinary(binaryName) : null;
   const copiesPrompt = provider !== "claude";
 
   if (copiesPrompt) {
@@ -311,11 +331,11 @@ end run`;
   }
 
   if (usesGuiApp(provider)) {
-    await execFileAsync("/usr/bin/open", [
-      "-a",
-      EXPORT_APP_MAC_NAMES[provider],
-      directoryPath,
-    ]);
+    const appName = await resolveMacAppName(provider);
+    if (!appName) {
+      throw new Error(`${label} is not installed or could not be found.`);
+    }
+    await execFileAsync("/usr/bin/open", ["-a", appName, directoryPath]);
     return;
   }
 

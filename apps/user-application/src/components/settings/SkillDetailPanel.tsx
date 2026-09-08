@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { parseGithubSourceUrl } from "@shared/models/safeHttpsUrl";
 import {
   DISCOVER_SKILL_CATALOG,
   type SkillCatalogItem,
@@ -6,7 +7,13 @@ import {
 import { openExternalLink } from "@/lib/settings/openExternalLink";
 import { MetaChip, OfficialBadge, SkillArtwork } from "./SkillsComponentsHub";
 
-const SHARE_URL_BASE = "https://www.stage.ai/skill";
+function shareableGithubUrl(sourceUrl: string): string | null {
+  try {
+    return parseGithubSourceUrl(sourceUrl);
+  } catch {
+    return null;
+  }
+}
 
 export function SkillDetailPanel({
   skill,
@@ -14,6 +21,7 @@ export function SkillDetailPanel({
   busy,
   onBack,
   onAddSkill,
+  onUninstallSkill,
   onOpenSkill,
 }: {
   skill: SkillCatalogItem;
@@ -21,10 +29,12 @@ export function SkillDetailPanel({
   busy: boolean;
   onBack: () => void;
   onAddSkill: (id: string) => void;
+  onUninstallSkill: (id: string) => void;
   onOpenSkill: (id: string) => void;
 }) {
   const [isShareOpen, setIsShareOpen] = useState(false);
   const similar = DISCOVER_SKILL_CATALOG.filter((entry) => entry.id !== skill.id).slice(0, 3);
+  const shareUrl = shareableGithubUrl(skill.sourceUrl);
 
   return (
     <section className="relative flex flex-col gap-[20px]">
@@ -53,11 +63,23 @@ export function SkillDetailPanel({
             </div>
             <button
               type="button"
-              disabled={busy || installed}
-              onClick={() => onAddSkill(skill.id)}
-              className="inline-flex h-[30px] shrink-0 items-center rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7B76DF] to-[#463FBA] px-[12px] text-[12px] font-medium leading-none text-[#FAFAFA] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-opacity enabled:hover:opacity-95 disabled:opacity-60"
+              disabled={busy}
+              onClick={() =>
+                installed ? onUninstallSkill(skill.id) : onAddSkill(skill.id)
+              }
+              className={
+                installed
+                  ? "inline-flex h-[30px] shrink-0 items-center rounded-[6px] bg-[#F5F5F5] px-[12px] text-[12px] font-medium leading-none text-[#171717] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.2)] transition-opacity enabled:hover:opacity-95 disabled:opacity-60"
+                  : "inline-flex h-[30px] shrink-0 items-center rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7B76DF] to-[#463FBA] px-[12px] text-[12px] font-medium leading-none text-[#FAFAFA] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-opacity enabled:hover:opacity-95 disabled:opacity-60"
+              }
             >
-              {busy ? "Adding…" : installed ? "In Stage" : "Use in Stage"}
+              {busy
+                ? installed
+                  ? "Removing…"
+                  : "Adding…"
+                : installed
+                  ? "Uninstall"
+                  : "Use in Stage"}
             </button>
           </header>
 
@@ -127,37 +149,25 @@ export function SkillDetailPanel({
               ))}
             </div>
           </DetailSection>
-
-          <div className="rounded-[8px] bg-gradient-to-b from-[#7B76DF] to-[#463FBA] px-[20px] py-[28px] text-center">
-            <p className="text-[15px] font-semibold leading-none text-white">
-              Want this look in your own product?
-            </p>
-            <p className="mt-[8px] text-[12px] font-medium leading-none text-[#E4E2FF]">
-              {skill.name} ships free inside Stage. Turn it on, generate, done.
-            </p>
-            <button
-              type="button"
-              disabled={busy || installed}
-              onClick={() => onAddSkill(skill.id)}
-              className="mt-[16px] inline-flex h-[30px] items-center rounded-[6px] bg-white px-[14px] text-[12px] font-medium leading-none text-[#171717] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] disabled:opacity-60"
-            >
-              {installed ? "Already in Stage" : "Get Stage"}
-            </button>
-          </div>
         </div>
 
         <aside className="flex w-full shrink-0 flex-col gap-[16px] border-t border-dashed border-[#E5E5E5] pt-[16px] lg:w-[200px] lg:border-l lg:border-t-0 lg:pl-[20px] lg:pt-0">
           <div className="flex flex-col gap-[8px]">
             <SidebarAction
               icon="/logos/skills/blocks.svg"
-              label={installed ? "In your library" : "Add to collection"}
-              disabled={busy || installed}
-              onClick={() => onAddSkill(skill.id)}
+              label={installed ? "Uninstall" : "Add to collection"}
+              disabled={busy}
+              onClick={() =>
+                installed ? onUninstallSkill(skill.id) : onAddSkill(skill.id)
+              }
             />
             <SidebarAction
               icon="/logos/skills/shopping-bag.svg"
               label="Share Skill"
-              onClick={() => setIsShareOpen(true)}
+              disabled={!shareUrl}
+              onClick={() => {
+                if (shareUrl) setIsShareOpen(true);
+              }}
             />
           </div>
 
@@ -188,9 +198,9 @@ export function SkillDetailPanel({
         </aside>
       </div>
 
-      {isShareOpen ? (
+      {isShareOpen && shareUrl ? (
         <ShareSkillDialog
-          url={`${SHARE_URL_BASE}/${skill.id}`}
+          url={shareUrl}
           onClose={() => setIsShareOpen(false)}
         />
       ) : null}
@@ -202,12 +212,13 @@ function ShareSkillDialog({ url, onClose }: { url: string; onClose: () => void }
   const [copied, setCopied] = useState(false);
 
   async function copy() {
+    const safeUrl = parseGithubSourceUrl(url);
     try {
-      await navigator.clipboard.writeText(url);
+      await navigator.clipboard.writeText(safeUrl);
       setCopied(true);
       window.setTimeout(() => setCopied(false), 2000);
     } catch {
-      window.prompt("Copy this link", url);
+      window.prompt("Copy this link", safeUrl);
     }
   }
 
@@ -227,7 +238,7 @@ function ShareSkillDialog({ url, onClose }: { url: string; onClose: () => void }
           Share skills
         </p>
         <p className="mt-[6px] text-center text-[12px] font-medium leading-[1.4] text-[#737373]">
-          Share skills with your team, friends and colleagues.
+          Copy the GitHub repository link.
         </p>
 
         <label className="mt-[16px] block">

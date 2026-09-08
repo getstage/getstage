@@ -269,6 +269,21 @@ export async function deleteAccountHandler(ctx: ActionCtx, args: { confirmation:
   };
 }
 
+/** Keep in sync with `skillHubIdSchema` in user-application/shared/models/safeHttpsUrl.ts */
+const SKILL_HUB_ID_PATTERN = /^[a-z][a-z0-9-]{0,62}$/;
+const MAX_SKILL_HUB_IDS = 64;
+
+function assertSkillHubIds(ids: string[], label: string) {
+  if (ids.length > MAX_SKILL_HUB_IDS) {
+    throw new Error(`${label} exceeds ${MAX_SKILL_HUB_IDS} entries.`);
+  }
+  for (const id of ids) {
+    if (!SKILL_HUB_ID_PATTERN.test(id)) {
+      throw new Error(`${label} contains an invalid id.`);
+    }
+  }
+}
+
 export const updateSkillHubPrefsArgs = {
   installedSkillIds: v.optional(v.array(v.string())),
   enabledSkillIds: v.optional(v.array(v.string())),
@@ -284,16 +299,25 @@ export async function updateSkillHubPrefsHandler(
   },
 ) {
   const user = await requireAuthUser(ctx);
+  if (args.installedSkillIds !== undefined) {
+    assertSkillHubIds(args.installedSkillIds, "installedSkillIds");
+  }
+  if (args.enabledSkillIds !== undefined) {
+    assertSkillHubIds(args.enabledSkillIds, "enabledSkillIds");
+  }
+  if (args.enabledComponentPackIds !== undefined) {
+    assertSkillHubIds(args.enabledComponentPackIds, "enabledComponentPackIds");
+  }
   const timestamp = now();
   await ctx.db.patch(user._id, {
     ...(args.installedSkillIds !== undefined
-      ? { installedSkillIds: args.installedSkillIds.slice(0, 64) }
+      ? { installedSkillIds: args.installedSkillIds }
       : {}),
     ...(args.enabledSkillIds !== undefined
-      ? { enabledSkillIds: args.enabledSkillIds.slice(0, 64) }
+      ? { enabledSkillIds: args.enabledSkillIds }
       : {}),
     ...(args.enabledComponentPackIds !== undefined
-      ? { enabledComponentPackIds: args.enabledComponentPackIds.slice(0, 64) }
+      ? { enabledComponentPackIds: args.enabledComponentPackIds }
       : {}),
     updatedAt: timestamp,
   });

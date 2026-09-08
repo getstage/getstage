@@ -27,6 +27,7 @@ import {
   captureWireframeHtmlPng,
 } from "./helpers/wireframe-screenshot";
 import { IPC_CHANNELS } from "@shared/ipc/channels";
+import { parsePublicHttpsUrl } from "@shared/models/safeHttpsUrl";
 import {
   captureWindowRequestSchema,
   chatAttachmentTargetSchema,
@@ -565,16 +566,8 @@ export function registerIpcHandlers({
   });
 
   ipcMain.handle(IPC_CHANNELS.shellOpenExternal, async (_event, url: unknown) => {
-    if (typeof url !== "string") {
-      throw new Error("External URL must be a string.");
-    }
-
-    const parsedUrl = new URL(url);
-    if (parsedUrl.protocol !== "https:") {
-      throw new Error("Only HTTPS external URLs are allowed.");
-    }
-
-    await shell.openExternal(parsedUrl.toString());
+    const parsedUrl = parsePublicHttpsUrl(url);
+    await shell.openExternal(parsedUrl);
   });
 
   ipcMain.handle(IPC_CHANNELS.integrationsGetOAuthReturnUrl, (_event, provider: unknown) => {

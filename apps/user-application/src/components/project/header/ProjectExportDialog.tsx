@@ -2,10 +2,13 @@ import { useEffect, useState } from "react";
 import { useQuery as useConvexQuery } from "convex/react";
 import type { Id } from "@stage/data-ops/convex/data-model";
 import type { ProjectExportProvider } from "@shared/models/desktop";
+import { SkillsComponentsPanel } from "@/components/project/SkillsComponentsSelect";
 import {
-  resolveProjectSelection,
-  SkillsComponentsPanel,
-} from "@/components/project/SkillsComponentsSelect";
+  EXPORT_APP_LABELS,
+  ExportDestinationMenu,
+} from "@/components/project/header/ExportDestinationMenu";
+import { useInstalledExportApps } from "@/hooks/project/useInstalledExportApps";
+import { useSkillHubPrefs } from "@/hooks/settings/useSkillHubPrefs";
 import {
   useAssetsArtifact,
   useFlowsArtifact,
@@ -22,6 +25,10 @@ import {
   hasExportableWireframes,
   type ProjectExportSection,
 } from "@/lib/project/projectExport";
+import {
+  initialPickerSelection,
+  sanitizeProjectCatalogSelection,
+} from "@/lib/settings/skillHubIds";
 
 const SECTION_LABELS: Record<
   ProjectExportSection,
@@ -57,76 +64,16 @@ const SECTION_LABELS: Record<
   },
 };
 
-const EXPORT_APP_LABELS: Record<ProjectExportProvider, string> = {
-  claude: "Claude Code",
-  codex: "Codex",
-  cursor: "Cursor",
-  vscode: "VS Code",
-};
-
-const LAUNCH_ACTIONS: Array<{
-  id: ProjectExportProvider;
-  logoSrc: string;
-  logoOnWhite?: boolean;
-  className: string;
-}> = [
-  {
-    id: "claude",
-    logoSrc: "/logos/integrations/claude.svg",
-    className: "bg-[#262626] text-white hover:bg-[#171717]",
-  },
-  {
-    id: "codex",
-    logoSrc: "/logos/integrations/codex.svg",
-    logoOnWhite: true,
-    className: "bg-gradient-to-b from-[#8D87FF] to-[#6D67D8] text-white",
-  },
-  {
-    id: "cursor",
-    logoSrc: "/logos/integrations/cursor.svg",
-    className: "bg-[#0A0A0A] text-white hover:bg-black",
-  },
-  {
-    id: "vscode",
-    logoSrc: "/logos/integrations/vscode.svg",
-    className: "bg-[#0065A9] text-white hover:bg-[#005A96]",
-  },
-];
-
-const EMPTY_APP_AVAILABILITY: Record<ProjectExportProvider, boolean> = {
-  claude: false,
-  codex: false,
-  cursor: false,
-  vscode: false,
-};
-
-function catalogIdsFromProject(
-  skillIds: readonly string[],
-  componentPackIds: readonly string[],
-) {
-  const selection = resolveProjectSelection(skillIds, componentPackIds);
-  return {
-    skillIds: [
-      selection.designSkillId,
-      ...(selection.motionSkillId ? [selection.motionSkillId] : []),
-    ],
-    componentPackIds: [
-      selection.basePackId,
-      ...(selection.sectionsPackId ? [selection.sectionsPackId] : []),
-      ...(selection.chartsPackId ? [selection.chartsPackId] : []),
-    ],
-  };
-}
-
 type ExportStep = "sections" | "skills";
 
-type ProjectExportDialogProps = {
+export type ProjectExportDialogProps = {
   projectId: string;
   projectName: string;
   clientName: string;
   typeLabel: string;
   skillIds: readonly string[];
   componentPackIds: readonly string[];
+  initialStep?: ExportStep;
   onClose: () => void;
 };
 
@@ -137,6 +84,7 @@ export function ProjectExportDialog({
   typeLabel,
   skillIds,
   componentPackIds,
+  initialStep = "sections",
   onClose,
 }: ProjectExportDialogProps) {
   const research = useResearchArtifact(projectId);
@@ -148,23 +96,20 @@ export function ProjectExportDialog({
   const uploadedAssets = useConvexQuery(api.r2.listProjectAssets, {
     projectId: projectId as Id<"projects">,
   });
-  const [step, setStep] = useState<ExportStep>("sections");
-  const [selected, setSelected] = useState<Set<ProjectExportSection>>(
-    new Set(),
-  );
+  const prefs = useSkillHubPrefs();
+  const availableApps = useInstalledExportApps();
+  const [step, setStep] = useState<ExportStep>(initialStep);
+  const [selected, setSelected] = useState<Set<ProjectExportSection>>(new Set());
   const [catalogSelection, setCatalogSelection] = useState(() =>
-    catalogIdsFromProject(skillIds, componentPackIds),
+    sanitizeProjectCatalogSelection(skillIds, componentPackIds),
   );
   const [selectionInitialized, setSelectionInitialized] = useState(false);
+  const [pickerHydrated, setPickerHydrated] = useState(false);
   const [pendingAction, setPendingAction] = useState<
     "export" | ProjectExportProvider | null
   >(null);
   const [resultMessage, setResultMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [availableApps, setAvailableApps] = useState<Record<
-    ProjectExportProvider,
-    boolean
-  > | null>(null);
 
   const artifacts = {
     research: research.data?.artifact,
@@ -201,33 +146,34 @@ export function ProjectExportDialog({
   }, [available, isLoading, selectionInitialized]);
 
   useEffect(() => {
+    if (prefs.isLoading || pickerHydrated) return;
+    setCatalogSelection(
+      initialPickerSelection({
+        skillIds,
+        componentPackIds,
+        installedSkillIds: prefs.installedSkillIds,
+        enabledComponentPackIds: prefs.enabledComponentPackIds,
+      }),
+    );
+    setPickerHydrated(true);
+  }, [
+    componentPackIds,
+    pickerHydrated,
+    prefs.enabledComponentPackIds,
+    prefs.installedSkillIds,
+    prefs.isLoading,
+    skillIds,
+  ]);
+
+  useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key !== "Escape" || pendingAction) return;
-      if (step === "skills") setStep("sections");
+      if (step === "skills" && initialStep !== "skills") setStep("sections");
       else onClose();
     }
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [onClose, pendingAction, step]);
-
-  useEffect(() => {
-    const listApps = window.stageDesktop?.project?.listExportApps;
-    if (!listApps) {
-      setAvailableApps({ ...EMPTY_APP_AVAILABILITY, claude: true, codex: true });
-      return;
-    }
-    void listApps()
-      .then((response) => {
-        const next = { ...EMPTY_APP_AVAILABILITY };
-        for (const app of response.apps) {
-          next[app.id] = app.available;
-        }
-        setAvailableApps(next);
-      })
-      .catch(() => {
-        setAvailableApps({ ...EMPTY_APP_AVAILABILITY, claude: true, codex: true });
-      });
-  }, []);
+  }, [initialStep, onClose, pendingAction, step]);
 
   function toggleSection(section: ProjectExportSection) {
     if (!available[section]) return;
@@ -244,7 +190,7 @@ export function ProjectExportDialog({
     setErrorMessage(null);
     setResultMessage(null);
     try {
-      const resolved = catalogIdsFromProject(
+      const resolved = sanitizeProjectCatalogSelection(
         catalogSelection.skillIds,
         catalogSelection.componentPackIds,
       );
@@ -299,9 +245,13 @@ export function ProjectExportDialog({
   const hasAnythingToExport = PROJECT_EXPORT_SECTIONS.some(
     (section) => available[section],
   );
-  const visibleLaunchActions = LAUNCH_ACTIONS.filter(
-    (action) => availableApps?.[action.id],
-  );
+  const exportBusy = Boolean(pendingAction);
+  const exportTriggerLabel =
+    pendingAction === "export"
+      ? "Exporting…"
+      : pendingAction
+        ? "Opening…"
+        : "Export";
 
   return (
     <div
@@ -335,7 +285,7 @@ export function ProjectExportDialog({
         </div>
       ) : null}
       <div
-        className="flex w-full max-w-[560px] flex-col rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]"
+        className="flex max-h-[90vh] w-full max-w-[720px] flex-col rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex shrink-0 items-start justify-between gap-4 p-3">
@@ -349,7 +299,7 @@ export function ProjectExportDialog({
             <p className="mt-1 text-[13px] leading-[1.5] text-[#525252]">
               {step === "sections"
                 ? "Choose which project documents to include in the local workspace."
-                : "Public references for the coding agent. It picks the exact components while building."}
+                : "Public references for the coding agent. Added skills and libraries sit on top."}
             </p>
             <div className="mt-3 flex gap-1" aria-hidden="true">
               <span
@@ -371,7 +321,7 @@ export function ProjectExportDialog({
           </button>
         </div>
 
-        <div className="overflow-visible rounded-[8px] bg-white p-3 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
+        <div className="min-h-0 flex-1 overflow-y-auto rounded-[8px] bg-white p-3 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
           {step === "sections" ? (
             <>
               <p className="mb-3 text-[13px] font-medium text-[#171717]">
@@ -419,73 +369,60 @@ export function ProjectExportDialog({
                   exists. Wireframes count only after they have been generated.
                 </p>
               ) : null}
-              <div className="mt-4 flex justify-end">
-                <button
-                  type="button"
-                  disabled={!canContinue}
-                  onClick={() => setStep("skills")}
-                  className="inline-flex h-9 items-center rounded-[7px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7B76DF] to-[#463FBA] px-3 text-[13px] font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  Continue
-                </button>
-              </div>
             </>
           ) : (
             <>
-              <div className="flex flex-col gap-4">
-                <SkillsComponentsPanel
-                  skillIds={catalogSelection.skillIds}
-                  componentPackIds={catalogSelection.componentPackIds}
-                  onChange={setCatalogSelection}
-                  disabled={Boolean(pendingAction)}
-                />
-              </div>
+              <SkillsComponentsPanel
+                skillIds={catalogSelection.skillIds}
+                componentPackIds={catalogSelection.componentPackIds}
+                onChange={setCatalogSelection}
+                disabled={exportBusy}
+              />
               {errorMessage ? (
                 <p className="mt-3 text-[12px] text-[#b91c1c]">{errorMessage}</p>
               ) : null}
-              <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
+            </>
+          )}
+        </div>
+        <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 px-3 py-3">
+          {step === "sections" ? (
+            <>
+              <span />
+              <button
+                type="button"
+                disabled={!canContinue}
+                onClick={() => setStep("skills")}
+                className="inline-flex h-9 items-center rounded-[7px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7B76DF] to-[#463FBA] px-3 text-[13px] font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Continue
+              </button>
+            </>
+          ) : (
+            <>
+              {initialStep === "skills" ? (
+                <span />
+              ) : (
                 <button
                   type="button"
-                  disabled={Boolean(pendingAction)}
+                  disabled={exportBusy}
                   onClick={() => {
                     setErrorMessage(null);
                     setStep("sections");
                   }}
-                  className="h-9 rounded-[7px] px-3 text-[13px] font-medium text-[#525252] hover:bg-[#F5F5F5] disabled:opacity-50"
+                  className="h-9 rounded-[7px] px-3 text-[13px] font-medium text-[#525252] hover:bg-white disabled:opacity-50"
                 >
                   Back
                 </button>
-                <div className="flex flex-wrap justify-end gap-2">
-                  <button
-                    type="button"
-                    disabled={!canContinue}
-                    onClick={() => void runExport()}
-                    className="h-9 rounded-[7px] border border-[#D4D4D4] bg-white px-3 text-[13px] font-medium text-[#404040] hover:bg-[#FAFAFA] disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    {pendingAction === "export" ? "Exporting…" : "Export only"}
-                  </button>
-                  {visibleLaunchActions.map((action) => (
-                    <button
-                      key={action.id}
-                      type="button"
-                      disabled={!canContinue}
-                      onClick={() => void runExport(action.id)}
-                      className={`inline-flex h-9 items-center gap-2 rounded-[7px] px-3 text-[13px] font-medium disabled:cursor-not-allowed disabled:opacity-50 ${action.className}`}
-                    >
-                      {action.logoOnWhite ? (
-                        <span className="flex h-5 w-5 items-center justify-center rounded-[5px] bg-white">
-                          <img src={action.logoSrc} alt="" className="h-4 w-4" />
-                        </span>
-                      ) : (
-                        <img src={action.logoSrc} alt="" className="h-4 w-4" />
-                      )}
-                      {pendingAction === action.id
-                        ? "Opening…"
-                        : `Open in ${EXPORT_APP_LABELS[action.id]}`}
-                    </button>
-                  ))}
-                </div>
-              </div>
+              )}
+              <ExportDestinationMenu
+                availableApps={availableApps}
+                disabled={!canContinue}
+                dropUp
+                triggerLabel={exportTriggerLabel}
+                triggerClassName="inline-flex h-9 items-center gap-2 rounded-[7px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7B76DF] to-[#463FBA] px-3 text-[13px] font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
+                onExportOnly={() => void runExport()}
+                onOpenIn={(id) => void runExport(id)}
+              />
             </>
           )}
         </div>

@@ -19,7 +19,7 @@ export function SkillsComponentsStep({
   return (
     <CreateProjectStepShell
       title="Skills & Components"
-      description="Pick one design skill, an optional motion skill, one component base, and optional page sections"
+      description="Pick from skills and component libraries you have added. You can add more without leaving this step."
       activeStepIndex={4}
       headerGapClassName="gap-[24px]"
       descriptionClassName="w-full"

@@ -71,7 +71,7 @@ export function ProjectDetailView() {
     onLeavingAfterDelete: setIsLeavingAfterDelete,
   });
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
-  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [exportStep, setExportStep] = useState<"sections" | "skills" | null>(null);
   const [pendingStrategyGeneration, setPendingStrategyGeneration] = useState(false);
   const [pendingStrategyProviderId, setPendingStrategyProviderId] = useState<ProviderId | null>(
     null,
@@ -188,7 +188,7 @@ export function ProjectDetailView() {
               timeline={timeline}
               activeTab={activeTab}
               onTabChange={setActiveTab}
-              onExport={() => setIsExportModalOpen(true)}
+              onExport={(opts) => setExportStep(opts?.step ?? "sections")}
               onShare={() => setIsShareModalOpen(true)}
               onSaveProjectProfile={(input) => runModalAction(() => actions.saveProjectProfile(input))}
               onSaveClientProfile={(input) => runModalAction(() => actions.saveClientProfile(input))}
@@ -292,7 +292,7 @@ export function ProjectDetailView() {
           onClose={() => setIsShareModalOpen(false)}
         />
       ) : null}
-      {isExportModalOpen && live.detail ? (
+      {exportStep && live.detail ? (
         <ProjectExportDialog
           projectId={projectId}
           projectName={live.detail.name}
@@ -304,7 +304,8 @@ export function ProjectDetailView() {
           }
           skillIds={live.detail.skillIds ?? []}
           componentPackIds={live.detail.componentPackIds ?? []}
-          onClose={() => setIsExportModalOpen(false)}
+          initialStep={exportStep}
+          onClose={() => setExportStep(null)}
         />
       ) : null}
     </>

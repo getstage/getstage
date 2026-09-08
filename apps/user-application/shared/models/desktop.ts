@@ -191,6 +191,9 @@ export const projectExportProviderSchema = z.enum([
   "codex",
   "cursor",
   "vscode",
+  "zed",
+  "antigravity",
+  "windsurf",
 ]);
 
 export const projectExportAppsResponseSchema = z.object({
