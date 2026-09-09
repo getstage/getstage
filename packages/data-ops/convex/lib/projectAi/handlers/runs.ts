@@ -102,7 +102,7 @@ export async function cancelRunHandler(
   await requireProjectAccess(ctx, args.projectId);
   const runId = args.runId as Id<"projectAiRuns">;
   const run = await ctx.db.get(runId);
-  if (!run) {
+  if (!run || run.projectId !== args.projectId) {
     throw new Error("Run not found");
   }
   if (run.status === "completed" || run.status === "failed" || run.status === "cancelled") {

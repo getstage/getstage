@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   canonicalGithubRepoUrl,
   deriveImportedSkillHubId,
+  isPrivateIp,
   parseGithubSourceUrl,
   parsePublicHttpsUrl,
   skillHubIdSchema,
@@ -33,6 +34,15 @@ test("parsePublicHttpsUrl accepts ordinary https hosts", () => {
     parsePublicHttpsUrl("https://ui.shadcn.com/docs"),
     "https://ui.shadcn.com/docs",
   );
+});
+
+test("isPrivateIp covers IPv4-mapped private ranges", () => {
+  assert.equal(isPrivateIp("172.16.0.1"), true);
+  assert.equal(isPrivateIp("::ffff:172.16.0.1"), true);
+  assert.equal(isPrivateIp("::ffff:169.254.1.1"), true);
+  assert.equal(isPrivateIp("::ffff:c0a8:1"), true);
+  assert.equal(isPrivateIp("::ffff:8.8.8.8"), false);
+  assert.equal(isPrivateIp("8.8.8.8"), false);
 });
 
 test("parsePublicHttpsUrl rejects credentials, localhost, and http", () => {

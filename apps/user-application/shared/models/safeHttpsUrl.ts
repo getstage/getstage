@@ -46,6 +46,33 @@ function isPrivateIpv4(hostname: string): boolean {
   );
 }
 
+function ipv4FromMappedIpv6(address: string): string | null {
+  const normalized = address.toLowerCase();
+  const dotted = /^::ffff:(\d{1,3}(?:\.\d{1,3}){3})$/.exec(normalized);
+  if (dotted?.[1]) return dotted[1];
+  const hex = /^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/.exec(normalized);
+  if (!hex?.[1] || !hex[2]) return null;
+  const high = Number.parseInt(hex[1], 16);
+  const low = Number.parseInt(hex[2], 16);
+  if (Number.isNaN(high) || Number.isNaN(low)) return null;
+  return `${(high >> 8) & 255}.${high & 255}.${(low >> 8) & 255}.${low & 255}`;
+}
+
+/** True for loopback, RFC1918, link-local, multicast, and IPv4-mapped forms of those. */
+export function isPrivateIp(address: string): boolean {
+  if (isPrivateIpv4(address)) return true;
+  const mapped = ipv4FromMappedIpv6(address);
+  if (mapped) return isPrivateIpv4(mapped);
+  const normalized = address.toLowerCase();
+  return (
+    normalized === "::" ||
+    normalized === "::1" ||
+    normalized.startsWith("fe80:") ||
+    normalized.startsWith("fc") ||
+    normalized.startsWith("fd")
+  );
+}
+
 function assertNoCredentials(url: URL) {
   if (url.username || url.password) {
     throw new Error("URLs with credentials are not allowed.");

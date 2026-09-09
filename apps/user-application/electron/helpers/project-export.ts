@@ -2,7 +2,8 @@ import { execFile } from "node:child_process";
 import { lookup } from "node:dns/promises";
 import { existsSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
-import { isIP } from "node:net";
+import { request as httpRequest, type IncomingMessage } from "node:http";
+import { request as httpsRequest } from "node:https";
 import { homedir } from "node:os";
 import { resolve, sep } from "node:path";
 import { promisify } from "node:util";
@@ -16,6 +17,7 @@ import {
   type ProjectExportRequest,
   type ProjectExportResponse,
 } from "@shared/models/desktop";
+import { isPrivateIp } from "@shared/models/safeHttpsUrl";
 import { augmentPathForProviderClis } from "./cli-path";
 
 const execFileAsync = promisify(execFile);
@@ -155,33 +157,23 @@ async function createUniqueExportDirectory(
   throw new Error("Could not create a unique Stage export folder.");
 }
 
-function isPrivateIp(address: string) {
-  if (isIP(address) === 4) {
-    const [a = 0, b = 0] = address.split(".").map(Number);
-    return (
-      a === 0 ||
-      a === 10 ||
-      a === 127 ||
-      (a === 169 && b === 254) ||
-      (a === 172 && b >= 16 && b <= 31) ||
-      (a === 192 && b === 168) ||
-      a >= 224
-    );
-  }
-  if (isIP(address) === 6) {
-    const normalized = address.toLowerCase();
-    return (
-      normalized === "::" ||
-      normalized === "::1" ||
-      normalized.startsWith("fe80:") ||
-      normalized.startsWith("fc") ||
-      normalized.startsWith("fd") ||
-      normalized.startsWith("::ffff:127.") ||
-      normalized.startsWith("::ffff:10.") ||
-      normalized.startsWith("::ffff:192.168.")
-    );
-  }
-  return false;
+function lookupPublic(
+  hostname: string,
+  _options: unknown,
+  callback: (error: Error | null, address: string, family: number) => void,
+) {
+  void lookup(hostname, { all: true }).then(
+    (addresses) => {
+      const allowed = addresses.filter(({ address }) => !isPrivateIp(address));
+      const chosen = allowed[0];
+      if (!chosen) {
+        callback(new Error("Private asset addresses are not allowed."), "", 4);
+        return;
+      }
+      callback(null, chosen.address, chosen.family);
+    },
+    (error: Error) => callback(error, "", 4),
+  );
 }
 
 async function assertPublicAssetUrl(value: string) {
@@ -202,33 +194,74 @@ async function assertPublicAssetUrl(value: string) {
   return url;
 }
 
+function collectAssetBody(response: IncomingMessage) {
+  return new Promise<Buffer>((resolve, reject) => {
+    const chunks: Buffer[] = [];
+    let total = 0;
+    response.on("data", (chunk: Buffer) => {
+      total += chunk.length;
+      if (total > MAX_ASSET_BYTES) {
+        response.destroy();
+        reject(new Error("Asset is larger than 25 MB."));
+        return;
+      }
+      chunks.push(chunk);
+    });
+    response.on("end", () => resolve(Buffer.concat(chunks)));
+    response.on("error", reject);
+  });
+}
+
+function requestPublicAsset(url: URL) {
+  return new Promise<{
+    status: number;
+    location: string | null;
+    body: Buffer;
+  }>((resolve, reject) => {
+    const request = (url.protocol === "https:" ? httpsRequest : httpRequest)(
+      url,
+      { method: "GET", lookup: lookupPublic },
+      (response) => {
+        const status = response.statusCode ?? 0;
+        const location = response.headers.location ?? null;
+        if (status >= 300 && status < 400) {
+          response.resume();
+          resolve({ status, location, body: Buffer.alloc(0) });
+          return;
+        }
+        void collectAssetBody(response).then(
+          (body) => resolve({ status, location, body }),
+          reject,
+        );
+      },
+    );
+    request.setTimeout(30_000, () => {
+      request.destroy();
+      reject(new Error("Asset download timed out."));
+    });
+    request.on("error", reject);
+    request.end();
+  });
+}
+
 async function fetchAsset(asset: ProjectExportAsset) {
   let url = await assertPublicAssetUrl(asset.url);
   for (let redirects = 0; redirects <= 3; redirects += 1) {
-    const response = await fetch(url, {
-      redirect: "manual",
-      signal: AbortSignal.timeout(30_000),
-    });
+    const response = await requestPublicAsset(url);
     if (response.status >= 300 && response.status < 400) {
-      const location = response.headers.get("location");
-      if (!location || redirects === 3) {
+      if (!response.location || redirects === 3) {
         throw new Error("Asset redirected too many times.");
       }
-      url = await assertPublicAssetUrl(new URL(location, url).toString());
+      url = await assertPublicAssetUrl(new URL(response.location, url).toString());
       continue;
     }
-    if (!response.ok) {
+    if (response.status < 200 || response.status >= 300) {
       throw new Error(`Asset download failed with HTTP ${response.status}.`);
     }
-    const declaredSize = Number(response.headers.get("content-length") ?? 0);
-    if (declaredSize > MAX_ASSET_BYTES) {
+    if (response.body.byteLength > MAX_ASSET_BYTES) {
       throw new Error("Asset is larger than 25 MB.");
     }
-    const bytes = Buffer.from(await response.arrayBuffer());
-    if (bytes.byteLength > MAX_ASSET_BYTES) {
-      throw new Error("Asset is larger than 25 MB.");
-    }
-    return bytes;
+    return response.body;
   }
   throw new Error("Asset download failed.");
 }

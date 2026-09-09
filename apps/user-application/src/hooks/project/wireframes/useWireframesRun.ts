@@ -109,17 +109,15 @@ export function useWireframesRun(projectId: string) {
   );
 
   const stopActiveRun = useCallback(async () => {
-    await Promise.allSettled([
-      providerRun.activeRunId
-        ? providerRun.cancelRun.mutateAsync(providerRun.activeRunId)
-        : Promise.resolve(),
-      persistedRunningRun
-        ? cancelPersistedRun({
-            runId: persistedRunningRun.id,
-            projectId: projectId as Id<"projects">,
-          })
-        : Promise.resolve(),
-    ]);
+    if (providerRun.activeRunId) {
+      await providerRun.cancelRun.mutateAsync(providerRun.activeRunId);
+    }
+    if (persistedRunningRun) {
+      await cancelPersistedRun({
+        runId: persistedRunningRun.id,
+        projectId: projectId as Id<"projects">,
+      });
+    }
     providerRun.resetActiveRun();
   }, [
     cancelPersistedRun,
@@ -239,13 +237,6 @@ export function useWireframesRun(projectId: string) {
 
         // Clear the previous run's cached id/events before starting the next one.
         providerRun.resetActiveRun();
-
-        if (persistedRunningRun && !providerRun.isRunActive) {
-          await cancelPersistedRun({
-            runId: persistedRunningRun.id,
-            projectId: projectId as Id<"projects">,
-          });
-        }
 
         const start = () =>
           providerRun.startRun.mutateAsync({
