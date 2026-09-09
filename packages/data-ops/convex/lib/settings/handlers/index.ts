@@ -8,6 +8,7 @@ import { now } from "../../../helpers/time";
 import { getCurrentSubscriptionSnapshot } from "../../billing/handlers";
 import { attachTrackedR2Asset, deleteOldR2Asset, resolveAssetUrl } from "../../../r2";
 import { ensurePortalConfig, pruneOrphanClientsForUser, requireAuthUser } from "../../../_helpers";
+import { assertImportedSkillHubItems, importedSkillHubItemValidator } from "../githubImport";
 
 const DEFAULT_PORTAL_COLOR = "#E8734A";
 const DELETE_ACCOUNT_CONFIRMATION = "DELETE";
@@ -106,6 +107,7 @@ export async function getOverviewHandler(ctx: QueryCtx) {
       installedSkillIds: user.installedSkillIds ?? null,
       enabledSkillIds: user.enabledSkillIds ?? null,
       enabledComponentPackIds: user.enabledComponentPackIds ?? null,
+      importedSkillHubItems: user.importedSkillHubItems ?? null,
     },
   };
 }
@@ -288,6 +290,7 @@ export const updateSkillHubPrefsArgs = {
   installedSkillIds: v.optional(v.array(v.string())),
   enabledSkillIds: v.optional(v.array(v.string())),
   enabledComponentPackIds: v.optional(v.array(v.string())),
+  importedSkillHubItems: v.optional(v.array(importedSkillHubItemValidator)),
 };
 
 export async function updateSkillHubPrefsHandler(
@@ -296,6 +299,12 @@ export async function updateSkillHubPrefsHandler(
     installedSkillIds?: string[];
     enabledSkillIds?: string[];
     enabledComponentPackIds?: string[];
+    importedSkillHubItems?: Array<{
+      id: string;
+      kind: "skill" | "component";
+      name: string;
+      sourceUrl: string;
+    }>;
   },
 ) {
   const user = await requireAuthUser(ctx);
@@ -308,6 +317,9 @@ export async function updateSkillHubPrefsHandler(
   if (args.enabledComponentPackIds !== undefined) {
     assertSkillHubIds(args.enabledComponentPackIds, "enabledComponentPackIds");
   }
+  if (args.importedSkillHubItems !== undefined) {
+    assertImportedSkillHubItems(args.importedSkillHubItems);
+  }
   const timestamp = now();
   await ctx.db.patch(user._id, {
     ...(args.installedSkillIds !== undefined
@@ -319,6 +331,9 @@ export async function updateSkillHubPrefsHandler(
     ...(args.enabledComponentPackIds !== undefined
       ? { enabledComponentPackIds: args.enabledComponentPackIds }
       : {}),
+    ...(args.importedSkillHubItems !== undefined
+      ? { importedSkillHubItems: args.importedSkillHubItems }
+      : {}),
     updatedAt: timestamp,
   });
   return {
@@ -326,5 +341,7 @@ export async function updateSkillHubPrefsHandler(
     enabledSkillIds: args.enabledSkillIds ?? user.enabledSkillIds ?? null,
     enabledComponentPackIds:
       args.enabledComponentPackIds ?? user.enabledComponentPackIds ?? null,
+    importedSkillHubItems:
+      args.importedSkillHubItems ?? user.importedSkillHubItems ?? null,
   };
 }

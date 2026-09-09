@@ -167,7 +167,7 @@ const wireframes = {
   artifactKind: "wireframesArtifact",
   projectId: "project-1",
   title: "Product Wireframes",
-  wireframeKind: "hifi",
+  wireframeKind: "lofi",
   brandSource: "style-guide",
   stats: { flowsScreenCount: 1, moodboardPatternCount: 1, totalConfigureScreenCount: 1 },
   configureScreens: [],
@@ -323,7 +323,9 @@ test("every exported project section uses curated readable Markdown", () => {
   assert.match(content["moodboard.md"] ?? "", /## Creative directions/);
   assert.match(content["style-guide.md"] ?? "", /### Colour palettes/);
   assert.match(content["flows.md"] ?? "", /## User flows[\s\S]*1\. Open signup/);
-  assert.match(content["wireframes.md"] ?? "", /#### Hi-Fi source[\s\S]*<main>Signup<\/main>/);
+  assert.match(content["wireframes.md"] ?? "", /\*\*Fidelity:\*\* Lo-Fi/);
+  assert.match(content["wireframes.md"] ?? "", /Collect account details/);
+  assert.doesNotMatch(content["wireframes.md"] ?? "", /#### Hi-Fi source|<main>Signup<\/main>/);
   assert.match(content["assets.md"] ?? "", /\[brief\.pdf\]\(.\/assets\/uploads\/brief\.pdf\)/);
   for (const markdown of Object.values(content)) {
     assert.doesNotMatch(markdown, /```json|artifactKind|project-1|section-1|block-1/);
@@ -332,8 +334,19 @@ test("every exported project section uses curated readable Markdown", () => {
 
 test("hasExportableWireframes requires generated screens, not just an artifact", () => {
   assert.equal(hasExportableWireframes(wireframes), true);
+  assert.equal(hasExportableWireframes({ ...wireframes, wireframeKind: "hifi" }), false);
   assert.equal(
     hasExportableWireframes({ ...wireframes, generatedScreens: [] }),
+    false,
+  );
+  assert.equal(
+    hasExportableWireframes({
+      ...wireframes,
+      generatedScreens: wireframes.generatedScreens.map((screen) => ({
+        ...screen,
+        sections: [],
+      })),
+    }),
     false,
   );
   assert.equal(hasExportableWireframes(null), false);
@@ -354,6 +367,8 @@ test("buildProjectExport writes selected skills and libraries as public URLs", (
 
   assert.ok(bundle.files.some(({ relativePath }) => relativePath === "skills.md"));
   assert.match(content["AGENTS.md"] ?? "", /skills\.md/);
+  assert.match(content["AGENTS.md"] ?? "", /\*\*Project category:\*\* Web App/);
+  assert.match(content["AGENTS.md"] ?? "", /Carry the moodboard through/);
   assert.match(
     content["skills.md"] ?? "",
     /\[Design Taste\]\(https:\/\/github\.com\/Leonxlnx\/taste-skill\)/,
@@ -368,6 +383,33 @@ test("buildProjectExport writes selected skills and libraries as public URLs", (
     content["skills.md"] ?? "",
     /r2\.cloudflarestorage|X-Amz-|AWSAccessKeyId|localhost|\.r2\.dev/i,
   );
+});
+
+test("buildProjectExport lists imported GitHub items first in skills.md", () => {
+  const bundle = buildProjectExport({
+    project: { name: "Example", clientName: "Client", typeLabel: "Web App" },
+    selected: new Set(["strategy"]),
+    artifacts: { strategy },
+    uploadedAssets: [],
+    skillIds: ["gh-owner-taste", "design-taste-frontend"],
+    componentPackIds: ["shadcn-ui"],
+    importedItems: [
+      {
+        id: "gh-owner-taste",
+        kind: "skill",
+        name: "taste-skill",
+        sourceUrl: "https://github.com/owner/taste-skill",
+      },
+    ],
+  });
+  const skillsFile =
+    bundle.files.find(({ relativePath }) => relativePath === "skills.md")?.content ?? "";
+  const importedIndex = skillsFile.indexOf(
+    "[taste-skill](https://github.com/owner/taste-skill)",
+  );
+  const catalogIndex = skillsFile.indexOf("[Design Taste]");
+  assert.ok(importedIndex >= 0);
+  assert.ok(catalogIndex > importedIndex);
 });
 
 test("buildProjectExport omits skills.md when nothing is selected", () => {

@@ -161,16 +161,3 @@ export function LofiWireframeIcon({ className }: { className: string }) {
     />
   );
 }
-
-export function HifiWireframeIcon({ className }: { className: string }) {
-  return (
-    <span
-      aria-hidden="true"
-      className={`${className} shrink-0 bg-current`}
-      style={{
-        WebkitMask: 'url("/logos/dashboard/hifi-wireframe.svg") center / contain no-repeat',
-        mask: 'url("/logos/dashboard/hifi-wireframe.svg") center / contain no-repeat',
-      }}
-    />
-  );
-}

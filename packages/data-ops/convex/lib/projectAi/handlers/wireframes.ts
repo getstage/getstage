@@ -164,6 +164,9 @@ export async function completeWireframesRunHandler(
     if (run.projectId !== args.projectId) {
       throw new Error("Run not found.");
     }
+    if (run.status === "cancelled") {
+      throw new Error("Cannot complete a cancelled wireframes run.");
+    }
   }
 
   await deletePreviousWireframesArtifacts(ctx, args.projectId);
@@ -218,6 +221,12 @@ export async function failWireframesRunHandler(
   const run = await getRunRecord(ctx, args.runId);
   if (run.projectId !== args.projectId) {
     throw new Error("Run not found.");
+  }
+  if (run.status === "cancelled") {
+    return {
+      runId: String(args.runId),
+      failedAt: run.completedAt ?? run.updatedAt,
+    };
   }
 
   const timestamp = now();

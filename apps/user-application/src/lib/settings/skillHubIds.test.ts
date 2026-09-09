@@ -25,6 +25,19 @@ test("sanitizeProjectCatalogSelection drops unknown catalog ids", () => {
   assert.deepEqual(next.componentPackIds, ["shadcn-ui"]);
 });
 
+test("sanitizeProjectCatalogSelection keeps extra imported ids", () => {
+  const next = sanitizeProjectCatalogSelection(
+    ["design-taste-frontend", "gh-owner-custom-skill"],
+    ["shadcn-ui", "gh-owner-custom-pack"],
+    {
+      skillIds: ["gh-owner-custom-skill"],
+      packIds: ["gh-owner-custom-pack"],
+    },
+  );
+  assert.deepEqual(next.skillIds, ["design-taste-frontend", "gh-owner-custom-skill"]);
+  assert.deepEqual(next.componentPackIds, ["shadcn-ui", "gh-owner-custom-pack"]);
+});
+
 test("initialPickerSelection prefers stored installed ids, else defaults that are installed", () => {
   assert.deepEqual(
     initialPickerSelection({

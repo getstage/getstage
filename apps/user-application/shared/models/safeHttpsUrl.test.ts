@@ -1,10 +1,32 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  canonicalGithubRepoUrl,
+  deriveImportedSkillHubId,
   parseGithubSourceUrl,
   parsePublicHttpsUrl,
   skillHubIdSchema,
 } from "./safeHttpsUrl";
+
+test("canonicalGithubRepoUrl strips tree paths to owner/repo", () => {
+  assert.deepEqual(
+    canonicalGithubRepoUrl(
+      "https://github.com/anthropics/skills/tree/main/skills/frontend-design",
+    ),
+    {
+      href: "https://github.com/anthropics/skills",
+      owner: "anthropics",
+      repo: "skills",
+    },
+  );
+});
+
+test("deriveImportedSkillHubId is kebab and stable", () => {
+  assert.equal(
+    deriveImportedSkillHubId("Leonxlnx", "taste-skill"),
+    "gh-leonxlnx-taste-skill",
+  );
+});
 
 test("parsePublicHttpsUrl accepts ordinary https hosts", () => {
   assert.equal(

@@ -36,7 +36,7 @@ stage_mvp/
 | [`AGENTS.md`](../AGENTS.md) | Agent/dev entry point |
 | [`R2_MIGRATION_FIXES.md`](../R2_MIGRATION_FIXES.md) | R2 storage migration rules |
 | [`WIREFRAMES_QUALITY_PLAN.md`](./WIREFRAMES_QUALITY_PLAN.md) | Beat raw Claude: taste skill, design brief, local skills |
-| [`NEW_VERSION_START_SEPTEMBER_2026.md`](./NEW_VERSION_START_SEPTEMBER_2026.md) | September 2026 cut — next: Lo-Fi-only Wireframes UI |
+| [`NEW_VERSION_START_SEPTEMBER_2026.md`](./NEW_VERSION_START_SEPTEMBER_2026.md) | STA-33 — sections 1–4 (Lo-Fi verified); 5–8 (Details / style / MCP / categories) next |
 
 ### Desktop (`apps/user-application/docs/AI/desktop/`)
 

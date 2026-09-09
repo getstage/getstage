@@ -4,7 +4,7 @@ use crate::models::errors::{EngineError, EngineErrorCode};
 use crate::models::providers::ProviderId;
 
 use super::heuristics::{
-    extract_provider_exit_payload, looks_like_provider_auth_failure,
+    extract_provider_exit_payload, looks_like_echoed_context, looks_like_provider_auth_failure,
     looks_like_provider_session_limit, looks_like_provider_subscription_disabled,
 };
 use super::stderr::{StderrDiagnostics, stderr_diag_max_chars, truncate_line};
@@ -71,41 +71,38 @@ impl ProviderProcessError {
                     .filter(|value| !value.is_empty());
 
                 if let Some(payload) = payload.as_deref() {
-                    if looks_like_provider_session_limit(payload) {
+                    if looks_like_echoed_context(payload) {
+                        // Fall through to a short generic exit message.
+                    } else if looks_like_provider_session_limit(payload) {
                         return Self::session_limit_user_message(label, payload);
-                    }
-
-                    if looks_like_provider_subscription_disabled(payload) {
+                    } else if looks_like_provider_subscription_disabled(payload) {
                         return Self::subscription_disabled_user_message(label);
-                    }
-
-                    if looks_like_provider_auth_failure(payload) {
+                    } else if looks_like_provider_auth_failure(payload) {
                         return format!(
                             "{label} is not logged in. Run `{login_cmd}` in Terminal, then refresh Settings → Integrations."
                         );
-                    }
-
-                    if let Some(message) = Self::provider_model_error_message(label, payload) {
+                    } else if let Some(message) = Self::provider_model_error_message(label, payload)
+                    {
                         return message;
-                    }
-
-                    if !payload.starts_with("process exited with status") {
+                    } else if !payload.starts_with("process exited with status") {
                         return format!("{label} failed: {payload}");
                     }
                 }
 
-                if looks_like_provider_session_limit(&detail) {
-                    return Self::session_limit_user_message(label, &detail);
-                }
+                if !looks_like_echoed_context(&detail) {
+                    if looks_like_provider_session_limit(&detail) {
+                        return Self::session_limit_user_message(label, &detail);
+                    }
 
-                if looks_like_provider_subscription_disabled(&detail) {
-                    return Self::subscription_disabled_user_message(label);
-                }
+                    if looks_like_provider_subscription_disabled(&detail) {
+                        return Self::subscription_disabled_user_message(label);
+                    }
 
-                if looks_like_provider_auth_failure(&detail) {
-                    return format!(
-                        "{label} is not logged in. Run `{login_cmd}` in Terminal, then refresh Settings → Integrations."
-                    );
+                    if looks_like_provider_auth_failure(&detail) {
+                        return format!(
+                            "{label} is not logged in. Run `{login_cmd}` in Terminal, then refresh Settings → Integrations."
+                        );
+                    }
                 }
 
                 format!(
@@ -326,6 +323,20 @@ mod tests {
         assert!(engine_error.message.contains("usage limit reached"));
         assert!(!engine_error.message.contains("auth login"));
         assert!(engine_error.retryable);
+    }
+
+    #[test]
+    fn echoed_research_json_is_not_a_usage_limit_message() {
+        let dump = r#"process exited with status exit status: 1: {"artifactKind":"researchArtifact","flows":"Configure promo code, reward, and usage limits before confirmation."}"#;
+        let error = ProviderProcessError::Io {
+            binary: "codex",
+            source: std::io::Error::other(dump),
+        };
+
+        let message = error.to_engine_error(ProviderId::Codex).message;
+        assert!(!message.to_lowercase().contains("usage limit reached"));
+        assert!(!message.contains("researchArtifact"));
+        assert!(message.contains("exited unexpectedly"));
     }
 
     #[test]

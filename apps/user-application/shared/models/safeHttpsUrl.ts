@@ -155,3 +155,36 @@ export const skillHubIdSchema = z
 export type PublicHttpsUrl = z.infer<typeof publicHttpsUrlSchema>;
 export type GithubSourceUrl = z.infer<typeof githubSourceUrlSchema>;
 export type SkillHubId = z.infer<typeof skillHubIdSchema>;
+
+const GITHUB_REPO_NAME = /^[a-z0-9](?:[a-z0-9._-]*[a-z0-9])?$/i;
+
+/** Canonical `https://github.com/{owner}/{repo}` — drops tree/blob/query. */
+export function canonicalGithubRepoUrl(value: unknown): {
+  href: string;
+  owner: string;
+  repo: string;
+} {
+  const parsed = parseGithubSourceUrl(value);
+  const url = new URL(parsed);
+  const parts = url.pathname.split("/").filter(Boolean);
+  const owner = parts[0]?.toLowerCase();
+  const repo = parts[1]?.replace(/\.git$/i, "").toLowerCase();
+  if (!owner || !repo || GITHUB_RESERVED_OWNERS.has(owner) || !GITHUB_REPO_NAME.test(repo)) {
+    throw new Error("GitHub URL must point at a repository.");
+  }
+  return {
+    href: `https://github.com/${owner}/${repo}`,
+    owner,
+    repo,
+  };
+}
+
+export function deriveImportedSkillHubId(owner: string, repo: string): string {
+  const raw = `gh-${owner}-${repo}`
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 64);
+  const id = /^[a-z]/.test(raw) ? raw : `g${raw}`.slice(0, 64);
+  return skillHubIdSchema.parse(id);
+}

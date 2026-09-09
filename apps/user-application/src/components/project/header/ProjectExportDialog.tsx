@@ -193,6 +193,7 @@ export function ProjectExportDialog({
       const resolved = sanitizeProjectCatalogSelection(
         catalogSelection.skillIds,
         catalogSelection.componentPackIds,
+        { skillIds: prefs.extraSkillIds, packIds: prefs.extraPackIds },
       );
       const bundle = buildProjectExport({
         project: { name: projectName, clientName, typeLabel },
@@ -201,6 +202,7 @@ export function ProjectExportDialog({
         uploadedAssets: uploadedAssets ?? [],
         skillIds: resolved.skillIds,
         componentPackIds: resolved.componentPackIds,
+        importedItems: prefs.importedSkillHubItems,
       });
       const result = await window.stageDesktop.project.export({
         projectName,
@@ -334,7 +336,7 @@ export function ProjectExportDialog({
                   return (
                     <label
                       key={section}
-                      className={`flex items-center gap-3 rounded-[8px] border px-3 py-2.5 ${
+                      className={`flex items-center gap-3 rounded-[8px] border px-3 py-3 ${
                         isAvailable
                           ? "cursor-pointer border-[#E5E5E5]"
                           : "border-[#F0F0F0] opacity-45"
@@ -386,45 +388,38 @@ export function ProjectExportDialog({
         </div>
         <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 px-3 py-3">
           {step === "sections" ? (
-            <>
-              <span />
-              <button
-                type="button"
-                disabled={!canContinue}
-                onClick={() => setStep("skills")}
-                className="inline-flex h-9 items-center rounded-[7px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7B76DF] to-[#463FBA] px-3 text-[13px] font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                Continue
-              </button>
-            </>
+            <button
+              type="button"
+              disabled={!canContinue}
+              onClick={() => setStep("skills")}
+              className="h-9 rounded-[7px] px-3 text-[13px] font-medium text-[#525252] hover:bg-white disabled:opacity-50"
+            >
+              Skills & components
+            </button>
+          ) : initialStep === "skills" ? (
+            <span />
           ) : (
-            <>
-              {initialStep === "skills" ? (
-                <span />
-              ) : (
-                <button
-                  type="button"
-                  disabled={exportBusy}
-                  onClick={() => {
-                    setErrorMessage(null);
-                    setStep("sections");
-                  }}
-                  className="h-9 rounded-[7px] px-3 text-[13px] font-medium text-[#525252] hover:bg-white disabled:opacity-50"
-                >
-                  Back
-                </button>
-              )}
-              <ExportDestinationMenu
-                availableApps={availableApps}
-                disabled={!canContinue}
-                dropUp
-                triggerLabel={exportTriggerLabel}
-                triggerClassName="inline-flex h-9 items-center gap-2 rounded-[7px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7B76DF] to-[#463FBA] px-3 text-[13px] font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
-                onExportOnly={() => void runExport()}
-                onOpenIn={(id) => void runExport(id)}
-              />
-            </>
+            <button
+              type="button"
+              disabled={exportBusy}
+              onClick={() => {
+                setErrorMessage(null);
+                setStep("sections");
+              }}
+              className="h-9 rounded-[7px] px-3 text-[13px] font-medium text-[#525252] hover:bg-white disabled:opacity-50"
+            >
+              Back
+            </button>
           )}
+          <ExportDestinationMenu
+            availableApps={availableApps}
+            disabled={!canContinue}
+            dropUp
+            triggerLabel={exportTriggerLabel}
+            triggerClassName="inline-flex h-9 items-center gap-2 rounded-[7px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7B76DF] to-[#463FBA] px-3 text-[13px] font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
+            onExportOnly={() => void runExport()}
+            onOpenIn={(id) => void runExport(id)}
+          />
         </div>
       </div>
     </div>

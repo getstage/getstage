@@ -173,7 +173,7 @@ export function SkillDetailPanel({
 
           <div className="flex flex-col gap-[12px] border-t border-[#E5E5E5] pt-[16px]">
             <MetaField label="Price" value="Free with Stage" />
-            <MetaField label="Works with" value="Wireframes, Hi-Fi generation" />
+            <MetaField label="Works with" value="Wireframes" />
             <MetaField label="Category" value={skill.category} />
             <MetaField label="Source" value="Stage Library (curated)" />
             <MetaField label="Author" value={skill.author} />

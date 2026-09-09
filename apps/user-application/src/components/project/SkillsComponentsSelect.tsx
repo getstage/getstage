@@ -16,13 +16,26 @@ import {
 import {
   COMPONENT_PACK_CATALOG,
   DISCOVER_SKILL_CATALOG,
+  HUB_TAB_ICON_PATHS,
+  withImportedPacks,
+  withImportedSkills,
   type ComponentPackCatalogItem,
+  type ImportedSkillHubItem,
   type SkillCatalogItem,
 } from "@/lib/settings/skillsCatalog";
 import { toUserFacingErrorMessage } from "@/lib/errors";
 
-export function catalogEntry(id: string | null): { name: string; iconSrc?: string } | null {
+export function catalogEntry(
+  id: string | null,
+  imported: readonly ImportedSkillHubItem[] = [],
+): { name: string; iconSrc?: string } | null {
   if (!id) return null;
+  const importedMatch = imported.find((item) => item.id === id);
+  if (importedMatch) {
+    return importedMatch.kind === "component"
+      ? { name: importedMatch.name, iconSrc: HUB_TAB_ICON_PATHS.components }
+      : { name: importedMatch.name };
+  }
   const skill = DISCOVER_SKILL_CATALOG.find((entry) => entry.id === id);
   if (skill) return { name: skill.name };
   const pack = COMPONENT_PACK_CATALOG.find((entry) => entry.id === id);
@@ -50,28 +63,37 @@ export function SkillsComponentsPanel({
   const [tab, setTab] = useState<"skills" | "components">("skills");
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const extra = { skillIds: prefs.extraSkillIds, packIds: prefs.extraPackIds };
+  const skillCatalog = withImportedSkills(prefs.importedSkillHubItems);
+  const packCatalog = withImportedPacks(prefs.importedSkillHubItems);
 
-  const selectedSkills = sanitizeCatalogIds(skillIds, CATALOG_SKILL_IDS);
-  const selectedPacks = sanitizeCatalogIds(componentPackIds, CATALOG_PACK_IDS);
-  const addedSkills = DISCOVER_SKILL_CATALOG.filter((skill) =>
+  const selectedSkills = sanitizeCatalogIds(skillIds, [
+    ...prefs.extraSkillIds,
+    ...CATALOG_SKILL_IDS,
+  ]);
+  const selectedPacks = sanitizeCatalogIds(componentPackIds, [
+    ...prefs.extraPackIds,
+    ...CATALOG_PACK_IDS,
+  ]);
+  const addedSkills = skillCatalog.filter((skill) =>
     prefs.installedSkillIds.includes(skill.id),
   );
-  const otherSkills = DISCOVER_SKILL_CATALOG.filter(
+  const otherSkills = skillCatalog.filter(
     (skill) => !prefs.installedSkillIds.includes(skill.id),
   );
-  const addedPacks = COMPONENT_PACK_CATALOG.filter((pack) =>
+  const addedPacks = packCatalog.filter((pack) =>
     prefs.enabledComponentPackIds.includes(pack.id),
   );
-  const otherPacks = COMPONENT_PACK_CATALOG.filter(
+  const otherPacks = packCatalog.filter(
     (pack) => !prefs.enabledComponentPackIds.includes(pack.id),
   );
 
   function emit(nextSkills: readonly string[], nextPacks: readonly string[]) {
-    onChange(sanitizeProjectCatalogSelection(nextSkills, nextPacks));
+    onChange(sanitizeProjectCatalogSelection(nextSkills, nextPacks, extra));
   }
 
   function toggleSkill(id: string) {
-    const skillId = parseCatalogSkillId(id);
+    const skillId = parseCatalogSkillId(id, prefs.extraSkillIds);
     emit(
       selectedSkills.includes(skillId)
         ? selectedSkills.filter((entry) => entry !== skillId)
@@ -81,7 +103,7 @@ export function SkillsComponentsPanel({
   }
 
   function togglePack(id: string) {
-    const packId = parseCatalogPackId(id);
+    const packId = parseCatalogPackId(id, prefs.extraPackIds);
     emit(
       selectedSkills,
       selectedPacks.includes(packId)

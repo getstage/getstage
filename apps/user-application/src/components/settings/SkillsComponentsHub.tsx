@@ -1,16 +1,20 @@
 import { useMemo, useState, type ReactNode } from "react";
 import { SkillDetailPanel } from "./SkillDetailPanel";
 import { useSkillHubPrefs } from "@/hooks/settings/useSkillHubPrefs";
+import { toUserFacingErrorMessage } from "@/lib/errors";
 import {
   COMPONENT_PACK_CATALOG,
   DISCOVER_SKILL_CATALOG,
+  withImportedPacks,
+  withImportedSkills,
   type ComponentPackCatalogItem,
   type SkillCatalogItem,
 } from "@/lib/settings/skillsCatalog";
 
 export function SkillsHubPanel() {
   const prefs = useSkillHubPrefs();
-  const installedSkills = DISCOVER_SKILL_CATALOG.filter((skill) =>
+  const skillCatalog = withImportedSkills(prefs.importedSkillHubItems);
+  const installedSkills = skillCatalog.filter((skill) =>
     prefs.installedSkillIds.includes(skill.id),
   );
   const activeCount = installedSkills.filter((skill) =>
@@ -22,6 +26,13 @@ export function SkillsHubPanel() {
       <SurfaceHeader
         title="Installed Skills"
         count={`${installedSkills.length} installed · ${activeCount} active`}
+        action={
+          <GithubImportControl
+            kind="skill"
+            disabled={prefs.isLoading}
+            onImport={(url) => prefs.importFromGithub("skill", url)}
+          />
+        }
       />
 
       {installedSkills.length === 0 ? (
@@ -49,8 +60,9 @@ export function SkillsHubPanel() {
 
 export function ComponentsHubPanel() {
   const prefs = useSkillHubPrefs();
-  const installedCount = COMPONENT_PACK_CATALOG.length;
-  const enabledCount = COMPONENT_PACK_CATALOG.filter((pack) =>
+  const packCatalog = withImportedPacks(prefs.importedSkillHubItems);
+  const installedCount = packCatalog.length;
+  const enabledCount = packCatalog.filter((pack) =>
     prefs.enabledComponentPackIds.includes(pack.id),
   ).length;
 
@@ -59,9 +71,16 @@ export function ComponentsHubPanel() {
       <SurfaceHeader
         title="Component Libraries"
         count={`${installedCount} installed · ${enabledCount} enabled`}
+        action={
+          <GithubImportControl
+            kind="component"
+            disabled={prefs.isLoading}
+            onImport={(url) => prefs.importFromGithub("component", url)}
+          />
+        }
       />
       <div className="flex flex-col gap-[4px]">
-        {COMPONENT_PACK_CATALOG.map((pack) => (
+        {packCatalog.map((pack) => (
           <ComponentPackRow
             key={pack.id}
             pack={pack}
@@ -312,14 +331,145 @@ function HubSurface({ children }: { children: ReactNode }) {
   );
 }
 
-function SurfaceHeader({ title, count }: { title: string; count?: string }) {
+function SurfaceHeader({
+  title,
+  count,
+  action,
+}: {
+  title: string;
+  count?: string;
+  action?: ReactNode;
+}) {
   return (
     <div className="flex min-h-[44px] items-center justify-between gap-[12px] px-[10px] py-[8px]">
       <h2 className="text-[13px] font-medium leading-none text-[#0A0A0A]">{title}</h2>
-      {count ? (
-        <p className="shrink-0 text-[12px] font-medium leading-none text-[#737373]">{count}</p>
-      ) : null}
+      <div className="flex shrink-0 items-center gap-[10px]">
+        {count ? (
+          <p className="text-[12px] font-medium leading-none text-[#737373]">{count}</p>
+        ) : null}
+        {action}
+      </div>
     </div>
+  );
+}
+
+function GithubImportControl({
+  kind,
+  disabled,
+  onImport,
+}: {
+  kind: "skill" | "component";
+  disabled?: boolean;
+  onImport: (url: string) => Promise<void>;
+}) {
+  const [open, setOpen] = useState(false);
+  const [url, setUrl] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const label = kind === "skill" ? "skill" : "component library";
+
+  async function submit() {
+    if (busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await onImport(url);
+      setUrl("");
+      setOpen(false);
+    } catch (caught) {
+      setError(toUserFacingErrorMessage(caught, `Could not import this ${label}.`));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <>
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => {
+          setError(null);
+          setOpen(true);
+        }}
+        className="inline-flex h-[28px] items-center gap-[6px] rounded-[6px] bg-white px-[10px] text-[12px] font-medium text-[#171717] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.2)] disabled:opacity-50"
+      >
+        <img
+          src="/logos/integrations/github.svg"
+          alt=""
+          aria-hidden="true"
+          className="h-[14px] w-[14px]"
+        />
+        Import
+      </button>
+      {open ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/10 p-6 backdrop-blur-[5px]"
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Import ${label}`}
+          onClick={() => {
+            if (!busy) setOpen(false);
+          }}
+        >
+          <div
+            onClick={(event) => event.stopPropagation()}
+            className="flex w-[min(360px,calc(100vw-48px))] flex-col rounded-[12px] bg-white p-[16px] shadow-[0_18px_42px_rgba(10,10,10,0.18)]"
+          >
+            <p className="flex items-center gap-[8px] text-[13px] font-semibold leading-none text-[#0A0A0A]">
+              <img
+                src="/logos/integrations/github.svg"
+                alt=""
+                aria-hidden="true"
+                className="h-[16px] w-[16px]"
+              />
+              Import {label}
+            </p>
+            <p className="mt-[6px] text-[12px] font-medium leading-[1.4] text-[#737373]">
+              Paste a public GitHub repository URL.
+            </p>
+            <label className="mt-[16px] block">
+              <span className="text-[11px] font-medium leading-none text-[#A3A3A3]">
+                GitHub URL
+              </span>
+              <input
+                value={url}
+                onChange={(event) => setUrl(event.target.value)}
+                placeholder="https://github.com/owner/repo"
+                autoFocus
+                disabled={busy}
+                className="mt-[6px] h-[32px] w-full rounded-[6px] bg-[#F5F5F5] px-[10px] text-[12px] font-medium text-[#525252] outline-none"
+              />
+            </label>
+            {error ? (
+              <p className="mt-[8px] text-[12px] font-medium text-[#991B1B]">{error}</p>
+            ) : null}
+            <button
+              type="button"
+              disabled={busy || url.trim().length === 0}
+              onClick={() => void submit()}
+              className="mt-[12px] inline-flex h-[32px] w-full items-center justify-center gap-[6px] rounded-[6px] bg-gradient-to-b from-[#7B76DF] to-[#463FBA] text-[12px] font-medium leading-none text-white disabled:opacity-50"
+            >
+              <img
+                src="/logos/integrations/github.svg"
+                alt=""
+                aria-hidden="true"
+                className="h-[14px] w-[14px] invert"
+              />
+              {busy ? "Importing…" : "Import"}
+            </button>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => setOpen(false)}
+              className="mt-[6px] inline-flex h-[32px] w-full items-center justify-center rounded-[6px] bg-white text-[12px] font-medium leading-none text-[#525252] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : null}
+    </>
   );
 }
 

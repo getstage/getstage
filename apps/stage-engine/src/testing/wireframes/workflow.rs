@@ -11,16 +11,15 @@ fn parses_kind_brand_and_style_direction_from_source() {
 
 #[test]
 fn parses_multiple_screen_ids_from_semicolon_delimited_token() {
-    let source = "kind:hifi,brand:brand-kit,screens:homepage;pricing;checkout";
+    let source = "kind:lofi,selected:homepage;pricing;checkout,screens:homepage;pricing;checkout";
+    let expected = Some(vec![
+        "homepage".to_string(),
+        "pricing".to_string(),
+        "checkout".to_string(),
+    ]);
 
-    assert_eq!(
-        parse_screens_from_source(source),
-        Some(vec![
-            "homepage".to_string(),
-            "pricing".to_string(),
-            "checkout".to_string()
-        ])
-    );
+    assert_eq!(parse_selected_screens_from_source(source), expected);
+    assert_eq!(parse_screens_from_source(source), expected);
 }
 
 #[test]

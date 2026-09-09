@@ -17,9 +17,6 @@ type ProjectStepStatus = Record<StepTab, boolean>;
 type ProjectStepViewProps = {
   activeTab: StepTab;
   project: Project;
-  skillIds: readonly string[];
-  componentPackIds: readonly string[];
-  onSaveSkills: (input: { skillIds: string[]; componentPackIds: string[] }) => Promise<void>;
   artifactQueriesEnabled: boolean;
   pendingStrategyGeneration: boolean;
   pendingStrategyProviderId: ProviderId | null;
@@ -80,9 +77,6 @@ const AssetsTab = lazy(() =>
 export function ProjectStepView({
   activeTab,
   project,
-  skillIds,
-  componentPackIds,
-  onSaveSkills,
   artifactQueriesEnabled,
   pendingStrategyGeneration,
   pendingStrategyProviderId,
@@ -160,13 +154,8 @@ export function ProjectStepView({
         {!blockedStep && activeTab === "wireframes" ? (
           <WireframesTab
             project={project}
-            skillIds={skillIds}
-            componentPackIds={componentPackIds}
-            onSaveSkills={onSaveSkills}
             onGoToResearch={() => onGoToTab("research")}
             onGoToStrategy={() => onGoToTab("strategy")}
-            onGoToFlows={() => onGoToTab("flows")}
-            onGoToMoodboard={() => onGoToTab("moodboard")}
           />
         ) : null}
         {!blockedStep && activeTab === "assets" ? <AssetsTab project={project} /> : null}

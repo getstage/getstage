@@ -2,33 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   buildResultCards,
-  hasRenderableWireframeOutput,
-  type WireframeResultCard,
 } from "@/lib/project/mapWireframesArtifactToTabData";
 import type { ScreenItem, WireframeGeneratedScreen } from "@/types/project/wireframesTab";
-import { hasLofiPreview } from "./ResultsGrid";
-
-type Blocks = NonNullable<WireframeResultCard["sections"]>[number]["blocks"];
-
-const card = (blocks: Blocks = []) =>
-  ({ sections: [{ blocks }] }) as WireframeResultCard;
-
-test("keeps Lo-Fi available when Hi-Fi HTML is missing but blocks remain", () => {
-  assert.equal(
-    hasLofiPreview([
-      card([
-        {
-          id: "hero-1",
-          kind: "hero",
-          intent: "Introduce the product",
-          emphasis: "primary",
-        },
-      ]),
-    ]),
-    true,
-  );
-  assert.equal(hasLofiPreview([card()]), false);
-});
 
 const configuredScreen = (id: string): ScreenItem => ({
   id,
@@ -53,17 +28,55 @@ const generatedScreen = (
 
 test("does not present empty generated records as wireframe results", () => {
   const empty = generatedScreen("empty", {});
-  const ready = generatedScreen("ready", { html: "<main>Ready</main>" });
+  const htmlOnly = generatedScreen("html-only", { html: "<main>Ready</main>" });
+  const withBlocks = generatedScreen("ready", {
+    sections: [
+      {
+        id: "hero",
+        title: "Hero",
+        blocks: [
+          {
+            id: "hero-1",
+            kind: "hero",
+            intent: "Introduce the product",
+            emphasis: "primary",
+          },
+        ],
+      },
+    ],
+  });
 
-  assert.equal(hasRenderableWireframeOutput(empty), false);
-  assert.equal(hasRenderableWireframeOutput(ready), true);
   assert.deepEqual(
     buildResultCards(
-      [configuredScreen("empty"), configuredScreen("ready")],
+      [configuredScreen("empty"), configuredScreen("html-only"), configuredScreen("ready")],
       "now",
-      1,
-      [empty, ready],
+      3,
+      [empty, htmlOnly, withBlocks],
     ).map((screen) => screen.id),
     ["ready"],
+  );
+});
+
+test("shows generated Lo-Fi screens even when they are missing from configure state", () => {
+  const withBlocks = generatedScreen("checkout", {
+    sections: [
+      {
+        id: "hero",
+        title: "Hero",
+        blocks: [
+          {
+            id: "hero-1",
+            kind: "hero",
+            intent: "Introduce checkout",
+            emphasis: "primary",
+          },
+        ],
+      },
+    ],
+  });
+
+  assert.deepEqual(
+    buildResultCards([], "now", 6, [withBlocks]).map((screen) => screen.id),
+    ["checkout"],
   );
 });

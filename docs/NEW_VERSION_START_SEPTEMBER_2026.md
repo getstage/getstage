@@ -1,162 +1,145 @@
-# New version start — September 2026
+# Pipeline refocus — September 2026
 
-**Status:** In progress — Parts 1–2 done. **Next: Lo-Fi-only Wireframes UI.**  
+**Positioning:** Stage does the thinking. Your AI does the building.
+
+Stage does not output Stage hi-fi. The user leaves with a spec (Markdown + `AGENTS.md`) and opens it in Cursor / Claude Code / Codex. Stage still produces research, strategy, moodboard, style guide, flows, and Lo-Fi wireframes. The coding agent builds the hi-fi.
+
 **Branch:** `codex/sta-33-local-project-export` · desktop `0.2.26` testing  
+**Linear:** `STA-33`
 **File:** `docs/NEW_VERSION_START_SEPTEMBER_2026.md`
+
+Stay on this branch. Do not create `contact/sta-33-pipeline-refocus`.
 
 Uncheck anything you do not want.
 
 ---
 
-## Do this
+## Today — full list (2026-09-09)
 
-### Marketplace / skill page
+This is Werner’s list. Skills & components stay in the **export dialog**. They do **not** belong in the header Export dropdown.
 
-- [x] Remove the **Get Stage** CTA from desktop skill detail  
-      Path: Settings → Integrations → Marketplace → open a skill → scroll down  
-      File: `SkillDetailPanel.tsx`
-- [x] Change Marketplace **Added** → **Uninstall** (removes from `installedSkillIds`)
-- [x] Fix **Share**: copy the skill GitHub `sourceUrl`, not `https://www.stage.ai/skill/…` (that URL has no page)
+**Now shipping: sections 1–4.** Sections 5–8 (Details.so during research testing, style guide, MCP, categories) come after this lands.
 
-### Skills + Components pickers
+### Status — 2026-09-09 evening
 
-Kill the five exclusive dropdowns (`Design skill` / `Motion skill` / `Base system` / `Page sections` / `Data visuals`). They confuse people and hide the Integrations model.
+**Done on this branch:** sections **1–4**. Header **Export** opens the dialog. Destinations (**Export only** + Open in installed IDEs) live in the **dialog footer** on both steps. Skills stay in the dialog. GitHub **Import** is on Installed Skills and Component Libraries (Werner’s GitHub SVG). **Lo-Fi wireframes are done:** desktop UI is Lo-Fi only; Werner verified a live Codex generate (`Report preview` results card). Existing **Lo-Fi** artifacts still open as results. Existing **Hi-Fi** artifacts are hidden; those users land on Configure and generate Lo-Fi. Engine still contains Hi-Fi. Lo-Fi runs drop `html`. Provider JSON dumps are not shown as Codex usage-limit errors.
 
-**Two groups, like Integrations:**
+**Not shipped yet**
 
-1. **Skills**
-2. **Components**
+- Schema for `users.importedSkillHubItems` is in the repo; **not pushed** to testing Convex (`reliable-bullfrog-917`). Import UI exists; persist needs that deploy.
+- skills.sh paste: skipped (Werner said never mind).
+- Sections **5–8** not started.
 
-**UI = Marketplace cards, not dropdowns.** Copy the Integrations → Marketplace grid (`SkillArtwork` + name + description + chips + action). Difference: **already-added items sit on top**, then the rest of the catalog underneath so the user can add more without leaving the flow.
+### 1. Docs
 
-- [x] Replace `SkillsComponentsPanel` (five `CategorySelect`s) with two Marketplace-style lists: Skills, Components
-- [x] **Top of each list:** items the user has added (`installedSkillIds` / `enabledComponentPackIds`)
-- [x] **Below:** catalog with **+ Add Skill** / **+ Add Library** (same actions as Marketplace)
-- [x] Project selection is a multi-select from the added list → persist `skillIds[]` + `componentPackIds[]` (drop the five-axis exclusivity)
-- [x] Same picker in: **export step 2**, **Wireframes run prefs**, create-project if we wire it
-- [x] Files today: `SkillsComponentsSelect.tsx`, `ProjectExportDialog.tsx`, `WireframeRunSelection.tsx`
+- [x] Living docs match this list (`docs/NEW_VERSION_START_SEPTEMBER_2026.md`, `PROJECT_STATUS.md`, desktop README)
 
-### Export → dropdown of installed IDEs
+### 2. Export (STA-D)
 
-Header **Export** (and the Wireframes toolbar export icon) should open a **dropdown**, not a row of four huge buttons.
+What we have: header **Export** (opens dialog) + **Export project** dialog with destinations in the footer.
 
-Dropdown items:
+**Header (opens dialog; not a destination menu)**
 
-1. **Export only**
-2. **Open in …** — only tools actually installed on this Mac
-3. **Add skills & components** — opens the picker above (so export is also how you attach skills)
+- [x] Header **Export** next to Share opens the export dialog
+- [x] **Take “Add skills & components” out of the header.** Adrien: it is not an export destination
+- [x] Destinations live in the **dialog**: **Export only** + **Open in {installed}** (Claude Code, Codex, Cursor, VS Code, Zed, Antigravity, Windsurf)
+- [x] Never launch Cursor via PATH `cursor` (agent shim). GUI IDEs use `open -a` / Launch Services
 
-Rules:
+**Dialog (keep this, including skills)**
 
-- [x] Keep **Export only**
-- [x] Show **Open in …** only for tools actually installed on the Mac
-- [x] Never use PATH `cursor` (agent shim, not the IDE) — launch Cursor/VS Code/Zed/Antigravity/Windsurf via `open -a` / Launch Services
-- [x] Collapse the current Claude / Codex / Cursor / VS Code button row into that dropdown
-- [x] One more dropdown item: **Add skills & components**
+- [x] Keep the **two-step Export project dialog**. This is the right UI.
+- [x] **Step 1 — Include in export:** checklist of stages (Research, Strategy, Moodboard, Style guide, Flows, Wireframes, Assets). Pre-checked when they exist, individually uncheckable. Type stays **13px / 12px** (do not enlarge). Slightly taller row padding only.
+- [x] **Step 2 — Skills & components stays here.** Attach skills and libraries for the coding agent. Step 1 has a **Skills & components** control to reach this step. Do not move it to the header.
+- [x] Stronger exported `AGENTS.md`: folder purpose, project category, reading order, carry moodboard + style guide, use `skills.md` (do not hand-roll a different kit).
 
-**Icons we already have:** Claude Code, Codex, Cursor, VS Code, Zed, Antigravity, Windsurf  
+### 3. GitHub Import — Skills **and** Components
 
-**Waiting on Werner SVGs** (then we detect + show if installed):
+Same pattern on both Integrations pages.
 
-- [x] Zed
-- [x] Antigravity
-- [x] Windsurf
-- [ ] Trae
-- [ ] VSCodium (optional)
-- [ ] Other: ________
+- [x] **Installed Skills:** **Import** top-right (GitHub SVG). Paste a public GitHub URL → name + `sourceUrl`. Skills use the same mesh banners as the catalog (warm / cool / green), not a GitHub logo on the card.
+- [x] **Component Libraries:** same **Import**. Libraries use the generic pack mark until Werner drops library SVGs.
+- [x] Imported items show at the top of the pickers (export dialog step 2, Wireframes prefs) and in exported `skills.md`.
+- [x] Reuse `parseGithubSourceUrl` / `canonicalGithubRepoUrl` / Convex `githubImport.ts`. Do not invent a second parser. Do not scrape aura.build.
+- [ ] Push `importedSkillHubItems` schema to **testing Convex** (then prod later, when Werner asks)
 
-### Wireframes = Lo-Fi only (after pickers)
+### 4. Wireframes (STA-A)
 
-- [ ] Remove the Lo-Fi / Hi-Fi chooser; always start Lo-Fi
-- [ ] Remove Hi-Fi generate / upgrade actions from the Wireframes UI
-- [ ] Keep skills/libraries as **export agent prefs**, not Stage Hi-Fi generation
-- [ ] **Keep** all Rust / engine Hi-Fi code (UI never starts it)
+Stage is not outputting Stage hi-fi anymore. Hide generation. Do not delete the engine.
 
-### Export agent instructions
+- [x] Hi-fi generation gone from the UI. No disabled button, no “coming soon”, no greyed-out entry.
+- [x] Lo-fi wireframe generation stays. Runs are forced to `kind:lofi`; provider `html` is stripped.
+- [x] Existing production Lo-Fi artifacts still show block results. Existing Hi-Fi artifacts are not shown; Configure keeps the screen list so the user generates Lo-Fi again.
+- [x] Cancel stops the provider run and marks the matching Convex run `cancelled`; engine UUIDs and Convex document IDs are never mixed.
+- [x] Hi-fi remains an engine capability; the desktop wireframes UI has no Hi-fi path.
+- [x] No user-facing copy that promises Stage hi-fi / high-fidelity generation (including leftover phase tasks like “Design high-fidelity screens”).
+- [x] Skills/libraries are **export agent prefs**, not Stage hi-fi knobs.
+- [x] Lo-Fi generate verified on desktop (2026-09-09): Codex `kind:lofi` for `screen-report-preview` saved and showed the results grid. No hi-fi path in the UI.
 
-- [ ] Tighten exported `AGENTS.md`: must use `skills.md` libraries, do not hand-roll them
-- [ ] `skills.md` stays public GitHub/docs URLs only (no R2)
+### 5. Details.so research routing (STA-C) — after sections 1–4
 
-### GitHub Import (after Uninstall)
+Refero stays for apps. It stops serving marketing websites.
 
-Skills have **no small logo** (mesh on the detail page only). Import is name + URL.
+Details.so MCP is **not** a silent background job. It is triggered **while testing / running Research** on a Websites project (explicit user action in that flow).
 
-- [ ] Replace the copy icon on Installed Skills with **Import**
-- [ ] Paste GitHub URL → store name + `sourceUrl`; **no skill icon required**
-- [ ] Same **Import** on Component Libraries (libraries *do* use a logo → generic pack mark until Werner drops an SVG)
-- [ ] Imported items show at the **top** of the two pickers and in exported `skills.md`
-- [ ] Reuse `parseGithubSourceUrl` / `parsePublicHttpsUrl` (Part 1). Do not invent a second URL parser.
+- [ ] Project category **Websites** → Details.so MCP. Research returns Details references (curated marketing-site screens, not Refero app UI).
+- [ ] Project category **Web apps** → Refero, unchanged.
+- [ ] Project category **iOS apps** → Refero, unchanged.
+- [ ] Screenshots shown once in the UI, then analysed and incorporated by the AI.
+- [ ] Triggered during research testing / run (a button in Research), not fired silently on every other step.
+- [ ] Credits stay bundled in Stage’s price. Never expose a Details credit meter to the end user.
 
----
+### 6. Style guide (STA-E) — today
 
-## Not this cut
+- [ ] Style guide is aware of project category (Websites / Web apps / iOS apps) and applies matching conventions.
+- [ ] Style guide is grounded in the **actual research references**, not generated in isolation.
+- [ ] **Critical:** the moodboard must survive. Test with a moodboard far from model-default. If output drifts back to beige/brown + default type + default grid, it has failed.
+- [ ] Style guide in the export is usable by a coding agent with no manual rewrite.
 
-- [ ] Public web skill page + Get Stage CTA (`apps/web-application`)
-- [ ] Crawl / add aura.build skills catalog
-- [ ] Delete Rust/engine Hi-Fi code
-- [ ] Change Lo-Fi generation, RAG, or provider pipelines
+### 7. MCP — today
 
----
+- [ ] Details MCP wired for Websites research (same as STA-C). Explicit button.
+- [ ] Do not build a second silent MCP fire-on-every-step.
+- [ ] Kevin is available this week. Little custom connector if Stage needs one to render results.
 
-## Build order
+### 8. Categories (STA-B) — today, because C and E read from them
 
-1. Get Stage CTA + Uninstall + Share URL — **done 2026-09-08**
-2. **Skills / Components Marketplace pickers + export dropdown** — **done 2026-09-08**
-3. Lo-Fi-only Wireframes UI (engine Hi-Fi stays) ← next
-4. Stronger `AGENTS.md`
-5. GitHub Import (skills = no icon; libraries = generic mark)
-6. Extra IDEs after Werner sends SVGs
+Categories already exist. This is wording + lock + routing key.
+
+- [ ] Exactly three options at create: **Websites**, **Web apps**, **iOS apps**. Replace “app design” with **iOS apps**.
+- [ ] Required at creation. No default, no skip.
+- [ ] Immutable after create. Not editable in settings.
+- [ ] Shown on the project so the user always sees what they picked.
+- [ ] Persisted on the project record. Research, style guide, and export all read it.
 
 ---
 
-## Progress
+## Already done (do not redo)
 
-### Part 1 — Marketplace hygiene + URL allowlist (2026-09-08)
+- [x] Get Stage CTA off skill detail; Marketplace **Uninstall**; Share copies GitHub URL; URL allowlist — 2026-09-08
+- [x] Skills / Components Marketplace pickers (added on top, catalog below); export dropdown of installed IDEs — 2026-09-08
+- [x] Export dialog step 2 already exists as the skills/components picker. **Keep it.**
 
-**What changed**
+---
 
-- Removed the purple **Get Stage** marketing block from skill detail. Users are already inside Stage.
-- Marketplace **Added** is now **Uninstall**. That removes the skill from `installedSkillIds` and `enabledSkillIds`. Same action on the skill detail header/sidebar.
-- **Share** copies the curated GitHub `sourceUrl` (owner/repo), not `https://www.stage.ai/skill/{id}` (that route does not exist).
+## Out of scope (do not do)
 
-**Why the security layer landed now**
+- Public `stage.ai` skill page + Get Stage CTA on the web app
+- Crawl / add aura.build into the catalog
+- **Delete** Rust/engine hi-fi code (hide only)
+- Lo-Fi **quality / RAG** work (`docs/WIREFRAMES_QUALITY_PLAN.md`) — generation itself is shipped
+- Trae / VSCodium until Werner sends SVGs
+- Adrien’s landing-page rebuild (not this branch)
+- Exposing Details credits to the end user
 
-Import (part 5) will let users paste a GitHub URL. If we only validate later, Share / open-external / Convex prefs stay as string holes. Part 1 puts the same typed allowlist in TypeScript and Electron so Import reuses it instead of inventing a second parser.
+---
 
-**Type-safe checks (TypeScript + Electron; Rust untouched)**
+## STA-33 map
 
-| Layer | File | Rule |
-|---|---|---|
-| Shared Zod/parsers | `apps/user-application/shared/models/safeHttpsUrl.ts` | HTTPS only, no credentials, no localhost/private IPs, no `token=` in query/hash. GitHub source URLs must be `github.com/{owner}/{repo}` (not `/login`, `/settings`, or lookalike hosts). Skill/pack ids are lowercase kebab-case, max 64. |
-| Renderer | `openExternalLink.ts`, Share dialog | Parse before `window.open` / clipboard. Share copies only a parsed GitHub URL. |
-| Electron main | `electron/ipc.ts` `shell:open-external` | Same `parsePublicHttpsUrl` — renderer cannot skip the check via IPC. |
-| Convex | `updateSkillHubPrefsHandler` | Rejects ids that are not kebab-case (same regex as TS). Empty uninstall lists are allowed. |
-| Catalog test | `skillsCatalog.test.ts` | Every curated skill `sourceUrl` must already pass the GitHub parser. |
-
-**What we did not do**
-
-- No GitHub fetch / Import UI yet (part 5).
-- No Rust/engine change. Import v1 does not go through `stage-engine`. If we later fetch `SKILL.md` in Rust, the same rules belong there: `https` only, `github.com` host, no credentials, owner/repo path. Hi-Fi engine code stays.
-- No extra IDE icons (waiting on SVGs).
-
-### Part 2 — Skills/Components picker + export dropdown (2026-09-08)
-
-**Why**
-
-The five exclusive dropdowns did not match Integrations. Users pick from what they already added, with Marketplace cards, and can add more in the same flow. Export is a dropdown of apps actually on this Mac — not four huge buttons.
-
-**What changed**
-
-- `SkillsComponentsPanel` is two Marketplace-style lists (Skills / Components). Added items on top; catalog with **+ Add Skill** / **+ Add Library** below.
-- Selecting an added card attaches it to the project (`skillIds[]` / `componentPackIds[]`). No more Design/Motion/Base/Sections/Charts axes.
-- Same picker: export step 2, Wireframes run prefs, create-project.
-- Header **Export** is a dropdown: Export only · Open in {installed} · Add skills & components.
-- Export dialog footer is the same destination menu (no button row). GUI IDEs (Cursor, VS Code, Zed, Antigravity, Windsurf) launch via Launch Services (`open -a`), never PATH shims.
-- Ids still go through `skillHubIdSchema`. Convex `normalizeCatalogIds` now drops non-kebab strings.
-
-**What we did not do**
-
-- Lo-Fi-only Wireframes UI (part 3).
-- Stronger `AGENTS.md` (part 4).
-- GitHub Import UI (part 5).
-- Trae / VSCodium (no SVGs yet).
+| ID | Today |
+|---|---|
+| **STA-A** | Hide hi-fi UI. Lo-fi stays. Engine stays. |
+| **STA-B** | Websites / Web apps / iOS apps, locked at create. Needed so C and E know what the project is. |
+| **STA-C** | Websites → Details.so MCP; web/iOS apps → Refero. |
+| **STA-D** | Export headline. Header opens dialog. Destinations in dialog footer. Dialog keeps skills step. Stronger `AGENTS.md`. |
+| **STA-E** | Style guide from references + moodboard. No beige/brown fallback. |
+| **MCP** | Details MCP on an explicit button for Websites. |

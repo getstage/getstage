@@ -28,23 +28,19 @@ export const EXPORT_LAUNCH_ACTIONS: Array<{
 export function ExportDestinationMenu({
   availableApps,
   disabled = false,
-  includeAddSkills = false,
   triggerLabel,
   triggerClassName,
   dropUp = false,
   onExportOnly,
   onOpenIn,
-  onAddSkills,
 }: {
   availableApps: Record<ProjectExportProvider, boolean> | null;
   disabled?: boolean;
-  includeAddSkills?: boolean;
   triggerLabel: string;
   triggerClassName?: string;
   dropUp?: boolean;
   onExportOnly: () => void;
   onOpenIn: (id: ProjectExportProvider) => void;
-  onAddSkills?: () => void;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -130,14 +126,6 @@ export function ExportDestinationMenu({
               </span>
             </MenuItem>
           ))}
-          {includeAddSkills && onAddSkills ? (
-            <>
-              <div className="my-[4px] h-px bg-[#E5E5E5]" />
-              <MenuItem disabled={disabled} onSelect={() => run(onAddSkills)}>
-                Add skills & components
-              </MenuItem>
-            </>
-          ) : null}
         </div>
       ) : null}
     </div>

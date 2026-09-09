@@ -1,7 +1,9 @@
 # Stage — Project Status
 
 > **Living document.** Update weekly (or before each release).  
-> **Last updated:** 2026-09-08
+> **Last updated:** 2026-09-09
+
+**Positioning:** Stage does the thinking. Your AI does the building.
 
 ---
 
@@ -9,8 +11,8 @@
 
 | Priority | Item | Owner / where |
 |----------|------|----------------|
-| **P0 September cut** | **Next:** Lo-Fi-only Wireframes UI. Done: Marketplace-style Skills/Components pickers + Export dropdown. | [`docs/NEW_VERSION_START_SEPTEMBER_2026.md`](docs/NEW_VERSION_START_SEPTEMBER_2026.md); branch `codex/sta-33-local-project-export`; desktop `0.2.26` testing |
-| **P0 pipeline refocus** | Export selected Stage project artifacts and assets to a readable standalone `stage-[project]` workspace, then open Claude Code, Codex, Cursor, or VS Code with `AGENTS.md` as the entry point. | Linear `STA-33`; [`PROJECT_EXPORT_CLEANUP_PLAN.md`](apps/user-application/docs/AI/desktop/PROJECT_EXPORT_CLEANUP_PLAN.md); branch `codex/sta-33-local-project-export` |
+| **P0 STA-33 1–4** | **Lo-Fi done** (desktop smoke 2026-09-09). Export dialog destinations + skills step, GitHub Import. Wireframes UI is Lo-Fi only; the engine retains Hi-Fi. **Next:** push `importedSkillHubItems` to testing Convex, then sections 5–8. | [`docs/NEW_VERSION_START_SEPTEMBER_2026.md`](docs/NEW_VERSION_START_SEPTEMBER_2026.md); Linear `STA-33` |
+| **P0 STA-33 5–8** | After 1–4 ships: categories lock, Details.so during research testing, style guide, MCP. | Linear `STA-33`; same living plan |
 | **P1 wireframes quality** | Beat raw Claude: Taste skill → local/project skills + library packs → moodboard layouts → refine | `docs/WIREFRAMES_QUALITY_PLAN.md` |
 | **!!! P0** | Desktop idle energy P0 — PR `fix/desktop-idle-energy-p0` | `docs/AI/desktop/2026-06-07!!!-DESKTOP_IDLE_ENERGY_PLAN.md` |
 | **P1** | Run packaged-DMG benchmark + 2 h soak (RAM < 400 MB, 12 hr power < 500) | `scripts/desktop-idle-benchmark.sh` |

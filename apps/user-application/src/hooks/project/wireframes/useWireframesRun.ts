@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ProviderId, RunEvent } from "@stage/data-ops/contracts";
 import type { Id } from "@stage/data-ops/convex/data-model";
 import { convexQuery } from "@convex-dev/react-query";
+import { useMutation as useConvexMutation } from "convex/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/convexApi";
 import { useDesktopAuth } from "@/lib/auth";
@@ -10,8 +11,12 @@ import { useProviderPreferences } from "@/hooks/engine/useProviderPreferences";
 import { useProviderRun } from "@/hooks/engine/useProviderRun";
 import { useProviderStatus } from "@/hooks/engine/useProviderStatus";
 import { useChatDefaults } from "@/hooks/engine/useChatDefaults";
-import { formatRunFailedEvent, toRunFailureUserMessage } from "@/lib/engine/formatRunError";
-import { toUserFacingErrorMessage } from "@/lib/errors";
+import {
+  formatRunFailedEvent,
+  formatStoredRunErrorMessage,
+  toRunFailureUserMessage,
+  WIREFRAMES_RUN_FAILED_USER_MESSAGE,
+} from "@/lib/engine/formatRunError";
 import { buildRunModelOptions } from "@/lib/engine/runModelOptions";
 import {
   assertProviderPreflightReady,
@@ -22,12 +27,9 @@ import { useProviderRequired } from "@/components/app/ProviderRequiredDialog";
 
 const WIREFRAMES_PROMPT =
   "Generate Stage wireframes from the current project context.";
-const WIREFRAMES_RUN_FAILED_USER_MESSAGE =
-  "Wireframes generation failed. Check that Stage Engine is running and the selected provider is configured.";
 
 const WIREFRAMES_EVENT_STALL_MS = 20_000;
 const WIREFRAMES_RUN_MAX_MS = 20 * 60 * 1000;
-const WIREFRAMES_REGENERATE_PROMPT_PREFIX = "Regenerate wireframe screens:";
 
 const wireframesRunLocks = new Map<string, Promise<void>>();
 
@@ -55,28 +57,6 @@ function latestTerminalRunEvent(events: RunEvent[]) {
   return null;
 }
 
-function isFreshRunningRun(startedAt: number) {
-  return Date.now() - startedAt < WIREFRAMES_RUN_MAX_MS;
-}
-
-export function isWireframesRegeneratePrompt(prompt: string | null | undefined) {
-  return prompt?.startsWith(WIREFRAMES_REGENERATE_PROMPT_PREFIX) ?? false;
-}
-
-export function screenIdsFromRegeneratePrompt(prompt: string | null | undefined) {
-  if (!isWireframesRegeneratePrompt(prompt) || !prompt) {
-    return null;
-  }
-
-  const ids = prompt
-    .slice(WIREFRAMES_REGENERATE_PROMPT_PREFIX.length)
-    .split(",")
-    .map((id) => id.trim())
-    .filter(Boolean);
-
-  return ids.length > 0 ? ids : null;
-}
-
 export function useWireframesRun(projectId: string) {
   const { isAuthenticated } = useDesktopAuth();
   const queryClient = useQueryClient();
@@ -85,8 +65,8 @@ export function useWireframesRun(projectId: string) {
   const providers = useProviderStatus();
   const providerRequired = useProviderRequired();
   const chatDefaults = useChatDefaults();
+  const cancelPersistedRun = useConvexMutation(api.projectAi.cancelRun);
   const [error, setError] = useState<string | null>(null);
-  const [runEnded, setRunEnded] = useState(false);
   const runStartedAtRef = useRef<number | null>(null);
 
   const activeRunId = providerRun.activeRunId;
@@ -106,54 +86,61 @@ export function useWireframesRun(projectId: string) {
   );
   const persistedRunningRun = useMemo(
     () =>
-      (wireframesRuns ?? []).find(
-        (run) => run.status === "running" && isFreshRunningRun(run.startedAt),
-      ) ?? null,
+      (wireframesRuns ?? []).find((run) => run.status === "running") ?? null,
     [wireframesRuns],
   );
   const isRunsLoading = runsQueryEnabled && wireframesRunsPending;
 
   const isRunning = useMemo(
     () =>
-      !runEnded &&
-      (providerRun.startRun.isPending ||
-        providerRun.isRunActive ||
-        persistedRunningRun !== null),
+      providerRun.startRun.isPending ||
+      providerRun.isRunActive ||
+      persistedRunningRun !== null,
     [
       persistedRunningRun,
       providerRun.isRunActive,
       providerRun.startRun.isPending,
-      runEnded,
     ],
   );
-
-  const isRegenerateRun = useMemo(() => {
-    if (providerRun.activeRunSource?.includes("screens:")) {
-      return true;
-    }
-
-    return isWireframesRegeneratePrompt(persistedRunningRun?.inputSummary);
-  }, [persistedRunningRun?.inputSummary, providerRun.activeRunSource]);
 
   const terminalEvent = useMemo(
     () => latestTerminalRunEvent(activeRunEvents),
     [activeRunEvents],
   );
 
+  const stopActiveRun = useCallback(async () => {
+    await Promise.allSettled([
+      providerRun.activeRunId
+        ? providerRun.cancelRun.mutateAsync(providerRun.activeRunId)
+        : Promise.resolve(),
+      persistedRunningRun
+        ? cancelPersistedRun({
+            runId: persistedRunningRun.id,
+            projectId: projectId as Id<"projects">,
+          })
+        : Promise.resolve(),
+    ]);
+    providerRun.resetActiveRun();
+  }, [
+    cancelPersistedRun,
+    persistedRunningRun,
+    projectId,
+    providerRun.activeRunId,
+    providerRun.cancelRun,
+    providerRun.resetActiveRun,
+  ]);
+
   const failRun = useCallback(
     (logMessage: string) => {
       console.error(logMessage);
-      setRunEnded(true);
       setError(WIREFRAMES_RUN_FAILED_USER_MESSAGE);
-      providerRun.resetActiveRun();
+      void stopActiveRun();
     },
-    [providerRun],
+    [stopActiveRun],
   );
 
   useEffect(() => {
     if (!terminalEvent) return;
-
-    setRunEnded(true);
 
     if (terminalEvent.type === "run_completed") {
       setError(null);
@@ -165,12 +152,6 @@ export function useWireframesRun(projectId: string) {
       setError(toRunFailureUserMessage(terminalEvent, WIREFRAMES_RUN_FAILED_USER_MESSAGE));
     }
   }, [terminalEvent]);
-
-  useEffect(() => {
-    if (hasTerminalEvent && !runEnded) {
-      setRunEnded(true);
-    }
-  }, [hasTerminalEvent, runEnded]);
 
   useEffect(() => {
     if (persistedRunningRun && runStartedAtRef.current === null) {
@@ -185,7 +166,7 @@ export function useWireframesRun(projectId: string) {
   // "Generating…" stuck for ~20 minutes.
   useEffect(() => {
     const runId = activeRunId ?? persistedRunningRun?.id ?? null;
-    if (!runId || runEnded || hasTerminalEvent) return;
+    if (!runId || hasTerminalEvent) return;
 
     if (runStartedAtRef.current === null) {
       runStartedAtRef.current = persistedRunningRun?.startedAt ?? Date.now();
@@ -224,13 +205,7 @@ export function useWireframesRun(projectId: string) {
       if (stallTimer) window.clearTimeout(stallTimer);
       if (maxTimer) window.clearTimeout(maxTimer);
     };
-  }, [activeRunId, failRun, hasTerminalEvent, persistedRunningRun, queryClient, runEnded]);
-
-  const cancelWireframes = useCallback(async () => {
-    const runId = providerRun.activeRunId ?? persistedRunningRun?.id ?? null;
-    if (!runId) return;
-    await providerRun.cancelRun.mutateAsync(runId);
-  }, [persistedRunningRun?.id, providerRun.activeRunId, providerRun.cancelRun]);
+  }, [activeRunId, failRun, hasTerminalEvent, persistedRunningRun, queryClient]);
 
   const startWireframes = useCallback(
     async (
@@ -239,7 +214,7 @@ export function useWireframesRun(projectId: string) {
       brandKitKeys: string[] = [],
       prompt: string = WIREFRAMES_PROMPT,
     ) => {
-      if (isRunning || providerRun.startRun.isPending) return;
+      if (providerRun.startRun.isPending || providerRun.isRunActive) return;
 
       const lockKey = source ? `${projectId}:${source}` : projectId;
       const inFlight = wireframesRunLocks.get(lockKey);
@@ -250,7 +225,6 @@ export function useWireframesRun(projectId: string) {
 
       const runPromise = (async () => {
         setError(null);
-        setRunEnded(false);
         runStartedAtRef.current = null;
 
         const preflightArgs = {
@@ -263,25 +237,46 @@ export function useWireframesRun(projectId: string) {
         if (blockedMessage) providerRequired.show(blockedMessage);
         assertProviderPreflightReady(preflightArgs);
 
-        // startRun.data (and its cached activeRunId) keeps showing the PREVIOUS
-        // run's id/events until this new mutation resolves. Without clearing it,
-        // the previous run's terminal event trips the watchdog below and snaps
-        // runEnded back to true before any event for this run has arrived.
+        // Clear the previous run's cached id/events before starting the next one.
         providerRun.resetActiveRun();
 
-        await providerRun.startRun.mutateAsync({
-          providerId,
-          modelId: resolveRunModelId(providerId, chatDefaults.defaults.modelId),
-          prompt,
-          mode: "wireframes",
-          context: {
-            projectId,
-            ...(source ? { source } : {}),
-            ...(brandKitKeys.length > 0 ? { brandKitKeys } : {}),
-          },
-          attachments: [],
-          modelOptions: buildRunModelOptions(chatDefaults.defaults),
-        });
+        if (persistedRunningRun && !providerRun.isRunActive) {
+          await cancelPersistedRun({
+            runId: persistedRunningRun.id,
+            projectId: projectId as Id<"projects">,
+          });
+        }
+
+        const start = () =>
+          providerRun.startRun.mutateAsync({
+            providerId,
+            modelId: resolveRunModelId(providerId, chatDefaults.defaults.modelId),
+            prompt,
+            mode: "wireframes",
+            context: {
+              projectId,
+              ...(source ? { source } : {}),
+              ...(brandKitKeys.length > 0 ? { brandKitKeys } : {}),
+            },
+            attachments: [],
+            modelOptions: buildRunModelOptions(chatDefaults.defaults),
+          });
+
+        try {
+          await start();
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          if (!/already in progress/i.test(message)) {
+            throw error;
+          }
+          if (persistedRunningRun) {
+            await cancelPersistedRun({
+              runId: persistedRunningRun.id,
+              projectId: projectId as Id<"projects">,
+            });
+          }
+          await start();
+        }
       })();
 
       wireframesRunLocks.set(lockKey, runPromise);
@@ -296,10 +291,13 @@ export function useWireframesRun(projectId: string) {
     },
     [
       chatDefaults.defaults,
-      isRunning,
+      cancelPersistedRun,
+      persistedRunningRun,
       projectId,
       providerPreferences,
       providerRequired,
+      providerRun.isRunActive,
+      providerRun.resetActiveRun,
       providerRun.startRun,
       providers.snapshot,
     ],
@@ -307,20 +305,19 @@ export function useWireframesRun(projectId: string) {
 
   return {
     startWireframes,
-    cancelWireframes,
+    cancelWireframes: stopActiveRun,
     isStarting: providerRun.startRun.isPending,
     isRunning,
     isRunsLoading,
-    isRegenerateRun,
-    persistedRunningRun,
-    activeRunId: providerRun.activeRunId,
-    activeRunSource: providerRun.activeRunSource,
-    runEvents: activeRunEvents,
-    terminalEvent,
     error:
       error ??
       (providerRun.startRun.error
-        ? toUserFacingErrorMessage(providerRun.startRun.error, WIREFRAMES_RUN_FAILED_USER_MESSAGE)
+        ? formatStoredRunErrorMessage(
+            providerRun.startRun.error instanceof Error
+              ? providerRun.startRun.error.message
+              : String(providerRun.startRun.error),
+            WIREFRAMES_RUN_FAILED_USER_MESSAGE,
+          )
         : null),
   };
 }

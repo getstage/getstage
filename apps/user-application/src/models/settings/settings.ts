@@ -122,6 +122,17 @@ export const settingsOverviewSchema = z.object({
       installedSkillIds: z.array(z.string()).nullable().optional(),
       enabledSkillIds: z.array(z.string()).nullable(),
       enabledComponentPackIds: z.array(z.string()).nullable(),
+      importedSkillHubItems: z
+        .array(
+          z.object({
+            id: z.string(),
+            kind: z.enum(["skill", "component"]),
+            name: z.string(),
+            sourceUrl: z.string(),
+          }),
+        )
+        .nullable()
+        .optional(),
     })
     .optional(),
 });

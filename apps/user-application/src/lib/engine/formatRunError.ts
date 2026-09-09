@@ -13,6 +13,10 @@ export const STRATEGY_RUN_FAILED_USER_MESSAGE =
 export const CHAT_RUN_FAILED_USER_MESSAGE =
   "Something went wrong while running chat. Please try again.";
 
+/** Shown in the Wireframes UI when a run fails for a non-auth reason. */
+export const WIREFRAMES_RUN_FAILED_USER_MESSAGE =
+  "Something went wrong while generating wireframes. Please try again.";
+
 function providerLoginCommand(providerId: ProviderId | null | undefined) {
   return providerId === "claude" ? "claude auth login" : "codex login";
 }
@@ -29,8 +33,22 @@ function combinedErrorText(error: EngineError) {
   return [error.message, error.detail].filter(Boolean).join(" ");
 }
 
+function looksLikeJsonDump(text: string) {
+  const trimmed = text.trim();
+  return (
+    trimmed.length > 800 ||
+    trimmed.startsWith("{") ||
+    trimmed.includes('"artifactKind"')
+  );
+}
+
 function looksLikeProviderSessionLimit(text: string) {
-  return /session limit|rate limit|usage limit|hit your session limit|resets \d/i.test(text);
+  if (looksLikeJsonDump(text)) {
+    return false;
+  }
+  return /(?:hit|reached) your (?:session|usage) limit|(?:session|usage) limit reached|rate limit exceeded|too many requests/i.test(
+    text,
+  );
 }
 
 function looksLikeProviderSubscriptionDisabled(text: string) {
@@ -41,32 +59,6 @@ function looksLikeProviderSubscriptionDisabled(text: string) {
   );
 }
 
-/** Short hint for Codex/Claude limit errors — no stderr dumps or nested JSON. */
-function sessionLimitHint(text: string) {
-  const tryAgain = text.match(/try again at ([^.)|]+)/i)?.[1]?.trim();
-  if (tryAgain) {
-    return `Try again at ${tryAgain}.`;
-  }
-
-  const reset = text.match(/resets ([^.)|]+)/i)?.[1]?.trim();
-  if (reset) {
-    return `Limit resets ${reset}.`;
-  }
-
-  if (/upgrade to plus/i.test(text)) {
-    return "Upgrade your Codex plan or wait until the limit resets.";
-  }
-
-  return null;
-}
-
-function sessionLimitUserMessage(label: string, text: string) {
-  const hint = sessionLimitHint(text);
-  return hint
-    ? `Your connected ${label} account has reached its usage limit. Stage credits are unaffected. ${hint}`
-    : `Your connected ${label} account has reached its usage limit. Stage credits are unaffected. Choose another provider or wait until the limit resets.`;
-}
-
 function looksLikeTechnicalResearchFailure(text: string) {
   return /Research artifact is incomplete|missing required section|competitiveAnalysis\.|Update on nonexistent document|already in progress for this project|Could not find public function/i.test(
     text,
@@ -74,7 +66,7 @@ function looksLikeTechnicalResearchFailure(text: string) {
 }
 
 function looksLikeProviderAuthFailure(text: string) {
-  if (looksLikeProviderSessionLimit(text) || looksLikeProviderSubscriptionDisabled(text)) {
+  if (looksLikeJsonDump(text) || looksLikeProviderSessionLimit(text) || looksLikeProviderSubscriptionDisabled(text)) {
     return false;
   }
   return /auth|login|not authenticated|sign in|401|failed to authenticate|not logged in/i.test(
@@ -114,6 +106,7 @@ export function toEngineErrorUserMessage(
   error: EngineError,
   fallback = CHAT_RUN_FAILED_USER_MESSAGE,
 ): string {
+  const message = error.message?.trim() ?? "";
   const text = combinedErrorText(error);
 
   // Out of credits: the engine wraps the Convex `insufficient_credits` throw as a
@@ -124,23 +117,32 @@ export function toEngineErrorUserMessage(
     return toUserFacingErrorMessage(text, fallback);
   }
 
+  if (looksLikeJsonDump(message) || looksLikeJsonDump(text)) {
+    if (error.code === "not_authenticated" && !looksLikeJsonDump(message)) {
+      const label = providerLabel(error.providerId, message);
+      const loginCmd = providerLoginCommand(error.providerId);
+      return `${label} is not logged in. Run \`${loginCmd}\` in Terminal, then open Settings → Integrations and refresh.`;
+    }
+    return fallback;
+  }
+
   const label = providerLabel(error.providerId, text);
   const loginCmd = providerLoginCommand(error.providerId ?? (/claude/i.test(text) ? "claude" : "codex"));
 
-  const modelMessage = modelErrorMessage(error.providerId, text);
+  const modelMessage = modelErrorMessage(error.providerId, message);
   if (modelMessage) {
     return modelMessage;
   }
 
-  if (looksLikeProviderSessionLimit(text)) {
-    return sessionLimitUserMessage(label, text);
+  if (looksLikeProviderSessionLimit(message)) {
+    return message;
   }
 
   if (looksLikeProviderSubscriptionDisabled(text)) {
     return `${label} subscription access is disabled for this organization. Use an Anthropic API key in Settings → Integrations, or ask your admin to enable Claude Code.`;
   }
 
-  if (error.code === "not_authenticated" || looksLikeProviderAuthFailure(text)) {
+  if (error.code === "not_authenticated" || looksLikeProviderAuthFailure(message)) {
     return `${label} is not logged in. Run \`${loginCmd}\` in Terminal, then open Settings → Integrations and refresh.`;
   }
 
@@ -152,25 +154,25 @@ export function toEngineErrorUserMessage(
   // technical/internal payloads that share the same error code.
   if (
     error.code === "invalid_request" &&
-    error.message?.trim() &&
-    !looksLikeTechnicalResearchFailure(error.message)
+    message &&
+    !looksLikeTechnicalResearchFailure(message)
   ) {
-    return error.message;
+    return message;
   }
 
   if (error.code === "internal_error") {
-    if (error.message?.trim() && !looksLikeTechnicalResearchFailure(error.message)) {
-      return error.message;
+    if (message && !looksLikeTechnicalResearchFailure(message)) {
+      return message;
     }
     return fallback;
   }
 
-  if (isProviderSetupError(error) && error.message?.trim()) {
-    return error.message;
+  if (isProviderSetupError(error) && message) {
+    return message;
   }
 
-  if (error.code === "readiness_failed" && error.message?.trim()) {
-    return error.message;
+  if (error.code === "readiness_failed" && message) {
+    return message;
   }
 
   return fallback;

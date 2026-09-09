@@ -1,8 +1,10 @@
 # Project Export and Wireframes Cleanup
 
-**Status:** Export implementation corrected and focused checks pass locally; Werner's UI smoke test remains.
+**Status:** Sections 1–4 are **in the working tree** (not committed). Living cut: [`docs/NEW_VERSION_START_SEPTEMBER_2026.md`](../../../../../docs/NEW_VERSION_START_SEPTEMBER_2026.md).
 **Branch:** `codex/sta-33-local-project-export`
-**Last updated:** 2026-09-04
+**Last updated:** 2026-09-09 evening
+
+Header **Export** opens the dialog. Destinations (**Export only** + Open in installed IDEs) are in the **dialog footer**. Skills & components stay in the dialog (step 2). Checklist type stays 13/12px. GitHub Import is on Installed Skills and Component Libraries. Hi-fi generation is hidden (`HIFI_WIREFRAMES_ENABLED = false`); engine code stays. Schema deploy to testing Convex and a desktop smoke are still open.
 
 ## Guardrails
 

@@ -43,6 +43,13 @@ export type ComponentPackCatalogItem = {
   promptHint: string;
 };
 
+export type ImportedSkillHubItem = {
+  id: string;
+  kind: "skill" | "component";
+  name: string;
+  sourceUrl: string;
+};
+
 export const HUB_TAB_ICON_PATHS: Record<IntegrationsHubTab, string> = {
   tools: "/logos/skills/toolbox.svg",
   skills: "/logos/skills/magic-wand.svg",
@@ -55,6 +62,16 @@ const MESH = {
   cool: "/images/skills/mesh-cool.webp",
   green: "/images/skills/mesh-green.webp",
 } as const;
+
+const MESH_CYCLE = [MESH.warm, MESH.cool, MESH.green] as const;
+
+function meshForId(id: string): string {
+  let hash = 0;
+  for (let index = 0; index < id.length; index += 1) {
+    hash = (hash + id.charCodeAt(index)) % MESH_CYCLE.length;
+  }
+  return MESH_CYCLE[hash] ?? MESH.cool;
+}
 
 /**
  * Curated Stage skill library (Werner’s list). Static — never scans local agent folders.
@@ -335,5 +352,59 @@ export function packsOfKind(kind: ComponentPackCatalogItem["packKind"]): Compone
 /** What Stage falls back to when a project has made no explicit choice. */
 export function defaultProjectSelection(): { skillIds: string[]; componentPackIds: string[] } {
   return { skillIds: ["design-taste-frontend"], componentPackIds: ["shadcn-ui"] };
+}
+
+function importedSkillItem(item: ImportedSkillHubItem): SkillCatalogItem {
+  return {
+    id: item.id,
+    name: item.name,
+    description: item.sourceUrl,
+    official: false,
+    overlayTitle: `<${item.name}>`,
+    meshSrc: meshForId(item.id),
+    defaultEnabled: true,
+    category: "Imported",
+    installsLabel: "GitHub",
+    author: "Imported",
+    sourceUrl: item.sourceUrl,
+    longDescription: `Imported from ${item.sourceUrl}. Stage stores the public GitHub URL so the coding agent can read the skill from source.`,
+    features: ["Public GitHub source attached to this Stage project export"],
+    bestFor: ["Export to a coding agent"],
+    tags: ["imported", "github"],
+  };
+}
+
+function importedPackItem(item: ImportedSkillHubItem): ComponentPackCatalogItem {
+  return {
+    id: item.id,
+    name: item.name,
+    description: item.sourceUrl,
+    official: false,
+    iconSrc: HUB_TAB_ICON_PATHS.components,
+    defaultEnabled: true,
+    category: "Imported",
+    packKind: "base",
+    installsLabel: "GitHub",
+    sourceUrl: item.sourceUrl,
+    promptHint: `Use the public component library at ${item.sourceUrl}. Do not hand-roll a replacement kit.`,
+  };
+}
+
+export function withImportedSkills(
+  imported: readonly ImportedSkillHubItem[],
+): SkillCatalogItem[] {
+  return [
+    ...imported.filter((item) => item.kind === "skill").map(importedSkillItem),
+    ...DISCOVER_SKILL_CATALOG,
+  ];
+}
+
+export function withImportedPacks(
+  imported: readonly ImportedSkillHubItem[],
+): ComponentPackCatalogItem[] {
+  return [
+    ...imported.filter((item) => item.kind === "component").map(importedPackItem),
+    ...COMPONENT_PACK_CATALOG,
+  ];
 }
 

@@ -370,6 +370,16 @@ export default defineSchema({
     installedSkillIds: v.optional(v.array(v.string())),
     enabledSkillIds: v.optional(v.array(v.string())),
     enabledComponentPackIds: v.optional(v.array(v.string())),
+    importedSkillHubItems: v.optional(
+      v.array(
+        v.object({
+          id: v.string(),
+          kind: v.union(v.literal("skill"), v.literal("component")),
+          name: v.string(),
+          sourceUrl: v.string(),
+        }),
+      ),
+    ),
     createdAt: v.optional(v.number()),
     updatedAt: v.optional(v.number()),
   })

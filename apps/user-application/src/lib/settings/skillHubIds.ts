@@ -5,17 +5,23 @@ import {
   defaultProjectSelection,
 } from "./skillsCatalog";
 
-export function parseCatalogSkillId(id: string): string {
+export function parseCatalogSkillId(id: string, extraIds: readonly string[] = []): string {
   const parsed = skillHubIdSchema.parse(id);
-  if (!DISCOVER_SKILL_CATALOG.some((skill) => skill.id === parsed)) {
+  if (
+    !DISCOVER_SKILL_CATALOG.some((skill) => skill.id === parsed) &&
+    !extraIds.includes(parsed)
+  ) {
     throw new Error("Unknown skill.");
   }
   return parsed;
 }
 
-export function parseCatalogPackId(id: string): string {
+export function parseCatalogPackId(id: string, extraIds: readonly string[] = []): string {
   const parsed = skillHubIdSchema.parse(id);
-  if (!COMPONENT_PACK_CATALOG.some((pack) => pack.id === parsed)) {
+  if (
+    !COMPONENT_PACK_CATALOG.some((pack) => pack.id === parsed) &&
+    !extraIds.includes(parsed)
+  ) {
     throw new Error("Unknown component library.");
   }
   return parsed;
@@ -40,14 +46,17 @@ export function sanitizeCatalogIds(
 export const CATALOG_SKILL_IDS = DISCOVER_SKILL_CATALOG.map((skill) => skill.id);
 export const CATALOG_PACK_IDS = COMPONENT_PACK_CATALOG.map((pack) => pack.id);
 
-/** Keep project ids inside the catalog. Unknown / unsafe strings are dropped. */
 export function sanitizeProjectCatalogSelection(
   skillIds: readonly string[],
   componentPackIds: readonly string[],
+  extra?: { skillIds?: readonly string[]; packIds?: readonly string[] },
 ): { skillIds: string[]; componentPackIds: string[] } {
   return {
-    skillIds: sanitizeCatalogIds(skillIds, CATALOG_SKILL_IDS),
-    componentPackIds: sanitizeCatalogIds(componentPackIds, CATALOG_PACK_IDS),
+    skillIds: sanitizeCatalogIds(skillIds, [...(extra?.skillIds ?? []), ...CATALOG_SKILL_IDS]),
+    componentPackIds: sanitizeCatalogIds(componentPackIds, [
+      ...(extra?.packIds ?? []),
+      ...CATALOG_PACK_IDS,
+    ]),
   };
 }
 

@@ -214,9 +214,7 @@ export function flowsMarkdown(artifact: FlowsArtifact) {
 }
 
 export function wireframesMarkdown(artifact: WireframesArtifact) {
-  const lines = ["", `**Fidelity:** ${artifact.wireframeKind === "hifi" ? "Hi-Fi" : "Lo-Fi"}`];
-  if (artifact.brandSource) lines.push("", `**Brand source:** ${artifact.brandSource === "brand-kit" ? "Brand kit" : "Style guide"}`);
-  if (artifact.layoutPreference) lines.push("", "## Layout direction", "", artifact.layoutPreference);
+  const lines = ["", "**Fidelity:** Lo-Fi"];
   if (artifact.generatedScreens.length) lines.push("", "## Generated screens");
   for (const screen of artifact.generatedScreens) {
     lines.push("", `### ${screen.title} · ${screen.priority}`);
@@ -230,10 +228,6 @@ export function wireframesMarkdown(artifact: WireframesArtifact) {
         }
         if (block.notes) lines.push(`  - ${block.notes}`);
       }
-    }
-    if (screen.html?.trim()) {
-      const fence = screen.html.includes("```") ? "````" : "```";
-      lines.push("", "#### Hi-Fi source", "", `${fence}html`, screen.html, fence);
     }
   }
   return document(artifact.title, lines);

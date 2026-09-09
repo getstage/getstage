@@ -163,9 +163,8 @@ fn enabled_component_pack_ids(input: &WireframesInput) -> Vec<String> {
 fn hifi_prompt_extras(input: &WireframesInput) -> String {
     let mut extras = String::from(HIFI_RULES);
     if taste_skill_enabled(input) {
-        extras.push_str(
-            "\n\n<taste_skill source=\"Leonxlnx/taste-skill:design-taste-frontend\">\n",
-        );
+        extras
+            .push_str("\n\n<taste_skill source=\"Leonxlnx/taste-skill:design-taste-frontend\">\n");
         extras.push_str(
             "You MUST follow this Taste skill for every Hi-Fi html screen. It overrides generic AI defaults.\n\n",
         );
@@ -238,6 +237,26 @@ fn redact_regen_artifact(existing_json: &str, ids: &[&str]) -> String {
     serde_json::to_string(&value).unwrap_or_else(|_| existing_json.to_string())
 }
 
+fn strip_html_from_artifact(existing_json: &str) -> String {
+    let Ok(mut value) = serde_json::from_str::<serde_json::Value>(existing_json) else {
+        return existing_json.to_string();
+    };
+    let Some(object) = value.as_object_mut() else {
+        return existing_json.to_string();
+    };
+    if let Some(screens) = object
+        .get_mut("generatedScreens")
+        .and_then(serde_json::Value::as_array_mut)
+    {
+        for screen in screens {
+            if let Some(screen_object) = screen.as_object_mut() {
+                screen_object.remove("html");
+            }
+        }
+    }
+    serde_json::to_string(&value).unwrap_or_else(|_| existing_json.to_string())
+}
+
 pub fn build_wireframes_prompt(
     input: &WireframesInput,
     kind: WireframeKind,
@@ -245,18 +264,24 @@ pub fn build_wireframes_prompt(
     style_direction_id: Option<&str>,
     layout_preference: Option<&str>,
     brand_kit_attached: bool,
+    selected_screen_ids: Option<&[String]>,
     regenerate_screen_ids: Option<&[String]>,
 ) -> String {
-    let research_block = input
-        .research_artifact_json
-        .as_deref()
-        .map(|json| format!("Saved research artifact JSON:\n{json}\n\n"))
-        .unwrap_or_default();
-    let moodboard_block = input
-        .moodboard_artifact_json
-        .as_deref()
-        .map(|json| format!("Saved moodboard artifact JSON:\n{json}\n\n"))
-        .unwrap_or_default();
+    let (research_block, moodboard_block) = match kind {
+        WireframeKind::Lofi => (String::new(), String::new()),
+        WireframeKind::Hifi => (
+            input
+                .research_artifact_json
+                .as_deref()
+                .map(|json| format!("Saved research artifact JSON:\n{json}\n\n"))
+                .unwrap_or_default(),
+            input
+                .moodboard_artifact_json
+                .as_deref()
+                .map(|json| format!("Saved moodboard artifact JSON:\n{json}\n\n"))
+                .unwrap_or_default(),
+        ),
+    };
     let flows_block = input
         .flows_artifact_json
         .as_deref()
@@ -265,6 +290,7 @@ pub fn build_wireframes_prompt(
     let existing_block = input
         .existing_wireframes_artifact_json
         .as_deref()
+        .filter(|_| matches!(kind, WireframeKind::Hifi) || regenerate_screen_ids.is_some())
         .map(|json| {
             let payload = match regenerate_screen_ids.filter(|ids| !ids.is_empty()) {
                 Some(ids) => {
@@ -272,6 +298,10 @@ pub fn build_wireframes_prompt(
                     redact_regen_artifact(json, &id_refs)
                 }
                 None => json.to_string(),
+            };
+            let payload = match kind {
+                WireframeKind::Lofi => strip_html_from_artifact(&payload),
+                WireframeKind::Hifi => payload,
             };
             format!(
                 "Previous wireframes artifact (regenerate; keep ids stable where possible):\n{payload}\n\n"
@@ -302,11 +332,34 @@ pub fn build_wireframes_prompt(
         WireframeKind::Hifi => hifi_prompt_extras(input),
         WireframeKind::Lofi => String::new(),
     };
+    let lofi_html_ban = match kind {
+        WireframeKind::Lofi => {
+            "- Do NOT include an \"html\" field on any generatedScreens[] entry. Lo-Fi output is sections[].blocks[] only.\n"
+        }
+        WireframeKind::Hifi => "",
+    };
     let regenerate_block = regenerate_screen_ids
         .filter(|ids| !ids.is_empty())
         .map(|ids| {
+            let html_requirement = match kind {
+                WireframeKind::Hifi => {
+                    " Do NOT reuse prior html markup or layout structure for these ids. Each returned screen MUST have a non-empty \"html\" that is materially different from the saved artifact (different section order, layout pattern, or visual rhythm)."
+                }
+                WireframeKind::Lofi => {
+                    " Do NOT reuse prior layout structure for these ids. Return sections[]/blocks[] only — do not emit an \"html\" field."
+                }
+            };
             format!(
-                "- PARTIAL REGENERATION: Return generatedScreens[] containing ONLY these screen ids: {}. Re-design each returned screen from strategy/moodboard context. Do NOT reuse prior html markup or layout structure for these ids. Each returned screen MUST have a non-empty \"html\" that is materially different from the saved artifact (different section order, layout pattern, or visual rhythm).\n",
+                "- PARTIAL REGENERATION: Return generatedScreens[] containing ONLY these screen ids: {}. Re-design each returned screen from strategy/moodboard context.{html_requirement}\n",
+                ids.join(", ")
+            )
+        })
+        .unwrap_or_default();
+    let selection_block = selected_screen_ids
+        .filter(|ids| !ids.is_empty())
+        .map(|ids| {
+            format!(
+                "- FULL GENERATION: Set configureScreens[].selected to true exactly for these ids and return generatedScreens[] containing exactly these ids: {}.\n",
                 ids.join(", ")
             )
         })
@@ -326,7 +379,7 @@ pub fn build_wireframes_prompt(
 - One screen per generatedScreens[] entry; preserve every selected screen from the configure list.
 - configureScreens[].required: true ONLY for the 2-4 screens essential to the core funnel (e.g. the primary landing page). Default every other screen to required: false so the user can toggle it off — do not mark every screen required.
 - {brand_source_line}
-{regenerate_block}{style_direction_block}{layout_block}</rules>
+{lofi_html_ban}{selection_block}{regenerate_block}{style_direction_block}{layout_block}</rules>
 
 <cognitive_steps>
 1. Restate each screen's goal in one sentence (set generatedScreens[].goal).

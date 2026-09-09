@@ -8,9 +8,7 @@ import { getEnabledProjectTabs } from "@/lib/project/projectTabs";
 import type { Phase, Project, ProjectTab } from "@/models/project/project";
 import type { ProjectModal, ProjectTimeline } from "@/types/project/projectHeader";
 import { ProjectActionsMenu } from "./header/ProjectActionsMenu";
-import { ExportDestinationMenu } from "./header/ExportDestinationMenu";
 import { ProjectActionModal } from "./header/ProjectHeaderModals";
-import { useInstalledExportApps } from "@/hooks/project/useInstalledExportApps";
 
 export type { ProjectTimeline };
 
@@ -60,7 +58,6 @@ export function ProjectHeader({
   deleteError: string | null;
 }) {
   const navigate = useNavigate();
-  const availableApps = useInstalledExportApps();
   const [isProjectMenuOpen, setIsProjectMenuOpen] = useState(false);
   const [activeModal, setActiveModal] = useState<ProjectModal | null>(null);
   const projectMenuRef = useRef<HTMLDivElement | null>(null);
@@ -107,14 +104,13 @@ export function ProjectHeader({
         </div>
 
         <div ref={projectMenuRef} className="relative flex min-w-0 items-center justify-end gap-[6px]">
-          <ExportDestinationMenu
-            availableApps={availableApps}
-            includeAddSkills
-            triggerLabel="Export"
-            onExportOnly={() => onExport({ step: "sections" })}
-            onOpenIn={() => onExport({ step: "sections" })}
-            onAddSkills={() => onExport({ step: "skills" })}
-          />
+          <button
+            type="button"
+            onClick={() => onExport({ step: "sections" })}
+            className="inline-flex h-[27px] shrink-0 cursor-pointer items-center rounded-[6px] bg-[#F5F5F5] py-[6px] px-3 text-[13px] font-medium leading-[1.25] text-[#262626] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#ECECEC]"
+          >
+            Export
+          </button>
           <button
             type="button"
             onClick={onShare}

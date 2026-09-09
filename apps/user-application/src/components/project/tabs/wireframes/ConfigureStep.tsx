@@ -2,9 +2,8 @@ import { useState } from "react";
 import type { ProviderId } from "@stage/data-ops/contracts";
 import { AiRunSettings } from "@/components/project/AiRunSettings";
 import type { ResearchProviderOption } from "@/hooks/project/research/useResearchProviderSelection";
-import type { ScreenItem, WireframeKind } from "@/types/project/wireframesTab";
+import type { ScreenItem } from "@/types/project/wireframesTab";
 import { Badge, PrimaryButton, SecondaryButton } from "./WireframePrimitives";
-import { WireframeRunSelection } from "./WireframeRunSelection";
 import {
   ArrowLeftIcon,
   ArrowRightIcon,
@@ -23,36 +22,24 @@ const EMPTY_SCREEN_DRAFT: ScreenDraft = {
 };
 
 export function ConfigureStep({
-  wireframeKind,
   screens,
   selectedCount,
-  skillIds,
-  componentPackIds,
-  onSaveSkills,
   providerOptions,
   selectedProviderId,
   onSelectProvider,
   onBackToResults,
-  onChangeType,
-  onAddBrandKit,
   onToggle,
   onAddScreen,
   onEditScreen,
   onDeleteScreen,
   onGenerate,
 }: {
-  wireframeKind: WireframeKind;
   screens: ScreenItem[];
   selectedCount: number;
-  skillIds: readonly string[];
-  componentPackIds: readonly string[];
-  onSaveSkills: (input: { skillIds: string[]; componentPackIds: string[] }) => Promise<void>;
   providerOptions: ResearchProviderOption[];
   selectedProviderId: ProviderId | null;
   onSelectProvider: (providerId: ProviderId) => void;
   onBackToResults?: () => void;
-  onChangeType: () => void;
-  onAddBrandKit: () => void;
   onToggle: (id: string) => void;
   onAddScreen: (draft: ScreenDraft) => void;
   onEditScreen: (id: string, draft: ScreenDraft) => void;
@@ -70,9 +57,7 @@ export function ConfigureStep({
             Generate Wireframes
           </h2>
           <p className="mt-[10px] max-w-[354px] text-[12px] font-medium leading-[1.5] text-[#525252]">
-            {wireframeKind === "lofi"
-              ? "AI will produce low-fidelity block layouts for the selected screens."
-              : "AI will produce high-fidelity designs for the selected screens using your chosen visual source."}
+            AI will produce low-fidelity block layouts for the selected screens.
           </p>
         </div>
         <div className="flex flex-wrap items-center justify-between gap-4">
@@ -88,29 +73,9 @@ export function ConfigureStep({
                 Back to wireframes
               </SecondaryButton>
             ) : null}
-            <SecondaryButton onClick={onChangeType}>
-              <ArrowLeftIcon />
-              Change Wireframe type
-            </SecondaryButton>
-            {wireframeKind === "lofi" ? (
-              <SecondaryButton purple onClick={onAddBrandKit}>
-                <PlusIcon />
-                Add Brand Kit
-              </SecondaryButton>
-            ) : null}
           </div>
         </div>
       </div>
-
-      {wireframeKind === "hifi" ? (
-        <div className="mb-1">
-          <WireframeRunSelection
-            skillIds={skillIds}
-            componentPackIds={componentPackIds}
-            onSave={onSaveSkills}
-          />
-        </div>
-      ) : null}
 
       <div className="rounded-[8px] bg-white p-11 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3 text-[15px] font-medium leading-[1.25] text-[#171717]">
