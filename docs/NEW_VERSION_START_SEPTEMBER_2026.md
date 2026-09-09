@@ -4,7 +4,7 @@
 
 Stage does not output Stage hi-fi. The user leaves with a spec (Markdown + `AGENTS.md`) and opens it in Cursor / Claude Code / Codex. Stage still produces research, strategy, moodboard, style guide, flows, and Lo-Fi wireframes. The coding agent builds the hi-fi.
 
-**Branch:** `codex/sta-33-local-project-export` · desktop `0.2.26` testing  
+**Branch:** `codex/sta-33-lofi-desktop` · desktop `0.2.27` testing  
 **Linear:** `STA-33`
 **File:** `docs/NEW_VERSION_START_SEPTEMBER_2026.md`
 
