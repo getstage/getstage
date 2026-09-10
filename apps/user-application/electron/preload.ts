@@ -16,6 +16,7 @@ import type {
   ProjectExportResponse,
   ProjectExportAppsResponse,
 } from "@shared/models/desktop";
+import type { HomepagePreview } from "@shared/models/sitePreview";
 import type {
   CreateFigmaExportRequest,
   CreateFigmaExportResponse,
@@ -50,6 +51,10 @@ const stageDesktop = {
   },
   clipboard: {
     writeText: (text: string) => ipcRenderer.invoke(IPC_CHANNELS.clipboardWriteText, text),
+  },
+  library: {
+    previewHomepage: (url: string): Promise<HomepagePreview> =>
+      ipcRenderer.invoke(IPC_CHANNELS.libraryPreviewHomepage, url),
   },
   project: {
     export: (request: ProjectExportRequest): Promise<ProjectExportResponse> =>

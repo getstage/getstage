@@ -48,6 +48,8 @@ export type ImportedSkillHubItem = {
   kind: "skill" | "component";
   name: string;
   sourceUrl: string;
+  subtitle?: string;
+  iconUrl?: string;
 };
 
 export const HUB_TAB_ICON_PATHS: Record<IntegrationsHubTab, string> = {
@@ -378,13 +380,13 @@ function importedPackItem(item: ImportedSkillHubItem): ComponentPackCatalogItem 
   return {
     id: item.id,
     name: item.name,
-    description: item.sourceUrl,
+    description: item.subtitle?.trim() || item.sourceUrl,
     official: false,
-    iconSrc: HUB_TAB_ICON_PATHS.components,
+    iconSrc: item.iconUrl?.trim() || HUB_TAB_ICON_PATHS.components,
     defaultEnabled: true,
     category: "Imported",
     packKind: "base",
-    installsLabel: "GitHub",
+    installsLabel: item.id.startsWith("web-") ? "Web" : "GitHub",
     sourceUrl: item.sourceUrl,
     promptHint: `Use the public component library at ${item.sourceUrl}. Do not hand-roll a replacement kit.`,
   };

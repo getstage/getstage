@@ -39,6 +39,7 @@ import type {
   VoiceTranscriptionRequest,
 } from "@stage/data-ops/contracts";
 import type { VoiceTranscriptionStatus } from "@shared/models/desktop";
+import type { HomepagePreview } from "@shared/models/sitePreview";
 
 export type StageDesktopApi = {
   auth: {
@@ -50,6 +51,9 @@ export type StageDesktopApi = {
   };
   clipboard: {
     writeText: (text: string) => Promise<void>;
+  };
+  library: {
+    previewHomepage: (url: string) => Promise<HomepagePreview>;
   };
   project: {
     export: (request: ProjectExportRequest) => Promise<ProjectExportResponse>;

@@ -80,6 +80,7 @@ import {
   RUN_EVENT_STREAM_RECONNECT_DELAY_MS,
 } from "./helpers/engine-constants";
 import { exportStageProject, listExportApps } from "./helpers/project-export";
+import { previewLibraryHomepage } from "./helpers/library-preview";
 
 const activeRunStreams = new Map<string, AbortController>();
 
@@ -162,6 +163,10 @@ export function registerIpcHandlers({
       throw new Error("Clipboard text must be a string.");
     }
     clipboard.writeText(text);
+  });
+
+  ipcMain.handle(IPC_CHANNELS.libraryPreviewHomepage, async (_event, url: unknown) => {
+    return previewLibraryHomepage(url);
   });
 
   ipcMain.handle(IPC_CHANNELS.projectExport, async (_event, request: unknown) => {

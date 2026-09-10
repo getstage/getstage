@@ -304,6 +304,8 @@ export async function updateSkillHubPrefsHandler(
       kind: "skill" | "component";
       name: string;
       sourceUrl: string;
+      subtitle?: string;
+      iconUrl?: string;
     }>;
   },
 ) {

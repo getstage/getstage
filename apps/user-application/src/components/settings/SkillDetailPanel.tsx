@@ -4,6 +4,7 @@ import {
   DISCOVER_SKILL_CATALOG,
   type SkillCatalogItem,
 } from "@/lib/settings/skillsCatalog";
+import { copyTextToClipboard } from "@/lib/copyToClipboard";
 import { openExternalLink } from "@/lib/settings/openExternalLink";
 import { MetaChip, OfficialBadge, SkillArtwork } from "./SkillsComponentsHub";
 
@@ -212,14 +213,14 @@ function ShareSkillDialog({ url, onClose }: { url: string; onClose: () => void }
   const [copied, setCopied] = useState(false);
 
   async function copy() {
-    const safeUrl = parseGithubSourceUrl(url);
-    try {
-      await navigator.clipboard.writeText(safeUrl);
+    const safeUrl = shareableGithubUrl(url) ?? url;
+    const copiedOk = await copyTextToClipboard(safeUrl);
+    if (copiedOk) {
       setCopied(true);
       window.setTimeout(() => setCopied(false), 2000);
-    } catch {
-      window.prompt("Copy this link", safeUrl);
+      return;
     }
+    window.prompt("Copy this link", safeUrl);
   }
 
   return (
