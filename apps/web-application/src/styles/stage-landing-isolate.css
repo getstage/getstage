@@ -1,0 +1,53 @@
+/* Beat Tailwind preflight + globals.css only while the Adrien landing is mounted. */
+
+html.stage-landing-page {
+  font-family: Inter, Arial, sans-serif;
+  color: #171717;
+  background: #f5f5f5;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  scroll-padding-top: 130px;
+}
+
+html.stage-landing-page body {
+  font-family: Inter, Arial, sans-serif;
+  background: #f5f5f5;
+  color: #171717;
+  min-height: 0;
+  line-height: normal;
+  font-size: unset;
+  margin: 0;
+}
+
+html.stage-landing-page h1,
+html.stage-landing-page h2,
+html.stage-landing-page h3,
+html.stage-landing-page h4,
+html.stage-landing-page h5,
+html.stage-landing-page h6 {
+  font-family: inherit;
+}
+
+html.stage-landing-page .testimonial-controls [data-testimonial-prev] {
+  transform: scaleX(-1);
+}
+
+html.stage-landing-page .testimonial-arrow-back {
+  transform: none;
+}
+
+html.stage-landing-page .testimonial-controls .button,
+html.stage-landing-page .testimonial-controls svg {
+  overflow: visible;
+}
+
+html.stage-landing-page button:focus,
+html.stage-landing-page button:focus-visible,
+html.stage-landing-page a:focus-visible,
+html.stage-landing-page summary:focus-visible,
+html.stage-landing-page [role="button"]:focus,
+html.stage-landing-page [role="button"]:focus-visible {
+  outline: 3px solid #8d87ff !important;
+  outline-offset: 5px !important;
+  box-shadow: none !important;
+}
