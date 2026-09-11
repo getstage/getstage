@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as OpenclawRouteImport } from './routes/openclaw'
+import { Route as DownloadRouteImport } from './routes/download'
 import { Route as DocsRouteImport } from './routes/docs'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AgentsRouteImport } from './routes/agents'
@@ -47,6 +48,11 @@ const PrivacyRoute = PrivacyRouteImport.update({
 const OpenclawRoute = OpenclawRouteImport.update({
   id: '/openclaw',
   path: '/openclaw',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DownloadRoute = DownloadRouteImport.update({
+  id: '/download',
+  path: '/download',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DocsRoute = DocsRouteImport.update({
@@ -90,9 +96,9 @@ const HelpImportTransactionsViaGoogleSheetsRoute =
     getParentRoute: () => rootRouteImport,
   } as any)
 const DownloadMacRoute = DownloadMacRouteImport.update({
-  id: '/download/mac',
-  path: '/download/mac',
-  getParentRoute: () => rootRouteImport,
+  id: '/mac',
+  path: '/mac',
+  getParentRoute: () => DownloadRoute,
 } as any)
 const BillingReturnRoute = BillingReturnRouteImport.update({
   id: '/billing/return',
@@ -161,6 +167,7 @@ export interface FileRoutesByFullPath {
   '/agents': typeof AgentsRouteWithChildren
   '/auth': typeof AuthRouteWithChildren
   '/docs': typeof DocsRoute
+  '/download': typeof DownloadRouteWithChildren
   '/openclaw': typeof OpenclawRoute
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
@@ -185,6 +192,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRouteWithChildren
   '/docs': typeof DocsRoute
+  '/download': typeof DownloadRouteWithChildren
   '/openclaw': typeof OpenclawRoute
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
@@ -212,6 +220,7 @@ export interface FileRoutesById {
   '/agents': typeof AgentsRouteWithChildren
   '/auth': typeof AuthRouteWithChildren
   '/docs': typeof DocsRoute
+  '/download': typeof DownloadRouteWithChildren
   '/openclaw': typeof OpenclawRoute
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
@@ -239,6 +248,7 @@ export interface FileRouteTypes {
     | '/agents'
     | '/auth'
     | '/docs'
+    | '/download'
     | '/openclaw'
     | '/privacy'
     | '/terms'
@@ -263,6 +273,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/docs'
+    | '/download'
     | '/openclaw'
     | '/privacy'
     | '/terms'
@@ -289,6 +300,7 @@ export interface FileRouteTypes {
     | '/agents'
     | '/auth'
     | '/docs'
+    | '/download'
     | '/openclaw'
     | '/privacy'
     | '/terms'
@@ -316,11 +328,11 @@ export interface RootRouteChildren {
   AgentsRoute: typeof AgentsRouteWithChildren
   AuthRoute: typeof AuthRouteWithChildren
   DocsRoute: typeof DocsRoute
+  DownloadRoute: typeof DownloadRouteWithChildren
   OpenclawRoute: typeof OpenclawRoute
   PrivacyRoute: typeof PrivacyRoute
   TermsRoute: typeof TermsRoute
   BillingReturnRoute: typeof BillingReturnRoute
-  DownloadMacRoute: typeof DownloadMacRoute
   HelpImportTransactionsViaGoogleSheetsRoute: typeof HelpImportTransactionsViaGoogleSheetsRoute
   PortalTokenRoute: typeof PortalTokenRouteWithChildren
 }
@@ -346,6 +358,13 @@ declare module '@tanstack/react-router' {
       path: '/openclaw'
       fullPath: '/openclaw'
       preLoaderRoute: typeof OpenclawRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/download': {
+      id: '/download'
+      path: '/download'
+      fullPath: '/download'
+      preLoaderRoute: typeof DownloadRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/docs': {
@@ -406,10 +425,10 @@ declare module '@tanstack/react-router' {
     }
     '/download/mac': {
       id: '/download/mac'
-      path: '/download/mac'
+      path: '/mac'
       fullPath: '/download/mac'
       preLoaderRoute: typeof DownloadMacRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof DownloadRoute
     }
     '/billing/return': {
       id: '/billing/return'
@@ -556,6 +575,18 @@ const AuthRouteChildren: AuthRouteChildren = {
 
 const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
 
+interface DownloadRouteChildren {
+  DownloadMacRoute: typeof DownloadMacRoute
+}
+
+const DownloadRouteChildren: DownloadRouteChildren = {
+  DownloadMacRoute: DownloadMacRoute,
+}
+
+const DownloadRouteWithChildren = DownloadRoute._addFileChildren(
+  DownloadRouteChildren,
+)
+
 interface PortalTokenRouteChildren {
   PortalTokenTaskTaskIdRoute: typeof PortalTokenTaskTaskIdRoute
 }
@@ -574,11 +605,11 @@ const rootRouteChildren: RootRouteChildren = {
   AgentsRoute: AgentsRouteWithChildren,
   AuthRoute: AuthRouteWithChildren,
   DocsRoute: DocsRoute,
+  DownloadRoute: DownloadRouteWithChildren,
   OpenclawRoute: OpenclawRoute,
   PrivacyRoute: PrivacyRoute,
   TermsRoute: TermsRoute,
   BillingReturnRoute: BillingReturnRoute,
-  DownloadMacRoute: DownloadMacRoute,
   HelpImportTransactionsViaGoogleSheetsRoute:
     HelpImportTransactionsViaGoogleSheetsRoute,
   PortalTokenRoute: PortalTokenRouteWithChildren,

@@ -1,0 +1,55 @@
+{
+  "section": "The Shift",
+  "anchor": "shift",
+  "version": 10,
+  "paragraphs": [
+    {
+      "id": "problem",
+      "text": "Your AI builds what you ask for. But the result still feels generic, and another prompt doesn’t quite fix it.",
+      "inlineVisuals": [
+        {
+          "after": "Your AI",
+          "type": "icon",
+          "icon": "Console"
+        }
+      ]
+    },
+    {
+      "id": "missing-decisions",
+      "text": "What’s often missing is a clear direction: what the product should do, how it should feel, and which references to learn from.",
+      "inlineVisuals": [
+        {
+          "after": "which references to learn from.",
+          "type": "icon",
+          "icon": "Search"
+        }
+      ]
+    },
+    {
+      "id": "stage",
+      "text": "Stage guides you through a clear design process, so you can turn your idea into a product people love using.",
+      "inlineVisuals": [
+        {
+          "after": "your idea",
+          "type": "icon",
+          "icon": "Lightbulb"
+        }
+      ]
+    }
+  ],
+  "wordCount": 62,
+  "revealNotes": "Reveal words in reading order with a linear response to scroll and no overlapping color transitions. The first two paragraphs share one sequence, so the first finishes before the second starts. The benefit paragraph starts a separate sequence after the video, never before the earlier sequence finishes. Reverse scrolling reverses the reveal, and reduced motion shows all words. Preserve complete sentences and punctuation when splitting the text into animation spans. Inline visuals are decorative and must not replace words.",
+  "editorialNotes": [
+    "The three paragraphs are complete prose and remain grammatical with every inline visual removed.",
+    "Use three inline SVG icons in the existing purple Research badge style: Console for AI, Search for references and Lightbulb for idea. Avoid extra trailing margin after the badges. Keep each badge with its preceding word and retain the complete prose for screen readers.",
+    "No em dashes, invented proof, performance claims or new product features are included.",
+    "Embed the supplied Stage launch video between the second and third paragraphs. Playback starts only when the visitor chooses to play."
+  ],
+  "launchVideo": {
+    "title": "Stage launch video",
+    "sourceUrl": "https://drive.google.com/file/d/1kQp0llYLS65jajMaHuTbtrW3z0Uv_2DV/view",
+    "autoplay": false,
+    "videoUrl": "/assets/stage-launch-video.mp4",
+    "posterUrl": "/assets/stage-launch-video-poster.jpg"
+  }
+}

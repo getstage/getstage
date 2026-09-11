@@ -3,6 +3,7 @@ const PUBLIC_WEB_PATHS = new Set([
   "/auth",
   "/auth/desktop",
   "/billing/return",
+  "/download",
   "/download/mac",
   "/open",
   "/terms",

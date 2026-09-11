@@ -1,0 +1,387 @@
+{
+  "meta": {
+    "title": "Stage | Think through your product before your AI builds it",
+    "description": "Work through research, strategy, visual direction, flows and wireframes in Stage for Mac. Export a Markdown brief for Cursor, Claude Code or Codex."
+  },
+  "navigation": {
+    "productLabel": "Product",
+    "pricingLabel": "Pricing",
+    "faqLabel": "FAQ",
+    "loginLabel": "Log in",
+    "downloadLabel": "Download",
+    "cards": [
+      {
+        "label": "Research",
+        "href": "#research",
+        "description": "Research your market.",
+        "expandedDescription": "Research your market and competitors."
+      },
+      {
+        "label": "Moodboard",
+        "href": "#moodboard",
+        "description": "Define your visual style.",
+        "expandedDescription": "Set a visual direction for your product."
+      },
+      {
+        "label": "Flows",
+        "href": "#flows",
+        "description": "Map your product flow.",
+        "expandedDescription": "Map your screens and how they connect."
+      },
+      {
+        "label": "Skills",
+        "href": "#skills",
+        "description": "Add skills and UI kits.",
+        "expandedDescription": "Add skills and UI kits to your AI brief."
+      },
+      {
+        "label": "Export",
+        "href": "#export",
+        "description": "Send your brief to AI.",
+        "accented": true,
+        "expandedDescription": "Give your AI a clear brief for the build."
+      },
+      {
+        "label": "Integrations",
+        "href": "#integrations",
+        "description": "Connect your tools.",
+        "expandedDescription": "Bring your favorite tools into Stage."
+      }
+    ]
+  },
+  "sections": [
+    {
+      "number": 1,
+      "name": "Hero",
+      "anchor": "top",
+      "layout": "Centre the locked headline and subheadline above the Stage dashboard, with purple landscape layers moving independently on scroll.",
+      "headline": "Stage does the thinking. Your AI does the building.",
+      "body": "The research, strategy and direction your AI skips - exported as a brief Cursor, Claude Code and Codex actually follow.",
+      "primaryCta": "Try free for macOS",
+      "microcopy": "Includes 14-day free trial",
+      "caption": "The Stage dashboard from the product design.",
+      "mediaLabel": "Stage dashboard",
+      "secondaryCta": null
+    },
+    {
+      "number": 2,
+      "name": "The Shift",
+      "anchor": "shift",
+      "layout": "Start directly with three short paragraphs in a 720px text column, with smaller editorial type, three small inline icons in the purple Research badge style and a progressive scroll reveal. Keep the wider Stage launch video between the second and third paragraphs. Follow the benefit paragraph with a generous black pause and a centered Stage symbol at 4% opacity, then continue into Research.",
+      "headline": "Your first prompt should not be your first decision.",
+      "body": "Your AI builds what you ask for. But the result still feels generic, and another prompt doesn’t quite fix it.\n\nWhat’s often missing is a clear direction: what the product should do, how it should feel, and which references to learn from.\n\nStage guides you through a clear design process, so you can turn your idea into a product people love using."
+    },
+    {
+      "number": 3,
+      "name": "Research",
+      "anchor": "research",
+      "layout": "Import the complete, unmodified Research page from the supplied Frame 66.png into a mockup with native internal scrolling and no visible scrollbar on the soft purple wash at left. Gently loop a short scroll down and a bouncing return to the top while visible. Stop automatic motion on interaction and respect reduced motion. Keep the Research pill, headline and three checkmarked benefits at right, then stack the visual above the copy on mobile.",
+      "headline": "Turn competitive analysis into a clear strategy.",
+      "body": "Start with a competitive analysis. The research analyses the best designs in your industry, then builds a clear product strategy to guide the build.",
+      "benefits": [
+        "Start with a competitive analysis",
+        "The research analyses the best designs in your industry",
+        "Your AI has a clear product strategy before the build"
+      ],
+      "labels": [
+        "Websites → Details.so",
+        "Web apps and iOS apps → Refero"
+      ]
+    },
+    {
+      "number": 4,
+      "name": "Moodboard",
+      "anchor": "moodboard",
+      "layout": "Centre the brief introduction above a wide comparison of the moodboard and its style guide.",
+      "headline": "Carry your direction into the style guide.",
+      "body": "Set your visual direction in Stage and carry it into the generated style guide, so your coding agent has a specific direction to follow.",
+      "labels": [
+        "Moodboard",
+        "Style guide"
+      ]
+    },
+    {
+      "number": 5,
+      "name": "Flows",
+      "anchor": "flows",
+      "layout": "Mirror the Research layout with the Flows copy on the left and a compact, six-step service-booking journey on the right. Reveal the numbered steps in order over a soft purple wash. Stack copy above the infographic on mobile.",
+      "headline": "Work out how every screen connects.",
+      "body": "Map every screen and state, then turn those flows into low-fidelity wireframes that settle the structure before visual design.",
+      "benefits": [
+        "Map every screen and state",
+        "Turn your flows into low-fidelity wireframes",
+        "Settle the structure before the build"
+      ],
+      "labels": [
+        "Screens",
+        "States",
+        "Connections"
+      ],
+      "flow_title": "Book a service",
+      "flow_steps": [
+        {
+          "screen": "Services",
+          "action": "Choose a service"
+        },
+        {
+          "screen": "Availability",
+          "action": "Pick a date and time"
+        },
+        {
+          "screen": "Your details",
+          "action": "Add your contact details"
+        },
+        {
+          "screen": "Review",
+          "action": "Confirm your selection"
+        },
+        {
+          "screen": "Payment",
+          "action": "Complete your payment"
+        },
+        {
+          "screen": "Confirmation",
+          "action": "View your booking details"
+        }
+      ]
+    },
+    {
+      "name": "Skills",
+      "anchor": "skills",
+      "layout": "Centre the section badge, headline and short supporting paragraph. Place the marketplace-to-brief infographic directly below, with both panels and the connecting arrow centred on the same axis.",
+      "headline": "Choose what your AI builds with.",
+      "body": "Discover skills and component libraries, install them in one click, and add them to your brief for the first build.",
+      "labels": [
+        "Marketplace",
+        "Design Taste",
+        "Design skill",
+        "shadcn/ui",
+        "Component library",
+        "Install",
+        "Add to brief",
+        "Project brief",
+        "Build with these"
+      ],
+      "number": 6
+    },
+    {
+      "number": 7,
+      "name": "Export",
+      "anchor": "export",
+      "layout": "Keep the copy and three chapter controls beside the scroll-driven 16:9 video: select pages and export, view the Markdown files in the AI workspace, then prompt the agent to build.",
+      "headline": "Take your decisions into the build.",
+      "body": "Choose the pages you want to export, open the Markdown files in your AI workspace, and ask your agent to build from them.",
+      "sequence": [
+        {
+          "label": "1",
+          "headline": "Choose your pages and export."
+        },
+        {
+          "label": "2",
+          "headline": "Open the files in your AI workspace."
+        },
+        {
+          "label": "3",
+          "headline": "Ask your agent to build."
+        }
+      ],
+      "fileContents": [
+        "AGENTS.md",
+        "Research",
+        "Strategy",
+        "Moodboard",
+        "Flows",
+        "Wireframes",
+        "Style guide"
+      ],
+      "caption": "Select Research, Strategy, Moodboard and Flows, export the Markdown files, then ask your coding agent to read AGENTS.md and build the product.",
+      "primaryCta": "Download for Mac"
+    },
+    {
+      "name": "Integrations",
+      "anchor": "integrations",
+      "layout": "Centre a brief introduction above two staggered rows of logo cards with short use cases and faded edges. Keep the section after Export.",
+      "headline": "Work with the tools you already use.",
+      "body": "Bring AI into Stage, export designs and documents, and import project data.",
+      "copyStatus": "Based on confirmed product details",
+      "number": 8,
+      "tools": [
+        {
+          "name": "Claude",
+          "icon": "claude",
+          "useCase": "Research and strategy"
+        },
+        {
+          "name": "ChatGPT",
+          "icon": "chatgpt",
+          "useCase": "Act in Stage"
+        },
+        {
+          "name": "Codex",
+          "icon": "codex",
+          "useCase": "Research and strategy"
+        },
+        {
+          "name": "Cursor",
+          "icon": "cursor",
+          "useCase": "Act in Stage"
+        },
+        {
+          "name": "VS Code",
+          "icon": "vscode",
+          "useCase": "Act in Stage"
+        },
+        {
+          "name": "Figma",
+          "icon": "figma",
+          "useCase": "Export designs"
+        },
+        {
+          "name": "Paper Design",
+          "icon": "paper",
+          "useCase": "Export designs"
+        },
+        {
+          "name": "Notion",
+          "icon": "notion",
+          "useCase": "Export documents"
+        },
+        {
+          "name": "Google Sheets",
+          "icon": "google-sheets",
+          "useCase": "Import project data"
+        }
+      ]
+    },
+    {
+      "number": 9,
+      "name": "Proof",
+      "anchor": "proof",
+      "layout": "Reserve a case-study frame for the real Klime Studio process and export. Omit the entire section from the visitor page until the case study is ready.",
+      "headline": "See how one project moves through Stage.",
+      "body": "TBD",
+      "publish": false
+    },
+    {
+      "number": 10,
+      "name": "Pricing",
+      "anchor": "pricing",
+      "layout": "Place the two paid plans side by side, followed by a lightweight Enterprise contact area. Keep prices and seats immediately visible.",
+      "headline": "Choose the plan for the people doing the work.",
+      "plans": [
+        {
+          "name": "Solo",
+          "price": "$29",
+          "interval": "/mo",
+          "positioning": "Work through your own product before you build it.",
+          "features": [
+            "Includes one seat.",
+            "Use the full Stage pipeline.",
+            "Export to any coding agent."
+          ],
+          "cta": "Download for Mac"
+        },
+        {
+          "name": "Studio",
+          "price": "$99",
+          "interval": "/mo",
+          "positioning": "Bring your team and clients into the same process.",
+          "features": [
+            "Includes up to five seats.",
+            "Includes everything in Solo.",
+            "Invite clients as free, read-only viewers."
+          ],
+          "cta": "Download for Mac"
+        },
+        {
+          "name": "Enterprise",
+          "positioning": "Contact us to discuss the seats you need.",
+          "cta": "Contact us"
+        }
+      ]
+    },
+    {
+      "number": 11,
+      "name": "FAQ",
+      "anchor": "faq",
+      "layout": "Use five disclosure rows in a single readable column. Keep each answer short enough to read without losing its question.",
+      "headline": "Here is how Stage fits into your work.",
+      "items": [
+        {
+          "question": "Is Stage Mac only?",
+          "answer": "Yes, Stage is a native macOS app."
+        },
+        {
+          "question": "Does Stage design for me?",
+          "answer": "No, Stage does not produce finished designs or high-fidelity screens. It helps you work through the research, decisions, direction and structure that your coding agent builds from."
+        },
+        {
+          "question": "Which AI tools does the export work with?",
+          "answer": "Stage exports plain Markdown for Cursor, Claude Code, Codex or any coding agent that can read it. AGENTS.md explains the folder and the reading order."
+        },
+        {
+          "question": "Do I need Cursor or Claude Code to get value from Stage?",
+          "answer": "You can read and use the research, strategy and specifications yourself. A coding agent is where you continue when you want to turn that work into a build."
+        },
+        {
+          "question": "Can I use my own component library?",
+          "answer": "Yes. Import your own component library from GitHub, or install skills and component libraries from the Stage marketplace in one click. Add your selections to the brief so your coding agent uses them from the first build."
+        }
+      ]
+    },
+    {
+      "number": 12,
+      "name": "Final CTA and footer",
+      "anchor": "download",
+      "layout": "Close with the positioning and a single download action, followed by a compact footer of product and supporting links.",
+      "headline": "What if the first prompt was the finished product?",
+      "body": "",
+      "primaryCta": "Try free for macOS",
+      "microcopy": "Includes 14-day free trial",
+      "footerLabels": [
+        "Research",
+        "Moodboard",
+        "Flows",
+        "Skills",
+        "Export",
+        "Integrations",
+        "Pricing",
+        "FAQ",
+        "Log in",
+        "Legal",
+        "Contact",
+        "Instagram"
+      ]
+    }
+  ],
+  "alternativeHeadlines": {
+    "shift": [
+      "Your AI needs the decisions you have not made yet.",
+      "A better build starts before you ask for one."
+    ],
+    "export": [
+      "Your next build starts with a brief your agent can read.",
+      "Take the thinking with you when you start the build."
+    ]
+  },
+  "editorialNotes": [
+    "The user requested hyphens throughout, including the previously locked hero subheadline.",
+    "Navigation, buttons, prices, file names and process nodes use ordinary UI labels. New prose and headings use full sentences.",
+    "No 90-second video was supplied, so the secondary hero CTA is omitted.",
+    "Proof remains TBD in this document and is excluded from the visitor page.",
+    "The real returned Research screenshots, a matched moodboard-to-style-guide example and a real export opened in Claude Code are still needed to meet the brief's evidence requirements. An illustrative composition must not be presented as those real examples.",
+    "Only AGENTS.md has a verified filename. Other document labels describe their contents; do not imply that an illustrative file naming scheme is an inspected export.",
+    "Download, login, contact, legal and social destinations were not supplied. The CTA copy is ready, but live destinations remain an integration dependency.",
+    "The roughly 3,000 reference-screen count and all prices are supplied product facts from the brief, not newly researched claims.",
+    "The six website sections now describe Research, Moodboard, Flows, Skills, Export and Integrations. This is a marketing-page grouping, not a replacement app pipeline.",
+    "Strategy and Wireframes remain real app stages and remain named in the export contents.",
+    "The hero and all other copy remain unchanged by this asset.",
+    "Studio changes to $99 per month. No seat-count, feature or Solo-price change is implied.",
+    "Use the new component-library question within the existing total of five FAQs. The root implementation chooses the replaced question.",
+    "MCP lets connected AI tools take actions directly in Stage. The user confirmed Claude, Codex, VS Code and other MCP-compatible tools, connection through a command, and release planned for the website launch. No exact command or individual actions have been supplied.",
+    "The user has specified that the chosen design skill and component library travel in the export. The exact representation and filenames were not supplied, so this copy does not invent them.",
+    "The Skills infographic is a website illustration based on the supplied product screens, using Design Taste and shadcn/ui as examples. Installation and adding selections to the brief are shown as distinct steps. It does not install or enable anything.",
+    "Real Research, moodboard and export evidence is still required before illustrative visuals can be treated as product proof.",
+    "The supplied integrations screenshot confirms Claude and Codex for research, strategy and generation; Figma for design export and handoff; Paper for local design canvas export; Notion for document export and review; and Google Sheets for importing project and onboarding data. ChatGPT, Cursor and VS Code cards describe the previously confirmed MCP app actions. Account details from the screenshot are not used."
+  ]
+}

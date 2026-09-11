@@ -1,0 +1,37 @@
+{
+  "source": "https://getstage.co/",
+  "testimonials": [
+    {
+      "name": "Pratik Singh",
+      "role": "Design Lead",
+      "quote": "I work in 4-week sprints, so speed is everything. Stage runs the research, strategy, and direction in one place - I get to Figma in a fraction of the time.",
+      "company": "Baseframe",
+      "photo": "/assets/testimonials/pratik.jpg",
+      "logo": "/assets/testimonials/pratik-logo.png"
+    },
+    {
+      "name": "Dudu",
+      "role": "Founder",
+      "quote": "Other AI tools race you to generic. I'd rather get the details right - Stage actually respects that and keeps up with me.",
+      "company": "Toolfolio",
+      "photo": "/assets/testimonials/dudu.jpg",
+      "logo": "/assets/testimonials/dudu-logo.png"
+    },
+    {
+      "name": "Wessel Dieben",
+      "role": "Full-Stack Dev",
+      "quote": "Most designs fall apart when you build them. What comes out of Stage actually holds up in code - and that's rare.",
+      "company": "Stage",
+      "photo": "/assets/testimonials/wessel.jpg",
+      "logo": "/assets/testimonials/wessel-logo.svg"
+    },
+    {
+      "name": "Adrien Ninet",
+      "role": "Founder & Creator",
+      "quote": "I ship MVPs fast to test ideas, but I won't launch something ugly. Stage lets me move quick and still ship real, polished design.",
+      "company": "Logiaweb",
+      "photo": "/assets/testimonials/adrien.jpg",
+      "logo": "/assets/testimonials/adrien-logo.png"
+    }
+  ]
+}
