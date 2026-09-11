@@ -1,7 +1,7 @@
 # Stage — Project Status
 
 > **Living document.** Update weekly (or before each release).  
-> **Last updated:** 2026-09-10
+> **Last updated:** 2026-09-11
 
 **Positioning:** Stage does the thinking. Your AI does the building.
 
@@ -25,7 +25,7 @@
 | **P1 local review** | Project-aware Stage chat: `@project`, bounded Convex context, screenshots, confirmed window capture | `apps/user-application/docs/AI/chatbot/CHATBOT_PLAN.md`; branch `feat/stage-chat-project-context-vision` |
 | **P2 desktop flash-kill** | Convex queries routed through TanStack Query (`@convex-dev/react-query`) + route loaders (`ensureQueryData`) so screens paint ready data instead of setup/empty flashes. Interim: per-tab `TabLoadingState` loader on Flows/Wireframes/Assets. Branch `feat/convex-tanstack-query-loaders`. Follow-up: strip residual `isRunsLoading`/`isStyleGuideRunsLoading` guards once live smoke confirms loader cache hits. Skill: `.agents/skills/convex-tanstack-query-adapter/` | apps/user-application/src |
 
-**Current desktop version (work branch):** `0.2.28` (testing tag `v0.2.28`)
+**Current desktop version (work branch):** `0.2.29` (testing tag `v0.2.29`)
 
 ---
 

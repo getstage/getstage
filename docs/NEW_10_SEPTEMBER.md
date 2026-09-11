@@ -6,6 +6,16 @@ Living plan: [`NEW_VERSION_START_SEPTEMBER_2026.md`](./NEW_VERSION_START_SEPTEMB
 
 ---
 
+### 3. Skills Import = web icon
+
+- [x] Import button uses a **web** icon, not the GitHub SVG
+
+Skills still import from a GitHub (or skill page) URL. The button matches Components.
+
+**Difficulty:** S
+
+---
+
 ### 1. Rename imported skill
 
 - [x] Hover the imported skill **title** → pen on the right

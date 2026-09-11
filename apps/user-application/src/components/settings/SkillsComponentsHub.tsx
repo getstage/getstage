@@ -29,7 +29,7 @@ export function SkillsHubPanel() {
         action={
           <GithubImportControl
             kind="skill"
-            source="github"
+            source="web"
             disabled={prefs.isLoading}
             onImport={(url) => prefs.importFromGithub("skill", url)}
           />
@@ -379,12 +379,18 @@ function GithubImportControl({
   const iconSrc =
     source === "web" ? "/logos/dashboard/web-design.svg" : "/logos/integrations/github.svg";
   const hint =
-    source === "web"
-      ? "Paste the library homepage URL. GitHub repositories still work."
-      : "Paste a public GitHub repository URL.";
-  const fieldLabel = source === "web" ? "Homepage URL" : "GitHub URL";
+    kind === "skill"
+      ? "Paste a public GitHub repository or skill page URL."
+      : source === "web"
+        ? "Paste the library homepage URL. GitHub repositories still work."
+        : "Paste a public GitHub repository URL.";
+  const fieldLabel = kind === "skill" ? "URL" : source === "web" ? "Homepage URL" : "GitHub URL";
   const placeholder =
-    source === "web" ? "https://ui.shadcn.com" : "https://github.com/owner/repo";
+    kind === "skill"
+      ? "https://github.com/owner/repo"
+      : source === "web"
+        ? "https://ui.shadcn.com"
+        : "https://github.com/owner/repo";
 
   async function submit() {
     if (busy) return;
