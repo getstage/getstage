@@ -1,0 +1,138 @@
+/* Compact proportions from the full-page reference; colours from Stage. */
+.navigation {
+  position: fixed;
+  z-index: 30;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 512px;
+  max-width: calc(100% - 24px);
+  padding: 6px;
+  border-radius: 24px;
+  background: #171717;
+  box-shadow: 0 .45px 1px #0a0a0a40, 0 8px 24px #17171712;
+  transition: width .36s cubic-bezier(.22, 1, .36, 1);
+}
+.navigation.hero-download-visible { width: 364px; }
+.nav-row {
+  display: flex;
+  align-items: center;
+  height: 44px;
+  gap: 20px;
+  padding-left: 8px;
+}
+.nav-brand { display: flex; align-items: center; flex-shrink: 0; color: #fafafa; }
+.nav-brand .brand-symbol { width: 20px; height: 24px; }
+.nav-link, .product-toggle {
+  padding: 0;
+  color: #a3a3a3;
+  background: none;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: -.3px;
+  white-space: nowrap;
+  transition: color .18s;
+}
+.nav-link:hover, .product-toggle:hover, .product-toggle[aria-expanded=true] { color: #fafafa; }
+.product-toggle { display: flex; align-items: center; gap: 6px; margin-left: 8px; }
+.product-toggle .icon { width: 12px; height: 12px; fill: currentColor; stroke: none; transition: transform .2s; }
+.product-toggle[aria-expanded=true] .icon { transform: rotate(180deg); }
+.nav-spacer { flex: 1; }
+.nav-download {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 128px;
+  width: 128px;
+  height: 44px;
+  padding: 0 16px;
+  border-radius: 18px;
+  color: #fafafa;
+  background: linear-gradient(#7b76df, #463fba);
+  box-shadow: inset 0 1px #9e99f8, 0 .45px 1px #0a0a0a40;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: -.3px;
+  white-space: nowrap;
+  overflow: hidden;
+  transition: filter .18s, opacity .24s ease, transform .36s cubic-bezier(.22, 1, .36, 1), visibility .36s, width .36s cubic-bezier(.22, 1, .36, 1), min-width .36s cubic-bezier(.22, 1, .36, 1), padding .36s cubic-bezier(.22, 1, .36, 1);
+}
+/* Contract around the links while the hero already carries the CTA. */
+.navigation.hero-download-visible .nav-download {
+  opacity: 0;
+  transform: translateY(-6px);
+  visibility: hidden;
+  pointer-events: none;
+  width: 0;
+  min-width: 0;
+  padding-inline: 0;
+}
+.nav-download .icon { width: 17px; height: 21px; }
+.nav-download:hover { filter: brightness(1.08); }
+.nav-download:active { transform: translateY(1px); }
+.product-menu {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  padding-top: 6px;
+  max-height: calc(100dvh - 104px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #525252 #171717;
+}
+.product-menu[hidden] { display: none; }
+.menu-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  min-height: 148px;
+  padding: 20px;
+  border-radius: 18px;
+  background: #262626;
+  transition: background .18s;
+}
+.menu-card:hover { background: #404040; }
+.menu-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  align-self: flex-start;
+  width: 40px;
+  height: 32px;
+  margin-bottom: 12px;
+  border-radius: 16px;
+  background: #e7e6fd;
+  color: #3b368e;
+}
+.menu-icon .icon { width: 20px; height: 20px; }
+.menu-card strong { color: #fafafa; font-size: 16px; font-weight: 500; line-height: 1.25; letter-spacing: -.3px; }
+.menu-card p { margin-top: 6px; color: #d4d4d4; font-size: 13px; line-height: 1.45; letter-spacing: -.2px; }
+.mobile-menu-links { display: none; }
+.nav-scrim { position: fixed; inset: 0; z-index: 20; background: transparent; }
+.nav-scrim[hidden] { display: none; }
+@media (max-width: 560px) {
+  .navigation { top: 16px; max-width: min(400px, calc(100% - 24px)); }
+  .navigation.hero-download-visible { width: 164px; }
+  .nav-row { gap: 16px; }
+  .nav-link { display: none; }
+  .product-toggle { margin-left: 0; }
+  .nav-download { min-width: 120px; }
+  .product-menu { max-height: calc(100dvh - 88px); }
+  .navigation.hero-download-visible .product-menu { grid-template-columns: minmax(0, 1fr); }
+  .navigation.hero-download-visible .mobile-menu-links { flex-direction: column; align-items: center; gap: 16px; }
+  .menu-card { padding: 16px; min-height: 140px; }
+  .menu-card strong { font-size: 15px; }
+  .mobile-menu-links { display: flex; grid-column: 1 / -1; justify-content: center; gap: 28px; padding: 16px 0 10px; color: #d4d4d4; font-size: 13px; }
+  .mobile-menu-links button { padding: 0; color: inherit; background: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .navigation, .nav-link, .product-toggle, .product-toggle .icon, .nav-download, .menu-card { transition: none; }
+}
+
+/* Match the description to the navbar CTA state. */
+.menu-copy-compact { display: none; }
+.navigation.hero-download-visible .menu-copy-compact { display: inline; }
+.navigation.hero-download-visible .menu-copy-expanded { display: none; }

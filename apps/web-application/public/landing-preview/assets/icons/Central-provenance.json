@@ -1,0 +1,195 @@
+{
+  "source": "https://centralicons.com/",
+  "variant": "round-outlined-radius-2-stroke-1.5",
+  "style": {
+    "style": "line/outlined",
+    "stroke": "1.5px",
+    "corner": "medium/radius-2",
+    "join": "round"
+  },
+  "public_preview_url": "https://centralicons.com/icons-data/round-outlined-radius-2-stroke-1.5.920458ff22.bin",
+  "retrieved_date": "2026-09-10",
+  "method": "Exact raw SVG geometries from the ordinary publicly rendered Central Icons catalog preview data using the client decoder shipped by the official page, plus original official vendor SVG assets as individually recorded. No login, paywall, license key or private API used. No path geometry modified. Root SVG wrappers only where needed.",
+  "assets": [
+    {
+      "file": "skills.svg",
+      "catalog_identifier": "IconScriptAi",
+      "title": "script-ai, paper, page, contract, file, document, skills",
+      "category": "AI & Magic",
+      "createdAt": "2026-04-16T06:02:31.853131+00:00",
+      "aliases": "script-ai, paper, page, contract, file, document, skills",
+      "sha256": "3ecfbb029368babf6f104fe1f112cae1b09827c94fc8d966024f50c3b1d1e9bc"
+    },
+    {
+      "file": "components.svg",
+      "catalog_identifier": "IconComponents",
+      "title": "components, figma",
+      "category": "Edit",
+      "createdAt": "2025-02-15T21:11:33.928598+00:00",
+      "aliases": "components, figma",
+      "sha256": "5b931ad9d46e4928ae3a724110456598cf73de228326c509ed3660ba93ea4ad6"
+    },
+    {
+      "file": "github.svg",
+      "catalog_identifier": "IconGithub",
+      "title": "github",
+      "category": "Social Media & Brands",
+      "createdAt": "2025-04-09T18:56:28.743322+00:00",
+      "aliases": "github",
+      "sha256": "56f2b7ddf83f98f9ba88d678be52cb9d1de253a8ea291f559c04a0228fceeb0b"
+    },
+    {
+      "file": "mcp.svg",
+      "catalog_identifier": "IconModelcontextprotocol",
+      "title": "modelcontextprotocol, mcp",
+      "category": "Social Media & Brands",
+      "createdAt": "2025-11-19T08:01:46.030651+00:00",
+      "aliases": "modelcontextprotocol, mcp",
+      "sha256": "30b71526b81efb507b77089dc9da28bddcf0694197bafbe984f1710d8572090b"
+    },
+    {
+      "file": "console.svg",
+      "catalog_identifier": "IconConsole",
+      "title": "console, terminal",
+      "category": "Code",
+      "createdAt": "2025-02-15T21:11:33.928598+00:00",
+      "aliases": "console, terminal",
+      "sha256": "00a904d9c56c7c305fa5bb973a1531cacd6f5adbb832a7f7b0ffbf3e800d7228"
+    },
+    {
+      "file": "claude.svg",
+      "catalog_identifier": "IconClaudeai",
+      "title": "claudeai",
+      "category": "Social Media & Brands",
+      "createdAt": "2025-04-09T18:56:28.743322+00:00",
+      "aliases": "claudeai",
+      "sha256": "e930d43b1cd5c6065437b51d6a7a2ffe4736182b8f7a342cc1e332bf6ebc9b15"
+    },
+    {
+      "file": "chatgpt.svg",
+      "catalog_identifier": "IconOpenai",
+      "title": "openai,chatgpt",
+      "category": "Social Media & Brands",
+      "createdAt": "2025-04-09T18:56:28.743322+00:00",
+      "aliases": "openai, chatgpt",
+      "sha256": "5e2df26be8811cdb104a5a4a1c4f94083ebbc7976f5188fc8ab69eb1c2029f45"
+    },
+    {
+      "file": "cursor.svg",
+      "catalog_identifier": "IconCursor",
+      "title": "cursor",
+      "category": "Social Media & Brands",
+      "createdAt": "2025-08-22T10:30:41.243492+00:00",
+      "aliases": "cursor",
+      "sha256": "c4e4db45c8c1f5775d1f2d7755f60af498a8ce53d40b39cbe7344a7cd6b60f21"
+    },
+    {
+      "file": "codex.svg",
+      "catalog_identifier": "IconOpenaiCodex",
+      "title": "openai-codex",
+      "category": "Social Media & Brands",
+      "createdAt": "2026-01-31T19:01:03.376934+00:00",
+      "aliases": "openai-codex",
+      "sha256": "009fdb3c3fff4ea4f1011082c473745a3eeb8a8e9a47f5d64fc3ea7e207d9485"
+    },
+    {
+      "file": "vscode.svg",
+      "catalog_identifier": null,
+      "title": "Visual Studio Code stable icon",
+      "source": "Microsoft / Visual Studio Code official brand assets",
+      "source_page": "https://code.visualstudio.com/brand",
+      "download_url": "https://code.visualstudio.com/assets/branding/visual-studio-code-icons.zip",
+      "archive_member": "visual-studio-code-icons/vscode.svg",
+      "sha256": "0dc5ea6659c12be2c788165b8f349e2614c7500839b2b77ba90d3cdc1777f0fa",
+      "retrieved_date": "2026-09-10",
+      "geometry": "Exact silhouette path from the mask in the official Microsoft SVG, with unchanged path coordinates.",
+      "color": "currentColor for the user-requested gray integration mark.",
+      "usage_note": "User explicitly requested a gray mark. The source silhouette is retained without gradient, filters or masks.",
+      "source_sha256": "74ad401c6487a0dc5af1f6b2935556ab2d3553ae45effc7e1697b4d117d046b6"
+    },
+    {
+      "file": "figma.svg",
+      "catalog_identifier": "IconFigma",
+      "title": "figma",
+      "category": "Social Media & Brands",
+      "createdAt": "2025-04-09T18:56:28.743322+00:00",
+      "aliases": "figma",
+      "sha256": "7652d7460ea69af1755152d8a6fc90d63329b29560cadd0281a8d684f86e4fe1",
+      "retrieved_date": "2026-09-11",
+      "public_preview_url": "https://centralicons.com/icons-data/round-outlined-radius-2-stroke-1.5.920458ff22.bin",
+      "geometry": "Exact raw public preview path geometry unchanged; root SVG wrapper only."
+    },
+    {
+      "file": "notion.svg",
+      "catalog_identifier": "IconNotion",
+      "title": "notion",
+      "category": "Social Media & Brands",
+      "createdAt": "2025-04-09T18:56:28.743322+00:00",
+      "aliases": "notion",
+      "sha256": "15bed15029f86799fecfbf1d3d766c533e8e0f2d0707925c94d00f4c3e2dcdc1",
+      "retrieved_date": "2026-09-11",
+      "public_preview_url": "https://centralicons.com/icons-data/round-outlined-radius-2-stroke-1.5.920458ff22.bin",
+      "geometry": "Exact raw public preview path geometry unchanged; root SVG wrapper only."
+    },
+    {
+      "file": "paper.svg",
+      "catalog_identifier": null,
+      "title": "Paper Design logo symbol",
+      "source": "Paper Design official homepage header logo",
+      "source_page": "https://paper.design/",
+      "selector": "svg[aria-label=\"Paper\"] > path",
+      "retrieved_date": "2026-09-11",
+      "sha256": "3541f277772fc3cd3c83df026c9751396be347119e7b7ff50f5264dbec85298e",
+      "geometry": "Exact standalone symbol path copied from official header logo; wordmark group excluded. Path data unchanged. Root viewBox contains symbol bounds 0 0 21 21.",
+      "color": "Original official #81ACEC blue retained",
+      "original_symbol_path": "M3 0H21V13H13V3H3ZM0 3H3V13H13V21H0Z"
+    },
+    {
+      "file": "google-sheets.svg",
+      "title": "Google Sheets classic folded-corner document icon",
+      "source": "Official Google product logo CDN",
+      "download_url": "https://fonts.gstatic.com/s/i/productlogos/sheets_2020q4/v6/192px.svg",
+      "retrieved_date": "2026-09-11",
+      "version": "sheets_2020q4/v6/192px",
+      "width": 192,
+      "height": 192,
+      "viewBox": "0 0 192 192",
+      "sha256": "17a1182e511d50cf45ff2dd0c882725947e21878804a3b11dcdbbf91192b19d5",
+      "geometry": "Original SVG bytes unchanged; no filters, masks, clip paths, linked images, use references, or IDs.",
+      "color": "Original SVG colors retained; the integration card applies grayscale to match the other logos.",
+      "replaces": "Current sheets_2026q3/v1 logo: a landscape composition with a built-in feGaussianBlur stdDeviation=6; its softness is baked into the asset even with correct IDs."
+    },
+    {
+      "file": "heart.svg",
+      "catalog_identifier": "IconHeart",
+      "title": "heart, like, health, life, favorite",
+      "category": "Interface General",
+      "createdAt": "2025-02-15T21:11:34.177092+00:00",
+      "aliases": "heart, like, health, life, favorite",
+      "sha256": "74731dad1c6e20887dd4c6aa890be7652e03c1b3f8471220d2ce5f1f34736728",
+      "retrieved_date": "2026-09-11",
+      "public_preview_url": "https://centralicons.com/icons-data/round-outlined-radius-2-stroke-1.5.920458ff22.bin",
+      "method": "Exact raw SVG geometries from the ordinary publicly rendered Central Icons catalog preview data using the client decoder shipped by the official page. No path geometry modified. Root SVG wrappers only.",
+      "source_data_sha256": "920458ff222f9bb697169988c5907a6f9467e0a37b7dfd784e508a23217f6df7"
+    },
+    {
+      "file": "lightbulb.svg",
+      "catalog_identifier": "IconLightBulb",
+      "title": "light-bulb, idea, light",
+      "category": "Interface General",
+      "createdAt": "2025-02-15T21:11:34.177092+00:00",
+      "aliases": "light-bulb, idea, light",
+      "sha256": "bd2de19daf3c4ca8bf8c1e1752214ef9cb2df54d64fd0b546167ad1f1080f96e",
+      "retrieved_date": "2026-09-11",
+      "public_preview_url": "https://centralicons.com/icons-data/round-outlined-radius-2-stroke-1.5.920458ff22.bin",
+      "method": "Exact raw SVG geometries from the ordinary publicly rendered Central Icons catalog preview data using the client decoder shipped by the official page. No path geometry modified. Root SVG wrappers only.",
+      "source_data_sha256": "920458ff222f9bb697169988c5907a6f9467e0a37b7dfd784e508a23217f6df7"
+    }
+  ],
+  "unavailable": [
+    {
+      "requested": "Central Icons VS Code",
+      "reason": "Not present in Central Icons 2095-icon catalog. Obtained exact original from official Microsoft brand download instead."
+    }
+  ]
+}
