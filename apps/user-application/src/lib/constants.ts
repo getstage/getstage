@@ -120,7 +120,7 @@ export const AI_ROADMAPS: Record<ProjectType, RoadmapTemplateItem[]> = {
     },
     {
       name: "Design",
-      tasks: ["Map user flows", "Create wireframes", "Design high-fidelity screens"],
+      tasks: ["Map user flows", "Create wireframes", "Design screens"],
     },
     {
       name: "Prototyping",
@@ -154,7 +154,7 @@ export const AI_ROADMAPS: Record<ProjectType, RoadmapTemplateItem[]> = {
       tasks: [
         "Create wireframes",
         "Establish visual direction",
-        "Design high-fidelity screens",
+        "Design screens",
         "Build component library",
         "Design empty states",
         "Prepare responsive variants",
@@ -205,7 +205,7 @@ export const AI_ROADMAPS: Record<ProjectType, RoadmapTemplateItem[]> = {
       tasks: [
         "Map user flows",
         "Create low-fidelity wireframes",
-        "Design high-fidelity screens",
+        "Design screens",
         "Build design system",
         "Assemble clickable prototype",
         "Review with stakeholders",

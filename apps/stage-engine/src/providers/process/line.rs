@@ -67,9 +67,12 @@ impl LineSink {
                     capture_multiline_stderr,
                     expected_kind,
                 );
-                self.stderr_diag.record(&line.text);
+                let suppress_warning = should_suppress_stderr_warning(&line.text);
+                if !suppress_warning {
+                    self.stderr_diag.record(&line.text);
+                }
 
-                if capture_multiline_stderr || should_suppress_stderr_warning(&line.text) {
+                if capture_multiline_stderr || suppress_warning {
                     tracing::debug!(
                         run_id = %context.run_id,
                         provider_id = ?context.request.provider_id,

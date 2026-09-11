@@ -19,6 +19,7 @@ export function ProjectHeader({
   timeline,
   activeTab,
   onTabChange,
+  onExport,
   onShare,
   onSaveProjectProfile,
   onSaveClientProfile,
@@ -40,6 +41,7 @@ export function ProjectHeader({
   timeline: ProjectTimeline;
   activeTab: ProjectTab;
   onTabChange: (tab: ProjectTab) => void;
+  onExport: (opts?: { step?: "sections" | "skills" }) => void;
   onShare: () => void;
   onSaveProjectProfile: (input: SaveProjectProfileInput) => Promise<void>;
   onSaveClientProfile: (input: SaveClientProfileInput) => Promise<void>;
@@ -102,6 +104,13 @@ export function ProjectHeader({
         </div>
 
         <div ref={projectMenuRef} className="relative flex min-w-0 items-center justify-end gap-[6px]">
+          <button
+            type="button"
+            onClick={() => onExport({ step: "sections" })}
+            className="inline-flex h-[27px] shrink-0 cursor-pointer items-center rounded-[6px] bg-[#F5F5F5] py-[6px] px-3 text-[13px] font-medium leading-[1.25] text-[#262626] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#ECECEC]"
+          >
+            Export
+          </button>
           <button
             type="button"
             onClick={onShare}

@@ -127,6 +127,7 @@ import type * as lib_projects_handlers_queries from "../lib/projects/handlers/qu
 import type * as lib_projects_handlers_ui from "../lib/projects/handlers/ui.js";
 import type * as lib_r2_domain from "../lib/r2/domain.js";
 import type * as lib_r2_handlers from "../lib/r2/handlers.js";
+import type * as lib_settings_githubImport from "../lib/settings/githubImport.js";
 import type * as lib_settings_handlers_index from "../lib/settings/handlers/index.js";
 import type * as lib_tasks_handlers_index from "../lib/tasks/handlers/index.js";
 import type * as maintenance from "../maintenance.js";
@@ -276,6 +277,7 @@ declare const fullApi: ApiFromModules<{
   "lib/projects/handlers/ui": typeof lib_projects_handlers_ui;
   "lib/r2/domain": typeof lib_r2_domain;
   "lib/r2/handlers": typeof lib_r2_handlers;
+  "lib/settings/githubImport": typeof lib_settings_githubImport;
   "lib/settings/handlers/index": typeof lib_settings_handlers_index;
   "lib/tasks/handlers/index": typeof lib_tasks_handlers_index;
   maintenance: typeof maintenance;

@@ -15,6 +15,9 @@ import type {
   EngineStatus,
   IntegrationOAuthResult,
   PermissionKind,
+  ProjectExportAppsResponse,
+  ProjectExportRequest,
+  ProjectExportResponse,
 } from "@shared/models/desktop";
 import type {
   ProviderId,
@@ -36,6 +39,7 @@ import type {
   VoiceTranscriptionRequest,
 } from "@stage/data-ops/contracts";
 import type { VoiceTranscriptionStatus } from "@shared/models/desktop";
+import type { HomepagePreview } from "@shared/models/sitePreview";
 
 export type StageDesktopApi = {
   auth: {
@@ -47,6 +51,13 @@ export type StageDesktopApi = {
   };
   clipboard: {
     writeText: (text: string) => Promise<void>;
+  };
+  library: {
+    previewHomepage: (url: string) => Promise<HomepagePreview>;
+  };
+  project: {
+    export: (request: ProjectExportRequest) => Promise<ProjectExportResponse>;
+    listExportApps: () => Promise<ProjectExportAppsResponse>;
   };
   engine: {
     getStatus: () => Promise<EngineStatus>;

@@ -4,6 +4,7 @@ import { useNavigate, useParams } from "@tanstack/react-router";
 import { motion } from "motion/react";
 import { Avatar } from "@/components/ui/Avatar";
 import { ProjectHeader } from "./ProjectHeader";
+import { ProjectExportDialog } from "./header/ProjectExportDialog";
 import { KanbanBoard } from "./KanbanBoard";
 import {
   useLiveProject,
@@ -16,6 +17,7 @@ import { getProjectBackDestination } from "@/lib/projectBackDestination";
 import { WORKFLOW_STEPS } from "@stage/data-ops";
 import { formatRelativeTime } from "@/lib/utils";
 import type { Project, ProjectTab } from "@/models/project/project";
+import { PROJECT_TYPE_LABELS } from "@/types";
 import { TabLoadingState } from "./tabs/TabLoadingState";
 
 type StepTab = Exclude<ProjectTab, "overview">;
@@ -29,6 +31,7 @@ const PROJECT_STEP_LABELS: Record<StepTab, string> = {
   assets: "Assets",
 };
 
+/** Stable identity for the frame before the project detail has loaded. */
 const ProjectStepView = lazy(() =>
   import("./ProjectStepView").then((module) => ({
     default: module.ProjectStepView,
@@ -66,6 +69,7 @@ export function ProjectDetailView() {
     onLeavingAfterDelete: setIsLeavingAfterDelete,
   });
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [exportStep, setExportStep] = useState<"sections" | "skills" | null>(null);
   const [pendingStrategyGeneration, setPendingStrategyGeneration] = useState(false);
   const [pendingStrategyProviderId, setPendingStrategyProviderId] = useState<ProviderId | null>(
     null,
@@ -182,6 +186,7 @@ export function ProjectDetailView() {
               timeline={timeline}
               activeTab={activeTab}
               onTabChange={setActiveTab}
+              onExport={(opts) => setExportStep(opts?.step ?? "sections")}
               onShare={() => setIsShareModalOpen(true)}
               onSaveProjectProfile={(input) => runModalAction(() => actions.saveProjectProfile(input))}
               onSaveClientProfile={(input) => runModalAction(() => actions.saveClientProfile(input))}
@@ -280,6 +285,22 @@ export function ProjectDetailView() {
           projectId={projectId}
           detail={live.detail}
           onClose={() => setIsShareModalOpen(false)}
+        />
+      ) : null}
+      {exportStep && live.detail ? (
+        <ProjectExportDialog
+          projectId={projectId}
+          projectName={live.detail.name}
+          clientName={live.detail.clientName}
+          typeLabel={
+            live.detail.type === "other" && live.detail.typeOtherLabel
+              ? live.detail.typeOtherLabel
+              : PROJECT_TYPE_LABELS[live.detail.type]
+          }
+          skillIds={live.detail.skillIds ?? []}
+          componentPackIds={live.detail.componentPackIds ?? []}
+          initialStep={exportStep}
+          onClose={() => setExportStep(null)}
         />
       ) : null}
     </>

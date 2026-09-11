@@ -76,6 +76,37 @@ fn normalizes_lofi_screen_with_valid_blocks() {
 }
 
 #[test]
+fn lofi_normalize_drops_html_field() {
+    let artifact = json!({
+        "generatedScreens": [sample_screen(
+            "homepage",
+            Some("<div><style>.hero{color:#111}</style><section class=\"hero\">Hi-Fi leak</section></div>"),
+        )]
+    });
+
+    let normalized = normalize_wireframes_artifact(
+        artifact,
+        &sample_input(),
+        WireframeKind::Lofi,
+        None,
+        None,
+        123,
+        "just now",
+    )
+    .unwrap();
+
+    assert_eq!(normalized["wireframeKind"], "lofi");
+    assert!(
+        normalized["generatedScreens"][0].get("html").is_none(),
+        "Lo-Fi normalize must drop provider html"
+    );
+    assert_eq!(
+        normalized["generatedScreens"][0]["sections"][0]["blocks"][0]["kind"],
+        "hero"
+    );
+}
+
+#[test]
 fn preserves_hifi_html_field() {
     let artifact = json!({
         "generatedScreens": [sample_screen(
@@ -142,6 +173,30 @@ fn drops_blocks_with_unknown_kind() {
 #[test]
 fn rejects_empty_generated_screens() {
     let artifact = json!({ "generatedScreens": [] });
+
+    let error = normalize_wireframes_artifact(
+        artifact,
+        &sample_input(),
+        WireframeKind::Lofi,
+        None,
+        None,
+        123,
+        "just now",
+    )
+    .unwrap_err();
+
+    assert!(error.to_string().contains("usable wireframe screens"));
+}
+
+#[test]
+fn lofi_drops_screens_without_blocks() {
+    let artifact = json!({
+        "generatedScreens": [{
+            "id": "homepage",
+            "title": "Homepage",
+            "sections": [{ "id": "hero", "title": "Hero", "blocks": [] }]
+        }]
+    });
 
     let error = normalize_wireframes_artifact(
         artifact,
@@ -247,8 +302,16 @@ fn lofi_keeps_existing_screen_when_partial_response_omits_a_requested_id() {
             .find(|screen| screen["id"] == id)
             .and_then(|screen| screen["html"].as_str())
     };
-    assert_eq!(by_id("homepage"), Some("new-home"), "returned screen is updated");
-    assert_eq!(by_id("pricing"), Some("orig-pricing"), "omitted screen is preserved");
+    assert_eq!(
+        by_id("homepage"),
+        Some("new-home"),
+        "returned screen is updated"
+    );
+    assert_eq!(
+        by_id("pricing"),
+        Some("orig-pricing"),
+        "omitted screen is preserved"
+    );
 }
 
 #[test]
@@ -300,14 +363,18 @@ fn merge_updates_only_regenerated_screen_timestamp() {
 
     let screens = merged["generatedScreens"].as_array().unwrap();
     let field = |id: &str, key: &str| {
-        screens
-            .iter()
-            .find(|screen| screen["id"] == id)
-            .unwrap()[key]
-            .clone()
+        screens.iter().find(|screen| screen["id"] == id).unwrap()[key].clone()
     };
-    assert_eq!(field("homepage", "generatedAt"), json!(999), "regenerated screen gets new timestamp");
-    assert_eq!(field("pricing", "generatedAt"), json!(100), "untouched screen keeps old timestamp");
+    assert_eq!(
+        field("homepage", "generatedAt"),
+        json!(999),
+        "regenerated screen gets new timestamp"
+    );
+    assert_eq!(
+        field("pricing", "generatedAt"),
+        json!(100),
+        "untouched screen keeps old timestamp"
+    );
 }
 
 #[test]
@@ -453,6 +520,8 @@ fn normalize_sets_per_screen_generated_at() {
         normalized["generatedScreens"][0]["generatedAt"],
         1_700_000_000_123_i64
     );
-    assert_eq!(normalized["generatedScreens"][0]["generatedAtLabel"], "just now");
+    assert_eq!(
+        normalized["generatedScreens"][0]["generatedAtLabel"],
+        "just now"
+    );
 }
-

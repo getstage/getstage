@@ -151,6 +151,7 @@ const aiRunStatusSchema = z.enum([
   "running",
   "completed",
   "failed",
+  "cancelled",
   "needs_input",
 ]);
 

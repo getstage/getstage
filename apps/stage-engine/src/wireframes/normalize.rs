@@ -45,8 +45,7 @@ pub fn normalize_wireframes_artifact(
 
     let mut normalized_screens = Vec::new();
     for screen in &raw_screens {
-        if let Some(normalized) =
-            normalize_screen(screen, generated_at_label, generated_at, kind)?
+        if let Some(normalized) = normalize_screen(screen, generated_at_label, generated_at, kind)?
         {
             normalized_screens.push(normalized);
         }
@@ -265,7 +264,11 @@ fn normalize_screen(
     let Some(object) = screen.as_object() else {
         return Ok(None);
     };
-    let Some(id) = object.get("id").and_then(JsonValue::as_str).map(str::to_string) else {
+    let Some(id) = object
+        .get("id")
+        .and_then(JsonValue::as_str)
+        .map(str::to_string)
+    else {
         return Ok(None);
     };
     let title = object
@@ -312,11 +315,11 @@ fn normalize_screen(
         // Hi-Fi screens carry a self-contained design fragment; a fragment that is
         // raw CSS text or has no styling/layout renders as unstyled text in the
         // preview iframe. Reject it up front so the user retries instead of saving
-        // a broken artifact. Lo-Fi screens compile from blocks and skip this.
+        // a broken artifact. Lo-Fi screens compile from blocks and drop html.
         if matches!(kind, WireframeKind::Hifi) {
             validate_hifi_html(html)?;
+            entry.insert("html".to_string(), json!(html));
         }
-        entry.insert("html".to_string(), json!(html));
     }
 
     let raw_sections = object
@@ -331,6 +334,16 @@ fn normalize_screen(
         .enumerate()
         .filter_map(|(index, section)| normalize_section(section, &id, index))
         .collect::<Vec<_>>();
+
+    let has_blocks = sections.iter().any(|section| {
+        section
+            .get("blocks")
+            .and_then(JsonValue::as_array)
+            .is_some_and(|blocks| !blocks.is_empty())
+    });
+    if matches!(kind, WireframeKind::Lofi) && !has_blocks {
+        return Ok(None);
+    }
 
     entry.insert("sections".to_string(), JsonValue::Array(sections));
 
