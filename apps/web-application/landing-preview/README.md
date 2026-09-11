@@ -21,5 +21,7 @@ Open `http://localhost:8766/landing-preview/`. The normal web application's dev/
 - Hero parallax, Research looping, compact/cropped mobile style guide, integration rows, testimonial controls and spacing match the reviewed version. The Stage logo remains static; the experimental flash was removed.
 - Reduced-motion preferences are respected.
 - `../public/landing-preview/config.js` has intentionally unset installer, login, contact, legal and social destinations. Connect the verified production destinations before promotion. The existing preview behavior explains unavailable destinations.
+- The confirmation screen reuses the homepage navigation and footer. Its download messages are static placeholders with no installer hyperlink or automatic download action.
+- `screen-1.png`, `screen-2.png` and `screen-3.png` are the supplied 1440 × 900 macOS onboarding images.
 - Media, icons, fonts and vendor license notices are included alongside their assets. Product screenshots and launch/export videos were supplied for this design; landscape layers were generated for it.
 - This screen is a review handoff, not a replacement for the existing production homepage.

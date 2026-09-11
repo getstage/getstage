@@ -240,3 +240,21 @@
 @media (min-width:768px) {
   .problem-outro { height:280px; }
 }
+
+@media(max-width:768px){
+  .download-page .download-main{--confirmation-edge-gap:40px;width:100%;max-width:none;margin:0;padding:calc(72px + var(--confirmation-edge-gap)) 20px var(--confirmation-edge-gap)}
+  .download-content{width:100%;max-width:430px;margin:0 auto}
+  .download-intro{margin-bottom:48px}
+  .download-page .download-intro h1{font-size:clamp(40px,12vw,52px);line-height:1.04;letter-spacing:-2.4px;margin:0}
+  .download-intro>p{font-size:16px;line-height:1.45}
+  .download-intro>p:first-of-type{margin-top:22px}
+  .download-intro>p+p{margin-top:6px}
+  .download-page .onboarding-grid{display:grid;grid-template-columns:1fr;gap:44px;max-width:none}
+  .download-page .onboarding-step{display:block}
+  .download-page .onboarding-art{height:auto;min-height:0;aspect-ratio:16/10;padding:0;border-radius:12px}
+  .download-page .onboarding-art img{width:100%;height:100%;max-width:none;object-fit:cover}
+  .download-page .onboarding-step>p{max-width:330px;margin:18px auto 0;font-size:16px;line-height:1.45}
+}
+@media(max-width:380px){
+  .download-page .download-main{padding-inline:16px}
+}
