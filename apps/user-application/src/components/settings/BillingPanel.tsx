@@ -65,9 +65,9 @@ const CREDIT_PACKS: readonly CreditPack[] = [
 
 const PLAN_DISPLAY_NAME: Record<string, string> = {
   free: "Free",
-  start: "Stage Start",
-  pro: "Stage Pro",
-  team: "Stage Team",
+  start: "Stage Solo",
+  pro: "Stage Studio",
+  team: "Stage Agency",
 };
 
 function capitalize(value: string) {

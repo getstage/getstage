@@ -90,3 +90,124 @@ html.stage-landing-page [role="button"]:focus-visible {
   outline-offset: 5px !important;
   box-shadow: none !important;
 }
+
+html.stage-landing-page body.legal-page {
+  min-height: 100dvh;
+}
+
+html.stage-landing-page .legal-main {
+  width: 100%;
+  margin: 0;
+  padding: 140px 32px 88px;
+}
+
+html.stage-landing-page .legal-content {
+  width: min(820px, 100%);
+  margin: 0 auto;
+}
+
+html.stage-landing-page .legal-hero {
+  padding-bottom: 36px;
+  border-bottom: 1px solid #e5e5e5;
+}
+
+html.stage-landing-page .legal-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #737373;
+}
+
+html.stage-landing-page .legal-hero h1 {
+  margin: 16px 0 0;
+  font-size: clamp(40px, 5vw, 56px);
+  font-weight: 500;
+  line-height: 1.04;
+  letter-spacing: -1.6px;
+  color: #171717;
+}
+
+html.stage-landing-page .legal-hero p {
+  margin: 18px 0 0;
+  max-width: 720px;
+  font-size: 16px;
+  line-height: 1.65;
+  color: #737373;
+}
+
+html.stage-landing-page .legal-switch {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 22px;
+}
+
+html.stage-landing-page .legal-switch a {
+  color: #737373;
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+html.stage-landing-page .legal-switch a:hover,
+html.stage-landing-page .legal-switch a[aria-current="page"] {
+  color: #171717;
+}
+
+html.stage-landing-page .legal-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 22px;
+  color: #737373;
+  font-size: 13px;
+}
+
+html.stage-landing-page .legal-document {
+  padding-top: 42px;
+}
+
+html.stage-landing-page .legal-section + .legal-section {
+  margin-top: 34px;
+}
+
+html.stage-landing-page .legal-section h2 {
+  margin: 0 0 12px;
+  font-size: 22px;
+  font-weight: 500;
+  line-height: 1.25;
+  letter-spacing: -0.4px;
+  color: #171717;
+}
+
+html.stage-landing-page .legal-section p {
+  margin: 0;
+  color: #525252;
+  font-size: 15.5px;
+  line-height: 1.8;
+}
+
+html.stage-landing-page .legal-section p + p {
+  margin-top: 12px;
+}
+
+html.stage-landing-page .legal-section ul {
+  margin: 12px 0 0;
+  padding-left: 22px;
+  color: #525252;
+}
+
+html.stage-landing-page .legal-section li {
+  margin: 8px 0;
+  font-size: 15.5px;
+  line-height: 1.75;
+}
+
+@media (max-width: 800px) {
+  html.stage-landing-page .legal-main {
+    padding: 112px 22px 64px;
+  }
+}

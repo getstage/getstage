@@ -360,7 +360,7 @@ export const FAQ_ITEMS = [
   {
     question: "How many projects can I have?",
     answer:
-      "Free tier: up to 3 active projects. Pro plan: unlimited projects with no restrictions.",
+      "Free tier: up to 3 active projects. Solo, Studio, and Agency plans include unlimited projects.",
   },
   {
     question: "Can I export my data?",

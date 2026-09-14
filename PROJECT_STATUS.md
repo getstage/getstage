@@ -1,7 +1,7 @@
 # Stage — Project Status
 
 > **Living document.** Update weekly (or before each release).  
-> **Last updated:** 2026-06-14
+> **Last updated:** 2026-09-14
 
 ---
 
@@ -9,6 +9,7 @@
 
 | Priority | Item | Owner / where |
 |----------|------|----------------|
+| **!!! P0 release** | 2026-09-14 production cut: React landing/WebP, Solo–Agency pricing, Lo-Fi/export integration, bug containment, trusted login domain, deploy; Figma last | `docs/2026-09-14_SHIP_TODAY_CHECKLIST.md` |
 | **P1 wireframes quality** | Beat raw Claude: Taste skill → local/project skills + library packs → moodboard layouts → refine | `docs/WIREFRAMES_QUALITY_PLAN.md` |
 | **!!! P0** | Desktop idle energy P0 — PR `fix/desktop-idle-energy-p0` | `docs/AI/desktop/2026-06-07!!!-DESKTOP_IDLE_ENERGY_PLAN.md` |
 | **P1** | Run packaged-DMG benchmark + 2 h soak (RAM < 400 MB, 12 hr power < 500) | `scripts/desktop-idle-benchmark.sh` |
@@ -43,6 +44,7 @@
 
 ## Current local review changes
 
+- Flows generation now distinguishes marketing websites from apps/platforms before choosing screens, preventing generic Homepage/About/Pricing lists from feeding Wireframes for product projects.
 - Project-aware Stage chat pins one `@project`, blocks ambiguous critique requests, loads bounded indexed Convex context, and supports local image upload/paste/drop plus confirmed window capture.
 - Chat switching no longer corrupts last-modified history order.
 - Chat persistence no longer performs side effects inside a React state updater.

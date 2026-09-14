@@ -40,7 +40,7 @@ export function BillingTab({
       : "Manage billing"
     : isCheckoutLoading
       ? "Opening..."
-      : "Upgrade to Team Plan";
+      : "Upgrade to Studio";
 
   return (
     <div className={`tab-content ${active ? "active" : ""}`}>
