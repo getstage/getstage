@@ -120,7 +120,7 @@ export const AI_ROADMAPS: Record<ProjectType, RoadmapTemplateItem[]> = {
     },
     {
       name: "Design",
-      tasks: ["Map user flows", "Create wireframes", "Design screens"],
+      tasks: ["Map user flows", "Create wireframes", "Design high-fidelity screens"],
     },
     {
       name: "Prototyping",
@@ -154,7 +154,7 @@ export const AI_ROADMAPS: Record<ProjectType, RoadmapTemplateItem[]> = {
       tasks: [
         "Create wireframes",
         "Establish visual direction",
-        "Design screens",
+        "Design high-fidelity screens",
         "Build component library",
         "Design empty states",
         "Prepare responsive variants",
@@ -205,7 +205,7 @@ export const AI_ROADMAPS: Record<ProjectType, RoadmapTemplateItem[]> = {
       tasks: [
         "Map user flows",
         "Create low-fidelity wireframes",
-        "Design screens",
+        "Design high-fidelity screens",
         "Build design system",
         "Assemble clickable prototype",
         "Review with stakeholders",
@@ -360,7 +360,7 @@ export const FAQ_ITEMS = [
   {
     question: "How many projects can I have?",
     answer:
-      "Free tier: up to 3 active projects. Pro plan: unlimited projects with no restrictions.",
+      "Free tier: up to 3 active projects. Solo, Studio, and Agency plans include unlimited projects.",
   },
   {
     question: "Can I export my data?",

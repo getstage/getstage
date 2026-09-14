@@ -16,9 +16,9 @@ type CreditsExhaustedModalProps = {
 type Phase = "idle" | "activating" | "success" | "error";
 
 const PLAN_DISPLAY: Record<string, { label: string; monthly: number; yearly: number }> = {
-  start: { label: "Start", monthly: 19, yearly: 16 },
-  pro: { label: "Pro", monthly: 29, yearly: 24 },
-  team: { label: "Team", monthly: 49, yearly: 41 },
+  start: { label: "Solo", monthly: 29, yearly: 290 },
+  pro: { label: "Studio", monthly: 99, yearly: 990 },
+  team: { label: "Agency", monthly: 249, yearly: 2490 },
 };
 
 // Webhook (invoice.paid) can lag Stripe's acceptance by a few seconds. If credits
@@ -49,7 +49,11 @@ export function CreditsExhaustedModal({
   const plan = subscription?.plan ?? null;
   const planDisplay = plan ? PLAN_DISPLAY[plan] ?? null : null;
   const billingCycle = subscription?.billingCycle === "monthly" ? "monthly" : "yearly";
-  const planPrice = planDisplay ? (billingCycle === "monthly" ? planDisplay.monthly : planDisplay.yearly) : null;
+  const planPrice = planDisplay
+    ? billingCycle === "monthly"
+      ? `$${planDisplay.monthly}/month`
+      : `$${planDisplay.yearly}/year`
+    : null;
   const planLabel = planDisplay?.label ?? "your plan";
 
   // Reset to a fresh state every time the modal opens.
@@ -179,7 +183,7 @@ function copyForPhase(
   isTrialing: boolean,
   isPaymentFailed: boolean,
   planLabel: string,
-  planPrice: number | null,
+  planPrice: string | null,
   error: string | null,
 ): { title: string; description: string } {
   if (phase === "activating") {
@@ -212,7 +216,7 @@ function copyForPhase(
       title: "You've used all your trial credits.",
       description:
         planPrice != null
-          ? `Activate ${planLabel} to keep generating. Your card on file will be charged $${planPrice}/mo.`
+          ? `Activate ${planLabel} to keep generating. Your card on file will be charged ${planPrice}.`
           : `Activate ${planLabel} to keep generating. Your card on file will be charged.`,
     };
   }
