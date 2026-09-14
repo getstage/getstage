@@ -26,7 +26,7 @@ Keep this short. Werner owns visual approval. Do not ship Details.so, project-ca
 
 - [x] React/WebP landing and Solo $29, Studio $99, Agency $249 pricing.
 - [x] Stripe price variables and credit/seat limits prepared: Solo 2,000/1, Studio 10,000/5, Agency 30,000/15.
-- [x] Embedded onboarding demo opens after the first successful checkout and can be reopened from **Help & Feedback**.
+- [x] Embedded onboarding demo opens after the first successful checkout; **Help & Feedback** opens both the demo and the Notion feedback page.
 - [x] Terms and Privacy routes connected locally; Werner deployed the website.
 - [x] Lo-Fi/export entered through `v0.2.29`; desktop production has reached `prod-v0.2.33`.
 
