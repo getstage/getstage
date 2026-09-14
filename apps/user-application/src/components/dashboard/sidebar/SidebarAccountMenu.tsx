@@ -1,8 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { sidebarLabelClassName } from "@/lib/dashboard/sidebarNav";
 import { cn } from "@/lib/utils";
-import { HELP_FEEDBACK_URL } from "@/lib/settings/accountConstants";
-import { openExternalLink } from "@/lib/settings/openExternalLink";
 import { SidebarRoundAvatar } from "./SidebarRoundAvatar";
 
 export function SidebarAccountMenu({
@@ -13,6 +11,7 @@ export function SidebarAccountMenu({
   accountAvatarUrl,
   accountMeta,
   onCollapsedChange,
+  onOpenDemo,
   onOpenSettings,
   onLogOut,
 }: {
@@ -23,6 +22,7 @@ export function SidebarAccountMenu({
   accountAvatarUrl?: string;
   accountMeta: string;
   onCollapsedChange: (collapsed: boolean) => void;
+  onOpenDemo: () => void;
   onOpenSettings: () => void;
   onLogOut: () => Promise<void>;
 }) {
@@ -81,7 +81,7 @@ export function SidebarAccountMenu({
       <button
         type="button"
         aria-label="Help & Feedback"
-        onClick={() => void openExternalLink(HELP_FEEDBACK_URL)}
+        onClick={onOpenDemo}
         className={cn(
           "flex h-[32px] items-center overflow-hidden bg-[#f5f5f5] text-[#525252] transition-[width,padding,gap,background-color] duration-200 ease-out hover:bg-[#ebebeb]",
           "cursor-pointer",
