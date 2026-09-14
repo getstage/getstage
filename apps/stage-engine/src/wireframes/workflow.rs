@@ -15,6 +15,7 @@ use crate::runs::RunEventSink;
 use crate::wireframes::normalize::normalize_wireframes_artifact;
 use crate::wireframes::prompt::build_wireframes_prompt;
 use crate::wireframes::{MAX_BRAND_KIT_BYTES, MAX_BRAND_KIT_FILES};
+use serde_json::{Value as JsonValue, json};
 
 const GENERATED_AT_LABEL: &str = "just now";
 
@@ -72,6 +73,11 @@ impl WireframesWorkflow {
             .source
             .as_deref()
             .and_then(parse_screens_from_source);
+        let selected_screen_ids = request
+            .context
+            .source
+            .as_deref()
+            .and_then(parse_selected_screens_from_source);
 
         let workflow_started = Instant::now();
         tracing::info!(
@@ -145,6 +151,7 @@ impl WireframesWorkflow {
                 style_direction_id.as_deref(),
                 None,
                 brand_kit_attached,
+                selected_screen_ids.as_deref(),
                 regenerate_screen_ids.as_deref(),
             );
             let provider_context = ProviderRunContext {
@@ -170,6 +177,18 @@ impl WireframesWorkflow {
             );
             let ProviderProcessOutcome::Completed(final_text) = outcome else {
                 tracing::info!(run_id = %run_id, "wireframes provider run cancelled");
+                if let Err(error) = self
+                    .repository
+                    .fail_wireframes_run(
+                        &auth_token,
+                        project_id,
+                        convex_run_id.as_deref(),
+                        "Run cancelled by user.",
+                    )
+                    .await
+                {
+                    tracing::warn!(%error, "failed to release cancelled Convex wireframes run");
+                }
                 return Ok(());
             };
 
@@ -183,6 +202,11 @@ impl WireframesWorkflow {
                 now_millis(),
                 GENERATED_AT_LABEL,
             )?;
+            if regenerate_screen_ids.is_none() {
+                if let Some(ids) = selected_screen_ids.as_ref() {
+                    keep_selected_generated_screens(&mut artifact, ids)?;
+                }
+            }
             if let Some(screen_ids) = regenerate_screen_ids.as_ref() {
                 let Some(existing_json) = input.existing_wireframes_artifact_json.as_deref() else {
                     return Err(WorkflowError::InvalidRequest(
@@ -252,7 +276,7 @@ impl WireframesWorkflow {
                         token,
                         project_id,
                         convex_run_id.as_deref(),
-                        &error.to_string(),
+                        &truncate_convex_error(&error.to_engine_error(provider_id).message),
                     )
                     .await
             {
@@ -420,6 +444,50 @@ async fn fetch_url_bytes(url: &str) -> Result<Vec<u8>, WorkflowError> {
     Ok(bytes.to_vec())
 }
 
+fn keep_selected_generated_screens(
+    artifact: &mut JsonValue,
+    ids: &[String],
+) -> Result<(), WorkflowError> {
+    let id_set: std::collections::HashSet<&str> = ids.iter().map(String::as_str).collect();
+    let Some(screens) = artifact
+        .get_mut("generatedScreens")
+        .and_then(JsonValue::as_array_mut)
+    else {
+        return Err(WorkflowError::InvalidRequest(
+            "The AI response did not contain the selected wireframe screens.".to_string(),
+        ));
+    };
+    screens.retain(|screen| {
+        screen
+            .get("id")
+            .and_then(JsonValue::as_str)
+            .is_some_and(|id| id_set.contains(id))
+    });
+    if screens.is_empty() {
+        return Err(WorkflowError::InvalidRequest(
+            "The AI response did not contain the selected wireframe screens.".to_string(),
+        ));
+    }
+
+    if let Some(configure) = artifact
+        .get_mut("configureScreens")
+        .and_then(JsonValue::as_array_mut)
+    {
+        for screen in configure {
+            let Some(object) = screen.as_object_mut() else {
+                continue;
+            };
+            let selected = object
+                .get("id")
+                .and_then(JsonValue::as_str)
+                .is_some_and(|id| id_set.contains(id));
+            object.insert("selected".to_string(), json!(selected));
+        }
+    }
+
+    Ok(())
+}
+
 fn parse_kind_from_source(source: &str) -> Option<&str> {
     parse_token(source, "kind:")
 }
@@ -433,7 +501,15 @@ fn parse_style_direction_from_source(source: &str) -> Option<&str> {
 }
 
 fn parse_screens_from_source(source: &str) -> Option<Vec<String>> {
-    let raw = parse_token(source, "screens:")?;
+    parse_screen_ids(source, "screens:")
+}
+
+fn parse_selected_screens_from_source(source: &str) -> Option<Vec<String>> {
+    parse_screen_ids(source, "selected:")
+}
+
+fn parse_screen_ids(source: &str, prefix: &str) -> Option<Vec<String>> {
+    let raw = parse_token(source, prefix)?;
     let ids = raw
         .split(';')
         .map(str::trim)
@@ -489,6 +565,15 @@ impl WorkflowError {
             detail: Some(self.to_string()),
         }
     }
+}
+
+fn truncate_convex_error(message: &str) -> String {
+    const MAX_CHARS: usize = 280;
+    let trimmed = message.trim();
+    if trimmed.chars().count() <= MAX_CHARS {
+        return trimmed.to_string();
+    }
+    trimmed.chars().take(MAX_CHARS).collect::<String>() + "…"
 }
 
 fn user_message(error: &WorkflowError) -> String {

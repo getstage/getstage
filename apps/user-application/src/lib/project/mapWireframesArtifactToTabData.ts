@@ -49,9 +49,23 @@ export function mapWireframesArtifactToTabData(artifact: WireframesArtifact): Wi
       figmaUrl: screen.figmaUrl,
       goal: screen.goal,
       sections: screen.sections,
-      html: screen.html,
     })),
   };
+}
+
+export function hasLofiBlocks(
+  screen: Pick<WireframeGeneratedScreen, "sections">,
+): boolean {
+  return Boolean(screen.sections?.some((section) => (section.blocks?.length ?? 0) > 0));
+}
+
+export function hasDisplayableWireframeResults(
+  tabData: WireframesTabData | undefined | null,
+): boolean {
+  if (!tabData) {
+    return false;
+  }
+  return tabData.wireframeKind === "lofi" && tabData.generatedScreens.some(hasLofiBlocks);
 }
 
 export type WireframeResultCard = ScreenItem & {
@@ -59,7 +73,6 @@ export type WireframeResultCard = ScreenItem & {
   generatedAt?: number;
   goal?: string;
   sections?: WireframeGeneratedScreen["sections"];
-  html?: string;
   figmaUrl?: string;
 };
 
@@ -70,24 +83,26 @@ export function buildResultCards(
   generatedScreens: WireframeGeneratedScreen[] = [],
   generatedAt?: number,
 ): WireframeResultCard[] {
-  const generatedById = new Map(generatedScreens.map((screen) => [screen.id, screen]));
+  const configureById = new Map(screens.map((screen) => [screen.id, screen]));
 
-  return screens
-    .filter((screen) => screen.selected)
+  return generatedScreens
+    .filter(hasLofiBlocks)
     .slice(0, limit)
-    .map((screen) => {
-      const generated = generatedById.get(screen.id);
+    .map((generated) => {
+      const configure = configureById.get(generated.id);
       return {
-        ...screen,
-        date: generated?.generatedAtLabel ?? generatedAtLabel,
-        // Per-screen timestamp so a partial regen only bumps the regenerated
-        // cards; fall back to the artifact time, then to the `date` label string
-        // (via WireframeCard) when neither numeric time exists.
-        generatedAt: generated?.generatedAt ?? generatedAt,
-        goal: generated?.goal,
-        sections: generated?.sections,
-        html: generated?.html,
-        figmaUrl: generated?.figmaUrl,
+        id: generated.id,
+        title: generated.title || configure?.title || generated.id,
+        description: configure?.description ?? "",
+        kind: configure?.kind ?? "Page",
+        priority: generated.priority || configure?.priority || "P0",
+        required: configure?.required ?? false,
+        selected: true,
+        date: generated.generatedAtLabel ?? generatedAtLabel,
+        generatedAt: generated.generatedAt ?? generatedAt,
+        goal: generated.goal,
+        sections: generated.sections,
+        figmaUrl: generated.figmaUrl,
       };
     });
 }

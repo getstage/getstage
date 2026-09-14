@@ -7,10 +7,8 @@ import { useProjectAssetUploads } from "@/hooks/project/useProjectAssetUploads";
 import { api } from "@/lib/convexApi";
 import type { Project } from "@/models/project/project";
 import type { AssetView, WireframeAssetCard } from "@/types/project/assetsTab";
-import type { WireframeKind } from "@/types/project/wireframesTab";
 import { AssetCard } from "./AssetCard";
 import { AssetCategoryTabs } from "./AssetCategoryTabs";
-import { FidelityToggle } from "../wireframes/FidelityToggle";
 import { DocumentsGrid } from "./DocumentsGrid";
 import { ExportOptionsDialog } from "./ExportOptionsDialog";
 import { UploadDropzone } from "./UploadDropzone";
@@ -20,7 +18,6 @@ import { TabLoadingState } from "../TabLoadingState";
 export function AssetsTab({ project }: { project: Project }) {
   const [activeView, setActiveView] = useState<AssetView>("wireframes");
   const [exportAsset, setExportAsset] = useState<WireframeAssetCard | null>(null);
-  const [fidelityView, setFidelityView] = useState<WireframeKind>("hifi");
 
   const uploads = useProjectAssetUploads(() => setActiveView("uploaded"), project.id);
   const assetsTab = useAssetsTab({ id: project.id, name: project.name }, uploads.uploadedAssets.length);
@@ -33,12 +30,6 @@ export function AssetsTab({ project }: { project: Project }) {
   const { wireframeAssets, documents } = assetsTab.tabData;
 
   const sectionTitle = assetsTab.categories.find((category) => category.id === activeView)?.label ?? "Documents";
-  // A Hi-Fi artifact keeps each screen's Lo-Fi blocks, so the same view switch the
-  // Wireframes tab uses works here to flip the asset previews between fidelities.
-  const canToggleFidelity = wireframeAssets.some(
-    (asset) => asset.type === "hifi" && asset.html?.trim(),
-  );
-  const effectiveFidelity: WireframeKind = canToggleFidelity ? fidelityView : "lofi";
 
   if (assetsTab.isLoading) {
     return <TabLoadingState label="Loading assets…" />;
@@ -89,23 +80,15 @@ export function AssetsTab({ project }: { project: Project }) {
           ) : null}
 
           {activeView === "wireframes" ? (
-            <>
-              {canToggleFidelity ? (
-                <div className="px-4 pb-1">
-                  <FidelityToggle value={effectiveFidelity} onChange={setFidelityView} />
-                </div>
-              ) : null}
-              <div className="grid gap-1 lg:grid-cols-3">
-                {wireframeAssets.map((asset) => (
-                  <AssetCard
-                    key={asset.id}
-                    asset={asset}
-                    view={effectiveFidelity}
-                    onExport={() => setExportAsset(asset)}
-                  />
-                ))}
-              </div>
-            </>
+            <div className="grid gap-1 lg:grid-cols-3">
+              {wireframeAssets.map((asset) => (
+                <AssetCard
+                  key={asset.id}
+                  asset={asset}
+                  onExport={() => setExportAsset(asset)}
+                />
+              ))}
+            </div>
           ) : null}
         </div>
       </div>

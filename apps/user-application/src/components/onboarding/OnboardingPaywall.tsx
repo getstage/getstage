@@ -240,31 +240,28 @@ export function OnboardingPaywall({
             }}
           />
           <p className="bg-gradient-to-r from-[#463FBA] to-[#7B76DF] bg-clip-text text-[13px] font-medium text-transparent">
-            Stage Studio
+            Stage Solo
           </p>
         </div>
 
         <div className="rounded-[8px] bg-gradient-to-b from-white to-[rgba(158,153,248,0.05)] p-4 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
-          <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
             <p className="bg-gradient-to-r from-[#463FBA] to-[#7B76DF] bg-clip-text text-[13px] font-medium text-transparent">
-              Studio
-            </p>
-            <p className="bg-gradient-to-r from-[#463FBA] to-[#7B76DF] bg-clip-text text-[13px] font-medium text-transparent">
-              Most Popular
+              Solo
             </p>
           </div>
 
           <div className="mt-5">
-            <span className="block text-[24px] font-semibold leading-none text-text-primary">$99</span>
+            <span className="block text-[24px] font-semibold leading-none text-text-primary">$29</span>
             <span className="block text-[13px] font-medium text-text-secondary">/month</span>
           </div>
 
-          <FeatureList features={PRO_FEATURES} />
+          <FeatureList features={START_FEATURES} />
 
           {upgradeError ? <p className="mt-4 text-[13px] text-destructive">{upgradeError}</p> : null}
 
           <PlanButton onClick={onStartTrial} primary disabled={isUpgradeLoading}>
-            Start 14-Day Trial
+            Continue with Solo
           </PlanButton>
         </div>
 

@@ -4,8 +4,9 @@ Keep this short. Werner owns visual approval. Do not ship Details.so, project-ca
 
 ## Do now — in this order
 
+- [x] Consolidated today's website/pricing work and the desktop `v0.2.34` release history in the existing branch `codex/responsive-landing-preview`; PR #79 targets `work`.
 - [ ] **URGENT — recover production Convex.** The successful production deploy was run from `codex/responsive-landing-preview`, which is based on desktop production `0.2.15`. Convex deploy uploads the complete backend, not only the pricing file, so newer `v0.2.29` GitHub-import and wireframe/export functions may currently be missing from production.
-- [ ] Continue from recovery branch `codex/ship-v0.2.30` in worktree `/private/tmp/stage-v0.2.30`. It starts at tag `v0.2.29` and already contains today's backend pricing changes in `priceConfig.ts` and `billing/handlers/index.ts`. `packages/data-ops` build passes.
+- [x] Merge the recovery/release history into the current branch. The fixed billing model remains `start` = Solo, `pro` = Studio, `team` = Agency.
 - [ ] Deploy that recovery backend to production `https://quirky-snail-763.convex.cloud`. The last recovery attempt did **not** deploy: it used the old development `.env.local`, selected `reliable-bullfrog-917`, and stopped with `401 MissingAccessToken`. Do not use that env file for the production recovery.
 - [ ] Fix trusted production auth (`STA-23`): connect a branded Convex HTTP/auth domain such as `auth.getstage.co`, update DNS and production auth origins, redeploy, and confirm login returns to the desktop app.
 - [ ] Preserve today's deployed website in Git and confirm the live Pricing, Legal, login, and download links.
@@ -31,9 +32,8 @@ Keep this short. Werner owns visual approval. Do not ship Details.so, project-ca
 ## Important locations
 
 - Main working tree: `/Users/wernerjohannesdieben/stage_mvp-wireframes-rig-nebius-aug28`
-- Landing/pricing branch: `codex/responsive-landing-preview` (dirty; today's work is not committed)
-- Recovery/release branch: `codex/ship-v0.2.30`
-- Recovery worktree: `/private/tmp/stage-v0.2.30`
+- Unified current branch: `codex/responsive-landing-preview`
+- Pull request to `work`: GitHub PR #79
 - Linear: `STA-23` trusted login domain, `STA-39` customer bugs, `STA-33` Lo-Fi/export refocus
 
 Internal billing keys remain stable: `start` = Solo, `pro` = Studio, `team` = Agency.

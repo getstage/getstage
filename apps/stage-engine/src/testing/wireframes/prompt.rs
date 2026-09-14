@@ -31,6 +31,7 @@ fn includes_partial_regeneration_block_when_screen_ids_provided() {
         Some("direction_1"),
         None,
         false,
+        None,
         Some(&["homepage".to_string(), "pricing".to_string()]),
     );
 
@@ -49,9 +50,28 @@ fn omits_partial_regeneration_block_when_screen_ids_are_absent() {
         None,
         false,
         None,
+        None,
     );
 
     assert!(!prompt.contains("PARTIAL REGENERATION"));
+}
+
+#[test]
+fn includes_full_generation_selection() {
+    let prompt = build_wireframes_prompt(
+        &sample_input(),
+        WireframeKind::Lofi,
+        None,
+        None,
+        None,
+        false,
+        Some(&["homepage".to_string(), "pricing".to_string()]),
+        None,
+    );
+
+    assert!(prompt.contains("FULL GENERATION"));
+    assert!(prompt.contains("exactly these ids: homepage, pricing"));
+    assert!(!prompt.contains("Previous wireframes artifact"));
 }
 
 #[test]
@@ -69,6 +89,7 @@ fn regen_prompt_redacts_prior_html_and_forbids_reuse() {
         None,
         None,
         false,
+        None,
         Some(&["homepage".to_string()]),
     );
 
@@ -95,6 +116,7 @@ fn hifi_prompt_includes_taste_skill_by_default() {
         None,
         None,
         false,
+        None,
         None,
     );
 
@@ -125,6 +147,7 @@ fn hifi_prompt_omits_taste_when_skill_disabled_in_prefs() {
         None,
         false,
         None,
+        None,
     );
 
     assert!(!prompt.contains("<taste_skill"));
@@ -135,6 +158,54 @@ fn hifi_prompt_omits_taste_when_skill_disabled_in_prefs() {
 
 #[test]
 fn lofi_prompt_omits_taste_skill() {
+    let mut input = sample_input();
+    input.research_artifact_json = Some("RESEARCH_ONLY".to_string());
+    input.moodboard_artifact_json = Some("MOODBOARD_ONLY".to_string());
+    let prompt = build_wireframes_prompt(
+        &input,
+        WireframeKind::Lofi,
+        None,
+        None,
+        None,
+        false,
+        None,
+        None,
+    );
+
+    assert!(!prompt.contains("<taste_skill"));
+    assert!(prompt.contains("Do NOT include an \"html\" field"));
+    assert!(!prompt.contains("MUST have a non-empty \"html\""));
+    assert!(!prompt.contains("RESEARCH_ONLY"));
+    assert!(!prompt.contains("MOODBOARD_ONLY"));
+}
+
+#[test]
+fn lofi_prompt_strips_prior_html_from_existing_artifact() {
+    let mut input = sample_input();
+    input.existing_wireframes_artifact_json = Some(
+        r#"{"generatedScreens":[{"id":"homepage","html":"<div class=\"lim-welcome\">SECRET_MARKUP</div>"}]}"#
+            .to_string(),
+    );
+
+    let prompt = build_wireframes_prompt(
+        &input,
+        WireframeKind::Lofi,
+        None,
+        None,
+        None,
+        false,
+        None,
+        None,
+    );
+
+    assert!(
+        !prompt.contains("SECRET_MARKUP"),
+        "Lo-Fi prompt leaked prior html from the existing artifact"
+    );
+}
+
+#[test]
+fn lofi_regen_prompt_does_not_demand_html() {
     let prompt = build_wireframes_prompt(
         &sample_input(),
         WireframeKind::Lofi,
@@ -143,8 +214,10 @@ fn lofi_prompt_omits_taste_skill() {
         None,
         false,
         None,
+        Some(&["homepage".to_string()]),
     );
 
-    assert!(!prompt.contains("<taste_skill"));
+    assert!(prompt.contains("PARTIAL REGENERATION"));
+    assert!(prompt.contains("do not emit an \"html\" field"));
+    assert!(!prompt.contains("MUST have a non-empty \"html\""));
 }
-

@@ -398,7 +398,7 @@ export function useOnboardingController({
 
     try {
       const result = await createCheckoutSession({
-        tier: "pro",
+        tier: "start",
         billingCycle,
         isTrial: true,
         source: "onboarding_paywall",
@@ -411,7 +411,7 @@ export function useOnboardingController({
       trackDatafastGoal("checkout_started", {
         source: "onboarding_paywall",
         billing_cycle: billingCycle,
-        plan: "pro",
+        plan: "start",
       });
       await openExternalLink(result.url);
     } catch {

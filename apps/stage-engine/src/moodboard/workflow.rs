@@ -784,7 +784,9 @@ fn figma_moodboard_reference(
 ) -> Value {
     // Keep render_url in imageUrl for display; store R2 key only as asset key.
     let image_url = if image.render_url.trim().is_empty() {
-        image_key.clone().unwrap_or_else(|| image.render_url.clone())
+        image_key
+            .clone()
+            .unwrap_or_else(|| image.render_url.clone())
     } else {
         image.render_url.clone()
     };

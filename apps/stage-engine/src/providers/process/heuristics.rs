@@ -48,12 +48,29 @@ pub(super) fn extract_provider_exit_payload(detail: &str) -> Option<String> {
     }
 }
 
+pub(super) fn looks_like_echoed_context(text: &str) -> bool {
+    let trimmed = text.trim();
+    trimmed.len() > 800 || trimmed.starts_with('{') || trimmed.contains("\"artifactKind\"")
+}
+
 pub(super) fn looks_like_provider_session_limit(text: &str) -> bool {
-    // Match explicit limit language only. Do NOT match bare "resets " — that
-    // word appears in benign CLI noise and, when used for live process kills,
-    // would abort healthy runs.
+    if looks_like_echoed_context(text) {
+        return false;
+    }
+
     let lower = text.to_lowercase();
-    lower.contains("session limit") || lower.contains("rate limit") || lower.contains("usage limit")
+    [
+        "hit your session limit",
+        "reached your session limit",
+        "session limit reached",
+        "hit your usage limit",
+        "reached your usage limit",
+        "usage limit reached",
+        "rate limit exceeded",
+        "too many requests",
+    ]
+    .iter()
+    .any(|message| lower.contains(message))
 }
 
 /// Org/admin blocked Claude Code subscription — not fixable by `claude auth login`.
@@ -64,22 +81,11 @@ pub(super) fn looks_like_provider_subscription_disabled(text: &str) -> bool {
         || (lower.contains("organization has disabled") && lower.contains("claude"))
 }
 
-/// Fatal stderr that will not recover if we keep waiting — kill the child ASAP.
-pub(super) fn fatal_provider_stderr_message(text: &str) -> Option<&str> {
-    let trimmed = text.trim();
-    if trimmed.is_empty() {
-        return None;
-    }
-    if looks_like_provider_session_limit(trimmed)
-        || looks_like_provider_subscription_disabled(trimmed)
-    {
-        return Some(trimmed);
-    }
-    None
-}
-
 pub(super) fn looks_like_provider_auth_failure(text: &str) -> bool {
-    if looks_like_provider_session_limit(text) || looks_like_provider_subscription_disabled(text) {
+    if looks_like_echoed_context(text)
+        || looks_like_provider_session_limit(text)
+        || looks_like_provider_subscription_disabled(text)
+    {
         return false;
     }
 
@@ -271,25 +277,39 @@ mod tests {
     }
 
     #[test]
-    fn subscription_disabled_is_fatal_and_not_auth() {
+    fn subscription_disabled_is_not_auth() {
         let text = "Your organization has disabled Claude subscription access for Claude Code · Use an Anthropic API key instead, or ask your admin to enable access";
         assert!(looks_like_provider_subscription_disabled(text));
         assert!(!looks_like_provider_auth_failure(text));
-        assert_eq!(fatal_provider_stderr_message(text), Some(text));
     }
 
     #[test]
-    fn usage_limit_is_fatal_stderr() {
+    fn recognizes_explicit_usage_limit_error() {
         let text = "ERROR: You've hit your usage limit. Upgrade to Plus to continue using Codex, or try again at Jul 30th, 2026 1:50 PM.";
         assert!(looks_like_provider_session_limit(text));
-        assert_eq!(fatal_provider_stderr_message(text), Some(text));
     }
 
     #[test]
-    fn benign_resets_noise_is_not_a_session_limit() {
-        let text = "Tool context resets between calls";
-        assert!(!looks_like_provider_session_limit(text));
-        assert_eq!(fatal_provider_stderr_message(text), None);
+    fn project_content_with_usage_limits_is_not_a_provider_limit() {
+        assert!(!looks_like_provider_session_limit(
+            "Configure promo code, reward, and usage limits before confirmation."
+        ));
+        assert!(looks_like_echoed_context(
+            r#"{"artifactKind":"researchArtifact","copy":"usage limits"}"#
+        ));
+    }
+
+    #[test]
+    fn echoed_artifact_json_is_not_a_provider_limit() {
+        let dump = format!(
+            r#"{{"artifactKind":"researchArtifact","copy":"{} usage limits before confirmation."}}"#,
+            "Configure promo code, reward, and"
+        );
+        assert!(!looks_like_provider_session_limit(&dump));
+        assert!(!looks_like_provider_session_limit(&format!(
+            "You've hit your usage limit. {}",
+            "x".repeat(900)
+        )));
     }
 
     #[test]
