@@ -434,7 +434,10 @@ type OnboardingStepRendererProps = {
   claudeConnectionId: string | null;
   onContinue: () => void;
   onCreationDone: () => void;
-  onPaywallUpgrade: (billingCycle: "monthly" | "yearly") => void;
+  onPaywallUpgrade: (
+    billingCycle: "monthly" | "yearly",
+    tier: "start" | "pro" | "team",
+  ) => void;
   onClaudeActivated: () => void;
 };
 

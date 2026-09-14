@@ -1,0 +1,97 @@
+export function HeroSection() {
+  return (
+    <>
+      <section
+        className="hero hero-landscape"
+        id="top"
+        aria-label="Stage for macOS"
+      >
+        <div className="hero-sky" aria-hidden="true" />
+        <div
+          className="landscape-layer landscape-far"
+          data-parallax="0.31"
+          aria-hidden="true"
+        >
+          <img
+            src="/landing-preview/assets/stage-landscape-far.webp"
+            alt=""
+            width={1944}
+            height={809}
+          />
+        </div>
+        <div
+          className="landscape-layer landscape-mid"
+          data-parallax="0.17"
+          aria-hidden="true"
+        >
+          <img
+            src="/landing-preview/assets/stage-landscape-mid.webp"
+            alt=""
+            width={1862}
+            height={845}
+          />
+        </div>
+        <div className="hero-heading">
+          <h1 aria-label="Stage does the thinking. Your AI does the building.">
+            Stage does the thinking.
+            <br />
+            <span>Your AI does the building.</span>
+          </h1>
+          <p className="hero-description">
+            The research, strategy and direction your AI skips - exported as a
+            brief Cursor, Claude Code and Codex actually follow.
+          </p>
+          <div className="hero-actions">
+            <a
+              className="button button-neutral"
+              href="https://cal.com/adrien-ninet/stage-demo"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <span>Book a demo</span>
+            </a>
+            <a className="button button-primary hero-cta" href="/download">
+              <svg
+                className="icon"
+                aria-hidden="true"
+                width={16}
+                height={16}
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 384 512"
+                fill="currentColor"
+              >
+                {/*! Font Awesome Free 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc. */}
+                <path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z" />
+              </svg>
+              <span>Try free for macOS</span>
+            </a>
+          </div>
+          <p className="cta-caption">Includes 14-day free trial</p>
+        </div>
+        <figure className="hero-dashboard" data-parallax="0.20">
+          <div className="hero-dashboard-screen">
+            <img
+              src="/landing-preview/assets/stage-dashboard-hover.webp"
+              alt="Stage dashboard showing projects, tasks, activity and the hovered project chart"
+              width={2880}
+              height={2628}
+              fetchPriority="high"
+            />
+          </div>
+          <figcaption className="screen-reader-only">
+            The Stage dashboard from the product design.
+          </figcaption>
+        </figure>
+        <div className="landscape-layer landscape-front" aria-hidden="true">
+          <img
+            src="/landing-preview/assets/stage-landscape-front.webp"
+            alt=""
+            width={2038}
+            height={771}
+          />
+        </div>
+        <div className="hero-ground" aria-hidden="true" />
+      </section>
+    </>
+  );
+}

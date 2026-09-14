@@ -1,15 +1,16 @@
-import homeHtml from "virtual:stage-landing-home-html";
-import { extractLandingDocument } from "./extractLandingDocument";
+import { StageLandingMarkup } from "./StageLandingMarkup";
 import { useStageLanding } from "./useStageLanding";
 
-const landing = extractLandingDocument(homeHtml);
+const TITLE = "Stage | Think through your product before your AI builds it";
+const DESCRIPTION =
+  "Work through research, strategy, visual direction, flows and wireframes in Stage for Mac. Export a Markdown brief for Cursor, Claude Code or Codex.";
 
 export function StageLandingPage() {
   useStageLanding({
-    title: landing.title,
-    description: landing.description,
+    title: TITLE,
+    description: DESCRIPTION,
     experience: true,
   });
 
-  return <div dangerouslySetInnerHTML={{ __html: landing.innerHtml }} />;
+  return <StageLandingMarkup />;
 }

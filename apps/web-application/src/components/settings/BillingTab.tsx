@@ -82,7 +82,7 @@ export function BillingTab({
                 ? "Manage your subscription in Stripe Customer Portal"
                 : isPro
                   ? "This workspace already has Pro access."
-                : "Upgrade to Stage Pro to unlock the live dashboard and API access."
+                : "Upgrade to Stage Studio to unlock the live dashboard and API access."
             }
           />
         </div>

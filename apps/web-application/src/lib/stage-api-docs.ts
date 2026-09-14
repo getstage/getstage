@@ -641,7 +641,7 @@ export const stageApiSections: ApiSectionDoc[] = [
       `All endpoints are under ${API_REFERENCE_BASE_URL}. Authentication uses API keys created in Settings > Developer.`,
     ],
     bullets: [
-      "Create an API key in Settings > Developer (Pro plan required).",
+      "Create an API key in Settings > Developer (Studio plan required).",
       "Set your key: Authorization: Bearer stg_...",
       "Create a project first with POST /api/v1/projects/import-plan.",
       "Save the workflow inputs with POST /api/v1/projects/:id/ai/context.",

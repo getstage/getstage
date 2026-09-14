@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useAction as useConvexAction } from "convex/react";
-import { PRO_PRICING, type BillingCycle } from "@/components/onboarding/OnboardingPaywall";
+import type { BillingCycle } from "@/components/onboarding/OnboardingPaywall";
 import { useFeedback } from "@/hooks/useFeedback";
 import { api } from "@/lib/convex";
 import { getDatafastCheckoutMetadata, trackDatafastGoal } from "@/lib/datafast";
@@ -19,6 +19,12 @@ type SubscriptionSnapshot = {
 type BillingSettingsInput = {
   profilePlan?: string;
   subscription: SubscriptionSnapshot;
+};
+
+const PLAN_DISPLAY: Record<string, { label: string; monthly: string; yearly: string }> = {
+  start: { label: "Solo", monthly: "$29/month", yearly: "$290/year" },
+  pro: { label: "Studio", monthly: "$99/month", yearly: "$990/year" },
+  team: { label: "Agency", monthly: "$249/month", yearly: "$2,490/year" },
 };
 
 export function useBillingSettings({ profilePlan, subscription }: BillingSettingsInput) {
@@ -78,10 +84,11 @@ export function useBillingSettings({ profilePlan, subscription }: BillingSetting
 
   const viewModel = useMemo(() => {
     const isPro = profilePlan === "pro";
+    const display = subscription ? PLAN_DISPLAY[subscription.plan] : undefined;
     const planName = subscription
-      ? `Stage ${capitalize(subscription.plan)}`
+      ? `Stage ${display?.label ?? capitalize(subscription.plan)}`
       : isPro
-        ? "Stage Pro"
+        ? "Stage Studio"
         : "Stage Free";
     const planStatus = subscription
       ? capitalize(subscription.status)
@@ -89,9 +96,9 @@ export function useBillingSettings({ profilePlan, subscription }: BillingSetting
         ? "Included"
         : "Free";
     const planCycle = subscription
-      ? `${capitalize(subscription.billingCycle)} · ${PRO_PRICING[subscription.billingCycle].price}${PRO_PRICING[subscription.billingCycle].period}`
+      ? `${capitalize(subscription.billingCycle)} · ${display?.[subscription.billingCycle] ?? "Price unavailable"}`
       : isPro
-        ? "Pro access without an active Stripe subscription"
+        ? "Studio access without an active Stripe subscription"
         : "No active subscription";
     const paymentText =
       subscription?.paymentMethodBrand && subscription.paymentMethodLast4
@@ -100,8 +107,8 @@ export function useBillingSettings({ profilePlan, subscription }: BillingSetting
     const paymentProviderText = subscription?.provider
       ? `Powered by ${capitalize(subscription.provider)}`
       : isPro
-        ? "Payment details are not available for this Pro account yet."
-        : "Payment details appear here after you start Stage Pro.";
+        ? "Payment details are not available for this Studio account yet."
+        : "Payment details appear here after you start Stage Studio.";
 
     return {
       planName,

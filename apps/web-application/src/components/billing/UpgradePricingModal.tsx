@@ -46,7 +46,7 @@ export function UpgradePricingModal({
             Choose your plan
           </h3>
           <p className="mt-2 text-[15px] leading-normal text-text-secondary">
-            Unlock everything with Pro.
+            Unlock team collaboration with Studio.
           </p>
 
           <div className="mt-5 flex justify-center sm:justify-start">
@@ -73,7 +73,7 @@ export function UpgradePricingModal({
               >
                 Yearly
                 <span className="rounded-full bg-[rgba(135,130,245,0.1)] px-2 py-0.5 text-[11px] font-semibold text-accent">
-                  Save 50%
+                  Two months free
                 </span>
               </button>
             </div>
@@ -88,7 +88,7 @@ export function UpgradePricingModal({
                 </div>
               ) : null}
 
-              <h4 className="text-[17px] font-semibold text-accent">Pro</h4>
+              <h4 className="text-[17px] font-semibold text-accent">Studio</h4>
 
               <div className="mt-3">
                 <div className="flex items-baseline gap-2">

@@ -27,8 +27,7 @@
     "stitch:check": "node ./scripts/stitch/check.mjs",
     "smoke:rest": "node ./scripts/smoke/rest.mjs",
     "smoke:stitch": "node ./scripts/smoke/stitch.mjs",
-    "smoke:top3": "pnpm run smoke:rest && pnpm run smoke:stitch",
-    "landing:build": "python3 landing-preview/build.py"
+    "smoke:top3": "pnpm run smoke:rest && pnpm run smoke:stitch"
   },
   "dependencies": {
     "@auth/core": "0.37.0",

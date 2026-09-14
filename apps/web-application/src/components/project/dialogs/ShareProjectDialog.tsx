@@ -20,7 +20,7 @@ type ShareProjectDialogProps = {
 function toUserFriendlyAddError(message: string) {
   switch (message) {
     case "Active Stage subscription required to invite members.":
-      return "Upgrade to Stage Pro to add team members.";
+      return "Upgrade to Stage Studio to add team members.";
     case "No user found with that email address.":
       return "This person needs a Stage account before you can add them.";
     case "This user is already a member of your workspace.":
@@ -207,7 +207,7 @@ export function ShareProjectDialog({
 
                 {!isPro ? (
                   <p className="mt-2 text-[12px] leading-5 text-destructive">
-                    Upgrade to Stage Pro to add team members. Invited members don't need their
+                    Upgrade to Stage Studio to add team members. Invited members don't need their
                     own subscription.
                   </p>
                 ) : (

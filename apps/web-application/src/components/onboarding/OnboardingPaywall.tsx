@@ -10,6 +10,8 @@ export const FREE_FEATURES = [
 ];
 
 export const PRO_FEATURES = [
+  { iconSrc: "/logos/pricing/folder.svg", label: "5 workspace seats" },
+  { iconSrc: "/logos/pricing/storage.svg", label: "10,000 pooled AI credits/month" },
   { iconSrc: "/logos/pricing/folder.svg", label: "Unlimited projects" },
   { iconSrc: "/logos/pricing/connect.svg", label: "Connect Claude, Figma, Notion & more" },
   { iconSrc: "/logos/pricing/storage.svg", label: "Unlimited file storage" },
@@ -18,14 +20,17 @@ export const PRO_FEATURES = [
 ];
 
 const START_FEATURES = [
-  { iconSrc: "/logos/pricing/folder.svg", label: "Paid workspace access" },
+  { iconSrc: "/logos/pricing/folder.svg", label: "1 workspace seat" },
+  { iconSrc: "/logos/pricing/storage.svg", label: "2,000 AI credits/month" },
   { iconSrc: "/logos/pricing/connect.svg", label: "Connect Claude, Figma, Notion & more" },
   { iconSrc: "/logos/pricing/portal.svg", label: "Client portal (standard)" },
   { iconSrc: "/logos/pricing/storage.svg", label: "Unlimited file storage" },
 ];
 
 const TEAM_FEATURES = [
-  { iconSrc: "/logos/pricing/folder.svg", label: "Everything in Pro" },
+  { iconSrc: "/logos/pricing/folder.svg", label: "15 workspace seats" },
+  { iconSrc: "/logos/pricing/storage.svg", label: "30,000 pooled AI credits/month" },
+  { iconSrc: "/logos/pricing/folder.svg", label: "Everything in Studio" },
   { iconSrc: "/logos/pricing/connect.svg", label: "Team workspace & shared projects" },
   { iconSrc: "/logos/pricing/portal.svg", label: "Role-based permissions" },
   { iconSrc: "/logos/pricing/storage.svg", label: "Centralized billing" },
@@ -44,7 +49,7 @@ export const PRO_PRICING: Record<
   }
 > = {
   monthly: {
-    price: "$29",
+    price: "$99",
     period: "/month",
     note: "",
     subnote: "",
@@ -52,18 +57,18 @@ export const PRO_PRICING: Record<
     badge: null,
   },
   yearly: {
-    originalPrice: "$348",
-    price: "$99",
+    originalPrice: "$1,188",
+    price: "$990",
     period: "/year",
     note: "",
-    subnote: "Save ~71% with yearly billing.",
+    subnote: "Two months free with yearly billing.",
     cta: "Start checkout",
     badge: "Best value",
   },
 };
 
 type OnboardingPaywallProps = {
-  onUpgrade: (billingCycle: BillingCycle) => void;
+  onUpgrade: (billingCycle: BillingCycle, tier: "start" | "pro" | "team") => void;
   isUpgradeLoading: boolean;
   upgradeError: string | null;
 };
@@ -144,22 +149,22 @@ export function OnboardingPaywall({
               }}
             />
             <p className="bg-gradient-to-r from-[#463FBA] to-[#7B76DF] bg-clip-text text-[13px] font-medium text-transparent">
-              Unlock more with Pro
+              Choose your Stage plan
             </p>
           </div>
 
           <div className="space-y-1">
             <div className="rounded-[8px] bg-white p-4 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
-              <p className="text-[13px] font-medium text-text-primary">Start</p>
+              <p className="text-[13px] font-medium text-text-primary">Solo</p>
               <div className="mt-5">
-                <span className="block text-[24px] font-semibold leading-none text-text-primary">$9</span>
+                <span className="block text-[24px] font-semibold leading-none text-text-primary">$29</span>
                 <span className="block text-[13px] font-medium text-text-secondary">/month</span>
               </div>
               <FeatureList features={START_FEATURES} />
               <p className="mt-4 text-[13px] font-medium text-text-secondary">
-                Billed $99/year when paid annually
+                Billed $290/year when paid annually
               </p>
-              <PlanButton onClick={() => onUpgrade("yearly")} disabled={isUpgradeLoading}>
+              <PlanButton onClick={() => onUpgrade("yearly", "start")} disabled={isUpgradeLoading}>
                 Start checkout
               </PlanButton>
             </div>
@@ -167,19 +172,19 @@ export function OnboardingPaywall({
             <div className="rounded-[8px] bg-gradient-to-b from-[rgba(158,153,248,0.1)] to-white p-4 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
               <div className="flex items-center justify-between gap-4">
                 <p className="bg-gradient-to-r from-[#463FBA] to-[#7B76DF] bg-clip-text text-[13px] font-medium text-transparent">
-                  Pro
+                  Studio
                 </p>
                 <p className="bg-gradient-to-r from-[#463FBA] to-[#7B76DF] bg-clip-text text-[13px] font-medium text-transparent">
                   Most Popular
                 </p>
               </div>
               <div className="mt-5">
-                <span className="block text-[24px] font-semibold leading-none text-text-primary">$29</span>
+                <span className="block text-[24px] font-semibold leading-none text-text-primary">$99</span>
                 <span className="block text-[13px] font-medium text-text-secondary">/month</span>
               </div>
-              <p className="mt-6 text-[13px] font-medium text-text-secondary">Everything in Start</p>
+              <p className="mt-6 text-[13px] font-medium text-text-secondary">Everything in Solo</p>
               <FeatureList features={PRO_FEATURES} />
-              <PlanButton onClick={() => onUpgrade("yearly")} primary disabled={isUpgradeLoading}>
+              <PlanButton onClick={() => onUpgrade("yearly", "pro")} primary disabled={isUpgradeLoading}>
                 Start checkout
               </PlanButton>
               <p className="mt-3 text-center text-[13px] font-medium leading-[1.35] text-text-secondary">
@@ -190,14 +195,14 @@ export function OnboardingPaywall({
             </div>
 
             <div className="rounded-[8px] bg-white p-4 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
-              <p className="text-[13px] font-medium text-text-primary">Team</p>
+              <p className="text-[13px] font-medium text-text-primary">Agency</p>
               <div className="mt-5">
-                <span className="block text-[24px] font-semibold leading-none text-text-primary">$29</span>
-                <span className="block text-[13px] font-medium text-text-secondary">/seat/month</span>
+                <span className="block text-[24px] font-semibold leading-none text-text-primary">$249</span>
+                <span className="block text-[13px] font-medium text-text-secondary">/month</span>
               </div>
               <FeatureList features={TEAM_FEATURES} />
-              <PlanButton onClick={() => onUpgrade("yearly")} disabled={isUpgradeLoading}>
-                Contact us after checkout
+              <PlanButton onClick={() => onUpgrade("yearly", "team")} disabled={isUpgradeLoading}>
+                Start checkout
               </PlanButton>
             </div>
           </div>
@@ -234,14 +239,14 @@ export function OnboardingPaywall({
             }}
           />
           <p className="bg-gradient-to-r from-[#463FBA] to-[#7B76DF] bg-clip-text text-[13px] font-medium text-transparent">
-            Unlock more with Pro
+            Stage Studio
           </p>
         </div>
 
         <div className="rounded-[8px] bg-gradient-to-b from-white to-[rgba(158,153,248,0.05)] p-4 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
           <div className="flex items-center justify-between gap-4">
             <p className="bg-gradient-to-r from-[#463FBA] to-[#7B76DF] bg-clip-text text-[13px] font-medium text-transparent">
-              Pro
+              Studio
             </p>
             <p className="bg-gradient-to-r from-[#463FBA] to-[#7B76DF] bg-clip-text text-[13px] font-medium text-transparent">
               Most Popular
@@ -249,7 +254,7 @@ export function OnboardingPaywall({
           </div>
 
           <div className="mt-5">
-            <span className="block text-[24px] font-semibold leading-none text-text-primary">$29</span>
+            <span className="block text-[24px] font-semibold leading-none text-text-primary">$99</span>
             <span className="block text-[13px] font-medium text-text-secondary">/month</span>
           </div>
 
@@ -257,7 +262,7 @@ export function OnboardingPaywall({
 
           {upgradeError ? <p className="mt-4 text-[13px] text-destructive">{upgradeError}</p> : null}
 
-          <PlanButton onClick={() => onUpgrade("yearly")} primary disabled={isUpgradeLoading}>
+          <PlanButton onClick={() => onUpgrade("yearly", "pro")} primary disabled={isUpgradeLoading}>
             Start checkout
           </PlanButton>
         </div>

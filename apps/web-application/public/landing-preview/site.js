@@ -176,17 +176,7 @@ if (downloadStatus && config.installerUrl) {
   async function loadVideo() {
     if (loaded || failed) return;
     loaded = true;
-    video.preload = 'auto';
-    // Load the compact clip into memory once. Blob playback keeps frame seeking
-    // responsive even when a preview host does not support HTTP range requests.
-    try {
-      const response = await fetch(video.getAttribute('src'));
-      if (!response.ok) throw new Error(`Video request failed with ${response.status}`);
-      blobUrl = URL.createObjectURL(await response.blob());
-      video.src = blobUrl;
-    } catch (_) {
-      // The original URL remains a compatible fallback on range-capable hosts.
-    }
+    video.preload = 'metadata';
     video.load();
   }
   function primeVideo() {

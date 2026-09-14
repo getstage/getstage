@@ -1,14 +1,9 @@
 import { useLayoutEffect } from "react";
+import landingCss from "virtual:stage-landing-css";
 import { resolveMacDownloadUrl } from "@/lib/macosDownload";
 import "@/styles/stage-landing-isolate.css";
 
-const LANDING_STYLESHEETS = [
-  "/landing-preview/styles.css",
-  "/landing-preview/sections.css",
-  "/landing-preview/navigation.css",
-  "/landing-preview/experience.css",
-  "/landing-preview/mobile.css",
-];
+const LANDING_FONT_HREF = "/landing-preview/assets/fonts/InterVariable.woff2";
 
 type StageConfig = {
   installerUrl: string | null;
@@ -34,8 +29,8 @@ export type StageLandingBoot = {
 };
 
 let stylesheetOwners = 0;
-let stylesheets: HTMLLinkElement[] = [];
-let siteScriptLoaded = false;
+let stylesheet: HTMLStyleElement | null = null;
+let fontPreload: HTMLLinkElement | null = null;
 let experienceScriptLoaded = false;
 
 function upsertMeta(name: string, content: string) {
@@ -63,48 +58,66 @@ function upsertMeta(name: string, content: string) {
 
 function retainStylesheets() {
   stylesheetOwners += 1;
-  if (stylesheets.length === 0) {
-    stylesheets = LANDING_STYLESHEETS.map((href) => {
-      const link = document.createElement("link");
-      link.rel = "stylesheet";
-      link.href = href;
-      link.setAttribute("data-stage-landing", "css");
-      document.head.appendChild(link);
-      return link;
-    });
+  if (!stylesheet) {
+    stylesheet = document.createElement("style");
+    stylesheet.setAttribute("data-stage-landing", "css");
+    stylesheet.textContent = landingCss;
+    document.head.appendChild(stylesheet);
+  }
+  if (!fontPreload) {
+    fontPreload = document.createElement("link");
+    fontPreload.rel = "preload";
+    fontPreload.as = "font";
+    fontPreload.type = "font/woff2";
+    fontPreload.href = LANDING_FONT_HREF;
+    fontPreload.crossOrigin = "anonymous";
+    fontPreload.setAttribute("data-stage-landing", "font");
+    document.head.appendChild(fontPreload);
   }
 }
 
 function releaseStylesheets() {
   stylesheetOwners = Math.max(0, stylesheetOwners - 1);
   if (stylesheetOwners > 0) return;
-  stylesheets.forEach((link) => link.remove());
-  stylesheets = [];
+  stylesheet?.remove();
+  stylesheet = null;
+  fontPreload?.remove();
+  fontPreload = null;
 }
 
-function loadScript(src: string) {
+if (import.meta.hot) {
+  import.meta.hot.accept("virtual:stage-landing-css", (mod) => {
+    if (stylesheet && typeof mod?.default === "string") {
+      stylesheet.textContent = mod.default;
+    }
+  });
+}
+
+function loadScript(src: string, reload = false) {
+  const canonical = src.split("?")[0] ?? src;
   return new Promise<void>((resolve, reject) => {
-    const existing = document.querySelector(`script[data-stage-landing-src="${src}"]`);
-    if (existing) {
+    if (reload) {
+      document
+        .querySelectorAll(`script[data-stage-landing-src="${canonical}"]`)
+        .forEach((el) => el.remove());
+    } else if (document.querySelector(`script[data-stage-landing-src="${canonical}"]`)) {
       resolve();
       return;
     }
     const script = document.createElement("script");
-    script.src = src;
+    script.src = reload ? `${canonical}?boot=${Date.now()}` : src;
     script.async = false;
     script.setAttribute("data-stage-landing", "js");
-    script.setAttribute("data-stage-landing-src", src);
+    script.setAttribute("data-stage-landing-src", canonical);
     script.onload = () => resolve();
-    script.onerror = () => reject(new Error(`Failed to load ${src}`));
+    script.onerror = () => reject(new Error(`Failed to load ${canonical}`));
     document.body.appendChild(script);
   });
 }
 
-async function bootScripts(experience: boolean) {
-  if (!siteScriptLoaded) {
-    siteScriptLoaded = true;
-    await loadScript("/landing-preview/site.js");
-  }
+async function bootScripts(experience: boolean, isCancelled: () => boolean) {
+  await loadScript("/landing-preview/site.js", true);
+  if (isCancelled()) return;
   if (experience && !experienceScriptLoaded) {
     experienceScriptLoaded = true;
     await loadScript("/landing-preview/assets/vendor/lenis.min.js");
@@ -138,14 +151,19 @@ export function useStageLanding({
       installerFilename: "Stage.dmg",
       loginUrl: "/auth",
       contactUrl: null,
-      legalUrl: null,
+      legalUrl: "/terms",
       socialsUrl: null,
     };
 
     retainStylesheets();
-    void bootScripts(experience);
+    let cancelled = false;
+    const timer = window.setTimeout(() => {
+      if (!cancelled) void bootScripts(experience, () => cancelled);
+    }, 0);
 
     return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
       html.classList.remove("stage-landing-page", "js");
       extraBodyClasses.forEach((name) => body.classList.remove(name));
       document.title = previousTitle;

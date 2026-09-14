@@ -6,32 +6,37 @@ import tailwindcss from "@tailwindcss/vite";
 import { TanStackRouterVite } from "@tanstack/router-plugin/vite";
 import tsconfigPaths from "vite-tsconfig-paths";
 
-function stageLandingHtml(): Plugin {
-  const modules = {
-    "virtual:stage-landing-home-html": path.resolve("public/landing-preview/index.html"),
-    "virtual:stage-landing-download-html": path.resolve(
-      "public/landing-preview/download/index.html",
-    ),
-  } as const;
+function stageLandingCss(): Plugin {
+  const cssFiles = [
+    "styles.css",
+    "sections.css",
+    "navigation.css",
+    "experience.css",
+    "mobile.css",
+  ].map((file) => path.resolve("public/landing-preview", file));
 
   return {
-    name: "stage-landing-html",
+    name: "stage-landing-css",
     resolveId(id) {
-      if (id in modules) return id;
+      if (id === "virtual:stage-landing-css") return id;
       return undefined;
     },
     load(id) {
-      const file = modules[id as keyof typeof modules];
-      if (!file) return undefined;
-      this.addWatchFile(file);
-      return `export default ${JSON.stringify(readFileSync(file, "utf8"))};`;
+      if (id === "virtual:stage-landing-css") {
+        const css = cssFiles.map((file) => {
+          this.addWatchFile(file);
+          return readFileSync(file, "utf8");
+        });
+        return `export default ${JSON.stringify(css.join("\n"))};`;
+      }
+      return undefined;
     },
   };
 }
 
 export default defineConfig(({ mode }) => ({
   plugins: [
-    stageLandingHtml(),
+    stageLandingCss(),
     tsconfigPaths(),
     TanStackRouterVite({
       routesDirectory: "./src/routes",
