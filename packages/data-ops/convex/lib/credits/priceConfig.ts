@@ -49,8 +49,8 @@ const TOPUP_CREDITS: Record<"small" | "medium" | "large", number> = {
 const TIER_PRICE_ENVS: Record<Tier, Record<BillingCycle, string[]>> = {
   // Internal keys stay stable: start = Solo, pro = Studio, team = Agency.
   start: {
-    monthly: ["STRIPE_START_MONTHLY_PRICE_ID"],
-    yearly: ["STRIPE_START_YEARLY_PRICE_ID"],
+    monthly: ["STRIPE_SOLO_MONTHLY_PRICE_ID", "STRIPE_START_MONTHLY_PRICE_ID"],
+    yearly: ["STRIPE_SOLO_YEARLY_PRICE_ID", "STRIPE_START_YEARLY_PRICE_ID"],
   },
   pro: {
     monthly: ["STRIPE_STUDIO_BASE_MONTHLY_PRICE_ID", "STRIPE_PRO_MONTHLY_PRICE_ID"],
