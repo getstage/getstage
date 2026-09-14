@@ -13,7 +13,6 @@ import {
   billingCycleForPriceId,
   configForPriceId,
   priceIdForTier,
-  seatAddOnPriceId,
   resolveTier,
 } from "../../credits/priceConfig";
 import {
@@ -338,14 +337,7 @@ export async function createCheckoutSessionHandler(
   const grantTrial = isTrial && !existingSubscription;
   const config = configForPriceId(priceId);
   const includedSeats = config?.includedSeats ?? 1;
-  const requestedSeats = Math.max(includedSeats, Math.round(args.seats ?? includedSeats));
-  const extraSeats = Math.max(0, requestedSeats - includedSeats);
-
-  // Team: add the per-seat add-on line item for seats beyond the 3 included.
-  const seatAddOnId = extraSeats > 0 ? seatAddOnPriceId(billingCycle) : null;
-  if (extraSeats > 0 && !seatAddOnId) {
-    throw new Error("Team extra-seat checkout is not configured yet.");
-  }
+  const requestedSeats = includedSeats;
 
   const subscriptionMetadata: Record<string, string> = {
     ...baseMetadata,
@@ -359,10 +351,7 @@ export async function createCheckoutSessionHandler(
   const session = await sdk.checkout.sessions.create({
     mode: "subscription",
     customer: customerId,
-    line_items: [
-      { price: priceId, quantity: 1 },
-      ...(seatAddOnId ? [{ price: seatAddOnId, quantity: extraSeats }] : []),
-    ],
+    line_items: [{ price: priceId, quantity: 1 }],
     success_url: urls.successUrl,
     cancel_url: urls.cancelUrl,
     metadata: {

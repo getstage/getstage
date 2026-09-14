@@ -23,15 +23,15 @@ export type PriceConfig = {
 };
 
 const TIER_MONTHLY_CREDITS: Record<Tier, number> = {
-  start: 5000,
+  start: 2000,
   pro: 10000,
-  team: 18000,
+  team: 30000,
 };
 
 const TIER_INCLUDED_SEATS: Record<Tier, number> = {
   start: 1,
-  pro: 1,
-  team: 3,
+  pro: 5,
+  team: 15,
 };
 
 // Credits a Team seat add-on grants into the shared pool per extra seat.
@@ -46,10 +46,28 @@ const TOPUP_CREDITS: Record<"small" | "medium" | "large", number> = {
   large: 18000,
 };
 
-const TIER_PRICE_ENV: Record<Tier, Record<BillingCycle, string>> = {
-  start: { monthly: "STRIPE_START_MONTHLY_PRICE_ID", yearly: "STRIPE_START_YEARLY_PRICE_ID" },
-  pro: { monthly: "STRIPE_PRO_MONTHLY_PRICE_ID", yearly: "STRIPE_PRO_YEARLY_PRICE_ID" },
-  team: { monthly: "STRIPE_TEAM_BASE_MONTHLY_PRICE_ID", yearly: "STRIPE_TEAM_BASE_YEARLY_PRICE_ID" },
+const TIER_PRICE_ENVS: Record<Tier, Record<BillingCycle, string[]>> = {
+  // Internal keys stay stable: start = Solo, pro = Studio, team = Agency.
+  start: {
+    monthly: ["STRIPE_START_MONTHLY_PRICE_ID"],
+    yearly: ["STRIPE_START_YEARLY_PRICE_ID"],
+  },
+  pro: {
+    monthly: ["STRIPE_STUDIO_BASE_MONTHLY_PRICE_ID", "STRIPE_PRO_MONTHLY_PRICE_ID"],
+    yearly: ["STRIPE_STUDIO_BASE_YEARLY_PRICE_ID", "STRIPE_PRO_YEARLY_PRICE_ID"],
+  },
+  team: {
+    monthly: [
+      "STRIPE_AGENCY_MONTHLY_PRICE_ID",
+      "STRIPE_AGENCY_MONTLY_PRICE_ID",
+      "STRIPE_TEAM_BASE_MONTHLY_PRICE_ID",
+    ],
+    yearly: [
+      "STRIPE_AGENCY_ANNUAL_PRICE_ID",
+      "STRIPE_AGENCY_YEARLY_PRICE_ID",
+      "STRIPE_TEAM_BASE_YEARLY_PRICE_ID",
+    ],
+  },
 };
 
 const SEAT_ADDON_ENV: Record<BillingCycle, string> = {
@@ -113,8 +131,12 @@ function buildMap(): Record<string, PriceConfig> {
   };
 
   (["start", "pro", "team"] as Tier[]).forEach((tier) => {
-    add(getEnv(TIER_PRICE_ENV[tier].monthly), subscriptionConfig(tier, "monthly"));
-    add(getEnv(TIER_PRICE_ENV[tier].yearly), subscriptionConfig(tier, "yearly"));
+    TIER_PRICE_ENVS[tier].monthly.forEach((env) => {
+      add(getEnv(env), subscriptionConfig(tier, "monthly"));
+    });
+    TIER_PRICE_ENVS[tier].yearly.forEach((env) => {
+      add(getEnv(env), subscriptionConfig(tier, "yearly"));
+    });
   });
 
   add(getEnv(SEAT_ADDON_ENV.monthly), seatAddOnConfig("monthly"));
@@ -159,7 +181,9 @@ export function includedSeatsForTier(tier: Tier): number {
 
 // Resolve the subscription base priceId for a tier + cycle. Throws if not configured.
 export function priceIdForTier(tier: Tier, billingCycle: BillingCycle): string {
-  const id = getEnv(TIER_PRICE_ENV[tier][billingCycle]);
+  const id = TIER_PRICE_ENVS[tier][billingCycle]
+    .map((env) => getEnv(env))
+    .find(Boolean);
   if (!id) {
     throw new Error(`${tier} ${billingCycle} checkout is not configured yet.`);
   }
