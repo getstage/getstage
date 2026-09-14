@@ -4,6 +4,7 @@ import {
   canonicalGithubRepoUrl,
   deriveImportedSkillHubId,
   isPrivateIp,
+  parseExternalNavigationUrl,
   parseGithubSourceUrl,
   parsePublicHttpsUrl,
   skillHubIdSchema,
@@ -59,6 +60,17 @@ test("parsePublicHttpsUrl rejects credentials, localhost, and http", () => {
     /secrets/,
   );
   assert.throws(() => parsePublicHttpsUrl("javascript:alert(1)"), /HTTPS|Invalid/);
+});
+
+test("parseExternalNavigationUrl permits tokenized Stripe checkout only", () => {
+  assert.equal(
+    parseExternalNavigationUrl("https://checkout.stripe.com/session?token=checkout-secret"),
+    "https://checkout.stripe.com/session?token=checkout-secret",
+  );
+  assert.throws(
+    () => parseExternalNavigationUrl("https://example.com/?token=secret"),
+    /secrets/,
+  );
 });
 
 test("parseGithubSourceUrl accepts repo and tree URLs", () => {

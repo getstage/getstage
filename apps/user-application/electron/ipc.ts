@@ -27,7 +27,7 @@ import {
   captureWireframeHtmlPng,
 } from "./helpers/wireframe-screenshot";
 import { IPC_CHANNELS } from "@shared/ipc/channels";
-import { parsePublicHttpsUrl } from "@shared/models/safeHttpsUrl";
+import { parseExternalNavigationUrl } from "@shared/models/safeHttpsUrl";
 import {
   captureWindowRequestSchema,
   chatAttachmentTargetSchema,
@@ -571,7 +571,7 @@ export function registerIpcHandlers({
   });
 
   ipcMain.handle(IPC_CHANNELS.shellOpenExternal, async (_event, url: unknown) => {
-    const parsedUrl = parsePublicHttpsUrl(url);
+    const parsedUrl = parseExternalNavigationUrl(url);
     await shell.openExternal(parsedUrl);
   });
 

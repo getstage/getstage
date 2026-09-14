@@ -6,6 +6,7 @@ import { request as httpRequest, type IncomingMessage } from "node:http";
 import { request as httpsRequest } from "node:https";
 import { homedir } from "node:os";
 import { resolve, sep } from "node:path";
+import type { LookupFunction } from "node:net";
 import { promisify } from "node:util";
 import { clipboard, dialog, shell } from "electron";
 import {
@@ -157,11 +158,7 @@ async function createUniqueExportDirectory(
   throw new Error("Could not create a unique Stage export folder.");
 }
 
-function lookupPublic(
-  hostname: string,
-  _options: unknown,
-  callback: (error: Error | null, address: string, family: number) => void,
-) {
+const lookupPublic: LookupFunction = (hostname, options, callback) => {
   void lookup(hostname, { all: true }).then(
     (addresses) => {
       const allowed = addresses.filter(({ address }) => !isPrivateIp(address));
@@ -170,11 +167,15 @@ function lookupPublic(
         callback(new Error("Private asset addresses are not allowed."), "", 4);
         return;
       }
+      if (options.all) {
+        callback(null, allowed);
+        return;
+      }
       callback(null, chosen.address, chosen.family);
     },
-    (error: Error) => callback(error, "", 4),
+    (error: NodeJS.ErrnoException) => callback(error, "", 4),
   );
-}
+};
 
 async function assertPublicAssetUrl(value: string) {
   const url = new URL(value);

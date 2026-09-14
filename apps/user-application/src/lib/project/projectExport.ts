@@ -103,6 +103,15 @@ function isRemoteAssetUrl(value: string | null | undefined): value is string {
   return typeof value === "string" && /^https?:\/\//i.test(value);
 }
 
+function preferredRemoteImageUrl(
+  imageUrl: string | null | undefined,
+  thumbnailUrl: string | null | undefined,
+) {
+  if (isRemoteAssetUrl(imageUrl)) return imageUrl;
+  if (isRemoteAssetUrl(thumbnailUrl)) return thumbnailUrl;
+  return null;
+}
+
 function collectAssets(
   artifacts: ProjectExportArtifacts,
   uploadedAssets: ProjectUploadedAsset[],
@@ -145,7 +154,10 @@ function collectAssets(
     }
     for (const group of artifacts.research.uiPatterns) {
       for (const example of group.examples) {
-        const url = example.thumbnailUrl ?? example.imageUrl;
+        const url = preferredRemoteImageUrl(
+          example.imageUrl,
+          example.thumbnailUrl,
+        );
         if (isRemoteAssetUrl(url)) {
           add("research", example.title, url);
         }

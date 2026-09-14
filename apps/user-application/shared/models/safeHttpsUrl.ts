@@ -8,6 +8,7 @@ import { z } from "zod";
 
 const MAX_URL_LENGTH = 2048;
 const BLOCKED_HOSTS = new Set(["localhost", "127.0.0.1", "0.0.0.0", "::1", "[::1]"]);
+const TOKENIZED_EXTERNAL_HOSTS = new Set(["checkout.stripe.com", "billing.stripe.com"]);
 
 /** Keep in sync with Convex `updateSkillHubPrefsHandler`. */
 export const SKILL_HUB_ID_PATTERN = /^[a-z][a-z0-9-]{0,62}$/;
@@ -91,7 +92,7 @@ function assertNoEmbeddedSecrets(url: URL) {
   }
 }
 
-export function parsePublicHttpsUrl(value: unknown): string {
+function parseHttpsUrl(value: unknown, allowEmbeddedSecrets = false): string {
   if (typeof value !== "string") {
     throw new Error("URL must be a string.");
   }
@@ -113,7 +114,7 @@ export function parsePublicHttpsUrl(value: unknown): string {
   }
 
   assertNoCredentials(url);
-  assertNoEmbeddedSecrets(url);
+  if (!allowEmbeddedSecrets) assertNoEmbeddedSecrets(url);
 
   const host = url.hostname.toLowerCase();
   if (
@@ -127,6 +128,19 @@ export function parsePublicHttpsUrl(value: unknown): string {
   }
 
   return url.toString();
+}
+
+export function parsePublicHttpsUrl(value: unknown): string {
+  return parseHttpsUrl(value);
+}
+
+export function parseExternalNavigationUrl(value: unknown): string {
+  const href = parseHttpsUrl(value, true);
+  const url = new URL(href);
+  if (!TOKENIZED_EXTERNAL_HOSTS.has(url.hostname.toLowerCase())) {
+    assertNoEmbeddedSecrets(url);
+  }
+  return href;
 }
 
 export function parseGithubSourceUrl(value: unknown): string {

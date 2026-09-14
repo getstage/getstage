@@ -252,7 +252,7 @@ test("buildProjectExport includes only selected artifacts and their assets", () 
   );
   assert.equal(
     bundle.assets[1]?.url,
-    "https://images.example.com/intercom-thumbnail.jpg",
+    "https://assets.example.com/missing-full-image.jpg",
   );
   const moodboardMarkdown =
     bundle.files.find(({ relativePath }) => relativePath === "moodboard.md")

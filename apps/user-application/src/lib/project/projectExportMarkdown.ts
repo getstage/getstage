@@ -80,7 +80,7 @@ export function researchMarkdown(
       if (group.patternCountLabel) lines.push("", `**References:** ${group.patternCountLabel}`);
       if (group.recognizedPatterns.length) lines.push("", "**Patterns recognised**", "", ...list(group.recognizedPatterns));
       for (const example of group.examples) {
-        const sourceUrl = example.thumbnailUrl ?? example.imageUrl;
+        const sourceUrl = example.imageUrl ?? example.thumbnailUrl;
         lines.push("", `#### ${example.title}`);
         if (example.sourceProduct) lines.push("", `Source: ${example.sourceProduct}`);
         lines.push(...localImage(example.title, sourceUrl, assetPathByUrl));

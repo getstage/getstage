@@ -1,7 +1,7 @@
-import { parsePublicHttpsUrl } from "@shared/models/safeHttpsUrl";
+import { parseExternalNavigationUrl } from "@shared/models/safeHttpsUrl";
 
 export async function openExternalLink(url: string) {
-  const parsed = parsePublicHttpsUrl(url);
+  const parsed = parseExternalNavigationUrl(url);
 
   if (window.stageDesktop?.shell?.openExternal) {
     await window.stageDesktop.shell.openExternal(parsed);
