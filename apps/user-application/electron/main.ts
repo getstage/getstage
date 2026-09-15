@@ -226,7 +226,7 @@ app.on("second-instance", (_event, argv) => {
   handleDeepLinkUrl(deepLinkUrl);
 });
 
-function registerRendererMediaPermissions() {
+function configureRendererSession() {
   // `local-fonts` lets the style-guide editor enumerate the user's installed
   // macOS fonts via the renderer's `queryLocalFonts()` (Local Font Access API).
   const grantedPermissions = new Set([
@@ -243,6 +243,15 @@ function registerRendererMediaPermissions() {
   session.defaultSession.setPermissionCheckHandler((_webContents, permission) =>
     grantedPermissions.has(permission),
   );
+
+  session.defaultSession.webRequest.onBeforeSendHeaders(
+    { urls: ["https://www.youtube.com/*", "https://www.youtube-nocookie.com/*"] },
+    (details, callback) => {
+      callback({
+        requestHeaders: { ...details.requestHeaders, Referer: "https://getstage.co/" },
+      });
+    },
+  );
 }
 
 app.whenReady().then(async () => {
@@ -255,7 +264,7 @@ app.whenReady().then(async () => {
     logDesktopDebug("renderer protocol installed");
   }
 
-  registerRendererMediaPermissions();
+  configureRendererSession();
   initAutoUpdates();
   installApplicationMenu();
   await authCallbackServer.start();

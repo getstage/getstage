@@ -82,7 +82,7 @@ export function DeveloperTab(props: DeveloperTabProps) {
             <div>
               <div className="settings-row-title">Developer access</div>
               <div className="settings-row-description">
-                API keys are available on the Pro plan.
+                API keys are available on the Studio plan.
               </div>
             </div>
             <button type="button" className="btn-primary-gradient" onClick={onUpgradeClick}>

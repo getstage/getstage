@@ -398,15 +398,12 @@ pub fn repair_competitive_analysis(
                 .get("score")
                 .or_else(|| cell.get("rating"))
                 .and_then(Value::as_str);
-            match (competitor_id, score) {
+            matches!(
+                (competitor_id, score),
                 (Some(id), Some(raw_score))
                     if allowed_ids.contains(id)
-                        && normalize_matrix_score_label(raw_score).is_some() =>
-                {
-                    true
-                }
-                _ => false,
-            }
+                        && normalize_matrix_score_label(raw_score).is_some()
+            )
         });
         report.unsupported_cells_removed += before.saturating_sub(cells.len());
     }

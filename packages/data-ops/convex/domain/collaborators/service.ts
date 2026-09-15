@@ -82,7 +82,7 @@ async function insertWorkspaceMembership(
   const seatLimit = ownerSubscription.seats;
   if (currentMembers.length + 1 >= seatLimit) {
     throw new Error(
-      `You've reached your plan's seat limit (${seatLimit}). Upgrade to Team to add more members.`,
+      `You've reached your plan's seat limit (${seatLimit}). Upgrade your plan to add more members.`,
     );
   }
 

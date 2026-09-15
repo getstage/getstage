@@ -23,7 +23,7 @@ use crate::refero::client::ReferoClient;
 use crate::refero::service::ReferoService;
 use crate::research::service::ResearchService;
 use crate::research::workflow::ResearchWorkflow;
-use crate::runs::RunManager;
+use crate::runs::{RunManager, RunWorkflows};
 use crate::server;
 use crate::strategy::workflow::StrategyWorkflow;
 use crate::styleguide::StyleguideWorkflow;
@@ -76,13 +76,15 @@ impl AppState {
             started_at_ms: now_millis(),
             runs: Arc::new(RunManager::new(
                 "v1",
-                Some(chat),
-                Some(research),
-                Some(strategy),
-                Some(styleguide),
-                Some(moodboard),
-                Some(flows),
-                Some(wireframes),
+                RunWorkflows {
+                    chat: Some(chat),
+                    research: Some(research),
+                    strategy: Some(strategy),
+                    styleguide: Some(styleguide),
+                    moodboard: Some(moodboard),
+                    flows: Some(flows),
+                    wireframes: Some(wireframes),
+                },
             )),
             figma_exports: Arc::new(FigmaExportService::new(
                 FigmaExportRepository::new(&config.convex),

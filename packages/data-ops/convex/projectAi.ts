@@ -215,6 +215,11 @@ export const updateWireframesArtifact = mutation({
   handler: wireframesHandlers.updateWireframesArtifactHandler,
 });
 
+export const clearWireframeScreens = mutation({
+  args: wireframesHandlers.clearWireframeScreensArgs,
+  handler: wireframesHandlers.clearWireframeScreensHandler,
+});
+
 export const getLatestAssetsArtifact = query({
   args: artifactHandlers.getLatestAssetsArtifactArgs,
   handler: artifactHandlers.getLatestAssetsArtifactHandler,

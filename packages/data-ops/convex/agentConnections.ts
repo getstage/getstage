@@ -120,7 +120,7 @@ export const createPendingClaudeConnection = mutation({
     const existing = await getClaudeConnectionRecord(ctx, user._id);
 
     if (!existing && plan !== "pro") {
-      throw new Error("Claude workspace connections require Stage Pro.");
+      throw new Error("Claude workspace connections require Stage Studio.");
     }
 
     if (existing) {

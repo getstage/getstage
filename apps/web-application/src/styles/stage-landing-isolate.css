@@ -1,0 +1,213 @@
+/* Beat Tailwind preflight + globals.css only while the Adrien landing is mounted. */
+
+html.stage-landing-page {
+  font-family: Inter, Arial, sans-serif;
+  color: #171717;
+  background: #f5f5f5;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  scroll-padding-top: 130px;
+}
+
+html.stage-landing-page body {
+  font-family: Inter, Arial, sans-serif;
+  background: #f5f5f5;
+  color: #171717;
+  min-height: 0;
+  line-height: normal;
+  font-size: unset;
+  margin: 0;
+}
+
+html.stage-landing-page h1,
+html.stage-landing-page h2,
+html.stage-landing-page h3,
+html.stage-landing-page h4,
+html.stage-landing-page h5,
+html.stage-landing-page h6 {
+  font-family: inherit;
+}
+
+html.stage-landing-page a.button-neutral,
+html.stage-landing-page button.button-neutral {
+  border: 1px solid #d4d4d4;
+}
+
+html.stage-landing-page .icon,
+html.stage-landing-page .brand-symbol {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+html.stage-landing-page .nav-brand .brand-symbol {
+  width: 20px;
+  height: 24px;
+}
+
+html.stage-landing-page footer .brand-symbol {
+  width: 30px;
+  height: 36px;
+}
+
+html.stage-landing-page .problem-outro-logo {
+  display: block;
+  width: clamp(96px, 12vw, 160px);
+  height: auto;
+  max-width: 160px;
+  color: #fafafa;
+  opacity: 0.04;
+}
+
+html.stage-landing-page .toolkit-option-art > img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  object-fit: cover;
+}
+
+html.stage-landing-page .testimonial-controls [data-testimonial-prev] {
+  transform: scaleX(-1);
+}
+
+html.stage-landing-page .testimonial-arrow-back {
+  transform: none;
+}
+
+html.stage-landing-page .testimonial-controls .button,
+html.stage-landing-page .testimonial-controls svg {
+  overflow: visible;
+}
+
+html.stage-landing-page button:focus,
+html.stage-landing-page button:focus-visible,
+html.stage-landing-page a:focus-visible,
+html.stage-landing-page summary:focus-visible,
+html.stage-landing-page [role="button"]:focus,
+html.stage-landing-page [role="button"]:focus-visible {
+  outline: 3px solid #8d87ff !important;
+  outline-offset: 5px !important;
+  box-shadow: none !important;
+}
+
+html.stage-landing-page body.legal-page {
+  min-height: 100dvh;
+}
+
+html.stage-landing-page .legal-main {
+  width: 100%;
+  margin: 0;
+  padding: 140px 32px 88px;
+}
+
+html.stage-landing-page .legal-content {
+  width: min(820px, 100%);
+  margin: 0 auto;
+}
+
+html.stage-landing-page .legal-hero {
+  padding-bottom: 36px;
+  border-bottom: 1px solid #e5e5e5;
+}
+
+html.stage-landing-page .legal-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #737373;
+}
+
+html.stage-landing-page .legal-hero h1 {
+  margin: 16px 0 0;
+  font-size: clamp(40px, 5vw, 56px);
+  font-weight: 500;
+  line-height: 1.04;
+  letter-spacing: -1.6px;
+  color: #171717;
+}
+
+html.stage-landing-page .legal-hero p {
+  margin: 18px 0 0;
+  max-width: 720px;
+  font-size: 16px;
+  line-height: 1.65;
+  color: #737373;
+}
+
+html.stage-landing-page .legal-switch {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 22px;
+}
+
+html.stage-landing-page .legal-switch a {
+  color: #737373;
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+html.stage-landing-page .legal-switch a:hover,
+html.stage-landing-page .legal-switch a[aria-current="page"] {
+  color: #171717;
+}
+
+html.stage-landing-page .legal-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 22px;
+  color: #737373;
+  font-size: 13px;
+}
+
+html.stage-landing-page .legal-document {
+  padding-top: 42px;
+}
+
+html.stage-landing-page .legal-section + .legal-section {
+  margin-top: 34px;
+}
+
+html.stage-landing-page .legal-section h2 {
+  margin: 0 0 12px;
+  font-size: 22px;
+  font-weight: 500;
+  line-height: 1.25;
+  letter-spacing: -0.4px;
+  color: #171717;
+}
+
+html.stage-landing-page .legal-section p {
+  margin: 0;
+  color: #525252;
+  font-size: 15.5px;
+  line-height: 1.8;
+}
+
+html.stage-landing-page .legal-section p + p {
+  margin-top: 12px;
+}
+
+html.stage-landing-page .legal-section ul {
+  margin: 12px 0 0;
+  padding-left: 22px;
+  color: #525252;
+}
+
+html.stage-landing-page .legal-section li {
+  margin: 8px 0;
+  font-size: 15.5px;
+  line-height: 1.75;
+}
+
+@media (max-width: 800px) {
+  html.stage-landing-page .legal-main {
+    padding: 112px 22px 64px;
+  }
+}

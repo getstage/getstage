@@ -107,7 +107,7 @@ function resolveBillingCycle(
   metadata?: Record<string, unknown> | null,
 ): BillingCycle {
   const config = configForPriceId(priceId);
-  if (config && !config.isSeatAddOn) {
+  if (config?.kind === "subscription") {
     return config.billingCycle;
   }
   const rawCycle = metadata?.billingCycle;

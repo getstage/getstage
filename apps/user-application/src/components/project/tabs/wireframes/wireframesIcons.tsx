@@ -72,6 +72,20 @@ export function TrashIcon() {
   );
 }
 
+export function EditIcon() {
+  return (
+    <svg viewBox="0 0 16 16" fill="none" aria-hidden="true" className="h-[14px] w-[14px]">
+      <path
+        d="m3.25 11.7.35-2.4 6.55-6.55a1.25 1.25 0 0 1 1.77 0l1.33 1.33a1.25 1.25 0 0 1 0 1.77L6.7 12.4l-2.4.35-1.05-1.05Z"
+        stroke="currentColor"
+        strokeWidth="1.3"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 export function PlusIcon() {
   return (
     <svg viewBox="0 0 16 16" fill="none" aria-hidden="true" className="h-[14px] w-[14px] shrink-0">
@@ -143,19 +157,6 @@ export function LofiWireframeIcon({ className }: { className: string }) {
       style={{
         WebkitMask: 'url("/logos/dashboard/lofi-wireframe.svg") center / contain no-repeat',
         mask: 'url("/logos/dashboard/lofi-wireframe.svg") center / contain no-repeat',
-      }}
-    />
-  );
-}
-
-export function HifiWireframeIcon({ className }: { className: string }) {
-  return (
-    <span
-      aria-hidden="true"
-      className={`${className} shrink-0 bg-current`}
-      style={{
-        WebkitMask: 'url("/logos/dashboard/hifi-wireframe.svg") center / contain no-repeat',
-        mask: 'url("/logos/dashboard/hifi-wireframe.svg") center / contain no-repeat',
       }}
     />
   );

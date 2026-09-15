@@ -79,11 +79,11 @@ export function capitalize(value: string) {
 export function formatPlanPrice(plan: "free" | "start" | "pro" | "team") {
   switch (plan) {
     case "start":
-      return "Start plan";
+      return "Solo plan";
     case "pro":
-      return "Pro plan";
+      return "Studio plan";
     case "team":
-      return "Team plan";
+      return "Agency plan";
     default:
       return "Free plan";
   }

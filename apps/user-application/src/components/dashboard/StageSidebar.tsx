@@ -31,6 +31,7 @@ export function StageSidebar({
   collapsed,
   canExpand = true,
   onCollapsedChange,
+  onOpenDemo,
 }: {
   accountInitials: string;
   accountLabel: string;
@@ -40,6 +41,7 @@ export function StageSidebar({
   collapsed: boolean;
   canExpand?: boolean;
   onCollapsedChange: (collapsed: boolean) => void;
+  onOpenDemo: () => void;
 }) {
   const navigate = useNavigate();
   const desktop = useDesktopBridge();
@@ -137,6 +139,7 @@ export function StageSidebar({
           accountAvatarUrl={accountAvatarUrl}
           accountMeta={accountMeta}
           onCollapsedChange={onCollapsedChange}
+          onOpenDemo={onOpenDemo}
           onOpenSettings={() => openSidebarSettings(navigate)}
           onLogOut={() => logoutFromSidebar(navigate, () => desktop.auth.logout())}
         />

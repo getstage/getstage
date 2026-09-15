@@ -284,8 +284,7 @@ impl StyleguideWorkflow {
 
             if let (Some(token), Some(project_id)) =
                 (auth_token_for_failure.as_deref(), project_id.as_deref())
-            {
-                if let Err(mark_failed_error) = self
+                && let Err(mark_failed_error) = self
                     .moodboard_repository
                     .fail_moodboard_run(
                         token,
@@ -294,9 +293,8 @@ impl StyleguideWorkflow {
                         &error.to_string(),
                     )
                     .await
-                {
-                    tracing::warn!(%mark_failed_error, "failed to mark Convex styleguide run failed");
-                }
+            {
+                tracing::warn!(%mark_failed_error, "failed to mark Convex styleguide run failed");
             }
 
             sink.send(RunEvent::RunFailed {

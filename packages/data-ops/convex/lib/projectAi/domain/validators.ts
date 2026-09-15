@@ -15,6 +15,7 @@ export const aiRunStatus = v.union(
   v.literal("running"),
   v.literal("completed"),
   v.literal("failed"),
+  v.literal("cancelled"),
   v.literal("needs_input"),
 );
 

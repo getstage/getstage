@@ -1,5 +1,28 @@
+import { getR2PublicBaseUrl } from "../../../helpers/r2/keys";
 import { resolveAssetUrl } from "../../../r2";
-import { isStoredAssetKey } from "./r2Keys";
+import { isStoredAssetKey, keyFromPublicAssetUrl } from "./r2Keys";
+
+function isDurableStageAsset(value: string) {
+  if (isStoredAssetKey(value) || keyFromPublicAssetUrl(value)) {
+    return true;
+  }
+
+  const base = getR2PublicBaseUrl();
+  return Boolean(base && value.startsWith(`${base}/`));
+}
+
+/** Prefer the R2 copy over a Refero/CDN thumbnail so desktop export can download it. */
+function preferDurableImageOverExternalThumbnail(next: Record<string, unknown>) {
+  const imageUrl = typeof next.imageUrl === "string" ? next.imageUrl : null;
+  const thumbnailUrl = typeof next.thumbnailUrl === "string" ? next.thumbnailUrl : null;
+  if (!imageUrl || !isDurableStageAsset(imageUrl)) {
+    return;
+  }
+  if (thumbnailUrl && isDurableStageAsset(thumbnailUrl)) {
+    return;
+  }
+  next.thumbnailUrl = imageUrl;
+}
 
 async function resolveStoredAssetUrls(value: unknown): Promise<unknown> {
   if (Array.isArray(value)) {
@@ -47,6 +70,7 @@ async function resolveStoredAssetUrls(value: unknown): Promise<unknown> {
       next[key] = await resolveStoredAssetUrls(nested);
     }
 
+    preferDurableImageOverExternalThumbnail(next);
     return next;
   }
 

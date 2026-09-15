@@ -21,7 +21,6 @@ export type WireframeAssetCard = ProjectAsset & {
   source: string;
   priority: string;
   figmaUrl?: string;
-  html?: string;
   sections: WireframeRenderableSection[];
 };
 

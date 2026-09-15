@@ -155,7 +155,7 @@ export function ExportOptionsDialog({
 
             {isPreparingFigmaExport ? (
               <p className="mx-3 mt-3 rounded-[6px] bg-[#F5F3FF] p-2 text-[12px] text-[#4C1D95]" role="status">
-                Preparing the Hi-Fi preview for Figma. Large wireframes can take up to a minute.
+                Preparing the preview for Figma. Large wireframes can take up to a minute.
               </p>
             ) : null}
 

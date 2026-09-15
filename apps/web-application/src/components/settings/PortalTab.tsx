@@ -88,7 +88,7 @@ export function PortalTab({
           <div className="card-desc">
             {isPro
               ? "Upload your logo to display on the client portal. PNG or SVG recommended."
-              : "Upgrade to Stage Pro to upload a custom logo for your client portal."}
+              : "Upgrade to Stage Studio to upload a custom logo for your client portal."}
           </div>
           <div
             className={`logo-upload-area ${portalLogoDataUrl ? "has-logo" : ""} ${logoDragActive ? "drag-active" : ""}`}

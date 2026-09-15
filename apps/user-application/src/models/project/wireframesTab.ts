@@ -2,8 +2,6 @@ export type {
   ScreenItem,
   WireframeGeneratedScreen,
   WireframeKind,
-  WireframeKindChoice,
-  WireframeStep,
   WireframesBrandKit,
   WireframesTabData,
   WireframesTabStats,

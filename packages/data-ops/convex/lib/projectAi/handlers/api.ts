@@ -117,7 +117,7 @@ export async function createRunForApiHandler(
     connectionId?: Id<"agentConnections">;
     module: AiModule;
     title: string;
-    status: "draft" | "running" | "completed" | "failed" | "needs_input";
+    status: "draft" | "running" | "completed" | "failed" | "cancelled" | "needs_input";
     trigger: "user" | "agent";
     inputSummary?: string;
     externalRunId?: string;

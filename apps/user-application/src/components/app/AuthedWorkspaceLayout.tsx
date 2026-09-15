@@ -12,6 +12,13 @@ const OnboardingModal = lazy(() =>
     default: module.OnboardingModal,
   })),
 );
+const OnboardingDemoModal = lazy(() =>
+  import("@/components/onboarding/OnboardingDemoModal").then((module) => ({
+    default: module.OnboardingDemoModal,
+  })),
+);
+
+const ONBOARDING_DEMO_SEEN_KEY = "stage:onboarding-demo-seen";
 
 /**
  * Authenticated shell: renders child routes and global non-Pro onboarding/paywall.
@@ -24,6 +31,8 @@ export function AuthedWorkspaceLayout() {
   const queryClient = useQueryClient();
   const desktop = useDesktopBridge();
   const [paywallRemountKey, setPaywallRemountKey] = useState(0);
+  const [demoPending, setDemoPending] = useState(false);
+  const [demoOpen, setDemoOpen] = useState(false);
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const shouldRenderChrome = shouldRenderWorkspaceChrome(pathname);
   // The paywall must never trap the user: keep the plans page and settings
@@ -36,6 +45,9 @@ export function AuthedWorkspaceLayout() {
     const unsubscribe = desktop.billing.onCheckoutReturn(({ status }) => {
       void queryClient.invalidateQueries({ queryKey: convexQueryKeys.settingsOverview });
       if (status === "success") {
+        if (localStorage.getItem(ONBOARDING_DEMO_SEEN_KEY) !== "1") {
+          setDemoPending(true);
+        }
         void navigate({ to: "/projects" });
         return;
       }
@@ -50,10 +62,17 @@ export function AuthedWorkspaceLayout() {
     return unsubscribe;
   }, [desktop, navigate, queryClient, gate.notifyCheckoutReturned]);
 
+  useEffect(() => {
+    if (!demoPending || gate.onboardingOpen) return;
+    localStorage.setItem(ONBOARDING_DEMO_SEEN_KEY, "1");
+    setDemoPending(false);
+    setDemoOpen(true);
+  }, [demoPending, gate.onboardingOpen]);
+
   return (
     <>
       {shouldRenderChrome ? (
-        <WorkspaceFrame>
+        <WorkspaceFrame onOpenDemo={() => setDemoOpen(true)}>
           <Outlet />
         </WorkspaceFrame>
       ) : (
@@ -70,6 +89,9 @@ export function AuthedWorkspaceLayout() {
           />
         </Suspense>
       ) : null}
+      <Suspense fallback={null}>
+        <OnboardingDemoModal open={demoOpen} onClose={() => setDemoOpen(false)} />
+      </Suspense>
     </>
   );
 }
