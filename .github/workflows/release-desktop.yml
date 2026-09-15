@@ -46,9 +46,26 @@ jobs:
           echo "Selected environment: ${ENVIRONMENT} (ref ${GITHUB_REF_NAME}, event ${{ github.event_name }})"
           echo "environment=${ENVIRONMENT}" >> "$GITHUB_OUTPUT"
 
+  lint-stage-engine:
+    name: Stage engine quality
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - name: Require warning-free Rust
+        run: cargo clippy --manifest-path apps/stage-engine/Cargo.toml --all-targets --all-features --locked -- -D warnings
+
   build-macos:
     name: macOS ${{ matrix.arch }}
-    needs: resolve-environment
+    needs:
+      - resolve-environment
+      - lint-stage-engine
     environment: ${{ needs.resolve-environment.outputs.environment }}
     runs-on: macos-14
     strategy:

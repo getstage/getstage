@@ -59,10 +59,8 @@ pub async fn resolve_provider_models(
 ) -> Vec<ProviderModel> {
     let version = provider_version.unwrap_or("unknown").to_string();
 
-    if !force_refresh {
-        if let Some(cached) = load_stage_cache(spec.id, &version).await {
-            return cached;
-        }
+    if !force_refresh && let Some(cached) = load_stage_cache(spec.id, &version).await {
+        return cached;
     }
 
     let fetched = fetch_provider_models(spec, &version).await;

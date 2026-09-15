@@ -146,12 +146,8 @@ pub fn merge_style_guide_into_artifact(
         .and_then(JsonValue::as_array_mut)
         .ok_or_else(|| anyhow::anyhow!("moodboard artifact missing styleGuides array"))?;
 
-    style_guides.retain(|entry| {
-        entry
-            .get("directionId")
-            .and_then(JsonValue::as_str)
-            .map_or(true, |value| value != direction_id)
-    });
+    style_guides
+        .retain(|entry| entry.get("directionId").and_then(JsonValue::as_str) != Some(direction_id));
     style_guides.push(style_guide);
 
     let directions = artifact

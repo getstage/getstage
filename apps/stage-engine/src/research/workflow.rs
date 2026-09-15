@@ -33,6 +33,15 @@ pub struct ResearchWorkflow {
     research: ResearchService,
 }
 
+struct SectionRegenerateContext<'a> {
+    api_version: &'static str,
+    run_id: &'a str,
+    provider_id: crate::models::providers::ProviderId,
+    auth_token: &'a str,
+    project_id: &'a str,
+    section: &'a str,
+}
+
 impl ResearchWorkflow {
     pub fn new(
         repository: ResearchRepository,
@@ -118,12 +127,14 @@ impl ResearchWorkflow {
             if let Some(section_name) = section {
                 return self
                     .run_section_regenerate(
-                        api_version,
-                        &run_id,
-                        provider_id,
-                        &auth_token,
-                        project_id,
-                        &section_name,
+                        SectionRegenerateContext {
+                            api_version,
+                            run_id: &run_id,
+                            provider_id,
+                            auth_token: &auth_token,
+                            project_id,
+                            section: &section_name,
+                        },
                         &mut request,
                         sink.clone(),
                         cancel_rx,
@@ -342,16 +353,19 @@ impl ResearchWorkflow {
 
     async fn run_section_regenerate(
         &self,
-        api_version: &'static str,
-        run_id: &str,
-        provider_id: crate::models::providers::ProviderId,
-        auth_token: &str,
-        project_id: &str,
-        section: &str,
+        context: SectionRegenerateContext<'_>,
         request: &mut StartRunRequest,
         sink: RunEventSink,
         cancel_rx: tokio::sync::watch::Receiver<bool>,
     ) -> Result<(), WorkflowError> {
+        let SectionRegenerateContext {
+            api_version,
+            run_id,
+            provider_id,
+            auth_token,
+            project_id,
+            section,
+        } = context;
         let (artifact_id, mut artifact) = self
             .repository
             .fetch_latest_research_artifact(auth_token, project_id)

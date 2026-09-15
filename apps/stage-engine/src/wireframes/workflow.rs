@@ -13,7 +13,7 @@ use crate::providers::command::provider_cli_working_directory;
 use crate::providers::process::ProviderProcessOutcome;
 use crate::runs::RunEventSink;
 use crate::wireframes::normalize::normalize_wireframes_artifact;
-use crate::wireframes::prompt::build_wireframes_prompt;
+use crate::wireframes::prompt::{WireframesPromptOptions, build_wireframes_prompt};
 use crate::wireframes::{MAX_BRAND_KIT_BYTES, MAX_BRAND_KIT_FILES};
 use serde_json::{Value as JsonValue, json};
 
@@ -147,12 +147,14 @@ impl WireframesWorkflow {
             request.prompt = build_wireframes_prompt(
                 &input,
                 wireframe_kind,
-                brand_source,
-                style_direction_id.as_deref(),
-                None,
-                brand_kit_attached,
-                selected_screen_ids.as_deref(),
-                regenerate_screen_ids.as_deref(),
+                WireframesPromptOptions {
+                    brand_source,
+                    style_direction_id: style_direction_id.as_deref(),
+                    brand_kit_attached,
+                    selected_screen_ids: selected_screen_ids.as_deref(),
+                    regenerate_screen_ids: regenerate_screen_ids.as_deref(),
+                    ..WireframesPromptOptions::default()
+                },
             );
             let provider_context = ProviderRunContext {
                 api_version,
@@ -202,11 +204,10 @@ impl WireframesWorkflow {
                 now_millis(),
                 GENERATED_AT_LABEL,
             )?;
-            if regenerate_screen_ids.is_none() {
-                if let Some(ids) = selected_screen_ids.as_ref() {
+            if regenerate_screen_ids.is_none()
+                && let Some(ids) = selected_screen_ids.as_ref() {
                     keep_selected_generated_screens(&mut artifact, ids)?;
                 }
-            }
             if let Some(screen_ids) = regenerate_screen_ids.as_ref() {
                 let Some(existing_json) = input.existing_wireframes_artifact_json.as_deref() else {
                     return Err(WorkflowError::InvalidRequest(

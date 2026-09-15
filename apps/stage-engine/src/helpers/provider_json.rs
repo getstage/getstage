@@ -117,10 +117,10 @@ fn extract_json_object_matching(
         bail!("provider output did not contain a valid {kind} artifact");
     }
 
-    if let Ok(value) = serde_json::from_str::<JsonValue>(trimmed) {
-        if value.is_object() {
-            return Ok(value);
-        }
+    if let Ok(value) = serde_json::from_str::<JsonValue>(trimmed)
+        && value.is_object()
+    {
+        return Ok(value);
     }
 
     let objects = collect_json_objects(trimmed);
@@ -135,10 +135,10 @@ fn extract_json_object_matching(
 }
 
 fn find_artifact_by_kind(text: &str, kind: &str) -> Option<JsonValue> {
-    if let Ok(value) = serde_json::from_str::<JsonValue>(text) {
-        if artifact_matches_kind_and_shape(&value, kind) {
-            return Some(value);
-        }
+    if let Ok(value) = serde_json::from_str::<JsonValue>(text)
+        && artifact_matches_kind_and_shape(&value, kind)
+    {
+        return Some(value);
     }
 
     // Prefer the last match: providers often echo the prompt's prior artifact
@@ -150,10 +150,10 @@ fn find_artifact_by_kind(text: &str, kind: &str) -> Option<JsonValue> {
         if !line.starts_with('{') || !line.contains(kind) {
             continue;
         }
-        if let Ok(value) = serde_json::from_str::<JsonValue>(line) {
-            if artifact_matches_kind_and_shape(&value, kind) {
-                last = Some(value);
-            }
+        if let Ok(value) = serde_json::from_str::<JsonValue>(line)
+            && artifact_matches_kind_and_shape(&value, kind)
+        {
+            last = Some(value);
         }
     }
     if last.is_some() {
@@ -233,10 +233,10 @@ fn collect_json_objects(text: &str) -> Vec<JsonValue> {
             continue;
         };
 
-        if let Ok(value) = serde_json::from_str::<JsonValue>(&text[start..=end]) {
-            if value.is_object() {
-                objects.push(value);
-            }
+        if let Ok(value) = serde_json::from_str::<JsonValue>(&text[start..=end])
+            && value.is_object()
+        {
+            objects.push(value);
         }
     }
 

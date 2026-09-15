@@ -87,7 +87,7 @@ fn normalize_summary(object: &mut Map<String, Value>) {
 fn normalize_summary_array(items: Vec<Value>) -> Vec<String> {
     items
         .iter()
-        .filter_map(|item| string_value(item))
+        .filter_map(string_value)
         .map(|value| value.trim().to_string())
         .filter(|value| !value.is_empty())
         .collect()
@@ -144,29 +144,29 @@ fn company_snapshot_from_object(map: Map<String, Value>) -> Vec<Value> {
     for (key, label) in known_fields {
         if let Some(value) = map
             .get(key)
-            .and_then(|v| string_value(v))
+            .and_then(string_value)
             .filter(|v| !v.is_empty())
         {
             rows.push(json!({ "label": label, "value": value }));
         }
     }
 
-    if let Some(strengths) = map.get("keyStrengths").and_then(|v| string_array(v)) {
-        if !strengths.is_empty() {
-            rows.push(json!({
-                "label": "Key strengths",
-                "value": strengths.join(" ")
-            }));
-        }
+    if let Some(strengths) = map.get("keyStrengths").and_then(string_array)
+        && !strengths.is_empty()
+    {
+        rows.push(json!({
+            "label": "Key strengths",
+            "value": strengths.join(" ")
+        }));
     }
 
-    if let Some(weaknesses) = map.get("keyWeaknesses").and_then(|v| string_array(v)) {
-        if !weaknesses.is_empty() {
-            rows.push(json!({
-                "label": "Key weaknesses",
-                "value": weaknesses.join(" ")
-            }));
-        }
+    if let Some(weaknesses) = map.get("keyWeaknesses").and_then(string_array)
+        && !weaknesses.is_empty()
+    {
+        rows.push(json!({
+            "label": "Key weaknesses",
+            "value": weaknesses.join(" ")
+        }));
     }
 
     for (key, value) in map {
@@ -185,7 +185,7 @@ fn company_snapshot_from_object(map: Map<String, Value>) -> Vec<Value> {
     rows
 }
 
-fn sort_company_snapshot_rows(rows: &mut Vec<Value>) {
+fn sort_company_snapshot_rows(rows: &mut [Value]) {
     rows.sort_by_key(|row| {
         row.get("label")
             .and_then(Value::as_str)
@@ -296,29 +296,27 @@ fn normalize_target_users(object: &mut Map<String, Value>) {
         if let Some(quote) = user_object
             .remove("quote")
             .and_then(|value| string_value(&value))
+            && !quote.is_empty()
         {
-            if !quote.is_empty() {
-                assumptions.push(format!("Quote: {quote}"));
-            }
+            assumptions.push(format!("Quote: {quote}"));
         }
         user_object.insert("assumptions".to_string(), json!(assumptions));
 
         let mut context = user_object
             .get("context")
-            .and_then(|value| string_value(value))
+            .and_then(string_value)
             .unwrap_or_default();
         if let Some(company) = user_object
             .remove("company")
             .and_then(|value| string_value(&value))
+            && !company.is_empty()
         {
-            if !company.is_empty() {
-                let company_line = format!("Company: {company}");
-                context = if context.is_empty() {
-                    company_line
-                } else {
-                    format!("{context} {company_line}")
-                };
-            }
+            let company_line = format!("Company: {company}");
+            context = if context.is_empty() {
+                company_line
+            } else {
+                format!("{context} {company_line}")
+            };
         }
         if !context.is_empty() {
             user_object.insert("context".to_string(), json!(context));
@@ -326,9 +324,7 @@ fn normalize_target_users(object: &mut Map<String, Value>) {
             user_object.remove("context");
         }
 
-        let relevance = user_object
-            .get("relevance")
-            .and_then(|value| string_value(value));
+        let relevance = user_object.get("relevance").and_then(string_value);
         if let Some(relevance) = relevance.filter(|value| !value.is_empty()) {
             user_object.insert("relevance".to_string(), json!(relevance));
         } else {
@@ -366,13 +362,9 @@ fn normalize_opportunities(object: &mut Map<String, Value>) {
 
         let Some(description) = opportunity_object
             .get("description")
-            .and_then(|value| string_value(value))
+            .and_then(string_value)
             .filter(|value| !value.is_empty())
-            .or_else(|| {
-                opportunity_object
-                    .get("title")
-                    .and_then(|value| string_value(value))
-            })
+            .or_else(|| opportunity_object.get("title").and_then(string_value))
         else {
             return false;
         };
@@ -380,7 +372,7 @@ fn normalize_opportunities(object: &mut Map<String, Value>) {
 
         let title = opportunity_object
             .get("title")
-            .and_then(|value| string_value(value))
+            .and_then(string_value)
             .filter(|value| !value.is_empty());
         if let Some(title) = title {
             opportunity_object.insert("title".to_string(), json!(title));
@@ -580,7 +572,7 @@ fn normalize_competitive_analysis(object: &mut Map<String, Value>) {
                 json!(cap_string_array(
                     competitor_object
                         .get("strengths")
-                        .and_then(|value| string_array(value))
+                        .and_then(string_array)
                         .unwrap_or_default(),
                     5,
                 )),
@@ -590,7 +582,7 @@ fn normalize_competitive_analysis(object: &mut Map<String, Value>) {
                 json!(cap_string_array(
                     competitor_object
                         .get("weaknesses")
-                        .and_then(|value| string_array(value))
+                        .and_then(string_array)
                         .unwrap_or_default(),
                     5,
                 )),
@@ -600,7 +592,7 @@ fn normalize_competitive_analysis(object: &mut Map<String, Value>) {
                 json!(
                     competitor_object
                         .get("sourceReferenceIds")
-                        .and_then(|value| string_array(value))
+                        .and_then(string_array)
                         .unwrap_or_default()
                 ),
             );
@@ -804,7 +796,7 @@ fn string_array(value: &Value) -> Option<Vec<String>> {
         Value::Array(items) => Some(
             items
                 .iter()
-                .filter_map(|item| string_value(item))
+                .filter_map(string_value)
                 .filter(|item| !item.is_empty())
                 .collect(),
         ),

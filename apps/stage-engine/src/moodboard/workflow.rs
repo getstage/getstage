@@ -167,8 +167,7 @@ impl MoodboardWorkflow {
             tracing::error!(run_id = %run_id, error = %error, "moodboard import workflow failed");
             if let (Some(token), Some(project_id)) =
                 (auth_token_for_failure.as_deref(), project_id.as_deref())
-            {
-                if let Err(mark_failed_error) = self
+                && let Err(mark_failed_error) = self
                     .repository
                     .fail_moodboard_run(
                         token,
@@ -177,9 +176,8 @@ impl MoodboardWorkflow {
                         &error.to_string(),
                     )
                     .await
-                {
-                    tracing::warn!(%mark_failed_error, "failed to mark Convex moodboard run failed");
-                }
+            {
+                tracing::warn!(%mark_failed_error, "failed to mark Convex moodboard run failed");
             }
 
             sink.send(RunEvent::RunFailed {
@@ -366,9 +364,7 @@ async fn upload_refero_screen_image(
     project_id: &str,
     screen: &mut ReferoReference,
 ) -> Option<String> {
-    let Some(bytes) = fetch_refero_screen_bytes(refero, screen).await else {
-        return None;
-    };
+    let bytes = fetch_refero_screen_bytes(refero, screen).await?;
 
     let mime_type = infer_image_mime(&bytes);
     let file_name = infer_refero_file_name(&screen.id, mime_type);
@@ -508,12 +504,12 @@ async fn fetch_importable_image_url(raw_url: &str) -> Result<UrlImportedImage, W
             WorkflowError::InvalidRequest(format!("That image URL returned an error: {error}"))
         })?;
 
-    if let Some(content_length) = response.content_length() {
-        if content_length > MAX_URL_IMAGE_BYTES {
-            return Err(WorkflowError::InvalidRequest(
-                "That image is too large. Max size is 10 MB.".to_string(),
-            ));
-        }
+    if let Some(content_length) = response.content_length()
+        && content_length > MAX_URL_IMAGE_BYTES
+    {
+        return Err(WorkflowError::InvalidRequest(
+            "That image is too large. Max size is 10 MB.".to_string(),
+        ));
     }
 
     let content_type = response
@@ -594,12 +590,12 @@ fn parse_public_image_url(raw_url: &str) -> Result<Url, WorkflowError> {
         ));
     }
 
-    if let Ok(ip) = host.parse::<IpAddr>() {
-        if is_blocked_ip(ip) {
-            return Err(WorkflowError::InvalidRequest(
-                "That image URL is not allowed.".to_string(),
-            ));
-        }
+    if let Ok(ip) = host.parse::<IpAddr>()
+        && is_blocked_ip(ip)
+    {
+        return Err(WorkflowError::InvalidRequest(
+            "That image URL is not allowed.".to_string(),
+        ));
     }
 
     Ok(url)
@@ -713,11 +709,7 @@ fn normalize_image_content_type(value: &str) -> Option<&'static str> {
 
 fn image_title_from_url(url: &Url) -> String {
     url.path_segments()
-        .and_then(|segments| {
-            segments
-                .filter(|segment| !segment.trim().is_empty())
-                .next_back()
-        })
+        .and_then(|mut segments| segments.rfind(|segment| !segment.trim().is_empty()))
         .map(|segment| segment.to_string())
         .or_else(|| url.host_str().map(ToOwned::to_owned))
         .unwrap_or_else(|| "Image URL".to_string())

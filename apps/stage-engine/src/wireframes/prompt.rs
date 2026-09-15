@@ -257,16 +257,29 @@ fn strip_html_from_artifact(existing_json: &str) -> String {
     serde_json::to_string(&value).unwrap_or_else(|_| existing_json.to_string())
 }
 
+#[derive(Default)]
+pub struct WireframesPromptOptions<'a> {
+    pub brand_source: Option<WireframeBrandSource>,
+    pub style_direction_id: Option<&'a str>,
+    pub layout_preference: Option<&'a str>,
+    pub brand_kit_attached: bool,
+    pub selected_screen_ids: Option<&'a [String]>,
+    pub regenerate_screen_ids: Option<&'a [String]>,
+}
+
 pub fn build_wireframes_prompt(
     input: &WireframesInput,
     kind: WireframeKind,
-    brand_source: Option<WireframeBrandSource>,
-    style_direction_id: Option<&str>,
-    layout_preference: Option<&str>,
-    brand_kit_attached: bool,
-    selected_screen_ids: Option<&[String]>,
-    regenerate_screen_ids: Option<&[String]>,
+    options: WireframesPromptOptions<'_>,
 ) -> String {
+    let WireframesPromptOptions {
+        brand_source,
+        style_direction_id,
+        layout_preference,
+        brand_kit_attached,
+        selected_screen_ids,
+        regenerate_screen_ids,
+    } = options;
     let (research_block, moodboard_block) = match kind {
         WireframeKind::Lofi => (String::new(), String::new()),
         WireframeKind::Hifi => (

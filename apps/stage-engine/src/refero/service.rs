@@ -368,6 +368,7 @@ impl ReferoService {
 /// 2. drop off-category screens once any real match exists,
 /// 3. prefer one screen per product so a category never shows four near-identical screens
 ///    from the same site (falling back to fill only if that leaves us short).
+///
 /// Falls back to the raw candidates only when nothing matches at all, so a category is
 /// never empty purely because Refero's metadata was sparse.
 fn keep_screens_matching_category(

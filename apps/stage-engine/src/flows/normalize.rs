@@ -105,16 +105,16 @@ fn normalize_flows_artifact_with_status_policy(
         normalized.insert("figjamUrl".to_string(), json!(figjam_url));
     }
 
-    if let Some(exported_at) = object.get("figjamExportedAt").and_then(JsonValue::as_i64) {
-        if exported_at >= 0 {
-            normalized.insert("figjamExportedAt".to_string(), json!(exported_at));
-        }
+    if let Some(exported_at) = object.get("figjamExportedAt").and_then(JsonValue::as_i64)
+        && exported_at >= 0
+    {
+        normalized.insert("figjamExportedAt".to_string(), json!(exported_at));
     }
 
-    if let Some(updated_at) = object.get("updatedAt").and_then(JsonValue::as_i64) {
-        if updated_at >= 0 {
-            normalized.insert("updatedAt".to_string(), json!(updated_at));
-        }
+    if let Some(updated_at) = object.get("updatedAt").and_then(JsonValue::as_i64)
+        && updated_at >= 0
+    {
+        normalized.insert("updatedAt".to_string(), json!(updated_at));
     }
 
     Ok(JsonValue::Object(normalized))
