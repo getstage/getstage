@@ -48,6 +48,7 @@
 
 ## Current local review changes
 
+- The Wireframes results grid shows every generated Lo-Fi screen instead of truncating the project at six; Assets and Wireframes now expose the same complete set.
 - Stage Engine is warning-free under strict Clippy; the production desktop workflow now blocks releases on Rust warnings.
 - Flows generation distinguishes marketing websites from apps/platforms, and Wireframes now take their initial screen list from the project's latest Flows artifact instead of a generic marketing fixture.
 - The first successful desktop checkout opens a dismissible, one-time onboarding video over the blurred dashboard; packaged YouTube requests now provide Stage's HTTPS referrer identity and retain an external fallback.

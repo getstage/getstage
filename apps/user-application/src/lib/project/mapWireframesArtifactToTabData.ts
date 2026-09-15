@@ -79,7 +79,6 @@ export type WireframeResultCard = ScreenItem & {
 export function buildResultCards(
   screens: ScreenItem[],
   generatedAtLabel: string,
-  limit = 6,
   generatedScreens: WireframeGeneratedScreen[] = [],
   generatedAt?: number,
 ): WireframeResultCard[] {
@@ -87,7 +86,6 @@ export function buildResultCards(
 
   return generatedScreens
     .filter(hasLofiBlocks)
-    .slice(0, limit)
     .map((generated) => {
       const configure = configureById.get(generated.id);
       return {

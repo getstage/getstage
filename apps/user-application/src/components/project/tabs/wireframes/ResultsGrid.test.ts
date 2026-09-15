@@ -50,7 +50,6 @@ test("does not present empty generated records as wireframe results", () => {
     buildResultCards(
       [configuredScreen("empty"), configuredScreen("html-only"), configuredScreen("ready")],
       "now",
-      3,
       [empty, htmlOnly, withBlocks],
     ).map((screen) => screen.id),
     ["ready"],
@@ -76,7 +75,7 @@ test("shows generated Lo-Fi screens even when they are missing from configure st
   });
 
   assert.deepEqual(
-    buildResultCards([], "now", 6, [withBlocks]).map((screen) => screen.id),
+    buildResultCards([], "now", [withBlocks]).map((screen) => screen.id),
     ["checkout"],
   );
 });

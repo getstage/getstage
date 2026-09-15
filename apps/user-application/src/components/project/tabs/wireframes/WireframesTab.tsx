@@ -2,10 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import type { Id } from "@stage/data-ops/convex/data-model";
 import { UpstreamStaleBanner } from "@/components/project/UpstreamStaleBanner";
-import {
-  MOCK_WIREFRAMES_GENERATED_AT_LABEL,
-  WIREFRAMES_RESULTS_PREVIEW_LIMIT,
-} from "@/data/fixtures/project/wireframesTabFixtures";
+import { MOCK_WIREFRAMES_GENERATED_AT_LABEL } from "@/data/fixtures/project/wireframesTabFixtures";
 import { useAssetsTab, useFlowsTab, useWireframesTab } from "@/hooks/project";
 import { useFigmaWireframeExport } from "@/hooks/project/assets/useFigmaWireframeExport";
 import { useWireframeDeliveryExport } from "@/hooks/project/assets/useWireframeDeliveryExport";
@@ -140,7 +137,6 @@ export function WireframesTab({
       buildResultCards(
         screens,
         tabData?.generatedAtLabel ?? MOCK_WIREFRAMES_GENERATED_AT_LABEL,
-        WIREFRAMES_RESULTS_PREVIEW_LIMIT,
         tabData?.generatedScreens,
         tabData?.generatedAt,
       ),
