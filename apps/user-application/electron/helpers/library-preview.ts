@@ -14,8 +14,12 @@ const MAX_REDIRECTS = 3;
 
 function lookupPublic(
   hostname: string,
-  _options: unknown,
-  callback: (error: Error | null, address: string, family: number) => void,
+  options: { all?: boolean } | unknown,
+  callback: (
+    error: Error | null,
+    address: string | Array<{ address: string; family: number }>,
+    family?: number,
+  ) => void,
 ) {
   void lookup(hostname, { all: true }).then(
     (addresses) => {
@@ -23,6 +27,10 @@ function lookupPublic(
       const chosen = allowed[0];
       if (!chosen) {
         callback(new Error("Private addresses are not allowed."), "", 4);
+        return;
+      }
+      if (typeof options === "object" && options && "all" in options && options.all) {
+        callback(null, allowed);
         return;
       }
       callback(null, chosen.address, chosen.family);
@@ -34,10 +42,8 @@ function lookupPublic(
 async function assertPublicHttpsUrl(value: string) {
   const url = new URL(parsePublicHttpsUrl(value));
   const addresses = await lookup(url.hostname, { all: true });
-  if (
-    addresses.length === 0 ||
-    addresses.some(({ address }) => isPrivateIp(address))
-  ) {
+  const allowed = addresses.filter(({ address }) => !isPrivateIp(address));
+  if (allowed.length === 0) {
     throw new Error("Private addresses are not allowed.");
   }
   return url;

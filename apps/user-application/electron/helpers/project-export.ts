@@ -186,10 +186,8 @@ async function assertPublicAssetUrl(value: string) {
     throw new Error("Local asset addresses are not allowed.");
   }
   const addresses = await lookup(url.hostname, { all: true });
-  if (
-    addresses.length === 0 ||
-    addresses.some(({ address }) => isPrivateIp(address))
-  ) {
+  const allowed = addresses.filter(({ address }) => !isPrivateIp(address));
+  if (allowed.length === 0) {
     throw new Error("Private asset addresses are not allowed.");
   }
   return url;
@@ -221,7 +219,16 @@ function requestPublicAsset(url: URL) {
   }>((resolve, reject) => {
     const request = (url.protocol === "https:" ? httpsRequest : httpRequest)(
       url,
-      { method: "GET", lookup: lookupPublic },
+      {
+        method: "GET",
+        lookup: lookupPublic,
+        headers: {
+          Accept: "image/avif,image/webp,image/apng,image/*,*/*;q=0.8",
+          "Accept-Language": "en-US,en;q=0.9",
+          "User-Agent":
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+        },
+      },
       (response) => {
         const status = response.statusCode ?? 0;
         const location = response.headers.location ?? null;
