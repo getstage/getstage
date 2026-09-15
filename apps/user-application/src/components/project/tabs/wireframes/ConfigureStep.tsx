@@ -97,6 +97,11 @@ export function ConfigureStep({
           </div>
         </div>
         <div className="flex flex-col gap-1">
+          {screens.length === 0 ? (
+            <p className="rounded-[8px] bg-[#FAFAFA] p-4 text-[13px] text-[#525252]">
+              No project screens found. Generate Flows first, or add a screen manually.
+            </p>
+          ) : null}
           {screens.map((screen) =>
             editingScreenId === screen.id ? (
               <ScreenDraftRow

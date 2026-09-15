@@ -1,7 +1,7 @@
 # Stage — Project Status
 
 > **Living document.** Update weekly (or before each release).  
-> **Last updated:** 2026-09-14
+> **Last updated:** 2026-09-15
 
 **Positioning:** Stage does the thinking. Your AI does the building.
 
@@ -26,7 +26,7 @@
 | **P1 local review** | Project-aware Stage chat: `@project`, bounded Convex context, screenshots, confirmed window capture | `apps/user-application/docs/AI/chatbot/CHATBOT_PLAN.md`; branch `feat/stage-chat-project-context-vision` |
 | **P2 desktop flash-kill** | Convex queries routed through TanStack Query (`@convex-dev/react-query`) + route loaders (`ensureQueryData`) so screens paint ready data instead of setup/empty flashes. Interim: per-tab `TabLoadingState` loader on Flows/Wireframes/Assets. Branch `feat/convex-tanstack-query-loaders`. Follow-up: strip residual `isRunsLoading`/`isStyleGuideRunsLoading` guards once live smoke confirms loader cache hits. Skill: `.agents/skills/convex-tanstack-query-adapter/` | apps/user-application/src |
 
-**Current desktop version (release branch):** `0.2.34` (testing tag `v0.2.34`)
+**Current desktop version (release branch):** `0.2.35` (production tag `prod-v0.2.35`)
 
 ---
 
@@ -48,8 +48,8 @@
 
 ## Current local review changes
 
-- Flows generation now distinguishes marketing websites from apps/platforms before choosing screens, preventing generic Homepage/About/Pricing lists from feeding Wireframes for product projects.
-- The first successful desktop checkout now opens a dismissible, one-time onboarding video over the blurred dashboard.
+- Flows generation distinguishes marketing websites from apps/platforms, and Wireframes now take their initial screen list from the project's latest Flows artifact instead of a generic marketing fixture.
+- The first successful desktop checkout opens a dismissible, one-time onboarding video over the blurred dashboard; packaged YouTube requests now provide Stage's HTTPS referrer identity and retain an external fallback.
 - Project-aware Stage chat pins one `@project`, blocks ambiguous critique requests, loads bounded indexed Convex context, and supports local image upload/paste/drop plus confirmed window capture.
 - Chat switching no longer corrupts last-modified history order.
 - Chat persistence no longer performs side effects inside a React state updater.

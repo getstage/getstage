@@ -17,7 +17,8 @@ Keep this short. Werner owns visual approval. Do not ship Details.so, project-ca
 
 ## After the release is safe
 
-- [ ] Validate testing desktop `v0.2.34` (GitHub Actions run `34885017178`, currently building): after the first successful Stripe checkout, the dashboard should open blurred behind the embedded onboarding demo; closing it must prevent repeat display on later checkout returns.
+- [x] `prod-v0.2.34` completed successfully in GitHub Actions (run `34890948677`) with arm64/x64 DMGs and a published GitHub Release. Post-release smoke found two desktop regressions: Wireframes used generic fixture screens when no artifact existed, and packaged YouTube playback failed with error 153.
+- [ ] `prod-v0.2.35` release: Wireframes use the project's Flows screens with no generic fallback; packaged YouTube requests identify Stage and the modal includes an external fallback. Desktop production build passes; release workflow pending.
 - [ ] Customer quick fixes (`STA-39`): text-field focus, PDF upload error, four-competitor cap, and Figma plugin/version message.
 - [x] Fix generic website screens for app/platform projects at the source: the Flows prompt now classifies the intended product surface, prioritizes domain-specific product screens, and no longer uses a landing-page/demo flow as its schema example. Rust Flows tests pass. Shipped as tag `prod-v0.2.33`; affected projects must regenerate Flows once after updating.
 - [ ] Figma pairing/export check last.

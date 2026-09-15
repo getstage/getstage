@@ -3,11 +3,10 @@ import { useMutation, useQuery } from "convex/react";
 import type { Id } from "@stage/data-ops/convex/data-model";
 import { UpstreamStaleBanner } from "@/components/project/UpstreamStaleBanner";
 import {
-  createSeedConfigureScreens,
   MOCK_WIREFRAMES_GENERATED_AT_LABEL,
   WIREFRAMES_RESULTS_PREVIEW_LIMIT,
 } from "@/data/fixtures/project/wireframesTabFixtures";
-import { useAssetsTab, useWireframesTab } from "@/hooks/project";
+import { useAssetsTab, useFlowsTab, useWireframesTab } from "@/hooks/project";
 import { useFigmaWireframeExport } from "@/hooks/project/assets/useFigmaWireframeExport";
 import { useWireframeDeliveryExport } from "@/hooks/project/assets/useWireframeDeliveryExport";
 import { api } from "@/lib/convexApi";
@@ -15,7 +14,7 @@ import {
   buildResultCards,
   hasDisplayableWireframeResults,
 } from "@/lib/project/mapWireframesArtifactToTabData";
-import type { Project } from "@/models/project/project";
+import type { Project, ProjectScreen } from "@/models/project/project";
 import type { WireframeAssetCard } from "@/types/project/assetsTab";
 import type { WireframesTabData } from "@/types/project/wireframesTab";
 import { ExportOptionsDialog } from "../assets/ExportOptionsDialog";
@@ -47,11 +46,22 @@ function createScreenId(title: string, existingIds: Iterable<string>) {
 
 function restoredState(
   tabData: WireframesTabData | undefined,
-  seedScreens: ReturnType<typeof createSeedConfigureScreens>,
+  flowScreens: ProjectScreen[],
 ) {
+  const hasResults = hasDisplayableWireframeResults(tabData);
   return {
-    showConfigure: !hasDisplayableWireframeResults(tabData),
-    screens: tabData?.configureScreens ?? seedScreens,
+    showConfigure: !hasResults,
+    screens: hasResults
+      ? tabData?.configureScreens ?? []
+      : flowScreens.map((screen, index) => ({
+          id: screen.id,
+          title: screen.title,
+          description: screen.description,
+          kind: "Page" as const,
+          priority: `P${index}`,
+          required: index < 3,
+          selected: true,
+        })),
   };
 }
 
@@ -61,6 +71,7 @@ export function WireframesTab({
   onGoToStrategy,
 }: WireframesTabProps) {
   const wireframesTab = useWireframesTab({ id: project.id, name: project.name });
+  const flowsTab = useFlowsTab({ id: project.id, name: project.name });
   const wireframeAssets = useAssetsTab({
     id: project.id,
     name: project.name,
@@ -69,10 +80,10 @@ export function WireframesTab({
   const deliveryExport = useWireframeDeliveryExport(project.id);
   const nativeConnections = useQuery(api.integrations.contentPlatforms.getNativeConnectionStatus, {});
   const clearWireframeScreens = useMutation(api.projectAi.clearWireframeScreens);
-  const seedScreens = useMemo(() => createSeedConfigureScreens(), []);
   const tabData = wireframesTab.data?.tabData;
+  const flowScreens = flowsTab.data?.tabData.screens ?? [];
   const hydratedProjectRef = useRef<string | null>(null);
-  const initialState = restoredState(tabData, seedScreens);
+  const initialState = restoredState(tabData, flowScreens);
   const [showConfigure, setShowConfigure] = useState(initialState.showConfigure);
   const [screens, setScreens] = useState(initialState.screens);
   const [exportAsset, setExportAsset] = useState<WireframeAssetCard | null>(null);
@@ -87,17 +98,19 @@ export function WireframesTab({
     if (
       hydratedProjectRef.current === project.id ||
       wireframesTab.isLoading ||
-      wireframesTab.isRunsLoading
+      wireframesTab.isRunsLoading ||
+      flowsTab.isLoading
     ) {
       return;
     }
-    const restored = restoredState(tabData, seedScreens);
+    const restored = restoredState(tabData, flowScreens);
     hydratedProjectRef.current = project.id;
     setScreens(restored.screens);
     setShowConfigure(restored.showConfigure);
   }, [
     project.id,
-    seedScreens,
+    flowScreens,
+    flowsTab.isLoading,
     tabData,
     wireframesTab.isLoading,
     wireframesTab.isRunsLoading,
@@ -142,7 +155,7 @@ export function WireframesTab({
     }
   }
 
-  if (wireframesTab.isLoading || wireframesTab.isRunsLoading) {
+  if (wireframesTab.isLoading || wireframesTab.isRunsLoading || flowsTab.isLoading) {
     return <TabLoadingState label="Loading wireframes…" />;
   }
 

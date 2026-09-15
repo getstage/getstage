@@ -14,7 +14,15 @@ export function OnboardingDemoModal({ open, onClose }: { open: boolean; onClose:
                 Welcome to Stage
               </Dialog.Title>
               <Dialog.Description className="mt-1 text-[12px] text-[#525252]">
-                Watch this quick demo to see how to take your first project from idea to handoff.
+                Watch this quick demo to see how to take your first project from idea to handoff.{" "}
+                <a
+                  href="https://youtu.be/HAgYEVeA1jo"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="underline hover:text-[#171717]"
+                >
+                  Open on YouTube
+                </a>
               </Dialog.Description>
             </div>
             <Dialog.Close asChild>
