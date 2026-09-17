@@ -10,7 +10,12 @@ export const projectTypeSchema = z.enum([
   "motion-design",
   "illustration",
   "other",
+  "websites",
+  "web-apps",
+  "ios-apps",
 ]);
+
+export const projectCategorySchema = z.enum(["websites", "web-apps", "ios-apps"]);
 
 export const projectStatusSchema = z.enum(["active", "paused", "completed"]);
 
@@ -70,6 +75,7 @@ export const projectDetailSchema = projectSummarySchema.extend({
 });
 
 export type ProjectType = z.infer<typeof projectTypeSchema>;
+export type ProjectCategory = z.infer<typeof projectCategorySchema>;
 export type ProjectStatus = z.infer<typeof projectStatusSchema>;
 export type ProjectStep = z.infer<typeof projectStepSchema>;
 export type ProjectSummary = z.infer<typeof projectSummarySchema>;

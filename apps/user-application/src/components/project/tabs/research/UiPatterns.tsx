@@ -11,6 +11,7 @@ import {
 
 type UiPatternsProps = {
   groups: UiPatternGroupWithPatterns[];
+  provider: "refero" | "details";
   isEditing: boolean;
   openGroupId: string | null;
   onToggleGroup: (groupId: string) => void;
@@ -21,6 +22,7 @@ type UiPatternsProps = {
 
 export function UiPatterns({
   groups,
+  provider,
   isEditing,
   openGroupId,
   onToggleGroup,
@@ -55,8 +57,10 @@ export function UiPatterns({
           <h2 className="text-[15px] font-medium leading-[1.25] text-[#171717]">UI Patterns</h2>
           <div className="h-1 w-1 rounded-full bg-[#A3A3A3]" />
           <div className="flex items-center gap-2">
-            <img src="/logos/refero.svg" alt="" className="h-4 w-4" />
-            <p className="text-[12px] font-medium leading-[1.25] text-[#525252]">Analysed with Refero</p>
+            {provider === "refero" ? <img src="/logos/refero.svg" alt="" className="h-4 w-4" /> : null}
+            <p className="text-[12px] font-medium leading-[1.25] text-[#525252]">
+              Analysed with {provider === "details" ? "Details" : "Refero"}
+            </p>
           </div>
         </div>
       </div>

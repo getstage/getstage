@@ -4,7 +4,9 @@ use serde::Deserialize;
 use serde_json::{Value as JsonValue, json};
 
 use crate::config::ConvexConfig;
-use crate::models::research::{ResearchArtifact, ResearchInput};
+use crate::models::research::{
+    ProjectCategory, ResearchArtifact, ResearchInput, ResearchUiPatternProvider,
+};
 
 use super::value::{args, function_result_to_json};
 
@@ -265,6 +267,7 @@ impl ResearchRepository {
 struct ConvexResearchInput {
     project_id: String,
     project_name: String,
+    project_category: ProjectCategory,
     client_name: Option<String>,
     industry: Option<String>,
     website: Option<String>,
@@ -282,6 +285,7 @@ impl ConvexResearchInput {
         ResearchInput {
             project_id: self.project_id,
             project_name: self.project_name,
+            project_category: self.project_category,
             client_name: self.client_name,
             industry: self.industry.unwrap_or_else(|| "Unknown".to_string()),
             website: self.website,
@@ -298,6 +302,7 @@ pub fn enrich_research_artifact(
     mut artifact: JsonValue,
     input: &ResearchInput,
     refero_context: JsonValue,
+    ui_pattern_provider: ResearchUiPatternProvider,
     generated_at: u128,
 ) -> anyhow::Result<JsonValue> {
     let Some(object) = artifact.as_object_mut() else {
@@ -308,6 +313,10 @@ pub fn enrich_research_artifact(
     object.insert("artifactKind".to_string(), json!("researchArtifact"));
     object.insert("projectId".to_string(), json!(input.project_id));
     object.insert("referoContext".to_string(), refero_context);
+    object.insert(
+        "uiPatternProvider".to_string(),
+        serde_json::to_value(ui_pattern_provider)?,
+    );
     let generated_at = i64::try_from(generated_at).unwrap_or(i64::MAX);
     object.insert("generatedAt".to_string(), json!(generated_at));
     crate::research::normalize::normalize_research_artifact_fields(object, input);
@@ -459,6 +468,17 @@ mod tests {
     use super::*;
 
     #[test]
+    fn convex_research_input_requires_project_category() {
+        let payload = json!({
+            "projectId": "project-1",
+            "projectName": "Stage",
+            "industry": "SaaS"
+        });
+
+        assert!(serde_json::from_value::<ConvexResearchInput>(payload).is_err());
+    }
+
+    #[test]
     fn validate_complete_research_artifact_rejects_empty_opportunities() {
         let input = sample_research_input();
         let artifact = sample_research_artifact(json!([]));
@@ -505,6 +525,7 @@ mod tests {
     fn sample_research_input() -> ResearchInput {
         ResearchInput {
             project_id: "project-1".to_string(),
+            project_category: ProjectCategory::WebApps,
             project_name: "Stage".to_string(),
             client_name: Some("Stage".to_string()),
             industry: "SaaS".to_string(),

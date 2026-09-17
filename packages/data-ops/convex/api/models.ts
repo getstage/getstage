@@ -41,7 +41,12 @@ export const projectTypeSchema = z.enum([
   "motion-design",
   "illustration",
   "other",
+  "websites",
+  "web-apps",
+  "ios-apps",
 ]);
+
+export const projectCategorySchema = z.enum(["websites", "web-apps", "ios-apps"]);
 
 const projectDatesAreOrdered = (
   value: {
@@ -63,8 +68,7 @@ const projectBodyFieldsSchema = z.object({
   projectImageUrl: optionalTrimmedString,
   startMarkerImageUrl: optionalTrimmedString,
   endMarkerImageUrl: optionalTrimmedString,
-  type: projectTypeSchema,
-  typeOtherLabel: typeOtherLabelSchema.optional(),
+  type: projectCategorySchema,
   method: z.enum(["ai", "manual"]).optional().default("manual"),
   startDate: z.number(),
   endDate: z.number(),
@@ -79,19 +83,10 @@ const projectBodyFieldsSchema = z.object({
     .optional(),
 });
 
-export const createProjectBodySchema = projectBodyFieldsSchema
-  .superRefine((value, context) => {
-    // Field schema already validates present labels; only require one when type is other.
-    if (value.type !== "other" || value.typeOtherLabel) {
-      return;
-    }
-    context.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ["typeOtherLabel"],
-      message: "Please specify your project type.",
-    });
-  })
-  .refine(projectDatesAreOrdered, projectDateRangeError);
+export const createProjectBodySchema = projectBodyFieldsSchema.refine(
+  projectDatesAreOrdered,
+  projectDateRangeError,
+);
 
 export const importProjectPlanBodySchema = projectBodyFieldsSchema
   .omit({ method: true })

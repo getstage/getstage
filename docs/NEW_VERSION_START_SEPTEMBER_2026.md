@@ -81,23 +81,23 @@ Refero stays for apps. It stops serving marketing websites.
 
 Details.so MCP is **not** a silent background job. It is triggered **while testing / running Research** on a Websites project (explicit user action in that flow).
 
-- [ ] Project category **Websites** → Details.so MCP. Research returns Details references (curated marketing-site screens, not Refero app UI).
-- [ ] Project category **Web apps** → Refero, unchanged.
-- [ ] Project category **iOS apps** → Refero, unchanged.
+- [x] Project category **Websites** → Details.so MCP. Research returns Details references (curated marketing-site screens, not Refero app UI).
+- [x] Project category **Web apps** → Refero, unchanged.
+- [x] Project category **iOS apps** → Refero, unchanged.
 - [ ] Screenshots shown once in the UI, then analysed and incorporated by the AI.
-- [ ] Triggered during research testing / run (a button in Research), not fired silently on every other step.
-- [ ] Credits stay bundled in Stage’s price. Never expose a Details credit meter to the end user.
+- [x] Triggered during research testing / run (a button in Research), not fired silently on every other step.
+- [x] Credits stay bundled in Stage’s price. Never expose a Details credit meter to the end user.
 
 ### 6. Style guide (STA-E) — today
 
-- [ ] Style guide is aware of project category (Websites / Web apps / iOS apps) and applies matching conventions.
-- [ ] Style guide is grounded in the **actual research references**, not generated in isolation.
-- [ ] **Critical:** the moodboard must survive. Test with a moodboard far from model-default. If output drifts back to beige/brown + default type + default grid, it has failed.
-- [ ] Style guide in the export is usable by a coding agent with no manual rewrite.
+- [ ] Style guide is aware of project category (Websites / Web apps / iOS apps) and applies matching conventions. Engine grounding test passes; keep unchecked until a desktop Style Guide run verifies the project category input.
+- [ ] Style guide is grounded in the **actual research references**, not generated in isolation. Engine grounding test passes; keep unchecked until a desktop run verifies real Research source IDs.
+- [ ] **Critical:** the moodboard must survive. The grounding boundary preserves a non-default `Fraunces` + dark olive editorial fixture; keep unchecked until a real provider run preserves a far-from-default moodboard.
+- [x] Style guide in the export is usable by a coding agent with no manual rewrite. Export smoke verified 2026-09-09: category, conventions, Research source IDs, implementation rules, `Fraunces`, and `#18230F` are present.
 
 ### 7. MCP — today
 
-- [ ] Details MCP wired for Websites research (same as STA-C). Explicit button.
+- [x] Details MCP wired for Websites research (same as STA-C). Explicit Research run, no extra credit UI.
 - [ ] Do not build a second silent MCP fire-on-every-step.
 - [ ] Kevin is available this week. Little custom connector if Stage needs one to render results.
 
@@ -105,11 +105,11 @@ Details.so MCP is **not** a silent background job. It is triggered **while testi
 
 Categories already exist. This is wording + lock + routing key.
 
-- [ ] Exactly three options at create: **Websites**, **Web apps**, **iOS apps**. Replace “app design” with **iOS apps**.
-- [ ] Required at creation. No default, no skip.
-- [ ] Immutable after create. Not editable in settings.
-- [ ] Shown on the project so the user always sees what they picked.
-- [ ] Persisted on the project record. Research, style guide, and export all read it.
+- [x] Exactly three options at create: **Websites**, **Web apps**, **iOS apps**. Desktop reviewed 2026-09-09.
+- [x] Required at creation. No default, no skip. Desktop reviewed 2026-09-09.
+- [x] Immutable after create. The project action menu has no category editor. Desktop reviewed 2026-09-09.
+- [x] Shown on the project so the user always sees what they picked. Desktop reviewed 2026-09-09.
+- [ ] Persisted on the project record. Research, style guide, and export all read it. Code is wired; keep unchecked until all three downstream paths are verified end to end.
 
 ---
 

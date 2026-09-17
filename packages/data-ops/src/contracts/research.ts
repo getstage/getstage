@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { projectCategorySchema } from "./desktop-api/project";
 import { referoContextSchema } from "./refero";
 
 /** Codex/engine emits explicit null for absent fields — use nullish, not optional-only. */
@@ -20,6 +21,7 @@ export const researchArtifactSectionSchema = z.enum([
 export const researchInputSchema = z.object({
   projectId: z.string().min(1),
   projectName: z.string().min(1),
+  projectCategory: projectCategorySchema,
   clientName: z.string().min(1).optional(),
   industry: z.string().min(1),
   website: z.string().min(1).optional(),
@@ -110,7 +112,7 @@ export const researchCustomSectionSchema = z.object({
 
 export const researchSourceReferenceSchema = z.object({
   id: z.string().min(1),
-  provider: z.enum(["refero", "figma", "notion", "sheets", "website", "user"]),
+  provider: z.enum(["refero", "details", "figma", "notion", "sheets", "website", "user"]),
   label: z.string().min(1),
   url: optionalUrl,
   externalId: optionalText,
@@ -125,6 +127,7 @@ export const researchArtifactSchema = z.object({
   companySnapshot: z.array(researchCompanySnapshotRowSchema).min(1).default([]),
   competitiveAnalysis: researchCompetitiveAnalysisSchema,
   uiPatterns: z.array(researchUiPatternGroupSchema).default([]),
+  uiPatternProvider: z.enum(["refero", "details"]).optional(),
   targetUsers: z.array(researchTargetUserSchema).min(1).default([]),
   opportunities: z.array(researchOpportunitySchema).min(1).default([]),
   customSections: z.array(researchCustomSectionSchema).default([]),

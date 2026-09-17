@@ -8,7 +8,7 @@ import {
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { OnboardingPaywall } from "@/components/onboarding/OnboardingPaywall";
 import stageLogo from "@/assets/logos/stage-logo-light.png";
-import { PROJECT_TYPES, PROJECT_TYPE_ICONS } from "@/lib/constants";
+import { PROJECT_CATEGORIES, PROJECT_TYPES, PROJECT_TYPE_ICONS } from "@/lib/constants";
 import { AVATAR_ACCEPT, PROJECT_MARKER_ACCEPT } from "@/lib/r2Uploads";
 import { cn } from "@/lib/utils";
 import type { UseProjectDraftResult } from "@/features/project-creation/useProjectDraft";
@@ -48,17 +48,6 @@ const CALENDAR_MONTHS = [
 ];
 
 const SETUP_PROGRESS_STEPS = ["details", "project-type", "method", "timeline"] as const;
-const FIGMA_PROJECT_TYPE_VALUES: ProjectType[] = [
-  "branding",
-  "web-design",
-  "product-design",
-  "app-design",
-  "packaging",
-  "motion-design",
-  "illustration",
-  "other",
-];
-
 function getProgressIndex(step: OnboardingStepId) {
   if (step === "phase-select") {
     return 2;
@@ -668,11 +657,9 @@ export function OnboardingStepRenderer({
           <FigmaOnboardingFrame>
             <FigmaStepHeader step={step} />
             <div className="mt-6">
-              <FigmaSection label="Project Type" innerClassName="p-1">
+              <FigmaSection label="Project category" innerClassName="p-1">
                 <div className="grid grid-cols-2 gap-1">
-                  {PROJECT_TYPES.filter((option) =>
-                    FIGMA_PROJECT_TYPE_VALUES.includes(option.value),
-                  ).map((option) => {
+                  {PROJECT_CATEGORIES.map((option) => {
                     const iconSrc = PROJECT_TYPE_ICONS[option.value];
                     const isSelected = draft.projectType === option.value;
                     return (

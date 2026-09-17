@@ -6,6 +6,15 @@ export const defaultStyleGuide: MoodboardStyleGuide = {
   directionId: MOODBOARD_DIRECTION_IDS.two,
   title: "Style Guide",
   subtitle: "Brand Handbook for your project",
+  projectCategory: "web-apps",
+  categoryConventions: [
+    "Use stateful product patterns with explicit navigation, system feedback, forms, tables, and empty states.",
+  ],
+  researchReferenceIds: ["research-reference-1"],
+  implementationNotes: [
+    "Use the supplied colours and type scale as reusable design tokens.",
+    "Treat the selected moodboard direction as the visual source of truth.",
+  ],
   atmosphere: [
     { label: "Density", value: "10/10", color: "#6D67D3", tint: "#E7E6FD", position: 97 },
     { label: "Variance", value: "8/10", color: "#C2410C", tint: "#FFEDD5", position: 78 },

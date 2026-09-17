@@ -120,6 +120,7 @@ import type * as lib_projectAi_handlers_runs from "../lib/projectAi/handlers/run
 import type * as lib_projectAi_handlers_strategy from "../lib/projectAi/handlers/strategy.js";
 import type * as lib_projectAi_handlers_wireframes from "../lib/projectAi/handlers/wireframes.js";
 import type * as lib_projects_domain_delete from "../lib/projects/domain/delete.js";
+import type * as lib_projects_domain_projectCategory from "../lib/projects/domain/projectCategory.js";
 import type * as lib_projects_domain_projectService from "../lib/projects/domain/projectService.js";
 import type * as lib_projects_handlers_access from "../lib/projects/handlers/access.js";
 import type * as lib_projects_handlers_mutations from "../lib/projects/handlers/mutations.js";
@@ -270,6 +271,7 @@ declare const fullApi: ApiFromModules<{
   "lib/projectAi/handlers/strategy": typeof lib_projectAi_handlers_strategy;
   "lib/projectAi/handlers/wireframes": typeof lib_projectAi_handlers_wireframes;
   "lib/projects/domain/delete": typeof lib_projects_domain_delete;
+  "lib/projects/domain/projectCategory": typeof lib_projects_domain_projectCategory;
   "lib/projects/domain/projectService": typeof lib_projects_domain_projectService;
   "lib/projects/handlers/access": typeof lib_projects_handlers_access;
   "lib/projects/handlers/mutations": typeof lib_projects_handlers_mutations;

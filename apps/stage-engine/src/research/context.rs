@@ -202,11 +202,12 @@ fn project_descriptor(input: &ResearchInput) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::models::research::ResearchInput;
+    use crate::models::research::{ProjectCategory, ResearchInput};
 
     fn sample_input() -> ResearchInput {
         ResearchInput {
             project_id: "proj-1".to_string(),
+            project_category: ProjectCategory::WebApps,
             project_name: "Example B2B".to_string(),
             client_name: Some("Northwind Traders".to_string()),
             industry: "E-commerce".to_string(),

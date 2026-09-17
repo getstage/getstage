@@ -3,7 +3,7 @@ import { DEFAULT_PHASES, AI_ROADMAPS } from "@/lib/constants";
 import { addDays, formatInputDate } from "@/lib/format";
 import { prepareClientAvatarUpload, prepareProjectMarkerUpload } from "@/lib/r2Uploads";
 import { toUserFacingErrorMessage } from "@/lib/errors";
-import type { ProjectType } from "@/types";
+import type { ProjectCategory } from "@/types";
 import {
   buildRoadmapPreview,
   createInitialPhaseItems,
@@ -33,8 +33,7 @@ export type UseProjectDraftResult = {
   setClientName: (value: string) => void;
   setClientEmail: (value: string) => void;
   setClientAvatar: (value: string | null) => void;
-  setProjectType: (value: ProjectType | null) => void;
-  setTypeOtherLabel: (value: string) => void;
+  setProjectType: (value: ProjectCategory | null) => void;
   setMethod: (value: Method) => void;
   setAvatarUrlOpen: (open: boolean) => void;
   setAvatarUrlInput: (value: string) => void;
@@ -72,7 +71,6 @@ function createInitialDraft(): ProjectDraft {
     avatarUrlInput: "",
     avatarFetching: false,
     projectType: null,
-    typeOtherLabel: "",
     method: null,
     startDate: formatInputDate(today),
     endDate: formatInputDate(addDays(today, 30)),
@@ -184,16 +182,8 @@ export function useProjectDraft({
     }));
   }
 
-  function setProjectType(value: ProjectType | null) {
-    setDraft((current) => ({
-      ...current,
-      projectType: value,
-      typeOtherLabel: value === "other" ? current.typeOtherLabel : "",
-    }));
-  }
-
-  function setTypeOtherLabel(value: string) {
-    setDraft((current) => ({ ...current, typeOtherLabel: value }));
+  function setProjectType(value: ProjectCategory | null) {
+    setDraft((current) => ({ ...current, projectType: value }));
   }
 
   function setMethod(value: Method) {
@@ -402,7 +392,6 @@ export function useProjectDraft({
     setClientEmail,
     setClientAvatar,
     setProjectType,
-    setTypeOtherLabel,
     setMethod,
     setAvatarUrlOpen,
     setAvatarUrlInput,

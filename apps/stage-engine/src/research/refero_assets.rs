@@ -23,6 +23,24 @@ pub async fn persist_refero_context_images(
         .await
         .context("failed to hydrate Refero category screen images")?;
 
+    persist_context_images(uploader, auth_token, project_id, context).await
+}
+
+pub async fn persist_prepared_context_images(
+    uploader: &ConvexAssetUploader,
+    auth_token: &str,
+    project_id: &str,
+    context: &mut ReferoContext,
+) -> anyhow::Result<HashMap<String, String>> {
+    persist_context_images(uploader, auth_token, project_id, context).await
+}
+
+async fn persist_context_images(
+    uploader: &ConvexAssetUploader,
+    auth_token: &str,
+    project_id: &str,
+    context: &mut ReferoContext,
+) -> anyhow::Result<HashMap<String, String>> {
     sync_category_bytes_to_flat_references(context);
 
     let mut uploaded_keys = HashMap::new();
@@ -81,7 +99,7 @@ fn build_ui_pattern_group(
         None
     } else {
         Some(format!(
-            "{} recognized patterns from {} Refero screens",
+            "{} recognized patterns from {} reference screens",
             recognized_patterns.len(),
             bucket.references.len()
         ))
@@ -157,14 +175,14 @@ fn reference_evidence(references: &[ReferoReference]) -> String {
     products.dedup();
 
     if products.is_empty() {
-        return "the selected Refero screens".to_string();
+        return "the selected reference screens".to_string();
     }
 
     match products.as_slice() {
         [one] => format!("screens from {one}"),
         [one, two] => format!("screens from {one} and {two}"),
         [one, two, three, ..] => format!("screens from {one}, {two}, and {three}"),
-        [] => "the selected Refero screens".to_string(),
+        [] => "the selected reference screens".to_string(),
     }
 }
 
@@ -172,27 +190,27 @@ fn category_summary(category: ReferoUiPatternCategory, evidence: &str) -> String
     match category {
         ReferoUiPatternCategory::Onboarding => {
             format!(
-                "Refero onboarding {evidence} show how first-run setup is broken into visible, low-risk decisions."
+                "Onboarding {evidence} show how first-run setup is broken into visible, low-risk decisions."
             )
         }
         ReferoUiPatternCategory::Homepage => {
             format!(
-                "Refero homepage {evidence} show how marketing pages frame value, proof, and primary action hierarchy."
+                "Homepage {evidence} show how marketing pages frame value, proof, and primary action hierarchy."
             )
         }
         ReferoUiPatternCategory::Pricing => {
             format!(
-                "Refero pricing {evidence} show how plan comparison, billing details, and commitment cues are arranged."
+                "Pricing {evidence} show how plan comparison, billing details, and commitment cues are arranged."
             )
         }
         ReferoUiPatternCategory::Checkout => {
             format!(
-                "Refero checkout {evidence} show how review, payment, totals, and submission stay close together."
+                "Checkout {evidence} show how review, payment, totals, and submission stay close together."
             )
         }
         ReferoUiPatternCategory::Dashboard => {
             format!(
-                "Refero dashboard {evidence} show how activity, status, and next actions are prioritized after login."
+                "Dashboard {evidence} show how activity, status, and next actions are prioritized after login."
             )
         }
     }

@@ -14,8 +14,8 @@ use crate::providers::process::ProviderProcessOutcome;
 use crate::refero::parse::{infer_image_mime, looks_like_image_bytes};
 use crate::runs::RunEventSink;
 use crate::styleguide::normalize::{
-    direction_reference_metadata, merge_style_guide_into_artifact, normalize_style_guide,
-    reference_has_visual_input,
+    apply_style_guide_grounding, direction_reference_metadata, merge_style_guide_into_artifact,
+    normalize_style_guide, reference_has_visual_input,
 };
 use crate::styleguide::prompt::build_styleguide_prompt;
 
@@ -175,15 +175,17 @@ impl StyleguideWorkflow {
             let strategy_input = self
                 .strategy_repository
                 .fetch_strategy_input(&auth_token, project_id)
-                .await
-                .ok();
+                .await?;
 
+
+            let research_reference_ids =
+                extract_research_reference_ids(&strategy_input.research_artifact_json);
             self.tool_completed(api_version, &run_id, provider_id, &sink, "stage-styleguide");
 
             let project_name = artifact
                 .get("title")
                 .and_then(JsonValue::as_str)
-                .or(strategy_input.as_ref().map(|input| input.project_name.as_str()))
+                .or(Some(strategy_input.project_name.as_str()))
                 .unwrap_or("Project");
 
             // `references` is guaranteed non-empty above, so if not a single image can be
@@ -206,13 +208,12 @@ impl StyleguideWorkflow {
             request.prompt = build_styleguide_prompt(
                 project_name,
                 direction_name,
+                strategy_input.project_category,
                 strategy_artifact
                     .as_ref()
                     .map(|(_, value)| value.to_string())
                     .as_deref(),
-                strategy_input
-                    .as_ref()
-                    .map(|input| input.research_artifact_json.as_str()),
+                &strategy_input.research_artifact_json,
                 &references,
                 has_attached_images,
             );
@@ -231,13 +232,18 @@ impl StyleguideWorkflow {
             };
 
             let raw_style_guide = extract_style_guide(&final_text)?;
-            let style_guide = normalize_style_guide(
+            let mut style_guide = normalize_style_guide(
                 raw_style_guide,
                 direction_id,
                 direction_name,
                 existing_style_guide_id,
                 now_millis(),
             );
+            apply_style_guide_grounding(
+                &mut style_guide,
+                strategy_input.project_category,
+                research_reference_ids,
+            )?;
 
             merge_style_guide_into_artifact(&mut artifact, style_guide, direction_id)?;
 
@@ -405,6 +411,45 @@ impl StyleguideWorkflow {
 
         Ok(attachments)
     }
+}
+
+fn extract_research_reference_ids(research_artifact_json: &str) -> Vec<String> {
+    let Ok(artifact) = serde_json::from_str::<JsonValue>(research_artifact_json) else {
+        return Vec::new();
+    };
+    let mut ids = Vec::new();
+
+    if let Some(references) = artifact
+        .get("sourceReferences")
+        .and_then(JsonValue::as_array)
+    {
+        for reference in references {
+            if let Some(id) = reference.get("id").and_then(JsonValue::as_str)
+                && !id.trim().is_empty()
+                && !ids.iter().any(|existing| existing == id)
+            {
+                ids.push(id.to_string());
+            }
+        }
+    }
+
+    if let Some(groups) = artifact.get("uiPatterns").and_then(JsonValue::as_array) {
+        for example in groups
+            .iter()
+            .filter_map(|group| group.get("examples").and_then(JsonValue::as_array))
+            .flatten()
+        {
+            if let Some(id) = example.get("sourceReferenceId").and_then(JsonValue::as_str)
+                && !id.trim().is_empty()
+                && !ids.iter().any(|existing| existing == id)
+            {
+                ids.push(id.to_string());
+            }
+        }
+    }
+
+    ids.truncate(32);
+    ids
 }
 
 fn resolve_reference_image_url(

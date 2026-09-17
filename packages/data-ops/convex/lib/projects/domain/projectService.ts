@@ -14,7 +14,6 @@ import { assertProjectCreationAllowed } from "../../../domain/projects/entitleme
 import { buildProject, recomputeProjectState } from "../../../domain/projects/readModel";
 import { requireProjectAccessForUserId } from "../../../helpers/access/projectAccess";
 import { now } from "../../../helpers/time";
-import { requireTypeOtherLabel } from "../../../../src/shared/typeOtherLabel";
 
 export { requireProjectAccessForUserId };
 import {
@@ -166,8 +165,7 @@ export async function createProjectForUser(
     projectImageUrl?: string;
     startMarkerImageUrl?: string;
     endMarkerImageUrl?: string;
-    type: Doc<"projects">["type"];
-    typeOtherLabel?: string;
+    type: "websites" | "web-apps" | "ios-apps";
     method: "ai" | "manual";
     startDate: number;
     endDate: number;
@@ -184,8 +182,6 @@ export async function createProjectForUser(
   const projectImageUrl = args.projectImageUrl?.trim() || undefined;
   const startMarkerImageUrl = args.startMarkerImageUrl?.trim() || undefined;
   const endMarkerImageUrl = args.endMarkerImageUrl?.trim() || undefined;
-  const typeOtherLabel =
-    args.type === "other" ? requireTypeOtherLabel(args.typeOtherLabel ?? "") : undefined;
 
   if (args.endDate < args.startDate) {
     throw new Error("End date must be on or after the start date.");
@@ -259,7 +255,6 @@ export async function createProjectForUser(
     startMarkerImageUrl,
     endMarkerImageUrl,
     type: args.type,
-    typeOtherLabel,
     status: "active",
     startDate: args.startDate,
     endDate: args.endDate,

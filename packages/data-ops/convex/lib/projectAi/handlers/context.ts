@@ -6,6 +6,7 @@ import { upsertContextRecord } from "../domain/contextStore";
 import { getContextRecord } from "../domain/records";
 import { now } from "../domain/time";
 import { resolveAssetUrl } from "../../../r2";
+import { resolveProjectCategory } from "../../projects/domain/projectCategory";
 
 export const getContextArgs = {
   projectId: v.id("projects"),
@@ -54,6 +55,7 @@ export async function getResearchInputHandler(
   return {
     projectId: String(project._id),
     projectName: project.name,
+    projectCategory: resolveProjectCategory(project.type),
     clientName: project.clientName,
     industry: record?.industry ?? null,
     website: record?.clientWebsite ?? null,

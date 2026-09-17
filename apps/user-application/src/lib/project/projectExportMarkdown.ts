@@ -167,27 +167,49 @@ export function moodboardMarkdown(
   return document(artifact.title, lines);
 }
 
-export function styleGuideMarkdown(artifact: MoodboardArtifact) {
-  const lines: string[] = [];
+export function styleGuideMarkdown(artifact: MoodboardArtifact, projectCategory: string) {
+  const lines: string[] = [
+    "",
+    `**Project category:** ${projectCategory}`,
+    "",
+    "The selected moodboard direction is the visual source of truth. Do not replace its palette, typography, or layout character with framework defaults.",
+  ];
   for (const guide of artifact.styleGuides) {
     lines.push("", `## ${guide.title}`);
     if (guide.subtitle) lines.push("", guide.subtitle);
+    if (guide.categoryConventions.length) {
+      lines.push("", "### Category conventions", "", ...list(guide.categoryConventions));
+    }
+    if (guide.researchReferenceIds.length) {
+      lines.push(
+        "",
+        "### Research grounding",
+        "",
+        `${guide.researchReferenceIds.length} referenced Research source${guide.researchReferenceIds.length === 1 ? "" : "s"}:`,
+        "",
+        ...list(guide.researchReferenceIds.map((id) => `Source ID: \`${clean(id)}\``)),
+      );
+    }
     if (guide.atmosphere.length) {
       lines.push("", "### Atmosphere", "", "| Attribute | Direction |", "|---|---|", ...guide.atmosphere.map(
         ({ label, value }) => `| ${clean(label)} | ${clean(value)} |`,
       ));
     }
     if (guide.colorPalettes.length) {
-      lines.push("", "### Colour palettes", "", ...guide.colorPalettes.map(({ label, hex, colors }) =>
-        `- **${label}:** ${[hex, ...colors.filter((color) => color !== hex)].join(", ")}`,
-      ));
+      lines.push("", "### Colour tokens", "", "| Token | Primary | Scale |", "|---|---|---|", ...guide.colorPalettes.map(({ label, hex, colors }) => {
+        const token = label.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "accent";
+        return `| \`--color-${token}\` | \`${hex}\` | ${colors.map((color) => `\`${color}\``).join(", ")} |`;
+      }));
     }
     lines.push("", "### Typography", "", `Primary font: **${guide.typography.fontFamily}**`);
-    if (guide.typography.fontFamilies.length) lines.push("", `Additional fonts: ${guide.typography.fontFamilies.join(", ")}`);
+    if (guide.typography.fontFamilies.length) lines.push("", `Fallback/additional fonts: ${guide.typography.fontFamilies.join(", ")}`);
     if (guide.typography.rows.length) {
-      lines.push("", "| Sample | Size | Weight | Line height |", "|---|---:|---|---|", ...guide.typography.rows.map(
-        (row) => `| ${clean(row.sampleText ?? "Text style")} | ${row.size}px | ${clean(row.weight)} | ${clean(row.lineHeight)} |`,
+      lines.push("", "| Style ID | Sample | Size | Weight | Line height | Implementation class |", "|---|---|---:|---|---|---|", ...guide.typography.rows.map(
+        (row) => `| \`${clean(row.id)}\` | ${clean(row.sampleText ?? "Text style")} | ${row.size}px | ${clean(row.weight)} | ${clean(row.lineHeight)} | \`${clean(row.className)}\` |`,
       ));
+    }
+    if (guide.implementationNotes.length) {
+      lines.push("", "### Implementation rules", "", ...list(guide.implementationNotes));
     }
   }
   return document("Style Guide", lines);

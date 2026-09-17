@@ -282,6 +282,7 @@ impl StrategyRepository {
 struct ConvexStrategyInput {
     project_id: String,
     project_name: String,
+    project_category: crate::models::research::ProjectCategory,
     research_artifact_id: String,
     research_artifact_json: String,
     #[serde(default)]
@@ -294,6 +295,7 @@ impl ConvexStrategyInput {
         StrategyInput {
             project_id: self.project_id,
             project_name: self.project_name,
+            project_category: self.project_category,
             research_artifact_id: self.research_artifact_id,
             research_artifact_json: self.research_artifact_json,
             focus_areas: self.focus_areas,
@@ -830,11 +832,25 @@ fn summary_text(artifact: &JsonValue) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::models::research::ProjectCategory;
+
+    #[test]
+    fn convex_strategy_input_requires_project_category() {
+        let payload = json!({
+            "projectId": "project-1",
+            "projectName": "Stage",
+            "researchArtifactId": "research-1",
+            "researchArtifactJson": "{}"
+        });
+
+        assert!(serde_json::from_value::<ConvexStrategyInput>(payload).is_err());
+    }
 
     fn sample_input() -> StrategyInput {
         StrategyInput {
             project_id: "project_123".to_string(),
             project_name: "Acme".to_string(),
+            project_category: ProjectCategory::WebApps,
             research_artifact_id: "research_123".to_string(),
             research_artifact_json: "{}".to_string(),
             focus_areas: vec!["Onboarding".to_string()],

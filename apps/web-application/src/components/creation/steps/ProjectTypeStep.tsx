@@ -1,29 +1,25 @@
 import { BackButton, PrimaryButton } from "@/components/creation/CreationChrome";
-import { PROJECT_TYPES, PROJECT_TYPE_ICONS } from "@/lib/constants";
+import { PROJECT_CATEGORIES, PROJECT_TYPE_ICONS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import type { WorkflowStep } from "@/hooks/useProjectCreation";
-import type { ProjectType } from "@/types";
+import type { ProjectCategory } from "@/types";
 
 type ProjectTypeStepProps = {
-  projectType: ProjectType | null;
-  typeOtherLabel: string;
+  projectType: ProjectCategory | null;
   canContinue: boolean;
   currentIndex: number;
   steps: WorkflowStep[];
-  onProjectTypeChange: (value: ProjectType) => void;
-  onTypeOtherLabelChange: (value: string) => void;
+  onProjectTypeChange: (value: ProjectCategory) => void;
   onContinue: () => void;
   onBack: () => void;
 };
 
 export function ProjectTypeStep({
   projectType,
-  typeOtherLabel,
   canContinue,
   currentIndex: _currentIndex,
   steps: _steps,
   onProjectTypeChange,
-  onTypeOtherLabelChange,
   onContinue,
   onBack,
 }: ProjectTypeStepProps) {
@@ -31,10 +27,10 @@ export function ProjectTypeStep({
     <div>
       <div className="mb-7 rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
         <div className="px-4 pb-3 pt-3 text-[13px] font-semibold text-text-primary">
-          Project Type
+          Project category
         </div>
         <div className="grid overflow-hidden rounded-[8px] bg-white p-1 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] sm:grid-cols-3">
-          {PROJECT_TYPES.map((option) => {
+          {PROJECT_CATEGORIES.map((option) => {
             const iconSrc = PROJECT_TYPE_ICONS[option.value];
             const selected = projectType === option.value;
 
@@ -58,18 +54,6 @@ export function ProjectTypeStep({
             );
           })}
         </div>
-        {projectType === "other" ? (
-          <div className="px-1 pb-1 pt-1">
-            <input
-              value={typeOtherLabel}
-              onChange={(event) => onTypeOtherLabelChange(event.target.value)}
-              placeholder="Please specify your project type..."
-              aria-label="Specify project type"
-              autoFocus
-              className="h-10 w-full rounded-[6px] border border-transparent bg-white px-3 text-[12px] font-medium text-[#0A0A0A] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] outline-none placeholder:text-[#737373] focus:border-[#E5E5E5]"
-            />
-          </div>
-        ) : null}
       </div>
 
       <PrimaryButton label="Continue" disabled={!canContinue} onClick={onContinue} />

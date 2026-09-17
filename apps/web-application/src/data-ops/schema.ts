@@ -31,7 +31,12 @@ export const projectTypeSchema = z.enum([
   "motion-design",
   "illustration",
   "other",
+  "websites",
+  "web-apps",
+  "ios-apps",
 ]);
+
+export const projectCategorySchema = z.enum(["websites", "web-apps", "ios-apps"]);
 
 export const projectStatusSchema = z.enum(["active", "paused", "completed"]);
 
@@ -243,8 +248,7 @@ export const createProjectInputSchema = z
     projectImageUrl: z.string().optional(),
     startMarkerImageUrl: z.string().optional(),
     endMarkerImageUrl: z.string().optional(),
-    type: projectTypeSchema,
-    typeOtherLabel: z.string().trim().min(1).optional(),
+    type: projectCategorySchema,
     method: z.enum(["ai", "manual"]),
     startDate: z.number(),
     endDate: z.number(),
@@ -257,21 +261,14 @@ export const createProjectInputSchema = z
       )
       .min(2, "Select at least two phases.")
       .optional(),
-  })
-  .superRefine((value, context) => {
-    if (value.type === "other" && !value.typeOtherLabel?.trim()) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["typeOtherLabel"],
-        message: "Please specify your project type.",
-      });
-    }
   });
 
 export const updateProjectInputSchema = projectSchema.partial().omit({
   id: true,
   userId: true,
   createdAt: true,
+  type: true,
+  typeOtherLabel: true,
 });
 
 export const updateTaskInputSchema = taskSchema.partial().omit({

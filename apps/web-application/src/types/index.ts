@@ -13,6 +13,7 @@ import {
   paymentProviderSchema,
   projectSchema,
   projectTypeSchema,
+  projectCategorySchema,
   projectStatusSchema,
   phaseSchema,
   phaseStatusSchema,
@@ -48,6 +49,7 @@ export type PaymentProvider = z.infer<typeof paymentProviderSchema>;
 
 export type Project = z.infer<typeof projectSchema>;
 export type ProjectType = z.infer<typeof projectTypeSchema>;
+export type ProjectCategory = z.infer<typeof projectCategorySchema>;
 export type ProjectStatus = z.infer<typeof projectStatusSchema>;
 
 export type Phase = z.infer<typeof phaseSchema>;
@@ -91,6 +93,9 @@ export const PROJECT_TYPE_LABELS: Record<ProjectType, string> = {
   "motion-design": "Motion Design",
   illustration: "Illustration",
   other: "Other",
+  websites: "Websites",
+  "web-apps": "Web apps",
+  "ios-apps": "iOS apps",
 };
 
 // --- Derived Types (not in DB, frontend only) ---

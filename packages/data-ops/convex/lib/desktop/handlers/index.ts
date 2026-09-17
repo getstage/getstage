@@ -28,6 +28,9 @@ const projectTypeValidator = v.union(
   v.literal("motion-design"),
   v.literal("illustration"),
   v.literal("other"),
+  v.literal("websites"),
+  v.literal("web-apps"),
+  v.literal("ios-apps"),
 );
 
 const projectStatusValidator = v.union(

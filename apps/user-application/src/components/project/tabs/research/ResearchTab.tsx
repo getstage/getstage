@@ -349,6 +349,7 @@ export function ResearchTab({
             <Divider />
             <UiPatterns
               groups={tabData.uiPatternGroups}
+              provider={tabData.uiPatternProvider}
               isEditing={isEditing}
               openGroupId={openPatternGroup}
               onToggleGroup={(groupId) => setOpenPatternGroup((current) => (current === groupId ? null : groupId))}

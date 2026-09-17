@@ -1,15 +1,9 @@
 import { z } from "zod";
 
 const projectTypeValues = [
-  "branding",
-  "web-design",
-  "product-design",
-  "app-design",
-  "web-app",
-  "packaging",
-  "motion-design",
-  "illustration",
-  "other",
+  "websites",
+  "web-apps",
+  "ios-apps",
 ] as const;
 
 export {

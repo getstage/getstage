@@ -1,4 +1,4 @@
-import type { ProjectType } from "@/types";
+import type { ProjectCategory, ProjectType } from "@/types";
 
 export type ProjectTypeOption = {
   value: ProjectType;
@@ -22,6 +22,12 @@ export const PROJECT_TYPES: ProjectTypeOption[] = [
   { value: "other", label: "Other" },
 ];
 
+export const PROJECT_CATEGORIES: Array<{ value: ProjectCategory; label: string }> = [
+  { value: "websites", label: "Websites" },
+  { value: "ios-apps", label: "iOS apps" },
+  { value: "web-apps", label: "Web apps" },
+];
+
 export const PROJECT_TYPE_ICONS: Record<ProjectType, string | null> = {
   branding: "/logos/create-project/pen.svg",
   "web-design": "/logos/create-project/globe.svg",
@@ -32,11 +38,14 @@ export const PROJECT_TYPE_ICONS: Record<ProjectType, string | null> = {
   "motion-design": "/logos/create-project/bounce.svg",
   illustration: "/logos/create-project/draw.svg",
   other: null,
+  websites: "/logos/create-project/globe.svg",
+  "web-apps": "/logos/create-project/computer.svg",
+  "ios-apps": "/logos/create-project/mobile.svg",
 };
 
 export const DEFAULT_PHASES = ["Discovery", "Strategy", "Design", "Development", "Launch"];
 
-export const AI_ROADMAPS: Record<ProjectType, RoadmapTemplateItem[]> = {
+const LEGACY_AI_ROADMAPS: Record<Exclude<ProjectType, ProjectCategory>, RoadmapTemplateItem[]> = {
   branding: [
     {
       name: "Research",
@@ -317,6 +326,13 @@ export const AI_ROADMAPS: Record<ProjectType, RoadmapTemplateItem[]> = {
       tasks: ["Package assets", "Share final files", "Confirm completion"],
     },
   ],
+};
+
+export const AI_ROADMAPS: Record<ProjectType, RoadmapTemplateItem[]> = {
+  ...LEGACY_AI_ROADMAPS,
+  websites: LEGACY_AI_ROADMAPS["web-design"],
+  "web-apps": LEGACY_AI_ROADMAPS["web-app"],
+  "ios-apps": LEGACY_AI_ROADMAPS["app-design"],
 };
 
 export const FAQ_ITEMS = [

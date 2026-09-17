@@ -1,4 +1,4 @@
-import { createProjectInputSchema } from "@/data-ops/schema";
+import { createProjectInputSchema, projectCategorySchema } from "@/data-ops/schema";
 import { parseInputDate } from "@/lib/format";
 import { uploadFileToR2 } from "@/lib/r2Uploads";
 import type { ProjectType } from "@/types";
@@ -25,6 +25,11 @@ export async function buildProjectPayloadFromDraft({
     throw new Error("Project details are incomplete.");
   }
 
+  const category = projectCategorySchema.safeParse(draft.projectType);
+  if (!category.success) {
+    throw new Error("Please choose a project category.");
+  }
+
   const clientAvatarUrl = draft.pendingAvatarFile
     ? await uploadFileToR2({
         generateUploadUrl,
@@ -49,8 +54,7 @@ export async function buildProjectPayloadFromDraft({
     clientName: draft.clientName.trim() || draft.projectName.trim(),
     clientEmail: draft.clientEmail.trim() || undefined,
     clientAvatarUrl,
-    projectType: draft.projectType,
-    typeOtherLabel: draft.typeOtherLabel,
+    projectType: category.data,
     method: draft.method,
     startDate: parseInputDate(draft.startDate),
     endDate: parseInputDate(draft.endDate),

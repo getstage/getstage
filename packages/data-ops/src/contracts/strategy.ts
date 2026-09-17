@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { projectCategorySchema } from "./desktop-api/project";
+
 export const strategySectionStatusSchema = z.enum(["approved", "action"]);
 
 export const strategySectionKindSchema = z.enum([
@@ -47,6 +49,7 @@ export const strategySectionSchema = z.object({
 export const strategyInputSchema = z.object({
   projectId: z.string().min(1),
   projectName: z.string().min(1),
+  projectCategory: projectCategorySchema,
   researchArtifactId: z.string().min(1).optional(),
   additionalNotes: z.string().min(1).max(2000).optional(),
   focusAreas: z.array(z.string().min(1).max(80)).max(8).default([]),

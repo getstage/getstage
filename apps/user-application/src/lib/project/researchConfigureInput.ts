@@ -1,5 +1,6 @@
 import { researchInputSchema, type ResearchInput } from "@stage/data-ops/contracts";
 import type { Project } from "@/models/project/project";
+import type { ProjectCategory } from "@/types";
 import { z } from "zod";
 
 const MAX_INDUSTRY_LENGTH = 120;
@@ -185,12 +186,15 @@ export function isResearchConfigureFormSubmittable(values: ResearchConfigureForm
 }
 
 export function buildResearchInput(
-  project: Pick<Project, "id" | "name" | "clientName">,
+  project: Pick<Project, "id" | "name" | "clientName"> & {
+    projectCategory: ProjectCategory;
+  },
   input: ValidatedResearchConfigureInput,
 ): ResearchInput {
   return researchInputSchema.parse({
     projectId: project.id,
     projectName: project.name,
+    projectCategory: project.projectCategory,
     clientName: project.clientName,
     industry: input.industry,
     website: input.website,

@@ -1,4 +1,4 @@
-import type { ProjectType } from "@/types";
+import type { ProjectCategory, ProjectType } from "@/types";
 
 export type OnboardingStepId =
   | "welcome"
@@ -31,7 +31,7 @@ export type OnboardingSubmission = {
   clientName: string;
   clientEmail: string;
   clientAvatarUrl: string | null;
-  projectType: ProjectType;
+  projectType: ProjectCategory;
   csvConnected: boolean;
   csvImported: boolean;
   stripeConnected: boolean;

@@ -5,7 +5,7 @@ import {
   projectBasicsSchema,
   projectTypeSchema,
 } from "@/lib/validation";
-import type { ProjectType } from "@/types";
+import type { ProjectCategory } from "@/types";
 
 export type WorkflowStep = 1 | 2 | 3 | 4 | 5;
 export type ProjectCreationStep = WorkflowStep | "overview" | "success";
@@ -16,8 +16,7 @@ type ProjectCreationFlowInput = {
   clientName: string;
   clientEmail: string;
   hasClientAvatar: boolean;
-  projectType: ProjectType | null;
-  typeOtherLabel: string;
+  projectType: ProjectCategory | null;
   method: "ai" | "manual" | null;
   startDate: string;
   endDate: string;
@@ -34,7 +33,6 @@ export function useProjectCreationFlow({
   clientName,
   clientEmail,
   projectType,
-  typeOtherLabel,
   method,
   startDate,
   endDate,
@@ -64,10 +62,7 @@ export function useProjectCreationFlow({
           clientEmail.trim().length > 0
         );
       case 3:
-        return (
-          projectType !== null &&
-          (projectType !== "other" || typeOtherLabel.trim().length > 0)
-        );
+        return projectType !== null;
       case 4:
         return Boolean(startDate && endDate);
       case 5:
@@ -86,7 +81,6 @@ export function useProjectCreationFlow({
     method,
     projectName,
     projectType,
-    typeOtherLabel,
     roadmapLength,
     startDate,
     step,
@@ -148,11 +142,7 @@ export function useProjectCreationFlow({
       case 3: {
         const parsed = projectTypeSchema.safeParse(projectType);
         if (!parsed.success) {
-          onError(parsed.error.issues[0]?.message ?? "Please choose a project type.");
-          return;
-        }
-        if (projectType === "other" && typeOtherLabel.trim().length === 0) {
-          onError("Please specify your project type.");
+          onError(parsed.error.issues[0]?.message ?? "Please choose a project category.");
           return;
         }
         setStep(4);

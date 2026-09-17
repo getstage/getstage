@@ -88,6 +88,10 @@ const moodboard = {
       id: "style-1",
       directionId: "direction-1",
       title: "Calm",
+      projectCategory: "websites",
+      categoryConventions: ["Use responsive marketing-page hierarchy."],
+      researchReferenceIds: ["research-reference-1"],
+      implementationNotes: ["Carry the moodboard through implementation."],
       atmosphere: [],
       colorPalettes: [
         { label: "Primary", hex: "#000000", colors: ["#000000"] },

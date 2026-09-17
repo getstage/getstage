@@ -9,7 +9,6 @@ import { RoadmapStep } from "./create/RoadmapStep";
 import { TimelineStep } from "./create/TimelineStep";
 import { useCreateProjectFlow } from "@/hooks/project/useCreateProjectFlow";
 import { setProjectBackDestination } from "@/lib/projectBackDestination";
-import { typeOtherLabelSchema } from "@/lib/validation";
 
 export function CreateProjectView() {
   const navigate = useNavigate();
@@ -26,7 +25,7 @@ export function CreateProjectView() {
     return (
       <ProjectCreatedStep
         onViewProject={() => {
-          setProjectBackDestination({ href: "/projects/create", label: "Back to create project" });
+          setProjectBackDestination({ href: "/", label: "Back to dashboard" });
           void navigate({
             to: "/project/$projectId",
             params: { projectId: flow.createdProjectId ?? "" },
@@ -109,18 +108,8 @@ export function CreateProjectView() {
             ) : flow.step === "type" ? (
               <ProjectTypeStep
                 selectedProjectType={draft.projectType}
-                typeOtherLabel={draft.typeOtherLabel}
                 onProjectTypeChange={draftState.setProjectType}
-                onTypeOtherLabelChange={draftState.setTypeOtherLabel}
-                onContinue={() => {
-                  if (
-                    draft.projectType === "other" &&
-                    !typeOtherLabelSchema.safeParse(draft.typeOtherLabel).success
-                  ) {
-                    return;
-                  }
-                  flow.setStep("timeline");
-                }}
+                onContinue={() => flow.setStep("timeline")}
                 onStepSelect={goBackToStep}
               />
             ) : flow.step === "timeline" ? (

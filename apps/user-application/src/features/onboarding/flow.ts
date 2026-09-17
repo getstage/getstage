@@ -3,11 +3,10 @@ import {
   dateRangeInputSchema,
   projectBasicsSchema,
   projectTypeSchema,
-  typeOtherLabelSchema,
 } from "@/lib/validation";
 import type { Method } from "../../../shared/project-creation";
 import type { OnboardingStepId } from "./model";
-import type { ProjectType } from "@/types";
+import type { ProjectCategory } from "@/types";
 
 type ValidationContext = {
   step: OnboardingStepId;
@@ -17,8 +16,7 @@ type ValidationContext = {
   hasProjectImage: boolean;
   clientName: string;
   clientEmail: string;
-  projectType: ProjectType | null;
-  typeOtherLabel: string;
+  projectType: ProjectCategory | null;
   activePhasesLength: number;
   startDate: string;
   endDate: string;
@@ -64,7 +62,6 @@ export function canContinue({
   clientName,
   clientEmail,
   projectType,
-  typeOtherLabel,
   activePhasesLength,
   startDate,
   endDate,
@@ -83,10 +80,7 @@ export function canContinue({
     case "client":
       return clientInfoSchema.safeParse({ clientName, clientEmail }).success;
     case "project-type":
-      return (
-        projectTypeSchema.safeParse(projectType).success &&
-        (projectType !== "other" || typeOtherLabelSchema.safeParse(typeOtherLabel).success)
-      );
+      return projectTypeSchema.safeParse(projectType).success;
     case "method":
       return method === "manual" ? activePhasesLength >= 2 : method !== null;
     case "timeline": {
@@ -112,7 +106,6 @@ export function getStepValidationError({
   clientName,
   clientEmail,
   projectType,
-  typeOtherLabel,
   activePhasesLength,
   startDate,
   endDate,
@@ -159,13 +152,7 @@ export function getStepValidationError({
     case "project-type": {
       const parsed = projectTypeSchema.safeParse(projectType);
       if (!parsed.success) {
-        return parsed.error.issues[0]?.message ?? "Please choose a project type.";
-      }
-      if (projectType === "other") {
-        const labelParsed = typeOtherLabelSchema.safeParse(typeOtherLabel);
-        if (!labelParsed.success) {
-          return labelParsed.error.issues[0]?.message ?? "Please specify your project type.";
-        }
+        return parsed.error.issues[0]?.message ?? "Please choose a project category.";
       }
       return null;
     }

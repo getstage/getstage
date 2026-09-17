@@ -5,7 +5,7 @@ import {
   projectBasicsSchema,
   projectTypeSchema,
 } from "@/lib/validation";
-import type { ProjectType } from "@/types";
+import type { ProjectCategory } from "@/types";
 
 export type WorkflowStep = 1 | 2 | 3 | 4 | 5;
 export type ProjectCreationStep = WorkflowStep | "overview" | "success";
@@ -16,7 +16,7 @@ type ProjectCreationFlowInput = {
   clientName: string;
   clientEmail: string;
   hasClientAvatar: boolean;
-  projectType: ProjectType | null;
+  projectType: ProjectCategory | null;
   method: "ai" | "manual" | null;
   startDate: string;
   endDate: string;
@@ -142,7 +142,7 @@ export function useProjectCreationFlow({
       case 3: {
         const parsed = projectTypeSchema.safeParse(projectType);
         if (!parsed.success) {
-          onError(parsed.error.issues[0]?.message ?? "Please choose a project type.");
+          onError(parsed.error.issues[0]?.message ?? "Please choose a project category.");
           return;
         }
         setStep(4);

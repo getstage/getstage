@@ -31,6 +31,19 @@ impl AppSecretsRepository {
         Ok(record.token.filter(|token| !token.trim().is_empty()))
     }
 
+    pub async fn fetch_details_mcp_token(&self, token: &str) -> anyhow::Result<Option<String>> {
+        let mut client = self.authenticated_client(token).await?;
+        let result = client
+            .query("appSecrets:getDetailsMcpToken", args())
+            .await
+            .context("failed to fetch Details MCP token from Convex")?;
+        let json = function_result_to_json(result)?;
+        let record: ReferoTokenResponse = serde_json::from_value(json)
+            .context("Convex Details token response did not match the expected shape")?;
+
+        Ok(record.token.filter(|token| !token.trim().is_empty()))
+    }
+
     async fn authenticated_client(&self, token: &str) -> anyhow::Result<ConvexClient> {
         if token.trim().is_empty() {
             bail!("missing desktop auth token for Convex");

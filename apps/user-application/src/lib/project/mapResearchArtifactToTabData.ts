@@ -74,7 +74,7 @@ function mapRecognizedPatterns(
     ),
   ).slice(0, 2);
   const sourceLabel =
-    exampleProducts.length > 0 ? ` in ${exampleProducts.join(" and ")} references` : " across the Refero references";
+    exampleProducts.length > 0 ? ` in ${exampleProducts.join(" and ")} references` : " across the selected references";
 
   return patterns.map((pattern) => {
     const parsed = splitRecognizedPattern(pattern);
@@ -190,6 +190,7 @@ export function mapResearchArtifactToTabData(artifact: ResearchArtifact): Resear
     competitors,
     competitiveMatrixRows,
     uiPatternGroups,
+    uiPatternProvider: artifact.uiPatternProvider ?? "refero",
     targetUsers,
     opportunities,
     customSections: (artifact.customSections ?? []).map((section) => ({

@@ -10,6 +10,15 @@ export const projectTypeValidator = v.union(
   v.literal("motion-design"),
   v.literal("illustration"),
   v.literal("other"),
+  v.literal("websites"),
+  v.literal("web-apps"),
+  v.literal("ios-apps"),
+);
+
+export const projectCategoryValidator = v.union(
+  v.literal("websites"),
+  v.literal("web-apps"),
+  v.literal("ios-apps"),
 );
 
 export const phaseInputValidator = v.object({
@@ -30,8 +39,7 @@ export const createProjectArgsValidator = {
   projectImageUrl: v.optional(v.string()),
   startMarkerImageUrl: v.optional(v.string()),
   endMarkerImageUrl: v.optional(v.string()),
-  type: projectTypeValidator,
-  typeOtherLabel: v.optional(v.string()),
+  type: projectCategoryValidator,
   method: v.union(v.literal("ai"), v.literal("manual")),
   startDate: v.number(),
   endDate: v.number(),

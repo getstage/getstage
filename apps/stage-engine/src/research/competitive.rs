@@ -498,11 +498,13 @@ pub fn competitive_host(raw: &str) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::models::research::ProjectCategory;
 
     #[test]
     fn allowed_targets_prefers_user_competitors() {
         let input = ResearchInput {
             project_id: "p1".to_string(),
+            project_category: ProjectCategory::WebApps,
             project_name: "Test".to_string(),
             client_name: None,
             industry: "Retail".to_string(),
@@ -524,6 +526,7 @@ mod tests {
     fn allowed_targets_falls_back_to_client_website() {
         let input = ResearchInput {
             project_id: "p1".to_string(),
+            project_category: ProjectCategory::WebApps,
             project_name: "Test".to_string(),
             client_name: None,
             industry: "Retail".to_string(),
@@ -571,6 +574,7 @@ mod tests {
 
         let input = ResearchInput {
             project_id: "p1".to_string(),
+            project_category: ProjectCategory::WebApps,
             project_name: "Test".to_string(),
             client_name: None,
             industry: "Retail".to_string(),
@@ -616,6 +620,7 @@ mod tests {
 
         let input = ResearchInput {
             project_id: "p1".to_string(),
+            project_category: ProjectCategory::WebApps,
             project_name: "Test".to_string(),
             client_name: None,
             industry: "Retail".to_string(),
@@ -671,6 +676,7 @@ mod tests {
         )]);
         let input = ResearchInput {
             project_id: "p1".to_string(),
+            project_category: ProjectCategory::WebApps,
             project_name: "Test".to_string(),
             client_name: None,
             industry: "Retail".to_string(),
@@ -715,6 +721,7 @@ mod tests {
         )]);
         let input = ResearchInput {
             project_id: "p1".to_string(),
+            project_category: ProjectCategory::WebApps,
             project_name: "Test".to_string(),
             client_name: None,
             industry: "Retail".to_string(),
@@ -762,6 +769,7 @@ mod tests {
         )]);
         let input = ResearchInput {
             project_id: "p1".to_string(),
+            project_category: ProjectCategory::WebApps,
             project_name: "Test".to_string(),
             client_name: None,
             industry: "Retail".to_string(),
@@ -804,6 +812,7 @@ mod tests {
         )]);
         let input = ResearchInput {
             project_id: "p1".to_string(),
+            project_category: ProjectCategory::WebApps,
             project_name: "Test".to_string(),
             client_name: None,
             industry: "Retail".to_string(),

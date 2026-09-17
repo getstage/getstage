@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { projectCategorySchema } from "./desktop-api/project";
 
 export const moodboardImportModeSchema = z.enum(["upload", "figma", "ai", "url"]);
 
@@ -68,6 +69,10 @@ export const moodboardStyleGuideSchema = z.object({
   directionId: z.string().min(1),
   title: z.string().min(1),
   subtitle: z.string().min(1).optional(),
+  projectCategory: projectCategorySchema.optional(),
+  categoryConventions: z.array(z.string().min(1)).default([]),
+  researchReferenceIds: z.array(z.string().min(1)).default([]),
+  implementationNotes: z.array(z.string().min(1)).default([]),
   atmosphere: z.array(moodboardAtmosphereMetricSchema).default([]),
   colorPalettes: z.array(moodboardColorPaletteSchema).default([]),
   typography: z.object({

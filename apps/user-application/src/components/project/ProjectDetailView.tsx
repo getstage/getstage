@@ -182,6 +182,13 @@ export function ProjectDetailView() {
             <ProjectHeader
               project={project}
               projectImageUrl={live.detail?.projectImageUrl}
+              projectCategoryLabel={
+                live.detail
+                  ? live.detail.type === "other" && live.detail.typeOtherLabel
+                    ? live.detail.typeOtherLabel
+                    : PROJECT_TYPE_LABELS[live.detail.type]
+                  : undefined
+              }
               clientAvatarUrl={live.detail?.clientAvatarUrl}
               timeline={timeline}
               activeTab={activeTab}

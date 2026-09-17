@@ -1,8 +1,18 @@
+use super::category_conventions;
 use serde_json::{Value as JsonValue, json};
 
 const STYLE_GUIDE_SHAPE_EXAMPLE: &str = r##"{
   "title": "Style Guide",
   "subtitle": "Brand Handbook for your project",
+  "projectCategory": "Websites",
+  "categoryConventions": [
+    "Use responsive marketing-page hierarchy with a clear narrative and conversion path."
+  ],
+  "researchReferenceIds": ["actual-reference-id"],
+  "implementationNotes": [
+    "Use the supplied colors and type scale as reusable design tokens.",
+    "Treat the selected moodboard direction as the visual source of truth."
+  ],
   "atmosphere": [
     { "label": "Density", "value": "8/10", "color": "#6D67D3", "tint": "#E7E6FD", "position": 80 },
     { "label": "Motion", "value": "5/10", "color": "#059669", "tint": "#D1FAE5", "position": 50 }
@@ -22,7 +32,7 @@ const STYLE_GUIDE_SHAPE_EXAMPLE: &str = r##"{
     }
   ],
   "typography": {
-    "fontFamily": "Geist",
+    "fontFamily": "Instrument Sans",
     "previewSize": 28,
     "rows": [
       { "id": "21-semibold", "size": 21, "weight": "Semi-Bold", "className": "text-[21px] font-semibold", "lineHeight": "100%" },
@@ -36,21 +46,24 @@ const STYLE_GUIDE_SHAPE_EXAMPLE: &str = r##"{
   "componentSwatchCount": 6
 }"##;
 
+use crate::models::research::ProjectCategory;
 pub fn build_styleguide_prompt(
     project_name: &str,
     direction_name: &str,
+    project_category: ProjectCategory,
     strategy_artifact_json: Option<&str>,
-    research_artifact_json: Option<&str>,
+    research_artifact_json: &str,
     direction_references: &[JsonValue],
     has_attached_images: bool,
 ) -> String {
-    let strategy_block = match (strategy_artifact_json, research_artifact_json) {
-        (Some(strategy), _) => format!("Strategy JSON:\n{strategy}"),
-        (None, Some(research)) => format!(
-            "No strategy artifact yet. Research JSON:\n{research}"
-        ),
-        (None, None) => "No strategy or research artifact available. Infer direction from moodboard references only.".to_string(),
-    };
+    let strategy_block = strategy_artifact_json
+        .map(|strategy| format!("Strategy JSON:\n{strategy}"))
+        .unwrap_or_else(|| "No strategy artifact yet.".to_string());
+    let category_conventions = category_conventions(project_category)
+        .iter()
+        .map(|convention| format!("- {convention}"))
+        .collect::<Vec<_>>()
+        .join("\n");
 
     let references_json = serde_json::to_string_pretty(&json!(direction_references))
         .unwrap_or_else(|_| "[]".to_string());
@@ -72,6 +85,13 @@ Direction: {direction_name}
 Strategy context:
 {strategy_block}
 
+Research context, including the actual references and UI patterns collected during Research:
+{research_artifact_json}
+
+Project category: {project_category}
+Category conventions:
+{category_conventions}
+
 Assigned moodboard image references for this Direction:
 {references_json}
 
@@ -79,9 +99,9 @@ Return ONE JSON object only (no markdown fences, no commentary) matching this sh
 {STYLE_GUIDE_SHAPE_EXAMPLE}
 
 Rules:
-- Derive palette, typography, atmosphere sliders, and component tone from the assigned Direction moodboard images.
-- Do not derive visual style from research images or images outside this Direction.
-- Avoid default or generic visual choices unless the assigned images clearly support them.
+- Treat attached moodboard images as the visual source of truth for palette, typography, atmosphere, and component tone.
+- Use Research references and UI patterns for evidence about category conventions, content hierarchy, and interaction patterns.
+- Never let Research imagery, category conventions, Strategy, or model defaults override the selected moodboard's visual direction.
 - Avoid pure black #000000; use a near-black with visible tone when dark ink is needed.
 - Avoid generic AI purple/blue neon palettes and gradients over 80% saturation.
 - Use at most one strong accent color per palette group.
@@ -94,10 +114,15 @@ Rules:
 - colorPalettes.colors must contain 8-11 hex colors from light to dark.
 - typography.rows need stable string ids, Tailwind-like className strings, and lineHeight like "100%" or "150%".
 - componentSwatchCount is usually 6.
+- researchReferenceIds must contain only IDs that occur in the supplied Research JSON. The engine verifies and writes this list.
+- categoryConventions and implementationNotes must be concrete enough for a coding agent to implement without reinterpretation.
 - Do NOT include id or directionId; the engine adds those.
 "#,
         project_name = project_name,
         direction_name = direction_name,
+        project_category = project_category.display_name(),
+        category_conventions = category_conventions,
+        research_artifact_json = research_artifact_json,
         image_directive = image_directive,
         strategy_block = strategy_block,
         references_json = references_json,

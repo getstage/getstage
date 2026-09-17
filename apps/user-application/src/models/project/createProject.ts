@@ -5,12 +5,11 @@ import type { ProjectType } from "@/types";
 
 export const CREATE_PROJECT_PROGRESS_STEPS = [0, 1, 2, 3, 4] as const;
 
-export const CREATE_PROJECT_TYPE_VALUES: ProjectType[] = [
-  "web-design",
-  "app-design",
-  "web-app",
-  "other",
-];
+export const CREATE_PROJECT_TYPE_VALUES = [
+  "websites",
+  "web-apps",
+  "ios-apps",
+] as const satisfies readonly ProjectType[];
 
 export const SMART_ROADMAP_PHASES = ["Research", "Architecture", "Design", "Development", "Testing"];
 export const DEFAULT_MANUAL_PHASES = ["Discovery", "Strategy", "Design", "Development", "Launch"];

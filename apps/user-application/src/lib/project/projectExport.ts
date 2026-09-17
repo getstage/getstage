@@ -337,7 +337,7 @@ export function buildProjectExport(input: BuildProjectExportInput) {
   if (selected.has("styleGuide") && artifacts.moodboard?.styleGuides.length) {
     files.push({
       relativePath: "style-guide.md",
-      content: styleGuideMarkdown(artifacts.moodboard),
+      content: styleGuideMarkdown(artifacts.moodboard, input.project.typeLabel),
     });
   }
   if (selected.has("flows") && artifacts.flows) {
