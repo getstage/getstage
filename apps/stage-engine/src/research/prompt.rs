@@ -10,13 +10,16 @@ pub fn build_research_prompt(
 ) -> String {
     let competitive_targets = format_competitive_targets_for_prompt(input);
     let competitive_rules = competitive_rules_for_prompt(input);
-    let reference_provider = "Details";
+    let reference_provider = match input.project_category {
+        ProjectCategory::Websites => "Details",
+        ProjectCategory::WebApps | ProjectCategory::IosApps => "Refero",
+    };
     let preferred_web_evidence = match input.project_category {
         ProjectCategory::Websites => {
             "homepage, features, social proof, pricing, and contact/signup evidence"
         }
         ProjectCategory::WebApps | ProjectCategory::IosApps => {
-            "the user-selected product, onboarding, navigation, pricing, or feature evidence"
+            "pricing, product/features, onboarding/signup, checkout, or dashboard evidence"
         }
     };
 

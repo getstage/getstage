@@ -31,6 +31,10 @@ export const detailsSectionValidator = v.union(
   v.literal("Stats"),
   v.literal("Team"),
   v.literal("Timeline"),
+  v.literal("Onboarding"),
+  v.literal("Homepage"),
+  v.literal("Checkout"),
+  v.literal("Dashboard"),
 );
 
 export type DetailsSection = Infer<typeof detailsSectionValidator>;
@@ -40,6 +44,13 @@ export const defaultDetailsSections: DetailsSection[] = [
   "Social Proof",
   "Pricing",
   "Contact",
+];
+export const defaultReferoSections: DetailsSection[] = [
+  "Onboarding",
+  "Homepage",
+  "Pricing",
+  "Checkout",
+  "Dashboard",
 ];
 
 export const aiModule = v.union(

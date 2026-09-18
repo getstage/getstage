@@ -134,8 +134,12 @@ const detailsSection = v.union(
   v.literal("Testimonial"),
   v.literal("Stats"),
   v.literal("Team"),
-  v.literal("Timeline"),
-);
+    v.literal("Timeline"),
+    v.literal("Onboarding"),
+    v.literal("Homepage"),
+    v.literal("Checkout"),
+    v.literal("Dashboard"),
+  );
 
 const phaseStatus = v.union(
   v.literal("completed"),

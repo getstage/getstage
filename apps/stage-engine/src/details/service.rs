@@ -11,7 +11,7 @@ use crate::models::refero::{
     ReferoCategorySearch, ReferoContext, ReferoPlatform, ReferoReference, ReferoReferenceKind,
     ReferoUiPatternCategory,
 };
-use crate::models::research::{ProjectCategory, ResearchInput};
+use crate::models::research::ResearchInput;
 use crate::refero::parse::looks_like_image_bytes;
 
 use super::parse::{DetailsSearchHit, extract_search_hits, media_image_url};
@@ -44,14 +44,13 @@ impl DetailsService {
         input: &ResearchInput,
     ) -> Result<ReferoContext, DetailsServiceError> {
         let requests = details_section_search_requests(&input.details_sections);
-        let project_context = details_project_context(input);
-        let platform = details_platform(input.project_category);
+        let project_context = website_project_context(input);
         let mut excluded_source_domains = Vec::new();
         let mut seen_ids = HashSet::new();
         let mut selected = Vec::new();
 
         for (category_index, section) in requests.iter().enumerate() {
-            let query = details_section_query(input.project_category, section);
+            let query = details_section_query(section);
             let search = self
                 .call_tool(
                     "search_inspirations",
@@ -89,7 +88,7 @@ impl DetailsService {
                     hit_index,
                     inspiration_id,
                     service
-                        .hydrate_hit(&hit, ReferoUiPatternCategory::WebsiteSection, platform)
+                        .hydrate_hit(&hit, ReferoUiPatternCategory::WebsiteSection)
                         .await,
                 )
             });
@@ -123,7 +122,7 @@ impl DetailsService {
             .enumerate()
             .map(|(index, section)| ReferoCategorySearch {
                 category: ReferoUiPatternCategory::WebsiteSection,
-                query: details_section_query(input.project_category, &section),
+                query: details_section_query(&section),
                 section: Some(section),
                 references: std::mem::take(&mut buckets[index]),
             })
@@ -223,7 +222,6 @@ impl DetailsService {
         &self,
         hit: &DetailsSearchHit,
         category: ReferoUiPatternCategory,
-        platform: ReferoPlatform,
     ) -> Result<ReferoReference, DetailsServiceError> {
         let detail = self
             .call_tool(
@@ -257,7 +255,7 @@ impl DetailsService {
             title: hit.title.clone(),
             product_name: hit.product_name.clone(),
             product_url: hit.source_url.clone(),
-            platform,
+            platform: ReferoPlatform::Web,
             source_url: hit.source_url.clone(),
             thumbnail_url: Some(image_url.clone()),
             image_url: Some(image_url),
@@ -284,17 +282,13 @@ fn details_section_search_requests(selected: &[String]) -> Vec<String> {
     selected.iter().take(5).cloned().collect()
 }
 
-fn details_section_query(category: ProjectCategory, section: &str) -> String {
-    format!("{} {section} design", details_product_type(category))
+fn details_section_query(section: &str) -> String {
+    format!("marketing website {section} section")
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::models::research::ProjectCategory;
-
-    use super::{
-        DEFAULT_DETAILS_SECTIONS, details_section_query, details_section_search_requests,
-    };
+    use super::{DEFAULT_DETAILS_SECTIONS, details_section_search_requests};
 
     #[test]
     fn searches_use_selected_sections() {
@@ -305,30 +299,10 @@ mod tests {
             DEFAULT_DETAILS_SECTIONS.map(str::to_string)
         );
     }
-
-    #[test]
-    fn searches_include_the_project_category() {
-        assert_eq!(
-            details_section_query(ProjectCategory::Websites, "Hero"),
-            "website Hero design"
-        );
-        assert_eq!(
-            details_section_query(ProjectCategory::WebApps, "Navigation"),
-            "web app Navigation design"
-        );
-        assert_eq!(
-            details_section_query(ProjectCategory::IosApps, "Onboarding"),
-            "iOS app Onboarding design"
-        );
-    }
 }
 
-fn details_project_context(input: &ResearchInput) -> String {
-    let mut parts = vec![format!(
-        "A {} {}",
-        input.industry.trim(),
-        details_product_type(input.project_category)
-    )];
+fn website_project_context(input: &ResearchInput) -> String {
+    let mut parts = vec![format!("A {} website", input.industry.trim())];
     if let Some(target_users) = input
         .target_users
         .as_deref()
@@ -349,21 +323,6 @@ fn details_project_context(input: &ResearchInput) -> String {
         parts.push(brief.chars().take(240).collect());
     }
     format!("{}.", parts.join(". "))
-}
-
-fn details_product_type(category: ProjectCategory) -> &'static str {
-    match category {
-        ProjectCategory::Websites => "website",
-        ProjectCategory::WebApps => "web app",
-        ProjectCategory::IosApps => "iOS app",
-    }
-}
-
-fn details_platform(category: ProjectCategory) -> ReferoPlatform {
-    match category {
-        ProjectCategory::IosApps => ReferoPlatform::Ios,
-        ProjectCategory::Websites | ProjectCategory::WebApps => ReferoPlatform::Web,
-    }
 }
 
 #[derive(Debug, Error)]

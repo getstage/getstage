@@ -1,5 +1,8 @@
 import {
   DEFAULT_DETAILS_SECTIONS,
+  DEFAULT_REFERO_APP_SECTIONS,
+  DETAILS_SECTIONS,
+  REFERO_APP_SECTIONS,
   detailsSectionSchema,
   researchInputSchema,
   type DetailsSection,
@@ -38,6 +41,21 @@ export const DEFAULT_RESEARCH_CONFIGURE_FORM_VALUES: ResearchConfigureFormValues
   detailsSections: [...DEFAULT_DETAILS_SECTIONS],
   briefFileName: null,
 };
+
+export function normalizeReferenceSections(
+  sections: DetailsSection[],
+  projectCategory: ProjectCategory,
+): DetailsSection[] {
+  const available: readonly string[] =
+    projectCategory === "websites" ? DETAILS_SECTIONS : REFERO_APP_SECTIONS;
+  if (sections.length > 0 && sections.every((section) => available.includes(section))) {
+    return sections;
+  }
+
+  return projectCategory === "websites"
+    ? [...DEFAULT_DETAILS_SECTIONS]
+    : [...DEFAULT_REFERO_APP_SECTIONS];
+}
 
 export function normalizeWebsite(value: string): string {
   const trimmed = value.trim();

@@ -22,6 +22,7 @@ use crate::helpers::time::now_millis;
 use crate::moodboard::workflow::MoodboardWorkflow;
 use crate::refero::client::ReferoClient;
 use crate::refero::service::ReferoService;
+use crate::research::service::ResearchService;
 use crate::research::workflow::ResearchWorkflow;
 use crate::runs::{RunManager, RunWorkflows};
 use crate::server;
@@ -48,6 +49,7 @@ impl AppState {
         let research = Arc::new(ResearchWorkflow::new(
             ResearchRepository::new(&config.convex),
             AppSecretsRepository::new(&config.convex),
+            ResearchService::new(refero.clone()),
             details,
         ));
         let moodboard = Arc::new(MoodboardWorkflow::new(

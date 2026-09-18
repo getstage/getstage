@@ -1,5 +1,5 @@
 import { lazy, Suspense } from "react";
-import type { ProviderId } from "@stage/data-ops/contracts";
+import type { ProjectCategory, ProviderId } from "@stage/data-ops/contracts";
 import {
   useFlowsArtifact,
   useMoodboardArtifact,
@@ -17,6 +17,7 @@ type ProjectStepStatus = Record<StepTab, boolean>;
 type ProjectStepViewProps = {
   activeTab: StepTab;
   project: Project;
+  projectCategory: ProjectCategory;
   artifactQueriesEnabled: boolean;
   pendingStrategyGeneration: boolean;
   pendingStrategyProviderId: ProviderId | null;
@@ -77,6 +78,7 @@ const AssetsTab = lazy(() =>
 export function ProjectStepView({
   activeTab,
   project,
+  projectCategory,
   artifactQueriesEnabled,
   pendingStrategyGeneration,
   pendingStrategyProviderId,
@@ -123,7 +125,11 @@ export function ProjectStepView({
           />
         ) : null}
         {!blockedStep && activeTab === "research" ? (
-          <ResearchTab project={project} onGenerateStrategy={onGenerateStrategy} />
+          <ResearchTab
+            project={project}
+            projectCategory={projectCategory}
+            onGenerateStrategy={onGenerateStrategy}
+          />
         ) : null}
         {!blockedStep && activeTab === "strategy" ? (
           <StrategyTab

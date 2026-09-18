@@ -80,3 +80,20 @@ export type ProjectStatus = z.infer<typeof projectStatusSchema>;
 export type ProjectStep = z.infer<typeof projectStepSchema>;
 export type ProjectSummary = z.infer<typeof projectSummarySchema>;
 export type ProjectDetail = z.infer<typeof projectDetailSchema>;
+
+export function resolveProjectCategory(type: ProjectType): ProjectCategory | null {
+  switch (type) {
+    case "websites":
+    case "web-apps":
+    case "ios-apps":
+      return type;
+    case "web-design":
+      return "websites";
+    case "web-app":
+      return "web-apps";
+    case "app-design":
+      return "ios-apps";
+    default:
+      return null;
+  }
+}

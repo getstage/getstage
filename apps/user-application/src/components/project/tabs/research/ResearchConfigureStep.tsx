@@ -2,13 +2,16 @@ import { useEffect, useRef, useState, type ChangeEvent, type KeyboardEvent } fro
 import {
   DETAILS_PAGE_SECTIONS,
   DETAILS_STRUCTURE_SECTIONS,
+  REFERO_APP_SECTIONS,
   type DetailsSection,
+  type ProjectCategory,
   type ProviderId,
 } from "@stage/data-ops/contracts";
 import { useResearchProviderSelection } from "@/hooks/project/research/useResearchProviderSelection";
 import {
   DEFAULT_RESEARCH_CONFIGURE_FORM_VALUES,
   isResearchConfigureFormSubmittable,
+  normalizeReferenceSections,
   parseCompetitorWebsite,
   validateResearchConfigureForm,
   type ResearchConfigureFieldErrors,
@@ -22,6 +25,7 @@ import { PlusIcon } from "./researchIcons";
 const suggestedIndustries = "e.g. Fintech, E-commerce, SaaS, Health";
 
 export function ResearchConfigureStep({
+  projectCategory,
   isSubmitting,
   initialValues = DEFAULT_RESEARCH_CONFIGURE_FORM_VALUES,
   onBriefFileChange,
@@ -34,6 +38,7 @@ export function ResearchConfigureStep({
   submitVariant = "primary",
   warningMessage,
 }: {
+  projectCategory: ProjectCategory;
   isSubmitting: boolean;
   initialValues?: ResearchConfigureFormValues;
   onBriefFileChange?: (file: File | null) => void;
@@ -46,11 +51,17 @@ export function ResearchConfigureStep({
   submitVariant?: "primary" | "secondary";
   warningMessage?: string;
 }) {
-  const [values, setValues] = useState<ResearchConfigureFormValues>(initialValues);
+  const [values, setValues] = useState<ResearchConfigureFormValues>(() => ({
+    ...initialValues,
+    detailsSections: normalizeReferenceSections(initialValues.detailsSections, projectCategory),
+  }));
 
   useEffect(() => {
-    setValues(initialValues);
-  }, [initialValues]);
+    setValues({
+      ...initialValues,
+      detailsSections: normalizeReferenceSections(initialValues.detailsSections, projectCategory),
+    });
+  }, [initialValues, projectCategory]);
   const [competitorInput, setCompetitorInput] = useState("");
   const [fieldErrors, setFieldErrors] = useState<ResearchConfigureFieldErrors>({});
   const [providerError, setProviderError] = useState<string | null>(null);
@@ -192,7 +203,13 @@ export function ResearchConfigureStep({
 
   function resetForm() {
     clearBriefAttachment();
-    setValues(DEFAULT_RESEARCH_CONFIGURE_FORM_VALUES);
+    setValues({
+      ...DEFAULT_RESEARCH_CONFIGURE_FORM_VALUES,
+      detailsSections: normalizeReferenceSections(
+        DEFAULT_RESEARCH_CONFIGURE_FORM_VALUES.detailsSections,
+        projectCategory,
+      ),
+    });
     setCompetitorInput("");
     setFieldErrors({});
   }
@@ -249,11 +266,12 @@ export function ResearchConfigureStep({
               </FormField>
 
               <FormField
-                label="Reference sections"
-                hint="Choose up to 5 sections for Details to analyse. Each selection becomes its own reference row."
+                label={projectCategory === "websites" ? "Website sections" : "App screens"}
+                hint={`Choose up to 5 ${projectCategory === "websites" ? "Details sections" : "Refero screen types"}. Each selection becomes its own reference row.`}
                 error={fieldErrors.detailsSections}
               >
-                <DetailsSectionPicker
+                <ReferenceSectionPicker
+                  projectCategory={projectCategory}
                   selected={values.detailsSections}
                   onChange={(detailsSections) => updateField("detailsSections", detailsSections)}
                 />
@@ -419,10 +437,12 @@ export function ResearchConfigureStep({
   );
 }
 
-function DetailsSectionPicker({
+function ReferenceSectionPicker({
+  projectCategory,
   selected,
   onChange,
 }: {
+  projectCategory: ProjectCategory;
   selected: DetailsSection[];
   onChange: (sections: DetailsSection[]) => void;
 }) {
@@ -446,18 +466,34 @@ function DetailsSectionPicker({
         <span aria-hidden="true">⌄</span>
       </summary>
       <div className="absolute left-0 top-[46px] z-20 max-h-[310px] w-full overflow-y-auto rounded-[8px] bg-white p-2 shadow-[0_4px_18px_rgba(10,10,10,0.18)]">
-        <SectionOptions
-          title="Structure"
-          options={DETAILS_STRUCTURE_SECTIONS}
-          selected={selected}
-          onToggle={toggle}
-        />
-        <SectionOptions
-          title="Page sections"
-          options={DETAILS_PAGE_SECTIONS}
-          selected={selected}
-          onToggle={toggle}
-        />
+        {projectCategory === "websites" ? (
+          <>
+            <SectionOptions
+              title="Structure"
+              options={DETAILS_STRUCTURE_SECTIONS}
+              selected={selected}
+              onToggle={toggle}
+            />
+            <SectionOptions
+              title="Page sections"
+              options={DETAILS_PAGE_SECTIONS}
+              selected={selected}
+              onToggle={toggle}
+            />
+          </>
+        ) : (
+          <SectionOptions
+            title={projectCategory === "ios-apps" ? "iOS screens" : "Web app screens"}
+            options={REFERO_APP_SECTIONS}
+            selected={selected}
+            onToggle={toggle}
+            labels={
+              projectCategory === "ios-apps"
+                ? { Homepage: "Home", Pricing: "Paywall / Pricing" }
+                : undefined
+            }
+          />
+        )}
       </div>
     </details>
   );
@@ -468,11 +504,13 @@ function SectionOptions({
   options,
   selected,
   onToggle,
+  labels,
 }: {
   title: string;
   options: readonly DetailsSection[];
   selected: DetailsSection[];
   onToggle: (section: DetailsSection) => void;
+  labels?: Partial<Record<DetailsSection, string>>;
 }) {
   return (
     <fieldset className="mb-2 last:mb-0">
@@ -494,7 +532,7 @@ function SectionOptions({
               onChange={() => onToggle(section)}
               className="accent-[#635BDF]"
             />
-            {section}
+            {labels?.[section] ?? section}
           </label>
         );
       })}

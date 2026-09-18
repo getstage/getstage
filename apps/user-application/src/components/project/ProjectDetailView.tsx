@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
-import type { ProviderId } from "@stage/data-ops/contracts";
+import { resolveProjectCategory, type ProviderId } from "@stage/data-ops/contracts";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { motion } from "motion/react";
 import { Avatar } from "@/components/ui/Avatar";
@@ -273,6 +273,7 @@ export function ProjectDetailView() {
               <ProjectStepView
                 activeTab={activeTab as StepTab}
                 project={project}
+                projectCategory={resolveProjectCategory(live.detail?.type ?? "websites") ?? "websites"}
                 artifactQueriesEnabled={artifactQueriesEnabled}
                 pendingStrategyGeneration={pendingStrategyGeneration}
                 pendingStrategyProviderId={pendingStrategyProviderId}

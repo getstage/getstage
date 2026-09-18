@@ -9,6 +9,7 @@ import { resolveAssetUrl } from "../../../r2";
 import { resolveProjectCategory } from "../../projects/domain/projectCategory";
 import {
   defaultDetailsSections,
+  defaultReferoSections,
   detailsSectionValidator,
   type DetailsSection,
 } from "../domain/validators";
@@ -28,6 +29,7 @@ export async function getContextHandler(
 
   const { user, project } = access;
   const record = await getContextRecord(ctx, args.projectId);
+  const projectCategory = resolveProjectCategory(project.type);
 
   return {
     projectId: String(project._id),
@@ -35,7 +37,9 @@ export async function getContextHandler(
     clientWebsite: record?.clientWebsite ?? "",
     industry: record?.industry ?? "",
     competitorUrls: record?.competitorUrls ?? [],
-    detailsSections: record?.detailsSections ?? defaultDetailsSections,
+    detailsSections:
+      record?.detailsSections ??
+      (projectCategory === "websites" ? defaultDetailsSections : defaultReferoSections),
     referenceUrls: record?.referenceUrls ?? [],
     brief: record?.brief ?? "",
     briefAttachmentName: record?.briefAttachmentName ?? null,
@@ -57,17 +61,20 @@ export async function getResearchInputHandler(
 ) {
   const { project } = await requireProjectAccess(ctx, args.projectId);
   const record = await getContextRecord(ctx, args.projectId);
+  const projectCategory = resolveProjectCategory(project.type);
 
   return {
     projectId: String(project._id),
     projectName: project.name,
-    projectCategory: resolveProjectCategory(project.type),
+    projectCategory,
     clientName: project.clientName,
     industry: record?.industry ?? null,
     website: record?.clientWebsite ?? null,
     projectBrief: record?.brief ?? null,
     competitorUrls: record?.competitorUrls ?? [],
-    detailsSections: record?.detailsSections ?? defaultDetailsSections,
+    detailsSections:
+      record?.detailsSections ??
+      (projectCategory === "websites" ? defaultDetailsSections : defaultReferoSections),
     targetUsers: null,
     additionalNotes: record?.notes ?? null,
     uploadedAssetIds: record?.briefAttachmentR2ObjectKey

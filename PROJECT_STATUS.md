@@ -1,7 +1,7 @@
 # Stage — Project Status
 
 > **Living document.** Update weekly (or before each release).  
-> **Last updated:** 2026-09-17
+> **Last updated:** 2026-09-18
 
 **Positioning:** Stage does the thinking. Your AI does the building.
 
@@ -14,7 +14,7 @@
 | **!!! P0 release** | 2026-09-14 production cut: React landing/WebP, Solo–Agency pricing, Lo-Fi/export integration, bug containment, trusted login domain, deploy; Figma last | `docs/2026-09-14_SHIP_TODAY_CHECKLIST.md` |
 | **P0 STA-33 1–4** | **Lo-Fi done** (desktop smoke 2026-09-09). Export dialog destinations + skills step, GitHub Import. Wireframes UI is Lo-Fi only; the engine retains Hi-Fi. **Adrien commentary 10 Sep:** [`docs/NEW_10_SEPTEMBER.md`](docs/NEW_10_SEPTEMBER.md). **Next:** Werner picks rows; then testing Convex `importedSkillHubItems`; then sections 5–8. | [`docs/NEW_VERSION_START_SEPTEMBER_2026.md`](docs/NEW_VERSION_START_SEPTEMBER_2026.md); Linear `STA-33` |
 | **P0 STA-33 5–8** | After 1–4 ships: categories lock, Details.so during research testing, style guide, MCP. | Linear `STA-33`; same living plan |
-| **P0 STA-33 Research routing** | Testing candidate: canonical category reaches the engine; Websites, Web apps, and iOS apps → Details with up to five user-selected section searches × four references, sharp video frames, and a Details badge. Desktop smoke still required. Inventory: [`docs/STA-33_RESEARCH_CATEGORY_BREAKAGE.md`](docs/STA-33_RESEARCH_CATEGORY_BREAKAGE.md) | testing release `v0.2.39`; production remains `prod-v0.2.36` |
+| **P0 STA-33 Research routing** | Testing candidate: canonical category reaches the engine; Websites → Details website sections; Web apps and iOS apps → Refero app screens, including iOS-specific search. Users select up to five relevant rows. Refero thumbnails remain available when an older R2 image is missing. Desktop smoke still required. Inventory: [`docs/STA-33_RESEARCH_CATEGORY_BREAKAGE.md`](docs/STA-33_RESEARCH_CATEGORY_BREAKAGE.md) | testing release `v0.2.40`; production remains `prod-v0.2.36` |
 | **P1 wireframes quality** | Beat raw Claude: Taste skill → local/project skills + library packs → moodboard layouts → refine | `docs/WIREFRAMES_QUALITY_PLAN.md` |
 | **!!! P0** | Desktop idle energy P0 — PR `fix/desktop-idle-energy-p0` | `docs/AI/desktop/2026-06-07!!!-DESKTOP_IDLE_ENERGY_PLAN.md` |
 | **P1** | Run packaged-DMG benchmark + 2 h soak (RAM < 400 MB, 12 hr power < 500) | `scripts/desktop-idle-benchmark.sh` |

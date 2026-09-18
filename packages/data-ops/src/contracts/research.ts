@@ -47,6 +47,20 @@ export const DETAILS_SECTIONS = [
   ...DETAILS_STRUCTURE_SECTIONS,
   ...DETAILS_PAGE_SECTIONS,
 ] as const;
+export const REFERO_APP_SECTIONS = [
+  "Onboarding",
+  "Homepage",
+  "Pricing",
+  "Checkout",
+  "Dashboard",
+] as const;
+export const RESEARCH_REFERENCE_SECTIONS = [
+  ...DETAILS_SECTIONS,
+  "Onboarding",
+  "Homepage",
+  "Checkout",
+  "Dashboard",
+] as const;
 export const DEFAULT_DETAILS_SECTIONS = [
   "Hero",
   "Features",
@@ -54,7 +68,8 @@ export const DEFAULT_DETAILS_SECTIONS = [
   "Pricing",
   "Contact",
 ] as const;
-export const detailsSectionSchema = z.enum(DETAILS_SECTIONS);
+export const DEFAULT_REFERO_APP_SECTIONS = [...REFERO_APP_SECTIONS] as const;
+export const detailsSectionSchema = z.enum(RESEARCH_REFERENCE_SECTIONS);
 
 export const researchMatrixScoreSchema = z.enum(["Strong", "OK", "Weak"]);
 
