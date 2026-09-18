@@ -9,22 +9,19 @@ use crate::convex_store::research_repository::{
 use crate::details::service::DetailsService;
 use crate::helpers::time::now_millis;
 use crate::models::errors::{EngineError, EngineErrorCode};
-use crate::models::research::{ProjectCategory, ResearchUiPatternProvider};
+use crate::models::research::ResearchUiPatternProvider;
 use crate::models::runs::{RunEvent, RunStatus, StartRunRequest};
 use crate::providers::adapter::{ProviderRunContext, run_provider_collect};
 use crate::providers::process::{ProviderProcessError, ProviderProcessOutcome};
 use crate::providers::service::assert_provider_ready_for_run;
-use crate::refero::service::ReferoService;
 use crate::research::competitive::filter_competitive_analysis;
 use crate::research::prompt::build_research_prompt;
-use crate::research::refero_assets::{
-    apply_engine_ui_patterns, persist_prepared_context_images, persist_refero_context_images,
-};
+use crate::research::refero_assets::{apply_engine_ui_patterns, persist_prepared_context_images};
 use crate::research::section::{
     build_opportunities_prompt, build_section_regenerate_prompt, merge_research_section,
     parse_research_section,
 };
-use crate::research::service::{ResearchPromptBundle, ResearchService};
+use crate::research::service::ResearchPromptBundle;
 use crate::runs::RunEventSink;
 use serde_json::json;
 use tokio::time::{Duration, timeout};
@@ -35,7 +32,6 @@ const RESEARCH_PROVIDER_TIMEOUT: Duration = Duration::from_secs(600);
 pub struct ResearchWorkflow {
     repository: ResearchRepository,
     secrets: AppSecretsRepository,
-    research: ResearchService,
     details: DetailsService,
 }
 
@@ -52,13 +48,11 @@ impl ResearchWorkflow {
     pub fn new(
         repository: ResearchRepository,
         secrets: AppSecretsRepository,
-        research: ResearchService,
         details: DetailsService,
     ) -> Self {
         Self {
             repository,
             secrets,
-            research,
             details,
         }
     }
@@ -161,80 +155,39 @@ impl ResearchWorkflow {
                 .await?;
 
             let uploader = ConvexAssetUploader::new(self.repository.deployment_url().to_string());
-            let ui_pattern_provider = if input.project_category == ProjectCategory::Websites {
-                ResearchUiPatternProvider::Details
-            } else {
-                ResearchUiPatternProvider::Refero
-            };
-            let (bundle, image_keys) = if input.project_category == ProjectCategory::Websites {
-                self.tool_started(
-                    api_version,
-                    &run_id,
-                    provider_id,
-                    &sink,
-                    "details-context",
-                    "Search website inspiration",
-                );
-                tracing::info!(run_id = %run_id, project_id, "building Details context");
-                let details_started = std::time::Instant::now();
-                let details = self.resolve_details(&auth_token).await?;
-                let mut context = details.research_context(&input).await?;
-                let image_keys = persist_prepared_context_images(
-                    &uploader,
-                    &auth_token,
-                    project_id,
-                    &mut context,
-                )
-                .await?;
-                tracing::info!(
-                    run_id = %run_id,
-                    project_id,
-                    details_images = image_keys.len(),
-                    details_elapsed_ms = details_started.elapsed().as_millis(),
-                    "Details images persisted to R2"
-                );
-                self.tool_completed(api_version, &run_id, provider_id, &sink, "details-context");
-                let prompt = build_research_prompt(&input, &context, &[]);
-                (
-                    ResearchPromptBundle {
-                        input: input.clone(),
-                        refero_context: context,
-                        prompt,
-                    },
-                    image_keys,
-                )
-            } else {
-                self.tool_started(
-                    api_version,
-                    &run_id,
-                    provider_id,
-                    &sink,
-                    "refero-context",
-                    "Search Refero examples",
-                );
-                tracing::info!(run_id = %run_id, project_id, "building Refero context");
-                let refero_started = std::time::Instant::now();
-                let refero = self.resolve_refero(&auth_token).await?;
-                let research = ResearchService::new(refero.clone());
-                let mut bundle = research.build_prompt_bundle(input.clone()).await?;
-                let image_keys = persist_refero_context_images(
-                    &refero,
-                    &uploader,
-                    &auth_token,
-                    project_id,
-                    &mut bundle.refero_context,
-                )
-                .await?;
-                tracing::info!(
-                    run_id = %run_id,
-                    project_id,
-                    refero_images = image_keys.len(),
-                    refero_mcp_calls = refero.call_count(),
-                    refero_elapsed_ms = refero_started.elapsed().as_millis(),
-                    "Refero images persisted to R2"
-                );
-                self.tool_completed(api_version, &run_id, provider_id, &sink, "refero-context");
-                (bundle, image_keys)
+            let ui_pattern_provider = ResearchUiPatternProvider::Details;
+            self.tool_started(
+                api_version,
+                &run_id,
+                provider_id,
+                &sink,
+                "details-context",
+                "Search design inspiration",
+            );
+            tracing::info!(run_id = %run_id, project_id, "building Details context");
+            let details_started = std::time::Instant::now();
+            let details = self.resolve_details(&auth_token).await?;
+            let mut context = details.research_context(&input).await?;
+            let image_keys = persist_prepared_context_images(
+                &uploader,
+                &auth_token,
+                project_id,
+                &mut context,
+            )
+            .await?;
+            tracing::info!(
+                run_id = %run_id,
+                project_id,
+                details_images = image_keys.len(),
+                details_elapsed_ms = details_started.elapsed().as_millis(),
+                "Details images persisted to R2"
+            );
+            self.tool_completed(api_version, &run_id, provider_id, &sink, "details-context");
+            let prompt = build_research_prompt(&input, &context, &[]);
+            let bundle = ResearchPromptBundle {
+                input: input.clone(),
+                refero_context: context,
+                prompt,
             };
             uploaded_research_asset_keys = image_keys.values().cloned().collect();
 
@@ -355,27 +308,6 @@ impl ResearchWorkflow {
                 error: error.to_engine_error(provider_id),
             });
         }
-    }
-
-    async fn resolve_refero(&self, auth_token: &str) -> Result<ReferoService, WorkflowError> {
-        if self.research.refero().is_configured() {
-            return Ok(self.research.refero().with_fresh_call_counter());
-        }
-
-        let token = self
-            .secrets
-            .fetch_refero_mcp_token(auth_token)
-            .await?
-            .ok_or_else(|| {
-                WorkflowError::InvalidRequest(
-                    "Refero is not configured for this Stage deployment.".to_string(),
-                )
-            })?;
-
-        self.research
-            .refero()
-            .with_token(token)
-            .map_err(|error| WorkflowError::InvalidRequest(error.to_string()))
     }
 
     async fn resolve_details(&self, auth_token: &str) -> Result<DetailsService, WorkflowError> {
@@ -587,9 +519,6 @@ enum WorkflowError {
     Convex(#[from] anyhow::Error),
 
     #[error(transparent)]
-    Research(#[from] crate::research::service::ResearchServiceError),
-
-    #[error(transparent)]
     Details(#[from] crate::details::service::DetailsServiceError),
 
     #[error(transparent)]
@@ -608,10 +537,9 @@ impl WorkflowError {
         let code = match self {
             WorkflowError::InvalidRequest(_) => EngineErrorCode::InvalidRequest,
             WorkflowError::IncompleteArtifact(_) => EngineErrorCode::ProviderProcessFailed,
-            WorkflowError::Convex(_)
-            | WorkflowError::Research(_)
-            | WorkflowError::Details(_)
-            | WorkflowError::Serde(_) => EngineErrorCode::InternalError,
+            WorkflowError::Convex(_) | WorkflowError::Details(_) | WorkflowError::Serde(_) => {
+                EngineErrorCode::InternalError
+            }
             WorkflowError::Provider(_) => unreachable!("handled above"),
         };
 
@@ -635,8 +563,7 @@ fn user_message(error: &WorkflowError) -> String {
         WorkflowError::Provider(_) => {
             unreachable!("provider errors use ProviderProcessError::to_engine_error")
         }
-        WorkflowError::Research(_) => "Research context could not be prepared.".to_string(),
-        WorkflowError::Details(_) => "Website inspiration could not be loaded.".to_string(),
+        WorkflowError::Details(_) => "Design inspiration could not be loaded.".to_string(),
         WorkflowError::Convex(_) => {
             "Stage project context could not be loaded or saved.".to_string()
         }

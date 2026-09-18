@@ -69,18 +69,10 @@ fn build_category_query(input: &ResearchInput, category: ReferoUiPatternCategory
     let pattern = match category {
         ReferoUiPatternCategory::Onboarding => "account signup onboarding wizard first run",
         ReferoUiPatternCategory::Homepage => "marketing homepage hero sections",
-        ReferoUiPatternCategory::Hero => "marketing website hero value proposition call to action",
-        ReferoUiPatternCategory::Features => "marketing website features benefits product visuals",
-        ReferoUiPatternCategory::SocialProof => {
-            "marketing website testimonials logos case studies results"
-        }
         ReferoUiPatternCategory::Pricing => "pricing page plans comparison table",
-        ReferoUiPatternCategory::WebsitePricing => {
-            "marketing website pricing plans comparison section"
-        }
-        ReferoUiPatternCategory::Conversion => "marketing website contact demo signup lead form",
         ReferoUiPatternCategory::Checkout => "mobile checkout payment order summary",
         ReferoUiPatternCategory::Dashboard => "orders analytics dashboard overview",
+        ReferoUiPatternCategory::WebsiteSection => "marketing website section",
     };
 
     // Two same-industry projects (e.g. both "SaaS") otherwise produce identical queries and
@@ -223,6 +215,7 @@ mod tests {
             website: Some("www.example.com".to_string()),
             project_brief: None,
             competitor_urls: vec![],
+            details_sections: vec![],
             target_users: None,
             additional_notes: None,
             uploaded_asset_ids: vec![],

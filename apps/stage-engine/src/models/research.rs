@@ -56,6 +56,8 @@ pub struct ResearchInput {
     pub project_brief: Option<String>,
     #[serde(default)]
     pub competitor_urls: Vec<String>,
+    #[serde(default)]
+    pub details_sections: Vec<String>,
     pub target_users: Option<String>,
     pub additional_notes: Option<String>,
     #[serde(default)]

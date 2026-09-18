@@ -10,16 +10,13 @@ pub fn build_research_prompt(
 ) -> String {
     let competitive_targets = format_competitive_targets_for_prompt(input);
     let competitive_rules = competitive_rules_for_prompt(input);
-    let reference_provider = match input.project_category {
-        ProjectCategory::Websites => "Details",
-        ProjectCategory::WebApps | ProjectCategory::IosApps => "Refero",
-    };
+    let reference_provider = "Details";
     let preferred_web_evidence = match input.project_category {
         ProjectCategory::Websites => {
             "homepage, features, social proof, pricing, and contact/signup evidence"
         }
         ProjectCategory::WebApps | ProjectCategory::IosApps => {
-            "pricing, product/features, onboarding/signup, checkout, or dashboard evidence"
+            "the user-selected product, onboarding, navigation, pricing, or feature evidence"
         }
     };
 
@@ -34,7 +31,7 @@ pub fn build_research_prompt(
                 .count();
             format!(
                 "- {} ({} screens): {}",
-                bucket.category.display_title(),
+                bucket.display_title(),
                 hits,
                 bucket.query
             )
@@ -228,7 +225,7 @@ The JSON must use:
         ui_pattern_rows = refero_context
             .category_searches
             .iter()
-            .map(|bucket| bucket.category.display_title())
+            .map(|bucket| bucket.display_title())
             .collect::<Vec<_>>()
             .join(", "),
         preferred_web_evidence = preferred_web_evidence,

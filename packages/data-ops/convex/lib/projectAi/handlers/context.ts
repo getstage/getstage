@@ -7,6 +7,11 @@ import { getContextRecord } from "../domain/records";
 import { now } from "../domain/time";
 import { resolveAssetUrl } from "../../../r2";
 import { resolveProjectCategory } from "../../projects/domain/projectCategory";
+import {
+  defaultDetailsSections,
+  detailsSectionValidator,
+  type DetailsSection,
+} from "../domain/validators";
 
 export const getContextArgs = {
   projectId: v.id("projects"),
@@ -30,6 +35,7 @@ export async function getContextHandler(
     clientWebsite: record?.clientWebsite ?? "",
     industry: record?.industry ?? "",
     competitorUrls: record?.competitorUrls ?? [],
+    detailsSections: record?.detailsSections ?? defaultDetailsSections,
     referenceUrls: record?.referenceUrls ?? [],
     brief: record?.brief ?? "",
     briefAttachmentName: record?.briefAttachmentName ?? null,
@@ -61,6 +67,7 @@ export async function getResearchInputHandler(
     website: record?.clientWebsite ?? null,
     projectBrief: record?.brief ?? null,
     competitorUrls: record?.competitorUrls ?? [],
+    detailsSections: record?.detailsSections ?? defaultDetailsSections,
     targetUsers: null,
     additionalNotes: record?.notes ?? null,
     uploadedAssetIds: record?.briefAttachmentR2ObjectKey
@@ -74,6 +81,7 @@ export const upsertContextArgs = {
   industry: v.optional(v.string()),
   clientWebsite: v.optional(v.string()),
   competitorUrls: v.array(v.string()),
+  detailsSections: v.optional(v.array(detailsSectionValidator)),
   referenceUrls: v.array(v.string()),
   brief: v.optional(v.string()),
   briefAttachmentName: v.optional(v.union(v.string(), v.null())),
@@ -88,6 +96,7 @@ export async function upsertContextHandler(
     industry?: string;
     clientWebsite?: string;
     competitorUrls: string[];
+    detailsSections?: DetailsSection[];
     referenceUrls: string[];
     brief?: string;
     briefAttachmentName?: string | null;
@@ -102,6 +111,7 @@ export async function upsertContextHandler(
     industry: args.industry,
     clientWebsite: args.clientWebsite,
     competitorUrls: args.competitorUrls,
+    detailsSections: args.detailsSections,
     referenceUrls: args.referenceUrls,
     brief: args.brief,
     briefAttachmentName: args.briefAttachmentName,

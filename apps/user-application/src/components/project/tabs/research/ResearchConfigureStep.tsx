@@ -1,5 +1,10 @@
 import { useEffect, useRef, useState, type ChangeEvent, type KeyboardEvent } from "react";
-import type { ProviderId } from "@stage/data-ops/contracts";
+import {
+  DETAILS_PAGE_SECTIONS,
+  DETAILS_STRUCTURE_SECTIONS,
+  type DetailsSection,
+  type ProviderId,
+} from "@stage/data-ops/contracts";
 import { useResearchProviderSelection } from "@/hooks/project/research/useResearchProviderSelection";
 import {
   DEFAULT_RESEARCH_CONFIGURE_FORM_VALUES,
@@ -56,10 +61,6 @@ export function ResearchConfigureStep({
     providerOptions,
     canRunWithProvider,
   } = useResearchProviderSelection();
-
-  useEffect(() => {
-    setValues(initialValues);
-  }, [initialValues]);
 
   const canSubmit = isResearchConfigureFormSubmittable(values) && canRunWithProvider;
 
@@ -248,6 +249,17 @@ export function ResearchConfigureStep({
               </FormField>
 
               <FormField
+                label="Reference sections"
+                hint="Choose up to 5 sections for Details to analyse. Each selection becomes its own reference row."
+                error={fieldErrors.detailsSections}
+              >
+                <DetailsSectionPicker
+                  selected={values.detailsSections}
+                  onChange={(detailsSections) => updateField("detailsSections", detailsSections)}
+                />
+              </FormField>
+
+              <FormField
                 label="Project Brief or Context"
                 hint="Be specific — what the product does, who it's for, and what makes it different. The clearer this is, the more tailored (and less generic) your research references will be."
                 error={fieldErrors.projectBrief}
@@ -404,6 +416,89 @@ export function ResearchConfigureStep({
         </div>
       </div>
     </section>
+  );
+}
+
+function DetailsSectionPicker({
+  selected,
+  onChange,
+}: {
+  selected: DetailsSection[];
+  onChange: (sections: DetailsSection[]) => void;
+}) {
+  function toggle(section: DetailsSection) {
+    if (selected.includes(section)) {
+      if (selected.length > 1) {
+        onChange(selected.filter((item) => item !== section));
+      }
+      return;
+    }
+
+    if (selected.length < 5) {
+      onChange([...selected, section]);
+    }
+  }
+
+  return (
+    <details className="relative w-[370px] max-w-full">
+      <summary className="flex h-[40px] cursor-pointer list-none items-center justify-between rounded-[6px] bg-[#F5F5F5] px-3 text-[12px] font-medium text-[#171717] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] marker:content-none">
+        <span>{selected.length} sections selected</span>
+        <span aria-hidden="true">⌄</span>
+      </summary>
+      <div className="absolute left-0 top-[46px] z-20 max-h-[310px] w-full overflow-y-auto rounded-[8px] bg-white p-2 shadow-[0_4px_18px_rgba(10,10,10,0.18)]">
+        <SectionOptions
+          title="Structure"
+          options={DETAILS_STRUCTURE_SECTIONS}
+          selected={selected}
+          onToggle={toggle}
+        />
+        <SectionOptions
+          title="Page sections"
+          options={DETAILS_PAGE_SECTIONS}
+          selected={selected}
+          onToggle={toggle}
+        />
+      </div>
+    </details>
+  );
+}
+
+function SectionOptions({
+  title,
+  options,
+  selected,
+  onToggle,
+}: {
+  title: string;
+  options: readonly DetailsSection[];
+  selected: DetailsSection[];
+  onToggle: (section: DetailsSection) => void;
+}) {
+  return (
+    <fieldset className="mb-2 last:mb-0">
+      <legend className="px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#A3A3A3]">
+        {title}
+      </legend>
+      {options.map((section) => {
+        const checked = selected.includes(section);
+        const disabled = checked ? selected.length === 1 : selected.length >= 5;
+        return (
+          <label
+            key={section}
+            className="flex min-h-[32px] cursor-pointer items-center gap-2 rounded-[5px] px-2 text-[12px] font-medium text-[#525252] hover:bg-[#F5F5F5] has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-45"
+          >
+            <input
+              type="checkbox"
+              checked={checked}
+              disabled={disabled}
+              onChange={() => onToggle(section)}
+              className="accent-[#635BDF]"
+            />
+            {section}
+          </label>
+        );
+      })}
+    </fieldset>
   );
 }
 

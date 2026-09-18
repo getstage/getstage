@@ -58,6 +58,7 @@ export function useSaveResearchContext(projectId: string) {
           industry: input.industry,
           clientWebsite: input.website,
           competitorUrls: input.competitorUrls,
+          detailsSections: input.detailsSections,
           referenceUrls: [],
           brief: input.projectBrief,
           notes: input.additionalNotes,

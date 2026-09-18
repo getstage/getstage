@@ -1,4 +1,10 @@
-import { researchInputSchema, type ResearchInput } from "@stage/data-ops/contracts";
+import {
+  DEFAULT_DETAILS_SECTIONS,
+  detailsSectionSchema,
+  researchInputSchema,
+  type DetailsSection,
+  type ResearchInput,
+} from "@stage/data-ops/contracts";
 import type { Project } from "@/models/project/project";
 import type { ProjectCategory } from "@/types";
 import { z } from "zod";
@@ -7,6 +13,7 @@ const MAX_INDUSTRY_LENGTH = 120;
 const MAX_BRIEF_LENGTH = 5000;
 const MAX_NOTES_LENGTH = 2000;
 const MAX_COMPETITORS = 10;
+const MAX_DETAILS_SECTIONS = 5;
 
 export type ResearchConfigureFormValues = {
   industry: string;
@@ -14,6 +21,7 @@ export type ResearchConfigureFormValues = {
   projectBrief: string;
   additionalNotes: string;
   competitorUrls: string[];
+  detailsSections: DetailsSection[];
   briefFileName: string | null;
 };
 
@@ -27,6 +35,7 @@ export const DEFAULT_RESEARCH_CONFIGURE_FORM_VALUES: ResearchConfigureFormValues
   projectBrief: "",
   additionalNotes: "",
   competitorUrls: [],
+  detailsSections: [...DEFAULT_DETAILS_SECTIONS],
   briefFileName: null,
 };
 
@@ -87,6 +96,7 @@ export const validatedResearchConfigureInputSchema = z.object({
   website: optionalWebsiteValueSchema.optional(),
   projectBrief: z.string().trim().min(1).max(MAX_BRIEF_LENGTH),
   competitorUrls: z.array(websiteValueSchema.transform(normalizeWebsite)).max(MAX_COMPETITORS),
+  detailsSections: z.array(detailsSectionSchema).min(1).max(MAX_DETAILS_SECTIONS),
   additionalNotes: z.string().trim().min(1).max(MAX_NOTES_LENGTH).optional(),
   uploadedAssetIds: z.array(z.string().min(1)).default([]),
 });
@@ -143,6 +153,10 @@ export function validateResearchConfigureForm(
     errors.competitorUrls = `Add up to ${MAX_COMPETITORS} competitors`;
   }
 
+  if (values.detailsSections.length === 0 || values.detailsSections.length > MAX_DETAILS_SECTIONS) {
+    errors.detailsSections = `Choose 1 to ${MAX_DETAILS_SECTIONS} reference sections`;
+  }
+
   if (Object.keys(errors).length > 0 || !industryResult.success) {
     return { success: false, errors };
   }
@@ -155,6 +169,7 @@ export function validateResearchConfigureForm(
       website: websiteResult.data,
       projectBrief,
       competitorUrls: values.competitorUrls,
+      detailsSections: values.detailsSections,
       additionalNotes: notes || undefined,
       uploadedAssetIds: [],
     });
@@ -200,6 +215,7 @@ export function buildResearchInput(
     website: input.website,
     projectBrief: input.projectBrief,
     competitorUrls: input.competitorUrls,
+    detailsSections: input.detailsSections,
     additionalNotes: input.additionalNotes,
     uploadedAssetIds: input.uploadedAssetIds,
   });

@@ -25,6 +25,7 @@ export function useResearchContext(projectId: string | undefined) {
       projectBrief: record.brief ?? "",
       additionalNotes: record.notes ?? "",
       competitorUrls: record.competitorUrls ?? [],
+      detailsSections: record.detailsSections ?? DEFAULT_RESEARCH_CONFIGURE_FORM_VALUES.detailsSections,
       briefFileName: record.briefAttachmentName ?? null,
     };
   }, [record]);

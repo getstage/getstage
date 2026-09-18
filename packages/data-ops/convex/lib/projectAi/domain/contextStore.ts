@@ -4,6 +4,7 @@ import { attachTrackedR2Asset, deleteOldR2Asset } from "../../../r2";
 import { getContextRecord } from "./records";
 import { normalizeList, normalizeOptional } from "./normalize";
 import { now } from "./time";
+import type { DetailsSection } from "./validators";
 
 type ProjectAiProviderId = "claude" | "codex";
 
@@ -45,6 +46,7 @@ export async function upsertContextRecord(
     industry?: string;
     clientWebsite?: string;
     competitorUrls: string[];
+    detailsSections?: DetailsSection[];
     referenceUrls: string[];
     brief?: string;
     briefAttachmentName?: string | null;
@@ -63,6 +65,10 @@ export async function upsertContextRecord(
     industry: normalizeOptional(args.industry),
     clientWebsite: normalizeOptional(args.clientWebsite),
     competitorUrls: normalizeList(args.competitorUrls),
+    detailsSections:
+      args.detailsSections === undefined
+        ? existing?.detailsSections
+        : Array.from(new Set(args.detailsSections)).slice(0, 5),
     referenceUrls: normalizeList(args.referenceUrls),
     brief: normalizeOptional(args.brief),
     briefAttachmentName: hasBriefAttachmentName

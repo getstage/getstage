@@ -94,7 +94,11 @@ fn build_ui_pattern_group(
     bucket: &ReferoCategorySearch,
     image_keys: &HashMap<String, String>,
 ) -> Value {
-    let recognized_patterns = collect_recognized_patterns(bucket.category, &bucket.references);
+    let recognized_patterns = if bucket.section.is_some() {
+        Vec::new()
+    } else {
+        collect_recognized_patterns(bucket.category, &bucket.references)
+    };
     let pattern_count_label = if recognized_patterns.is_empty() {
         None
     } else {
@@ -113,9 +117,12 @@ fn build_ui_pattern_group(
         .collect::<Vec<_>>();
 
     json!({
-        "id": bucket.category.row_id(),
-        "title": bucket.category.display_title(),
-        "summary": build_group_summary(bucket.category, &bucket.references),
+        "id": bucket.row_id(),
+        "title": bucket.display_title(),
+        "summary": bucket.section.as_ref().map_or_else(
+            || build_group_summary(bucket.category, &bucket.references),
+            |section| Some(format!("{section} references from {} provide focused website inspiration.", reference_evidence(&bucket.references))),
+        ),
         "patternCountLabel": pattern_count_label,
         "recognizedPatterns": recognized_patterns,
         "examples": examples,
@@ -198,29 +205,9 @@ fn category_summary(category: ReferoUiPatternCategory, evidence: &str) -> String
                 "Homepage {evidence} show how marketing pages frame value, proof, and primary action hierarchy."
             )
         }
-        ReferoUiPatternCategory::Hero => {
-            format!(
-                "Hero {evidence} show how a clear promise, product proof, and primary action work together above the fold."
-            )
-        }
-        ReferoUiPatternCategory::Features => {
-            format!(
-                "Feature {evidence} show how benefits, capabilities, and product visuals are structured for quick scanning."
-            )
-        }
-        ReferoUiPatternCategory::SocialProof => {
-            format!(
-                "Social proof {evidence} show how customer evidence supports product claims and reduces perceived risk."
-            )
-        }
-        ReferoUiPatternCategory::Pricing | ReferoUiPatternCategory::WebsitePricing => {
+        ReferoUiPatternCategory::Pricing => {
             format!(
                 "Pricing {evidence} show how plan comparison, billing details, and commitment cues are arranged."
-            )
-        }
-        ReferoUiPatternCategory::Conversion => {
-            format!(
-                "Conversion {evidence} show how contact, demo, and signup actions set expectations while keeping friction low."
             )
         }
         ReferoUiPatternCategory::Checkout => {
@@ -232,6 +219,9 @@ fn category_summary(category: ReferoUiPatternCategory, evidence: &str) -> String
             format!(
                 "Dashboard {evidence} show how activity, status, and next actions are prioritized after login."
             )
+        }
+        ReferoUiPatternCategory::WebsiteSection => {
+            format!("Website section {evidence} provide focused marketing-site inspiration.")
         }
     }
 }
@@ -293,11 +283,7 @@ fn category_pattern_insights(
                 ),
             ),
         ],
-        ReferoUiPatternCategory::Hero
-        | ReferoUiPatternCategory::Features
-        | ReferoUiPatternCategory::SocialProof
-        | ReferoUiPatternCategory::WebsitePricing
-        | ReferoUiPatternCategory::Conversion => Vec::new(),
+        ReferoUiPatternCategory::WebsiteSection => Vec::new(),
         ReferoUiPatternCategory::Pricing => vec![
             (
                 "Comparison-first plan grid",

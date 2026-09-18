@@ -12,6 +12,7 @@ fn sample_input() -> ResearchInput {
         website: Some("https://www.shopify.com".to_string()),
         project_brief: Some("Brief".to_string()),
         competitor_urls: vec!["https://www.amazon.com".to_string()],
+        details_sections: vec![],
         target_users: None,
         additional_notes: None,
         uploaded_asset_ids: vec![],

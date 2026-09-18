@@ -7,6 +7,55 @@ import { referoContextSchema } from "./refero";
 const optionalText = z.string().min(1).nullish();
 const optionalUrl = z.string().min(1).nullish();
 
+export const DETAILS_STRUCTURE_SECTIONS = [
+  "CTA",
+  "Footer",
+  "Hero",
+  "Legal",
+  "Navigation",
+  "Drawer",
+  "Dropdown",
+  "Fullscreen",
+  "Morphing",
+] as const;
+
+export const DETAILS_PAGE_SECTIONS = [
+  "404",
+  "Article",
+  "Blog",
+  "Case Study",
+  "Contact",
+  "Content",
+  "About",
+  "FAQ",
+  "Features",
+  "Services",
+  "Steps",
+  "Newsletter",
+  "Portfolio",
+  "Pricing",
+  "Products",
+  "Social Proof",
+  "Logo",
+  "Testimonial",
+  "Stats",
+  "Team",
+  "Timeline",
+] as const;
+
+export const DETAILS_SECTIONS = [
+  ...DETAILS_STRUCTURE_SECTIONS,
+  ...DETAILS_PAGE_SECTIONS,
+] as const;
+export const DEFAULT_DETAILS_SECTIONS = [
+  "Hero",
+  "Features",
+  "Social Proof",
+  "Pricing",
+  "Contact",
+] as const;
+export const detailsSectionSchema = z.enum(DETAILS_SECTIONS);
+
 export const researchMatrixScoreSchema = z.enum(["Strong", "OK", "Weak"]);
 
 export const researchArtifactSectionSchema = z.enum([
@@ -27,6 +76,7 @@ export const researchInputSchema = z.object({
   website: z.string().min(1).optional(),
   projectBrief: z.string().min(1).optional(),
   competitorUrls: z.array(z.string().min(1)).default([]),
+  detailsSections: z.array(detailsSectionSchema).min(1).max(5).default([...DEFAULT_DETAILS_SECTIONS]),
   targetUsers: z.string().min(1).optional(),
   additionalNotes: z.string().min(1).optional(),
   uploadedAssetIds: z.array(z.string().min(1)).default([]),
@@ -145,6 +195,7 @@ export const researchArtifactPatchSchema = z.object({
 });
 
 export type ResearchMatrixScore = z.infer<typeof researchMatrixScoreSchema>;
+export type DetailsSection = z.infer<typeof detailsSectionSchema>;
 export type ResearchArtifactSection = z.infer<typeof researchArtifactSectionSchema>;
 export type ResearchInput = z.infer<typeof researchInputSchema>;
 export type ResearchCompanySnapshotRow = z.infer<typeof researchCompanySnapshotRowSchema>;

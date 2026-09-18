@@ -274,6 +274,8 @@ struct ConvexResearchInput {
     project_brief: Option<String>,
     #[serde(default)]
     competitor_urls: Vec<String>,
+    #[serde(default)]
+    details_sections: Vec<String>,
     target_users: Option<String>,
     additional_notes: Option<String>,
     #[serde(default)]
@@ -291,6 +293,7 @@ impl ConvexResearchInput {
             website: self.website,
             project_brief: self.project_brief,
             competitor_urls: self.competitor_urls,
+            details_sections: self.details_sections,
             target_users: self.target_users,
             additional_notes: self.additional_notes,
             uploaded_asset_ids: self.uploaded_asset_ids,
@@ -532,6 +535,7 @@ mod tests {
             website: Some("https://example.com".to_string()),
             project_brief: Some("Build a better onboarding flow.".to_string()),
             competitor_urls: vec!["https://competitor.example".to_string()],
+            details_sections: vec![],
             target_users: Some("Designers".to_string()),
             additional_notes: None,
             uploaded_asset_ids: vec![],

@@ -21,22 +21,17 @@ pub enum ReferoPlatform {
     Unknown,
 }
 
-/// UI Patterns row categories shared by Refero app research and Details website research.
+/// UI Patterns row categories shared by legacy Refero research and Details research.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Deserialize, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ReferoUiPatternCategory {
     Onboarding,
     Homepage,
-    Hero,
-    Features,
-    #[serde(rename = "social-proof")]
-    SocialProof,
     Pricing,
-    #[serde(rename = "website-pricing")]
-    WebsitePricing,
-    Conversion,
     Checkout,
     Dashboard,
+    #[serde(rename = "website-section")]
+    WebsiteSection,
 }
 
 impl ReferoUiPatternCategory {
@@ -44,14 +39,10 @@ impl ReferoUiPatternCategory {
         match self {
             Self::Onboarding => "Onboarding",
             Self::Homepage => "Homepage",
-            Self::Hero => "Hero",
-            Self::Features => "Features",
-            Self::SocialProof => "Social Proof",
             Self::Pricing => "Pricing",
-            Self::WebsitePricing => "Pricing",
-            Self::Conversion => "Conversion",
             Self::Checkout => "Checkout",
             Self::Dashboard => "Dashboard",
+            Self::WebsiteSection => "Website Section",
         }
     }
 
@@ -63,14 +54,10 @@ impl ReferoUiPatternCategory {
         match self {
             Self::Onboarding => "onboarding",
             Self::Homepage => "homepage",
-            Self::Hero => "hero",
-            Self::Features => "features",
-            Self::SocialProof => "social-proof",
             Self::Pricing => "pricing",
-            Self::WebsitePricing => "website-pricing",
-            Self::Conversion => "conversion",
             Self::Checkout => "checkout",
             Self::Dashboard => "dashboard",
+            Self::WebsiteSection => "website-section",
         }
     }
 
@@ -132,9 +119,31 @@ pub struct ReferoReference {
 #[serde(rename_all = "camelCase")]
 pub struct ReferoCategorySearch {
     pub category: ReferoUiPatternCategory,
+    #[serde(default)]
+    pub section: Option<String>,
     pub query: String,
     #[serde(default)]
     pub references: Vec<ReferoReference>,
+}
+
+impl ReferoCategorySearch {
+    pub fn display_title(&self) -> &str {
+        self.section
+            .as_deref()
+            .unwrap_or_else(|| self.category.display_title())
+    }
+
+    pub fn row_id(&self) -> String {
+        self.section.as_ref().map_or_else(
+            || self.category.row_id(),
+            |section| {
+                format!(
+                    "ui-patterns-{}",
+                    section.to_ascii_lowercase().replace(' ', "-")
+                )
+            },
+        )
+    }
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]

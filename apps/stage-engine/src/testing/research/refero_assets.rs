@@ -53,6 +53,7 @@ fn builds_distinct_ui_pattern_groups_per_category() {
         category_searches: vec![
             ReferoCategorySearch {
                 category: ReferoUiPatternCategory::Onboarding,
+                section: None,
                 query: "onboarding".to_string(),
                 references: vec![sample_screen(
                     "uuid-onboard",
@@ -62,6 +63,7 @@ fn builds_distinct_ui_pattern_groups_per_category() {
             },
             ReferoCategorySearch {
                 category: ReferoUiPatternCategory::Pricing,
+                section: None,
                 query: "pricing".to_string(),
                 references: vec![sample_screen(
                     "uuid-pricing",
@@ -105,11 +107,12 @@ fn details_website_groups_do_not_claim_canned_pattern_recognition() {
         query: "marketing website pricing".to_string(),
         references: vec![],
         category_searches: vec![ReferoCategorySearch {
-            category: ReferoUiPatternCategory::WebsitePricing,
+            category: ReferoUiPatternCategory::WebsiteSection,
+            section: Some("Pricing".to_string()),
             query: "marketing website pricing".to_string(),
             references: vec![sample_screen(
                 "uuid-pricing",
-                ReferoUiPatternCategory::WebsitePricing,
+                ReferoUiPatternCategory::WebsiteSection,
                 "Linear",
             )],
         }],
@@ -131,6 +134,7 @@ fn uses_refero_thumbnail_when_r2_image_key_is_missing() {
         references: vec![],
         category_searches: vec![ReferoCategorySearch {
             category: ReferoUiPatternCategory::Onboarding,
+            section: None,
             query: "onboarding".to_string(),
             references: vec![sample_screen(
                 "uuid-onboard",

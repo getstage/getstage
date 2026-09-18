@@ -8,14 +8,10 @@ export const referoPlatformSchema = z.enum(["web", "ios", "android", "unknown"])
 export const referoUiPatternCategorySchema = z.enum([
   "onboarding",
   "homepage",
-  "hero",
-  "features",
-  "social-proof",
   "pricing",
-  "website-pricing",
-  "conversion",
   "checkout",
   "dashboard",
+  "website-section",
 ]);
 
 export const referoSearchRequestSchema = z.object({
@@ -78,6 +74,7 @@ export const referoReferenceSchema = z.discriminatedUnion("kind", [
 
 export const referoCategorySearchSchema = z.object({
   category: referoUiPatternCategorySchema,
+  section: referoOptionalTextSchema,
   query: z.string().min(1),
   references: z.array(referoReferenceSchema).default([]),
 });
