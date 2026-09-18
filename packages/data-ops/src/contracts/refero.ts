@@ -4,11 +4,16 @@ export const referoReferenceKindSchema = z.enum(["screen", "flow", "style"]);
 
 export const referoPlatformSchema = z.enum(["web", "ios", "android", "unknown"]);
 
-/** Fixed UI Patterns row categories — engine maps Refero screen searches to these. */
+/** UI Patterns rows shared by Refero app research and Details website research. */
 export const referoUiPatternCategorySchema = z.enum([
   "onboarding",
   "homepage",
+  "hero",
+  "features",
+  "social-proof",
   "pricing",
+  "website-pricing",
+  "conversion",
   "checkout",
   "dashboard",
 ]);

@@ -198,9 +198,29 @@ fn category_summary(category: ReferoUiPatternCategory, evidence: &str) -> String
                 "Homepage {evidence} show how marketing pages frame value, proof, and primary action hierarchy."
             )
         }
-        ReferoUiPatternCategory::Pricing => {
+        ReferoUiPatternCategory::Hero => {
+            format!(
+                "Hero {evidence} show how a clear promise, product proof, and primary action work together above the fold."
+            )
+        }
+        ReferoUiPatternCategory::Features => {
+            format!(
+                "Feature {evidence} show how benefits, capabilities, and product visuals are structured for quick scanning."
+            )
+        }
+        ReferoUiPatternCategory::SocialProof => {
+            format!(
+                "Social proof {evidence} show how customer evidence supports product claims and reduces perceived risk."
+            )
+        }
+        ReferoUiPatternCategory::Pricing | ReferoUiPatternCategory::WebsitePricing => {
             format!(
                 "Pricing {evidence} show how plan comparison, billing details, and commitment cues are arranged."
+            )
+        }
+        ReferoUiPatternCategory::Conversion => {
+            format!(
+                "Conversion {evidence} show how contact, demo, and signup actions set expectations while keeping friction low."
             )
         }
         ReferoUiPatternCategory::Checkout => {
@@ -273,6 +293,11 @@ fn category_pattern_insights(
                 ),
             ),
         ],
+        ReferoUiPatternCategory::Hero
+        | ReferoUiPatternCategory::Features
+        | ReferoUiPatternCategory::SocialProof
+        | ReferoUiPatternCategory::WebsitePricing
+        | ReferoUiPatternCategory::Conversion => Vec::new(),
         ReferoUiPatternCategory::Pricing => vec![
             (
                 "Comparison-first plan grid",

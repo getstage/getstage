@@ -21,13 +21,20 @@ pub enum ReferoPlatform {
     Unknown,
 }
 
-/// Fixed UI Patterns row categories — mirrors `referoUiPatternCategorySchema` in data-ops.
+/// UI Patterns row categories shared by Refero app research and Details website research.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Deserialize, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ReferoUiPatternCategory {
     Onboarding,
     Homepage,
+    Hero,
+    Features,
+    #[serde(rename = "social-proof")]
+    SocialProof,
     Pricing,
+    #[serde(rename = "website-pricing")]
+    WebsitePricing,
+    Conversion,
     Checkout,
     Dashboard,
 }
@@ -37,7 +44,12 @@ impl ReferoUiPatternCategory {
         match self {
             Self::Onboarding => "Onboarding",
             Self::Homepage => "Homepage",
+            Self::Hero => "Hero",
+            Self::Features => "Features",
+            Self::SocialProof => "Social Proof",
             Self::Pricing => "Pricing",
+            Self::WebsitePricing => "Pricing",
+            Self::Conversion => "Conversion",
             Self::Checkout => "Checkout",
             Self::Dashboard => "Dashboard",
         }
@@ -51,7 +63,12 @@ impl ReferoUiPatternCategory {
         match self {
             Self::Onboarding => "onboarding",
             Self::Homepage => "homepage",
+            Self::Hero => "hero",
+            Self::Features => "features",
+            Self::SocialProof => "social-proof",
             Self::Pricing => "pricing",
+            Self::WebsitePricing => "website-pricing",
+            Self::Conversion => "conversion",
             Self::Checkout => "checkout",
             Self::Dashboard => "dashboard",
         }

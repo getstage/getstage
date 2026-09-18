@@ -69,7 +69,16 @@ fn build_category_query(input: &ResearchInput, category: ReferoUiPatternCategory
     let pattern = match category {
         ReferoUiPatternCategory::Onboarding => "account signup onboarding wizard first run",
         ReferoUiPatternCategory::Homepage => "marketing homepage hero sections",
+        ReferoUiPatternCategory::Hero => "marketing website hero value proposition call to action",
+        ReferoUiPatternCategory::Features => "marketing website features benefits product visuals",
+        ReferoUiPatternCategory::SocialProof => {
+            "marketing website testimonials logos case studies results"
+        }
         ReferoUiPatternCategory::Pricing => "pricing page plans comparison table",
+        ReferoUiPatternCategory::WebsitePricing => {
+            "marketing website pricing plans comparison section"
+        }
+        ReferoUiPatternCategory::Conversion => "marketing website contact demo signup lead form",
         ReferoUiPatternCategory::Checkout => "mobile checkout payment order summary",
         ReferoUiPatternCategory::Dashboard => "orders analytics dashboard overview",
     };

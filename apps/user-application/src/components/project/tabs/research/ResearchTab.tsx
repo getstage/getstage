@@ -416,7 +416,13 @@ export function ResearchTab({
           </div>
         </div>
       </section>
-      {openPhoto ? <PhotoLightbox src={openPhoto} onClose={() => setOpenPhoto(null)} /> : null}
+      {openPhoto ? (
+        <PhotoLightbox
+          src={openPhoto}
+          label={`${tabData.uiPatternProvider === "details" ? "Details inspiration" : "Refero screen"} preview`}
+          onClose={() => setOpenPhoto(null)}
+        />
+      ) : null}
       <NotionParentPageDialog
         open={notionExport.needsParentPage}
         onOpenChange={(open) => {

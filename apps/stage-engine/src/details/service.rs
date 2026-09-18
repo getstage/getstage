@@ -270,29 +270,54 @@ impl DetailsService {
 fn details_category_search_requests() -> Vec<(ReferoUiPatternCategory, String)> {
     [
         (
-            ReferoUiPatternCategory::Onboarding,
-            "signup, waitlist, or contact form section",
+            ReferoUiPatternCategory::Hero,
+            "marketing website hero with value proposition and primary call to action",
         ),
         (
-            ReferoUiPatternCategory::Homepage,
-            "marketing website hero section",
+            ReferoUiPatternCategory::Features,
+            "marketing website features and benefits section with product visuals",
         ),
         (
-            ReferoUiPatternCategory::Pricing,
-            "pricing plans comparison section",
+            ReferoUiPatternCategory::SocialProof,
+            "marketing website customer logos testimonials case studies and results",
         ),
         (
-            ReferoUiPatternCategory::Checkout,
-            "checkout, cart, or payment section",
+            ReferoUiPatternCategory::WebsitePricing,
+            "marketing website pricing plans comparison section",
         ),
         (
-            ReferoUiPatternCategory::Dashboard,
-            "product interface or dashboard showcase section",
+            ReferoUiPatternCategory::Conversion,
+            "marketing website contact demo signup call to action and lead form section",
         ),
     ]
     .into_iter()
     .map(|(category, query)| (category, query.to_string()))
     .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::details_category_search_requests;
+    use crate::models::refero::ReferoUiPatternCategory;
+
+    #[test]
+    fn website_searches_use_marketing_sections() {
+        let categories = details_category_search_requests()
+            .into_iter()
+            .map(|(category, _)| category)
+            .collect::<Vec<_>>();
+
+        assert_eq!(
+            categories,
+            vec![
+                ReferoUiPatternCategory::Hero,
+                ReferoUiPatternCategory::Features,
+                ReferoUiPatternCategory::SocialProof,
+                ReferoUiPatternCategory::WebsitePricing,
+                ReferoUiPatternCategory::Conversion,
+            ]
+        );
+    }
 }
 
 fn website_project_context(input: &ResearchInput) -> String {

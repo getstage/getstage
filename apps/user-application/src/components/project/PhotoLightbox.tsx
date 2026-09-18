@@ -12,7 +12,7 @@ type PhotoLightboxProps = {
 export function PhotoLightbox({
   src,
   onClose,
-  label = "Refero screen preview",
+  label = "Reference preview",
   originalSrc,
 }: PhotoLightboxProps) {
   const [zoom, setZoom] = useState(1);

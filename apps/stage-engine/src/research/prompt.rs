@@ -1,6 +1,4 @@
-use crate::models::refero::{
-    ReferoContext, ReferoReference, ReferoReferenceKind, ReferoUiPatternCategory,
-};
+use crate::models::refero::{ReferoContext, ReferoReference, ReferoReferenceKind};
 use crate::models::research::{ProjectCategory, ResearchInput};
 
 use super::competitive::{competitive_rules_for_prompt, format_competitive_targets_for_prompt};
@@ -15,6 +13,14 @@ pub fn build_research_prompt(
     let reference_provider = match input.project_category {
         ProjectCategory::Websites => "Details",
         ProjectCategory::WebApps | ProjectCategory::IosApps => "Refero",
+    };
+    let preferred_web_evidence = match input.project_category {
+        ProjectCategory::Websites => {
+            "homepage, features, social proof, pricing, and contact/signup evidence"
+        }
+        ProjectCategory::WebApps | ProjectCategory::IosApps => {
+            "pricing, product/features, onboarding/signup, checkout, or dashboard evidence"
+        }
     };
 
     let category_lines = refero_context
@@ -123,7 +129,7 @@ Real competitor UI evidence (from {reference_provider} — actual product screen
 Web research rules:
 - Use web search/fetch to inspect only the project website and allowed competitive sites.
 - Inspect at most the homepage plus three relevant pages per site.
-- Prefer pricing, product/features, onboarding/signup, checkout, or dashboard evidence.
+- Prefer {preferred_web_evidence}.
 - Every factual competitive claim must be supported by a real fetched page and represented in sourceReferences with its URL.
 - If a claim cannot be supported by fetched evidence, omit it.
 - Do not use model memory as evidence.
@@ -219,11 +225,13 @@ The JSON must use:
         } else {
             flow_lines
         },
-        ui_pattern_rows = ReferoUiPatternCategory::all()
+        ui_pattern_rows = refero_context
+            .category_searches
             .iter()
-            .map(|category| category.display_title())
+            .map(|bucket| bucket.category.display_title())
             .collect::<Vec<_>>()
             .join(", "),
+        preferred_web_evidence = preferred_web_evidence,
         reference_provider = reference_provider,
     )
 }

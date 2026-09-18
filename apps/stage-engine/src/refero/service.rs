@@ -480,6 +480,11 @@ fn category_keywords(category: ReferoUiPatternCategory) -> &'static [&'static st
             "panel",
             "report",
         ],
+        ReferoUiPatternCategory::Hero
+        | ReferoUiPatternCategory::Features
+        | ReferoUiPatternCategory::SocialProof
+        | ReferoUiPatternCategory::WebsitePricing
+        | ReferoUiPatternCategory::Conversion => &[],
     }
 }
 

@@ -165,50 +165,52 @@ function UiPatternGroup({
         </div>
       ) : null}
 
-      <div className="mt-1 overflow-hidden rounded-[8px] bg-white p-4 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
-        <button
-          type="button"
-          onClick={onToggle}
-          className="flex w-full items-center justify-between text-left"
-          aria-expanded={isOpen}
-        >
-          <span className="text-[13px] font-semibold leading-[1.25] text-[#171717]">Patterns Recognised</span>
-          {isOpen ? <ChevronUpIcon /> : <ChevronDownIcon />}
-        </button>
+      {group.recognizedPatterns.length > 0 ? (
+        <div className="mt-1 overflow-hidden rounded-[8px] bg-white p-4 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
+          <button
+            type="button"
+            onClick={onToggle}
+            className="flex w-full items-center justify-between text-left"
+            aria-expanded={isOpen}
+          >
+            <span className="text-[13px] font-semibold leading-[1.25] text-[#171717]">Reference Patterns</span>
+            {isOpen ? <ChevronUpIcon /> : <ChevronDownIcon />}
+          </button>
 
-        {isOpen ? (
-          <div className="mt-4 flex flex-col gap-4">
-            <div className="grid grid-cols-1 gap-2 xl:grid-cols-2">
-              {group.recognizedPatterns.map(([title, body], patternIndex) => (
-                <PatternCard
-                  key={`${patternIndex}-${title}`}
-                  title={title}
-                  body={body}
-                  isEditing={isEditing}
-                  onTitleChange={(nextTitle) =>
-                    onChange?.({
-                      recognizedPatterns: group.recognizedPatterns.map((pattern, index) =>
-                        index === patternIndex ? [nextTitle, pattern[1]] : pattern,
-                      ),
-                    })
-                  }
-                />
-              ))}
+          {isOpen ? (
+            <div className="mt-4 flex flex-col gap-4">
+              <div className="grid grid-cols-1 gap-2 xl:grid-cols-2">
+                {group.recognizedPatterns.map(([title, body], patternIndex) => (
+                  <PatternCard
+                    key={`${patternIndex}-${title}`}
+                    title={title}
+                    body={body}
+                    isEditing={isEditing}
+                    onTitleChange={(nextTitle) =>
+                      onChange?.({
+                        recognizedPatterns: group.recognizedPatterns.map((pattern, index) =>
+                          index === patternIndex ? [nextTitle, pattern[1]] : pattern,
+                        ),
+                      })
+                    }
+                  />
+                ))}
+              </div>
+
+              {isEditing ? (
+                <button
+                  type="button"
+                  onClick={onRegenerate}
+                  className="inline-flex h-[27px] w-fit cursor-pointer items-center gap-2 rounded-[4px] bg-white px-3 py-[6px] text-[12px] font-medium leading-[1.25] text-[#7C3AED] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#F5F3FF]"
+                >
+                  <RegenerateIcon />
+                  Regenerate with AI
+                </button>
+              ) : null}
             </div>
-
-            {isEditing ? (
-              <button
-                type="button"
-                onClick={onRegenerate}
-                className="inline-flex h-[27px] w-fit cursor-pointer items-center gap-2 rounded-[4px] bg-white px-3 py-[6px] text-[12px] font-medium leading-[1.25] text-[#7C3AED] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#F5F3FF]"
-              >
-                <RegenerateIcon />
-                Regenerate with AI
-              </button>
-            ) : null}
-          </div>
-        ) : null}
-      </div>
+          ) : null}
+        </div>
+      ) : null}
     </article>
   );
 }
