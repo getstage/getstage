@@ -9,11 +9,12 @@ const CATEGORY_SCREEN_LIMIT: u8 = 4;
 pub fn build_refero_category_search_requests(
     input: &ResearchInput,
 ) -> Vec<ReferoCategorySearchRequest> {
-    selected_refero_categories(input)
+    selected_refero_searches(input)
         .into_iter()
-        .map(|category| ReferoCategorySearchRequest {
+        .map(|(category, section)| ReferoCategorySearchRequest {
             category,
-            query: build_category_query(input, category),
+            query: build_category_query(input, category, section.as_deref()),
+            section,
             platform: refero_platform(input),
             limit: CATEGORY_SCREEN_LIMIT,
         })
@@ -65,34 +66,53 @@ pub fn build_refero_competitor_search_requests(
         .collect()
 }
 
-fn build_category_query(input: &ResearchInput, category: ReferoUiPatternCategory) -> String {
+fn build_category_query(
+    input: &ResearchInput,
+    category: ReferoUiPatternCategory,
+    section: Option<&str>,
+) -> String {
     // Lead with the concrete UI pattern — that is what makes each category distinct and
     // pulls a different region of Refero's index. Leading every query with the same
     // industry phrase made all five collide and return the same generic screens. Industry
     // stays only as a light trailing qualifier (and never the client name — see flow note).
-    let pattern = match (input.project_category, category) {
-        (ProjectCategory::IosApps, ReferoUiPatternCategory::Onboarding) => {
-            "mobile app onboarding signup first run"
-        }
-        (ProjectCategory::IosApps, ReferoUiPatternCategory::Homepage) => {
-            "mobile app home feed main screen"
-        }
-        (ProjectCategory::IosApps, ReferoUiPatternCategory::Pricing) => {
-            "mobile app paywall subscription pricing"
-        }
-        (ProjectCategory::IosApps, ReferoUiPatternCategory::Checkout) => {
-            "mobile checkout payment order summary"
-        }
-        (ProjectCategory::IosApps, ReferoUiPatternCategory::Dashboard) => {
-            "mobile app dashboard overview"
-        }
-        (_, ReferoUiPatternCategory::Onboarding) => "account signup onboarding wizard first run",
-        (_, ReferoUiPatternCategory::Homepage) => "web app homepage product overview",
-        (_, ReferoUiPatternCategory::Pricing) => "pricing page plans comparison table",
-        (_, ReferoUiPatternCategory::Checkout) => "checkout payment order summary",
-        (_, ReferoUiPatternCategory::Dashboard) => "orders analytics dashboard overview",
-        (_, ReferoUiPatternCategory::WebsiteSection) => "marketing website section",
-    };
+    let pattern = section.map_or_else(
+        || match (input.project_category, category) {
+            (ProjectCategory::IosApps, ReferoUiPatternCategory::Onboarding) => {
+                "mobile app onboarding signup first run".to_string()
+            }
+            (ProjectCategory::IosApps, ReferoUiPatternCategory::Homepage) => {
+                "mobile app home feed main screen".to_string()
+            }
+            (ProjectCategory::IosApps, ReferoUiPatternCategory::Pricing) => {
+                "mobile app paywall subscription pricing".to_string()
+            }
+            (ProjectCategory::IosApps, ReferoUiPatternCategory::Checkout) => {
+                "mobile checkout payment order summary".to_string()
+            }
+            (ProjectCategory::IosApps, ReferoUiPatternCategory::Dashboard) => {
+                "mobile app dashboard overview".to_string()
+            }
+            (_, ReferoUiPatternCategory::Onboarding) => {
+                "account signup onboarding wizard first run".to_string()
+            }
+            (_, ReferoUiPatternCategory::Homepage) => {
+                "web app homepage product overview".to_string()
+            }
+            (_, ReferoUiPatternCategory::Pricing) => {
+                "pricing page plans comparison table".to_string()
+            }
+            (_, ReferoUiPatternCategory::Checkout) => "checkout payment order summary".to_string(),
+            (_, ReferoUiPatternCategory::Dashboard) => {
+                "orders analytics dashboard overview".to_string()
+            }
+            (_, ReferoUiPatternCategory::AppScreen) => "app interface screen".to_string(),
+            (_, ReferoUiPatternCategory::WebsiteSection) => "marketing website section".to_string(),
+        },
+        |section| match input.project_category {
+            ProjectCategory::IosApps => format!("mobile app {section} interface"),
+            _ => format!("web app {section} interface"),
+        },
+    );
 
     // Two same-industry projects (e.g. both "SaaS") otherwise produce identical queries and
     // get back the exact same screens. Appending a short, project-specific descriptor mined
@@ -105,27 +125,49 @@ fn build_category_query(input: &ResearchInput, category: ReferoUiPatternCategory
     }
 }
 
-fn selected_refero_categories(input: &ResearchInput) -> Vec<ReferoUiPatternCategory> {
+fn selected_refero_searches(
+    input: &ResearchInput,
+) -> Vec<(ReferoUiPatternCategory, Option<String>)> {
     let selected = input
         .details_sections
         .iter()
         .filter_map(|section| match section.as_str() {
-            "Onboarding" => Some(ReferoUiPatternCategory::Onboarding),
-            "Homepage" => Some(ReferoUiPatternCategory::Homepage),
-            "Pricing" => Some(ReferoUiPatternCategory::Pricing),
-            "Checkout" => Some(ReferoUiPatternCategory::Checkout),
-            "Dashboard" => Some(ReferoUiPatternCategory::Dashboard),
+            "Onboarding" => Some((ReferoUiPatternCategory::Onboarding, None)),
+            "Homepage" => Some((ReferoUiPatternCategory::Homepage, None)),
+            "Pricing" => Some((ReferoUiPatternCategory::Pricing, None)),
+            "Checkout" => Some((ReferoUiPatternCategory::Checkout, None)),
+            "Dashboard" => Some((ReferoUiPatternCategory::Dashboard, None)),
+            "Login / Sign up"
+            | "Analytics / Reports"
+            | "Table / List"
+            | "Search"
+            | "Detail View"
+            | "Forms"
+            | "Settings"
+            | "Profile"
+            | "Team / Permissions"
+            | "Integrations"
+            | "Billing"
+            | "Browse / Discovery"
+            | "Notifications"
+            | "Empty State"
+            | "Success / Confirmation"
+            | "Splash Screen" => Some((ReferoUiPatternCategory::AppScreen, Some(section.clone()))),
             _ => None,
         })
-        .fold(Vec::new(), |mut categories, category| {
-            if !categories.contains(&category) {
-                categories.push(category);
+        .fold(Vec::new(), |mut searches, search| {
+            if !searches.contains(&search) {
+                searches.push(search);
             }
-            categories
+            searches
         });
 
     if selected.is_empty() || selected.len() != input.details_sections.len() {
-        ReferoUiPatternCategory::all().to_vec()
+        ReferoUiPatternCategory::all()
+            .iter()
+            .copied()
+            .map(|category| (category, None))
+            .collect()
     } else {
         selected
     }
@@ -301,6 +343,20 @@ mod tests {
                 .all(|request| request.platform == ReferoPlatform::Ios)
         );
         assert!(requests[0].query.contains("mobile app onboarding"));
+    }
+
+    #[test]
+    fn builds_distinct_queries_for_extended_app_screens() {
+        let mut input = sample_input();
+        input.details_sections = vec!["Search".to_string(), "Settings".to_string()];
+
+        let requests = build_refero_category_search_requests(&input);
+
+        assert_eq!(requests.len(), 2);
+        assert_eq!(requests[0].section.as_deref(), Some("Search"));
+        assert_eq!(requests[1].section.as_deref(), Some("Settings"));
+        assert!(requests[0].query.contains("web app Search interface"));
+        assert!(requests[1].query.contains("web app Settings interface"));
     }
 
     #[test]

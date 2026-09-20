@@ -2,7 +2,47 @@
 
 > **Status:** Phase 1 + 2 + 3 backend complete · Frontend wired · `npx convex typecheck` GREEN · `apps/user-application tsc` had 1 error (fixed, final re-run interrupted — see Verification)  
 > **Locked pricing spec:** 2026-06-24  
-> **Last updated:** 2026-07-03
+> **Last updated:** 2026-09-20
+
+---
+
+## Critical invite-flow audit (2026-09-20)
+
+> **Change freeze:** no further code changes, tests, commits, pushes, or production deploys until Werner has reviewed this table and completed the manual testing. Testing and Development already contain the invite-flow candidate; Production does not.
+
+| Area | Intended behavior | Current status | Environment | Evidence / files | Manual check required | Decision |
+|------|-------------------|----------------|-------------|------------------|-----------------------|----------|
+| Existing Stage user invite | Owner invites an existing account; member receives workspace access and sees all owner projects | Implemented candidate | Local, Development, Testing | `convex/workspaceMembers.ts`, `domain/collaborators/service.ts`, `domain/projects/readModel.ts` | Invite Roberto, sign in as Roberto, confirm all owner projects appear and are editable | **Keep; must pass** |
+| New user invite | Owner can invite an email with no Stage account | Implemented candidate | Local, Development, Testing | `convex/workspaceInvites.ts`, `platform/inviteTokens.ts` | Invite a fresh email address and confirm the email arrives | **Keep; must pass** |
+| Invitation email link | Email contains a usable `/invite/:token` link | Implemented candidate; not manually verified by Werner | Local, Development, Testing | `platform/inviteEmail.ts`, `routes/invite.$token.tsx` | Open the actual email and verify the link targets Testing during QA | **Keep; must pass** |
+| Signup/sign-in continuation | Logged-out invitee signs up or signs in and returns to the invitation | Implemented candidate; not manually verified by Werner | Local, Development, Testing | `AuthPage.tsx`, `postAuthRedirect.ts`, `webRoutePolicy.ts` | Complete the flow in a private browser with a fresh account | **Keep; must pass** |
+| Invitation acceptance | Signed-in user accepts only an invitation addressed to their verified email | Implemented candidate | Local, Development, Testing | `workspaceInvites.ts`, `platform/inviteTokens.ts` | Try correct email, wrong email, expired/revoked token, and a reused token | **Keep; security-critical** |
+| Seat enforcement | Pending and accepted members cannot exceed the owner's plan seat limit | Implemented candidate; billing combinations not manually verified | Local, Development, Testing | `domain/collaborators/service.ts`, `workspaceMembers.ts` | Fill all seats, then attempt one additional invite | **Keep; billing-critical** |
+| Pending invitation management | Owner can see pending invitations | Implemented candidate | Local, Development, Testing | `TeamPanel.tsx`, `useWorkspaceMembersQuery.ts` | Confirm pending row, recipient email, expiry, and status are correct | **Review necessity** |
+| Resend invitation | Owner can issue a replacement invitation email | Implemented candidate | Local, Development, Testing | `workspaceMembers.ts`, `TeamPanel.tsx` | Resend and confirm the old link no longer works and the new link does | **Review necessity** |
+| Revoke invitation | Owner can revoke a pending invitation | Implemented candidate | Local, Development, Testing | `workspaceMembers.ts`, `TeamPanel.tsx` | Revoke, then confirm the emailed link cannot be accepted | **Review necessity** |
+| Existing workspace/member access | Current members retain access; client portal remains separate | Expected unchanged; regression check outstanding | Local, Development, Testing | `projectCollaborators`, project access/read model | Check one existing member and one client-portal link | **Must not regress** |
+| Production release | No invite-flow candidate should be live before Werner's approval | **Not deployed** | Production | No production deploy performed for this candidate | Verify production remains on the prior behavior | **Blocked** |
+
+### Deployment and verification record
+
+| Item | Status |
+|------|--------|
+| Local code changes | Present and uncommitted |
+| Convex Development deployment | Updated with invite-flow candidate |
+| Testing web deployment | Updated; version `b94f6b64-36b8-4ceb-9911-aebba22f52c4` |
+| Testing URL | `https://testing.getstage.co` |
+| Production deployment | **Not performed** |
+| Werner end-to-end test | **Not performed yet** |
+| Production approval | **Not granted** |
+
+### Ponytail review gate
+
+Before any commit or production deploy, review the complete diff and classify every invite-related change as one of:
+
+- **Required core:** invite record, secure token, expiry, verified-email match, authentication continuation, acceptance, membership creation, authorization, and seat enforcement.
+- **Candidate to remove or defer:** pending-invite management UI, resend, revoke, duplicate orchestration, and explanatory code that does not protect behavior.
+- **Unrelated:** must stay out of the invite commit.
 
 ---
 
@@ -387,13 +427,68 @@ Your partner is editing **Settings → Team members**. Align on this **before** 
 
 ---
 
+## Development team-flow smoke test (2026-09-20)
+
+Use a new project such as `TEAM FLOW TEST`. Never use customer projects from the
+production deployment for this test.
+
+### How access works today
+
+1. The owner has a subscription with more than one seat.
+2. The invited email must already belong to a Stage user; pre-signup invitations are not implemented.
+3. Adding the user in **Settings -> Team** creates the workspace membership immediately.
+4. The email is informational; there is no separate invitation-acceptance step.
+5. After signing in again, the member can access every project owned by that workspace owner.
+6. Project-scoped AI usage is charged to the project owner's credit wallet.
+
+### Development environment
+
+Use Convex deployment `reliable-bullfrog-917` and Stripe **Test Mode**. Do not copy
+live Stripe secrets, live webhook secrets, or live price IDs from Production.
+
+- [ ] `SITE_URL=https://testing.getstage.co`
+- [ ] `STRIPE_SECRET_KEY=sk_test_...`
+- [ ] `STRIPE_WEBHOOK_SECRET` belongs to
+      `https://reliable-bullfrog-917.convex.site/stripe/webhook`
+- [ ] `STRIPE_START_MONTHLY_PRICE_ID` and `STRIPE_START_YEARLY_PRICE_ID`
+- [ ] `STRIPE_PRO_MONTHLY_PRICE_ID` and `STRIPE_PRO_YEARLY_PRICE_ID`
+- [ ] `STRIPE_TEAM_BASE_MONTHLY_PRICE_ID` and `STRIPE_TEAM_BASE_YEARLY_PRICE_ID`
+- [ ] `STRIPE_TOPUP_SMALL_PRICE_ID`, `STRIPE_TOPUP_MEDIUM_PRICE_ID`, and
+      `STRIPE_TOPUP_LARGE_PRICE_ID`
+- [ ] `STAGE_RESEND_API_KEY`
+
+The current code accepts both naming sets: Start/Solo, Pro/Studio, and
+Team/Agency. `STRIPE_TEAM_SEAT_*` is not used by the current fixed-seat checkout.
+Stripe Connect variables are not required for this collaboration test.
+
+### End-to-end test
+
+- [ ] Confirm the current backend is deployed to Development before testing.
+- [ ] Create member account B first, then sign out.
+- [ ] Create owner account A.
+- [ ] Start a Pro or Team test subscription for A. Stripe test card:
+      `4242 4242 4242 4242`, any future expiry date, and any CVC.
+- [ ] As A, create `TEAM FLOW TEST`.
+- [ ] In **Settings -> Team**, add the exact email address for B.
+- [ ] Sign out and sign in as B.
+- [ ] Confirm B can see and open `TEAM FLOW TEST`.
+- [ ] As B, make one harmless task change.
+- [ ] Sign in as A and confirm the same change is visible.
+- [ ] Record both credit balances, run one project-scoped AI action as B, and
+      confirm A's balance decreases while B's own balance does not.
+
+Current plan limits in code are Start = 1 seat, Pro = 5 seats, Team = 15 seats.
+Trialing subscriptions receive a hard cap of 150 credits.
+
+---
+
 ## Open decisions
 
-- [x] **Start/Pro seat policy:** RESOLVED — Start/Pro = 1 seat, Team required for any multi-seat invite.
+- [x] **Seat policy:** RESOLVED — Start = 1 seat, Pro = 5 seats, Team = 15 seats.
 - [ ] **Refero metering:** Engine reports actual request count per run *(preferred)* vs fixed fallback (4 / 27) at launch? — **still open (ask engine owner)**. Fallbacks are live; swap to actual counts when the engine payload exposes them.
 - [x] **Table name:** RESOLVED — evolved `projectCollaborators` in place.
 - [x] **Invite before signup:** RESOLVED — deferred (not at launch).
-- [x] **Trial:** RESOLVED — 14 days, all paid tiers, card required, 1,500-credit hard cap.
+- [x] **Trial:** RESOLVED — 14 days, all paid tiers, card required, 150-credit hard cap.
 - [x] **Credit funding model:** RESOLVED — Convex-side ledger (prepaid, real-time gating); Stripe webhooks grant/revoke. No Stripe metered billing.
 - [ ] **Start tier trial?** — currently Start also offers a 14-day trial (per "all paid tiers"). Confirm Start should trial vs. paid-immediate. (UI says "Start 14-Day Trial" on all three.)
 - [ ] **Seat sync automation** — owner manages extra seats via Stripe portal today; auto-syncing seat quantity on member add/remove is deferred.

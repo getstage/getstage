@@ -21,8 +21,6 @@ function toUserFriendlyAddError(message: string) {
   switch (message) {
     case "Active Stage subscription required to invite members.":
       return "Upgrade to Stage Studio to add team members.";
-    case "No user found with that email address.":
-      return "This person needs a Stage account before you can add them.";
     case "This user is already a member of your workspace.":
       return "This person is already a member of your workspace.";
     case "You are already the owner of this workspace.":
@@ -47,7 +45,7 @@ export function ShareProjectDialog({
   const [addError, setAddError] = useState("");
   const [addSuccess, setAddSuccess] = useState("");
   const [isAdding, setIsAdding] = useState(false);
-  const isPro = user?.plan === "pro";
+  const canInvite = user?.plan === "pro" || user?.plan === "team";
 
   const collaborators = useConvexQuery(
     api.collaborators.listByProject,
@@ -154,7 +152,7 @@ export function ShareProjectDialog({
                 <label className="block text-[13px] font-medium text-text-primary">
                   Team members
                 </label>
-                {!isPro ? (
+                {!canInvite ? (
                   <button
                     type="button"
                     onClick={() => window.location.assign("/settings?tab=billing")}
@@ -171,7 +169,7 @@ export function ShareProjectDialog({
 
               <div
                 className={`rounded-[12px] border px-3 py-3 ${
-                  isPro
+                  canInvite
                     ? "border-border-subtle bg-transparent"
                     : "border-[#f4c7c3] bg-[#fff7f6]"
                 }`}
@@ -179,7 +177,7 @@ export function ShareProjectDialog({
                 <form onSubmit={handleAddCollaborator} className="flex items-center gap-2">
                   <div
                     className={`flex flex-1 items-center gap-2 rounded-[10px] border px-3 ${
-                      isPro
+                      canInvite
                         ? "border-border bg-bg"
                         : "border-border-subtle bg-white/70 opacity-70"
                     }`}
@@ -188,7 +186,7 @@ export function ShareProjectDialog({
                     <input
                       type="email"
                       placeholder={
-                        isPro ? "Enter email address" : "Upgrade to unlock team member invites"
+                        canInvite ? "Enter email address" : "Upgrade to unlock team member invites"
                       }
                       value={email}
                       onChange={(e) => {
@@ -196,24 +194,24 @@ export function ShareProjectDialog({
                         setAddError("");
                         setAddSuccess("");
                       }}
-                      disabled={!isPro}
+                      disabled={!canInvite}
                       className="h-10 min-w-0 flex-1 border-0 bg-transparent p-0 text-[14px] text-text-primary placeholder:text-text-tertiary focus:outline-none"
                     />
                   </div>
-                  <Button type="submit" size="sm" disabled={!isPro || isAdding || !email.trim()}>
-                    Add
+                  <Button type="submit" size="sm" disabled={!canInvite || isAdding || !email.trim()}>
+                    {isAdding ? "Sending..." : "Invite"}
                   </Button>
                 </form>
 
-                {!isPro ? (
+                {!canInvite ? (
                   <p className="mt-2 text-[12px] leading-5 text-destructive">
                     Upgrade to Stage Studio to add team members. Invited members don't need their
                     own subscription.
                   </p>
                 ) : (
                   <p className="mt-2 text-[12px] leading-5 text-text-secondary">
-                    Invited members can collaborate on all your projects. They don't need their
-                    own subscription.
+                    The email link lets new or existing users join your workspace. They don't need
+                    their own subscription.
                   </p>
                 )}
               </div>

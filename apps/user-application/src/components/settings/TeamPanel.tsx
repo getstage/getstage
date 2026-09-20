@@ -5,7 +5,11 @@ import { Avatar } from "@/components/ui/Avatar";
 import { api } from "@/lib/convexApi";
 import { toUserFacingErrorMessage } from "@/lib/errors";
 import { inviteTeamMemberSchema } from "@/lib/validation";
-import { useSettingsOverviewQuery, useWorkspaceMembersQuery } from "@/hooks/convex-data";
+import {
+  useSettingsOverviewQuery,
+  useWorkspaceInvitesQuery,
+  useWorkspaceMembersQuery,
+} from "@/hooks/convex-data";
 import { SettingsCard, SettingsRow } from "./SettingsPrimitives";
 
 type TeamMember = {
@@ -16,21 +20,22 @@ type TeamMember = {
   role: "Owner" | "Member";
 };
 
-// Seats are display-only until Phase 3 enforces them server-side.
-const TEAM_LIMIT = 3;
-
 export function TeamPanel() {
   const overview = useSettingsOverviewQuery();
   const profile = overview.data?.profile;
   const members = useWorkspaceMembersQuery();
+  const invites = useWorkspaceInvitesQuery();
   const addMember = useAction(api.workspaceMembers.add);
+  const resendInvite = useAction(api.workspaceMembers.resend);
   const removeMember = useMutation(api.workspaceMembers.remove);
+  const revokeInvite = useMutation(api.workspaceMembers.revoke);
 
   const [inviteEmail, setInviteEmail] = useState("");
   const [notice, setNotice] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [removingId, setRemovingId] = useState<string | null>(null);
+  const [pendingActionId, setPendingActionId] = useState<string | null>(null);
 
   const rows = useMemo<TeamMember[] | undefined>(() => {
     if (members.data === undefined) {
@@ -53,7 +58,11 @@ export function TeamPanel() {
     return [owner, ...invited];
   }, [members.data, profile?.avatarUrl, profile?.email, profile?.name]);
 
-  const seatsLeft = rows ? TEAM_LIMIT - rows.length : 0;
+  const seatLimit = overview.data?.subscription?.seats ?? 1;
+  const seatsLeft =
+    rows && invites.data
+      ? Math.max(0, seatLimit - rows.length - invites.data.length)
+      : 0;
 
   const emailInput = inviteEmail.trim();
   const emailValidation = inviteTeamMemberSchema.safeParse({ email: emailInput });
@@ -75,13 +84,45 @@ export function TeamPanel() {
       setInviteEmail("");
       setNotice(
         result.inviteSent
-          ? "Team member added."
-          : result.inviteError ?? "Team member added, but the invite email could not be sent.",
+          ? `Invitation sent to ${email}. They can create an account from the link.`
+          : result.inviteError ?? "Invitation created, but the email could not be sent.",
       );
     } catch (error) {
       setErrorMessage(toUserFacingErrorMessage(error, "Could not add this team member."));
     } finally {
       setIsSubmitting(false);
+    }
+  }
+
+  async function resendPendingInvite(inviteId: string, email: string) {
+    setNotice(null);
+    setErrorMessage(null);
+    setPendingActionId(inviteId);
+    try {
+      const result = await resendInvite({ inviteId: inviteId as Id<"workspaceInvites"> });
+      if (!result.inviteSent) {
+        setErrorMessage(result.inviteError ?? "The invitation email could not be sent.");
+        return;
+      }
+      setNotice(`Invitation resent to ${email}.`);
+    } catch (error) {
+      setErrorMessage(toUserFacingErrorMessage(error, "Could not resend this invitation."));
+    } finally {
+      setPendingActionId(null);
+    }
+  }
+
+  async function revokePendingInvite(inviteId: string) {
+    setNotice(null);
+    setErrorMessage(null);
+    setPendingActionId(inviteId);
+    try {
+      await revokeInvite({ inviteId: inviteId as Id<"workspaceInvites"> });
+      setNotice("Invitation revoked.");
+    } catch (error) {
+      setErrorMessage(toUserFacingErrorMessage(error, "Could not revoke this invitation."));
+    } finally {
+      setPendingActionId(null);
     }
   }
 
@@ -101,7 +142,7 @@ export function TeamPanel() {
   return (
     <SettingsCard title="Team">
       <p className="-mt-[12px] px-[12px] pb-[12px] text-[12px] font-normal leading-[1.5] text-[#404040]">
-        Manage who can access this workspace. Your plan includes {TEAM_LIMIT} team seats.
+        Manage who can access this workspace. Your plan includes {seatLimit} seat{seatLimit === 1 ? "" : "s"}.
       </p>
 
       <div className="flex flex-col gap-[4px]">
@@ -145,12 +186,45 @@ export function TeamPanel() {
           {errorMessage ? <p className="mt-[10px] text-[12px] font-medium leading-[1.5] text-[#b91c1c]">{errorMessage}</p> : null}
         </SettingsRow>
 
-        {members.isLoading ? (
+        {members.isLoading || invites.isLoading ? (
           <SettingsRow>
             <p className="text-[12px] font-normal leading-[1.5] text-[#737373]">Loading team members…</p>
           </SettingsRow>
         ) : (
-          rows?.map((member) => (
+          <>
+            {invites.data?.map((invite) => (
+              <SettingsRow key={invite._id}>
+                <div className="flex items-center justify-between gap-[16px]">
+                  <div className="min-w-0">
+                    <h3 className="truncate text-[13px] font-medium leading-[1.5] text-[#0A0A0A]">
+                      {invite.email}
+                    </h3>
+                    <p className="text-[12px] font-normal leading-[1.5] text-[#737373]">
+                      Invitation pending
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-[8px]">
+                    <button
+                      type="button"
+                      onClick={() => void resendPendingInvite(invite._id, invite.email)}
+                      disabled={pendingActionId === invite._id}
+                      className="rounded-[6px] bg-[#F5F5F5] px-[10px] py-[6px] text-[12px] font-medium leading-none text-[#525252] hover:bg-[#E5E5E5] disabled:opacity-50"
+                    >
+                      Resend
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void revokePendingInvite(invite._id)}
+                      disabled={pendingActionId === invite._id}
+                      className="rounded-[6px] bg-[#F5F5F5] px-[10px] py-[6px] text-[12px] font-medium leading-none text-[#B91C1C] hover:bg-[#FEF2F2] disabled:opacity-50"
+                    >
+                      Revoke
+                    </button>
+                  </div>
+                </div>
+              </SettingsRow>
+            ))}
+            {rows?.map((member) => (
           <SettingsRow key={member.id}>
             <div className="flex items-center justify-between gap-[16px]">
               <div className="flex min-w-0 items-center gap-[12px]">
@@ -184,7 +258,8 @@ export function TeamPanel() {
               </div>
             </div>
           </SettingsRow>
-          ))
+            ))}
+          </>
         )}
       </div>
     </SettingsCard>

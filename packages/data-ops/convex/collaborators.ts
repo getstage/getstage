@@ -3,25 +3,30 @@ import { v } from "convex/values";
 import { requireProjectOwner } from "./_helpers";
 import { internal } from "./_generated/api";
 import { enforceWorkspaceInviteRateLimit } from "./platform/rateLimits";
-import { sendInviteEmail, toInviteErrorMessage } from "./platform/inviteEmail";
+import {
+  buildWorkspaceInviteUrl,
+  sendInviteEmail,
+  toInviteErrorMessage,
+} from "./platform/inviteEmail";
+import { createInviteToken, hashInviteToken } from "./platform/inviteTokens";
 import { listWorkspaceMembers } from "./domain/collaborators/service";
 import type { Id } from "./_generated/dataModel";
 
 type AddedCollaboratorPayload = {
-  collaboratorId: Id<"projectCollaborators">;
+  inviteId: Id<"workspaceInvites">;
   ownerId: string;
   inviterName: string;
   recipientEmail: string;
   projectName: string;
-  portalUrl: string;
-  workspaceUrl: string;
 };
 
 type AddCollaboratorResult = {
-  collaboratorId: Id<"projectCollaborators">;
+  inviteId: Id<"workspaceInvites">;
   inviteSent: boolean;
   inviteError?: string;
 };
+
+type InviteRateLimitContext = { ownerId: string; recipientEmail: string };
 
 export const add = action({
   args: {
@@ -29,32 +34,38 @@ export const add = action({
     email: v.string(),
   },
   handler: async (ctx, args): Promise<AddCollaboratorResult> => {
+    const rateLimitContext = (await ctx.runQuery(
+      internal.domain.collaborators.invites.getProjectRateLimitContext,
+      args,
+    )) as InviteRateLimitContext;
+    await enforceWorkspaceInviteRateLimit(ctx, {
+      ownerId: rateLimitContext.ownerId,
+      email: rateLimitContext.recipientEmail,
+    });
+
+    const token = createInviteToken();
+    const tokenHash = await hashInviteToken(token);
     const collaborator = (await ctx.runMutation(
       internal.domain.collaborators.invites.addRecord,
-      args,
+      { ...args, tokenHash },
     )) as AddedCollaboratorPayload;
 
     try {
-      await enforceWorkspaceInviteRateLimit(ctx, {
-        ownerId: collaborator.ownerId,
-        email: collaborator.recipientEmail,
-      });
-
       await sendInviteEmail({
         email: collaborator.recipientEmail,
         inviterName: collaborator.inviterName,
         projectName: collaborator.projectName,
-        workspaceUrl: collaborator.workspaceUrl,
+        inviteUrl: buildWorkspaceInviteUrl(token),
       });
 
       return {
-        collaboratorId: collaborator.collaboratorId,
+        inviteId: collaborator.inviteId,
         inviteSent: true,
       };
     } catch (error) {
       console.error("Failed to send project invite email", error);
       return {
-        collaboratorId: collaborator.collaboratorId,
+        inviteId: collaborator.inviteId,
         inviteSent: false,
         inviteError: toInviteErrorMessage(error),
       };

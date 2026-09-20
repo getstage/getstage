@@ -94,7 +94,7 @@ fn build_ui_pattern_group(
     bucket: &ReferoCategorySearch,
     image_keys: &HashMap<String, String>,
 ) -> Value {
-    let recognized_patterns = if bucket.section.is_some() {
+    let recognized_patterns = if bucket.category == ReferoUiPatternCategory::WebsiteSection {
         Vec::new()
     } else {
         collect_recognized_patterns(bucket.category, &bucket.references)
@@ -121,7 +121,7 @@ fn build_ui_pattern_group(
         "title": bucket.display_title(),
         "summary": bucket.section.as_ref().map_or_else(
             || build_group_summary(bucket.category, &bucket.references),
-            |section| Some(format!("{section} references from {} provide focused website inspiration.", reference_evidence(&bucket.references))),
+            |section| Some(format!("{section} references from {} provide focused design inspiration.", reference_evidence(&bucket.references))),
         ),
         "patternCountLabel": pattern_count_label,
         "recognizedPatterns": recognized_patterns,
@@ -220,6 +220,11 @@ fn category_summary(category: ReferoUiPatternCategory, evidence: &str) -> String
                 "Dashboard {evidence} show how activity, status, and next actions are prioritized after login."
             )
         }
+        ReferoUiPatternCategory::AppScreen => {
+            format!(
+                "App-screen {evidence} show how hierarchy, feedback, and primary actions are handled in this interface context."
+            )
+        }
         ReferoUiPatternCategory::WebsiteSection => {
             format!("Website section {evidence} provide focused marketing-site inspiration.")
         }
@@ -280,6 +285,26 @@ fn category_pattern_insights(
                 "Section rhythm",
                 format!(
                     "{evidence} alternate explanation, visual example, and action blocks so the page stays scannable."
+                ),
+            ),
+        ],
+        ReferoUiPatternCategory::AppScreen => vec![
+            (
+                "Primary task is visually dominant",
+                format!(
+                    "{evidence} prioritize one main task while keeping secondary actions available without competing for attention."
+                ),
+            ),
+            (
+                "State remains visible",
+                format!(
+                    "{evidence} use clear selected, loading, empty, and completion states so users understand what the interface is doing."
+                ),
+            ),
+            (
+                "Controls follow content hierarchy",
+                format!(
+                    "{evidence} place navigation and actions close to the content they affect, reducing scanning and interpretation effort."
                 ),
             ),
         ],

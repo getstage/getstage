@@ -30,6 +30,8 @@ pub enum ReferoUiPatternCategory {
     Pricing,
     Checkout,
     Dashboard,
+    #[serde(rename = "app-screen")]
+    AppScreen,
     #[serde(rename = "website-section")]
     WebsiteSection,
 }
@@ -42,6 +44,7 @@ impl ReferoUiPatternCategory {
             Self::Pricing => "Pricing",
             Self::Checkout => "Checkout",
             Self::Dashboard => "Dashboard",
+            Self::AppScreen => "App Screen",
             Self::WebsiteSection => "Website Section",
         }
     }
@@ -57,6 +60,7 @@ impl ReferoUiPatternCategory {
             Self::Pricing => "pricing",
             Self::Checkout => "checkout",
             Self::Dashboard => "dashboard",
+            Self::AppScreen => "app-screen",
             Self::WebsiteSection => "website-section",
         }
     }
@@ -86,6 +90,8 @@ pub struct ReferoSearchRequest {
 #[serde(rename_all = "camelCase")]
 pub struct ReferoCategorySearchRequest {
     pub category: ReferoUiPatternCategory,
+    #[serde(default)]
+    pub section: Option<String>,
     pub query: String,
     pub platform: ReferoPlatform,
     pub limit: u8,
@@ -139,7 +145,9 @@ impl ReferoCategorySearch {
             |section| {
                 format!(
                     "ui-patterns-{}",
-                    section.to_ascii_lowercase().replace(' ', "-")
+                    section
+                        .to_ascii_lowercase()
+                        .replace(|character: char| !character.is_ascii_alphanumeric(), "-")
                 )
             },
         )

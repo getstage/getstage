@@ -13,7 +13,17 @@ const workspaceMemberSchema = z.object({
 
 const workspaceMembersSchema = z.array(workspaceMemberSchema);
 
+const workspaceInviteSchema = z.object({
+  _id: z.string(),
+  email: z.string(),
+  expiresAt: z.number(),
+  createdAt: z.number(),
+});
+
+const workspaceInvitesSchema = z.array(workspaceInviteSchema);
+
 export type WorkspaceMember = z.infer<typeof workspaceMemberSchema>;
+export type WorkspaceInvite = z.infer<typeof workspaceInviteSchema>;
 
 // Members of the current user's workspace (the people they invited). The owner
 // is not included — the caller renders the owner row separately.
@@ -25,6 +35,23 @@ export function useWorkspaceMembersQuery() {
   const data = useMemo<WorkspaceMember[] | undefined>(
     () => (members === undefined ? undefined : workspaceMembersSchema.parse(members)),
     [members],
+  );
+
+  return {
+    data,
+    isLoading: isAuthLoading || (isAuthenticated && isPending),
+    error: null,
+  };
+}
+
+export function useWorkspaceInvitesQuery() {
+  const { isAuthenticated, isLoading: isAuthLoading } = useDesktopAuth();
+  const { data: invites, isPending } = useQuery(
+    convexQuery(api.workspaceMembers.listPending, isAuthenticated ? {} : "skip"),
+  );
+  const data = useMemo<WorkspaceInvite[] | undefined>(
+    () => (invites === undefined ? undefined : workspaceInvitesSchema.parse(invites)),
+    [invites],
   );
 
   return {

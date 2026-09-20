@@ -9,7 +9,12 @@ export { useProjectsQuery } from "./useProjectsQuery";
 export { useSettingsOverviewQuery, type SettingsOverview } from "./useSettingsOverviewQuery";
 export { useUserTasksQuery, type UseUserTasksQueryArgs } from "./useUserTasksQuery";
 export { useProjectMembersQuery, type ProjectMember } from "./useProjectMembersQuery";
-export { useWorkspaceMembersQuery, type WorkspaceMember } from "./useWorkspaceMembersQuery";
+export {
+  useWorkspaceInvitesQuery,
+  useWorkspaceMembersQuery,
+  type WorkspaceInvite,
+  type WorkspaceMember,
+} from "./useWorkspaceMembersQuery";
 export {
   useCreateTaskMutation,
   useDeleteTaskMutation,

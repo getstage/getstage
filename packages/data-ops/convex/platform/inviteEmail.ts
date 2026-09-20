@@ -38,7 +38,7 @@ function getLoopsApiKey() {
 
 export function toInviteErrorMessage(error: unknown) {
   if (!(error instanceof Error) || !error.message) {
-    return "Team member added, but the invite email could not be sent.";
+    return "Invitation created, but the email could not be sent.";
   }
 
   const message = error.message.trim();
@@ -50,14 +50,19 @@ export function toInviteErrorMessage(error: unknown) {
     return message;
   }
 
-  return "Team member added, but the invite email could not be sent.";
+  return "Invitation created, but the email could not be sent.";
+}
+
+export function buildWorkspaceInviteUrl(token: string) {
+  const siteUrl = (getEnv("SITE_URL") ?? "https://getstage.co").replace(/\/+$/, "");
+  return `${siteUrl}/invite/${encodeURIComponent(token)}`;
 }
 
 export async function sendInviteEmail(args: {
   email: string;
   inviterName: string;
   projectName: string;
-  workspaceUrl: string;
+  inviteUrl: string;
 }) {
   const response = await fetch("https://app.loops.so/api/v1/transactional", {
     method: "POST",
@@ -71,8 +76,9 @@ export async function sendInviteEmail(args: {
       dataVariables: {
         inviterName: args.inviterName,
         projectName: args.projectName,
-        portalUrl: args.workspaceUrl,
-        workspaceUrl: args.workspaceUrl,
+        portalUrl: args.inviteUrl,
+        workspaceUrl: args.inviteUrl,
+        signInEmail: args.email,
       },
     }),
   });

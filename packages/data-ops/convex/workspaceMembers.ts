@@ -3,8 +3,17 @@ import { v } from "convex/values";
 import { requireWorkspaceOwner } from "./_helpers";
 import { internal } from "./_generated/api";
 import { enforceWorkspaceInviteRateLimit } from "./platform/rateLimits";
-import { sendInviteEmail, toInviteErrorMessage } from "./platform/inviteEmail";
-import { listWorkspaceMembers } from "./domain/collaborators/service";
+import {
+  buildWorkspaceInviteUrl,
+  sendInviteEmail,
+  toInviteErrorMessage,
+} from "./platform/inviteEmail";
+import { createInviteToken, hashInviteToken } from "./platform/inviteTokens";
+import {
+  listPendingWorkspaceInvites,
+  listWorkspaceMembers,
+  revokeWorkspaceInviteRecord,
+} from "./domain/collaborators/service";
 import type { Id } from "./_generated/dataModel";
 
 // Workspace-native team API for Settings → Team. Every user owns exactly one
@@ -12,18 +21,20 @@ import type { Id } from "./_generated/dataModel";
 // the caller's own workspace, with no project context.
 
 type AddedWorkspaceMemberPayload = {
-  memberId: Id<"projectCollaborators">;
+  inviteId: Id<"workspaceInvites">;
   ownerId: string;
   inviterName: string;
   recipientEmail: string;
-  workspaceUrl: string;
+  projectName: string;
 };
 
 type AddWorkspaceMemberResult = {
-  memberId: Id<"projectCollaborators">;
+  inviteId: Id<"workspaceInvites">;
   inviteSent: boolean;
   inviteError?: string;
 };
+
+type InviteRateLimitContext = { ownerId: string; recipientEmail: string };
 
 export const list = query({
   args: {},
@@ -33,43 +44,99 @@ export const list = query({
   },
 });
 
+export const listPending = query({
+  args: {},
+  handler: async (ctx) => {
+    const { owner } = await requireWorkspaceOwner(ctx);
+    return listPendingWorkspaceInvites(ctx, owner._id);
+  },
+});
+
 export const add = action({
   args: {
     email: v.string(),
   },
   handler: async (ctx, args): Promise<AddWorkspaceMemberResult> => {
+    const rateLimitContext = (await ctx.runQuery(
+      internal.domain.collaborators.invites.getWorkspaceRateLimitContext,
+      args,
+    )) as InviteRateLimitContext;
+    await enforceWorkspaceInviteRateLimit(ctx, {
+      ownerId: rateLimitContext.ownerId,
+      email: rateLimitContext.recipientEmail,
+    });
+
+    const token = createInviteToken();
+    const tokenHash = await hashInviteToken(token);
     const member = (await ctx.runMutation(
       internal.domain.collaborators.invites.addWorkspaceRecord,
-      args,
+      { ...args, tokenHash },
     )) as AddedWorkspaceMemberPayload;
 
     try {
-      await enforceWorkspaceInviteRateLimit(ctx, {
-        ownerId: member.ownerId,
-        email: member.recipientEmail,
-      });
-
       await sendInviteEmail({
         email: member.recipientEmail,
         inviterName: member.inviterName,
-        // Reuses the project invite template until Phase 3 ships workspace copy.
-        projectName: "your workspace",
-        workspaceUrl: member.workspaceUrl,
+        projectName: member.projectName,
+        inviteUrl: buildWorkspaceInviteUrl(token),
       });
 
       return {
-        memberId: member.memberId,
+        inviteId: member.inviteId,
         inviteSent: true,
       };
     } catch (error) {
       console.error("Failed to send workspace invite email", error);
       return {
-        memberId: member.memberId,
+        inviteId: member.inviteId,
         inviteSent: false,
         inviteError: toInviteErrorMessage(error),
       };
     }
   },
+});
+
+export const resend = action({
+  args: { inviteId: v.id("workspaceInvites") },
+  handler: async (ctx, args): Promise<AddWorkspaceMemberResult> => {
+    const rateLimitContext = (await ctx.runQuery(
+      internal.domain.collaborators.invites.getResendRateLimitContext,
+      args,
+    )) as InviteRateLimitContext;
+    await enforceWorkspaceInviteRateLimit(ctx, {
+      ownerId: rateLimitContext.ownerId,
+      email: rateLimitContext.recipientEmail,
+    });
+
+    const token = createInviteToken();
+    const tokenHash = await hashInviteToken(token);
+    const invite = (await ctx.runMutation(
+      internal.domain.collaborators.invites.refreshWorkspaceRecord,
+      { ...args, tokenHash },
+    )) as AddedWorkspaceMemberPayload;
+
+    try {
+      await sendInviteEmail({
+        email: invite.recipientEmail,
+        inviterName: invite.inviterName,
+        projectName: invite.projectName,
+        inviteUrl: buildWorkspaceInviteUrl(token),
+      });
+      return { inviteId: invite.inviteId, inviteSent: true };
+    } catch (error) {
+      console.error("Failed to resend workspace invite email", error);
+      return {
+        inviteId: invite.inviteId,
+        inviteSent: false,
+        inviteError: toInviteErrorMessage(error),
+      };
+    }
+  },
+});
+
+export const revoke = mutation({
+  args: { inviteId: v.id("workspaceInvites") },
+  handler: async (ctx, args) => revokeWorkspaceInviteRecord(ctx, args.inviteId),
 });
 
 export const remove = mutation({

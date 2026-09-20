@@ -107,7 +107,7 @@ impl ReferoService {
 
             category_searches.push(ReferoCategorySearch {
                 category: request.category,
-                section: None,
+                section: request.section.clone(),
                 query: request.query.clone(),
                 references: bucket,
             });
@@ -481,6 +481,7 @@ fn category_keywords(category: ReferoUiPatternCategory) -> &'static [&'static st
             "panel",
             "report",
         ],
+        ReferoUiPatternCategory::AppScreen => &[],
         ReferoUiPatternCategory::WebsiteSection => &[],
     }
 }

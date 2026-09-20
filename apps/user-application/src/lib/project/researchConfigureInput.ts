@@ -2,7 +2,8 @@ import {
   DEFAULT_DETAILS_SECTIONS,
   DEFAULT_REFERO_APP_SECTIONS,
   DETAILS_SECTIONS,
-  REFERO_APP_SECTIONS,
+  REFERO_IOS_APP_SECTIONS,
+  REFERO_WEB_APP_SECTIONS,
   detailsSectionSchema,
   researchInputSchema,
   type DetailsSection,
@@ -16,7 +17,6 @@ const MAX_INDUSTRY_LENGTH = 120;
 const MAX_BRIEF_LENGTH = 5000;
 const MAX_NOTES_LENGTH = 2000;
 const MAX_COMPETITORS = 10;
-const MAX_DETAILS_SECTIONS = 5;
 
 export type ResearchConfigureFormValues = {
   industry: string;
@@ -47,7 +47,11 @@ export function normalizeReferenceSections(
   projectCategory: ProjectCategory,
 ): DetailsSection[] {
   const available: readonly string[] =
-    projectCategory === "websites" ? DETAILS_SECTIONS : REFERO_APP_SECTIONS;
+    projectCategory === "websites"
+      ? DETAILS_SECTIONS
+      : projectCategory === "ios-apps"
+        ? REFERO_IOS_APP_SECTIONS
+        : REFERO_WEB_APP_SECTIONS;
   if (sections.length > 0 && sections.every((section) => available.includes(section))) {
     return sections;
   }
@@ -114,7 +118,7 @@ export const validatedResearchConfigureInputSchema = z.object({
   website: optionalWebsiteValueSchema.optional(),
   projectBrief: z.string().trim().min(1).max(MAX_BRIEF_LENGTH),
   competitorUrls: z.array(websiteValueSchema.transform(normalizeWebsite)).max(MAX_COMPETITORS),
-  detailsSections: z.array(detailsSectionSchema).min(1).max(MAX_DETAILS_SECTIONS),
+  detailsSections: z.array(detailsSectionSchema).min(1),
   additionalNotes: z.string().trim().min(1).max(MAX_NOTES_LENGTH).optional(),
   uploadedAssetIds: z.array(z.string().min(1)).default([]),
 });
@@ -171,8 +175,8 @@ export function validateResearchConfigureForm(
     errors.competitorUrls = `Add up to ${MAX_COMPETITORS} competitors`;
   }
 
-  if (values.detailsSections.length === 0 || values.detailsSections.length > MAX_DETAILS_SECTIONS) {
-    errors.detailsSections = `Choose 1 to ${MAX_DETAILS_SECTIONS} reference sections`;
+  if (values.detailsSections.length === 0) {
+    errors.detailsSections = "Choose at least 1 reference section";
   }
 
   if (Object.keys(errors).length > 0 || !industryResult.success) {

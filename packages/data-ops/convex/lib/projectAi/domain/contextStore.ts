@@ -68,7 +68,7 @@ export async function upsertContextRecord(
     detailsSections:
       args.detailsSections === undefined
         ? existing?.detailsSections
-        : Array.from(new Set(args.detailsSections)).slice(0, 5),
+        : Array.from(new Set(args.detailsSections)),
     referenceUrls: normalizeList(args.referenceUrls),
     brief: normalizeOptional(args.brief),
     briefAttachmentName: hasBriefAttachmentName

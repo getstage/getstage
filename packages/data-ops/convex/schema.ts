@@ -136,9 +136,25 @@ const detailsSection = v.union(
   v.literal("Team"),
     v.literal("Timeline"),
     v.literal("Onboarding"),
+    v.literal("Login / Sign up"),
     v.literal("Homepage"),
     v.literal("Checkout"),
     v.literal("Dashboard"),
+    v.literal("Analytics / Reports"),
+    v.literal("Table / List"),
+    v.literal("Search"),
+    v.literal("Detail View"),
+    v.literal("Forms"),
+    v.literal("Settings"),
+    v.literal("Profile"),
+    v.literal("Team / Permissions"),
+    v.literal("Integrations"),
+    v.literal("Billing"),
+    v.literal("Browse / Discovery"),
+    v.literal("Notifications"),
+    v.literal("Empty State"),
+    v.literal("Success / Confirmation"),
+    v.literal("Splash Screen"),
   );
 
 const phaseStatus = v.union(
@@ -576,6 +592,32 @@ export default defineSchema({
     .index("by_user", ["userId"])
     .index("by_owner", ["ownerUserId"])
     .index("by_owner_user", ["ownerUserId", "userId"]),
+
+  // Pending workspace invitations exist before the recipient has a Stage user.
+  // Tokens are stored as SHA-256 hashes so a database read cannot reveal a
+  // usable invitation link.
+  workspaceInvites: defineTable({
+    ownerUserId: v.id("users"),
+    email: v.string(),
+    role: v.literal("editor"),
+    tokenHash: v.string(),
+    status: v.union(
+      v.literal("pending"),
+      v.literal("accepted"),
+      v.literal("revoked"),
+      v.literal("expired"),
+    ),
+    expiresAt: v.number(),
+    acceptedBy: v.optional(v.id("users")),
+    acceptedAt: v.optional(v.number()),
+    revokedAt: v.optional(v.number()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_token_hash", ["tokenHash"])
+    .index("by_owner", ["ownerUserId"])
+    .index("by_owner_email", ["ownerUserId", "email"])
+    .index("by_owner_status_expiresAt", ["ownerUserId", "status", "expiresAt"]),
 
   // Credit wallet per workspace owner. Team pools use ownerUserId = workspace
   // owner, so members spend from the owner's single wallet. monthlyBalance resets

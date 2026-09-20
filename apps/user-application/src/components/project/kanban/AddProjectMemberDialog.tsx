@@ -63,7 +63,7 @@ export function AddProjectMemberDialog({
                 Add team member
               </Dialog.Title>
               <Dialog.Description className="text-[12px] font-medium leading-[1.5] text-[#737373]">
-                Invite an existing Stage user to your workspace. They'll get access to all your projects.
+                Invite someone to your workspace. They can create a Stage account from the email link.
               </Dialog.Description>
             </div>
 
@@ -99,7 +99,7 @@ export function AddProjectMemberDialog({
                   disabled={!email.trim() || isSubmitting}
                   className="inline-flex h-8 items-center justify-center gap-2 rounded-[6px] border border-[#525252] bg-gradient-to-b from-[#404040] to-[#0A0A0A] px-3 text-[12px] font-medium text-[#FAFAFA] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-opacity hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  {isSubmitting ? "Adding..." : "Add member"}
+                  {isSubmitting ? "Sending..." : "Send invite"}
                 </button>
               </div>
             </form>

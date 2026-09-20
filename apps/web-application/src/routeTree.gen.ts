@@ -20,6 +20,7 @@ import { Route as AuthedRouteImport } from './routes/_authed'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AgentsIndexRouteImport } from './routes/agents/index'
 import { Route as PortalTokenRouteImport } from './routes/portal.$token'
+import { Route as InviteTokenRouteImport } from './routes/invite.$token'
 import { Route as HelpImportTransactionsViaGoogleSheetsRouteImport } from './routes/help/import-transactions-via-google-sheets'
 import { Route as DownloadMacRouteImport } from './routes/download.mac'
 import { Route as BillingReturnRouteImport } from './routes/billing.return'
@@ -87,6 +88,11 @@ const AgentsIndexRoute = AgentsIndexRouteImport.update({
 const PortalTokenRoute = PortalTokenRouteImport.update({
   id: '/portal/$token',
   path: '/portal/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InviteTokenRoute = InviteTokenRouteImport.update({
+  id: '/invite/$token',
+  path: '/invite/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
 const HelpImportTransactionsViaGoogleSheetsRoute =
@@ -181,6 +187,7 @@ export interface FileRoutesByFullPath {
   '/billing/return': typeof BillingReturnRoute
   '/download/mac': typeof DownloadMacRoute
   '/help/import-transactions-via-google-sheets': typeof HelpImportTransactionsViaGoogleSheetsRoute
+  '/invite/$token': typeof InviteTokenRoute
   '/portal/$token': typeof PortalTokenRouteWithChildren
   '/agents/': typeof AgentsIndexRoute
   '/project/$id': typeof AuthedProjectIdRouteWithChildren
@@ -206,6 +213,7 @@ export interface FileRoutesByTo {
   '/billing/return': typeof BillingReturnRoute
   '/download/mac': typeof DownloadMacRoute
   '/help/import-transactions-via-google-sheets': typeof HelpImportTransactionsViaGoogleSheetsRoute
+  '/invite/$token': typeof InviteTokenRoute
   '/portal/$token': typeof PortalTokenRouteWithChildren
   '/agents': typeof AgentsIndexRoute
   '/project/$id': typeof AuthedProjectIdRouteWithChildren
@@ -234,6 +242,7 @@ export interface FileRoutesById {
   '/billing/return': typeof BillingReturnRoute
   '/download/mac': typeof DownloadMacRoute
   '/help/import-transactions-via-google-sheets': typeof HelpImportTransactionsViaGoogleSheetsRoute
+  '/invite/$token': typeof InviteTokenRoute
   '/portal/$token': typeof PortalTokenRouteWithChildren
   '/agents/': typeof AgentsIndexRoute
   '/_authed/project/$id': typeof AuthedProjectIdRouteWithChildren
@@ -262,6 +271,7 @@ export interface FileRouteTypes {
     | '/billing/return'
     | '/download/mac'
     | '/help/import-transactions-via-google-sheets'
+    | '/invite/$token'
     | '/portal/$token'
     | '/agents/'
     | '/project/$id'
@@ -287,6 +297,7 @@ export interface FileRouteTypes {
     | '/billing/return'
     | '/download/mac'
     | '/help/import-transactions-via-google-sheets'
+    | '/invite/$token'
     | '/portal/$token'
     | '/agents'
     | '/project/$id'
@@ -314,6 +325,7 @@ export interface FileRouteTypes {
     | '/billing/return'
     | '/download/mac'
     | '/help/import-transactions-via-google-sheets'
+    | '/invite/$token'
     | '/portal/$token'
     | '/agents/'
     | '/_authed/project/$id'
@@ -334,6 +346,7 @@ export interface RootRouteChildren {
   TermsRoute: typeof TermsRoute
   BillingReturnRoute: typeof BillingReturnRoute
   HelpImportTransactionsViaGoogleSheetsRoute: typeof HelpImportTransactionsViaGoogleSheetsRoute
+  InviteTokenRoute: typeof InviteTokenRoute
   PortalTokenRoute: typeof PortalTokenRouteWithChildren
 }
 
@@ -414,6 +427,13 @@ declare module '@tanstack/react-router' {
       path: '/portal/$token'
       fullPath: '/portal/$token'
       preLoaderRoute: typeof PortalTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/invite/$token': {
+      id: '/invite/$token'
+      path: '/invite/$token'
+      fullPath: '/invite/$token'
+      preLoaderRoute: typeof InviteTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/help/import-transactions-via-google-sheets': {
@@ -612,6 +632,7 @@ const rootRouteChildren: RootRouteChildren = {
   BillingReturnRoute: BillingReturnRoute,
   HelpImportTransactionsViaGoogleSheetsRoute:
     HelpImportTransactionsViaGoogleSheetsRoute,
+  InviteTokenRoute: InviteTokenRoute,
   PortalTokenRoute: PortalTokenRouteWithChildren,
 }
 export const routeTree = rootRouteImport

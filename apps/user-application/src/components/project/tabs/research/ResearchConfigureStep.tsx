@@ -2,7 +2,8 @@ import { useEffect, useRef, useState, type ChangeEvent, type KeyboardEvent } fro
 import {
   DETAILS_PAGE_SECTIONS,
   DETAILS_STRUCTURE_SECTIONS,
-  REFERO_APP_SECTIONS,
+  REFERO_IOS_APP_SECTIONS,
+  REFERO_WEB_APP_SECTIONS,
   type DetailsSection,
   type ProjectCategory,
   type ProviderId,
@@ -266,18 +267,6 @@ export function ResearchConfigureStep({
               </FormField>
 
               <FormField
-                label={projectCategory === "websites" ? "Website sections" : "App screens"}
-                hint={`Choose up to 5 ${projectCategory === "websites" ? "Details sections" : "Refero screen types"}. Each selection becomes its own reference row.`}
-                error={fieldErrors.detailsSections}
-              >
-                <ReferenceSectionPicker
-                  projectCategory={projectCategory}
-                  selected={values.detailsSections}
-                  onChange={(detailsSections) => updateField("detailsSections", detailsSections)}
-                />
-              </FormField>
-
-              <FormField
                 label="Project Brief or Context"
                 hint="Be specific — what the product does, who it's for, and what makes it different. The clearer this is, the more tailored (and less generic) your research references will be."
                 error={fieldErrors.projectBrief}
@@ -377,6 +366,22 @@ export function ResearchConfigureStep({
                 </div>
               </FormField>
 
+              <FormField
+                label={projectCategory === "websites" ? "Sections to analyze" : "Screens to analyze"}
+                hint={
+                  projectCategory === "websites"
+                    ? "Pick page sections (hero, pricing, testimonials...). Stage collects how competitors design each one and surfaces the patterns they share."
+                    : "Pick app screens. Stage collects how relevant products design each one and surfaces the patterns they share."
+                }
+                error={fieldErrors.detailsSections}
+              >
+                <ReferenceSectionPicker
+                  projectCategory={projectCategory}
+                  selected={values.detailsSections}
+                  onChange={(detailsSections) => updateField("detailsSections", detailsSections)}
+                />
+              </FormField>
+
               <FormField label="Additional notes" error={fieldErrors.additionalNotes}>
                 <textarea
                   value={values.additionalNotes}
@@ -446,6 +451,11 @@ function ReferenceSectionPicker({
   selected: DetailsSection[];
   onChange: (sections: DetailsSection[]) => void;
 }) {
+  const selectionLabel =
+    selected.length === 0
+      ? "Choose sections"
+      : `${selected.slice(0, 3).join(", ")}${selected.length > 3 ? ` +${selected.length - 3}` : ""}`;
+
   function toggle(section: DetailsSection) {
     if (selected.includes(section)) {
       if (selected.length > 1) {
@@ -454,18 +464,16 @@ function ReferenceSectionPicker({
       return;
     }
 
-    if (selected.length < 5) {
-      onChange([...selected, section]);
-    }
+    onChange([...selected, section]);
   }
 
   return (
-    <details className="relative w-[370px] max-w-full">
-      <summary className="flex h-[40px] cursor-pointer list-none items-center justify-between rounded-[6px] bg-[#F5F5F5] px-3 text-[12px] font-medium text-[#171717] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] marker:content-none">
-        <span>{selected.length} sections selected</span>
+    <details className="relative w-full max-w-[560px]">
+      <summary className="flex min-h-[44px] cursor-pointer list-none items-center justify-between gap-4 rounded-[6px] bg-[#F5F5F5] px-4 text-[12px] font-medium text-[#171717] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] marker:content-none">
+        <span className="min-w-0 truncate">{selectionLabel}</span>
         <span aria-hidden="true">⌄</span>
       </summary>
-      <div className="absolute left-0 top-[46px] z-20 max-h-[310px] w-full overflow-y-auto rounded-[8px] bg-white p-2 shadow-[0_4px_18px_rgba(10,10,10,0.18)]">
+      <div className="absolute left-0 top-[50px] z-20 max-h-[360px] w-full overflow-y-auto rounded-[8px] bg-white p-3 shadow-[0_4px_18px_rgba(10,10,10,0.18)]">
         {projectCategory === "websites" ? (
           <>
             <SectionOptions
@@ -484,7 +492,11 @@ function ReferenceSectionPicker({
         ) : (
           <SectionOptions
             title={projectCategory === "ios-apps" ? "iOS screens" : "Web app screens"}
-            options={REFERO_APP_SECTIONS}
+            options={
+              projectCategory === "ios-apps"
+                ? REFERO_IOS_APP_SECTIONS
+                : REFERO_WEB_APP_SECTIONS
+            }
             selected={selected}
             onToggle={toggle}
             labels={
@@ -519,7 +531,7 @@ function SectionOptions({
       </legend>
       {options.map((section) => {
         const checked = selected.includes(section);
-        const disabled = checked ? selected.length === 1 : selected.length >= 5;
+        const disabled = checked && selected.length === 1;
         return (
           <label
             key={section}

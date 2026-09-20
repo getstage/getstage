@@ -139,6 +139,7 @@ import type * as models_integrations_stripeConnect from "../models/integrations/
 import type * as models_projects_validators from "../models/projects/validators.js";
 import type * as onboarding from "../onboarding.js";
 import type * as platform_inviteEmail from "../platform/inviteEmail.js";
+import type * as platform_inviteTokens from "../platform/inviteTokens.js";
 import type * as platform_rateLimits from "../platform/rateLimits.js";
 import type * as portal from "../portal.js";
 import type * as projectAi from "../projectAi.js";
@@ -150,6 +151,7 @@ import type * as tasks from "../tasks.js";
 import type * as userEmails from "../userEmails.js";
 import type * as users from "../users.js";
 import type * as viewer from "../viewer.js";
+import type * as workspaceInvites from "../workspaceInvites.js";
 import type * as workspaceMembers from "../workspaceMembers.js";
 
 import type {
@@ -290,6 +292,7 @@ declare const fullApi: ApiFromModules<{
   "models/projects/validators": typeof models_projects_validators;
   onboarding: typeof onboarding;
   "platform/inviteEmail": typeof platform_inviteEmail;
+  "platform/inviteTokens": typeof platform_inviteTokens;
   "platform/rateLimits": typeof platform_rateLimits;
   portal: typeof portal;
   projectAi: typeof projectAi;
@@ -301,6 +304,7 @@ declare const fullApi: ApiFromModules<{
   userEmails: typeof userEmails;
   users: typeof users;
   viewer: typeof viewer;
+  workspaceInvites: typeof workspaceInvites;
   workspaceMembers: typeof workspaceMembers;
 }>;
 

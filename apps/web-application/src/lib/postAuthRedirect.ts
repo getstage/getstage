@@ -8,6 +8,7 @@ import {
 export const DEFAULT_POST_AUTH_PATH = "/download/mac";
 
 const ALLOWED_POST_AUTH_PATHS = new Set([DEFAULT_POST_AUTH_PATH, "/auth/desktop"]);
+const INVITE_PATH_PATTERN = /^\/invite\/[A-Za-z0-9]+$/;
 
 function toAbsoluteRedirectTarget(value: string) {
   if (typeof window === "undefined") {
@@ -30,8 +31,11 @@ function normalizeRedirectPath(value: string | undefined) {
     return null;
   }
 
-  if (value.startsWith("/") && ALLOWED_POST_AUTH_PATHS.has(value.split("?")[0] ?? value)) {
-    return value;
+  if (value.startsWith("/")) {
+    const pathname = value.split("?")[0] ?? value;
+    if (ALLOWED_POST_AUTH_PATHS.has(pathname) || INVITE_PATH_PATTERN.test(pathname)) {
+      return value;
+    }
   }
 
   if (isDesktopAuthRedirect(value)) {

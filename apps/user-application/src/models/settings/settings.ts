@@ -94,6 +94,7 @@ export const settingsOverviewSchema = z.object({
   subscription: z
     .object({
       plan: planSchema,
+      seats: z.number().int().positive(),
       status: z.string(),
       provider: z.string(),
       billingCycle: z.string(),

@@ -80,6 +80,7 @@ export async function getOverviewHandler(ctx: QueryCtx) {
     subscription: subscription
       ? {
           plan: subscription.plan ?? "free",
+          seats: subscription.seats,
           status: subscription.status,
           provider: subscription.provider,
           billingCycle: subscription.billingCycle,
