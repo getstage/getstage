@@ -192,7 +192,7 @@ pub fn detect_install_source(provider_id: ProviderId, command_path: &str) -> Ins
     InstallSource::Unknown
 }
 
-async fn resolve_binary_path(binary: &str) -> Option<String> {
+pub(crate) async fn resolve_binary_path(binary: &str) -> Option<String> {
     let result = run_command(
         "which",
         &[binary],

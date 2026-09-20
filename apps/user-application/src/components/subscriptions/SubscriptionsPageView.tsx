@@ -5,6 +5,7 @@ import { api } from "@/lib/convexApi";
 import { toUserFacingErrorMessage } from "@/lib/errors";
 import { openExternalLink } from "@/lib/settings/openExternalLink";
 import { useSettingsOverviewQuery } from "@/hooks/convex-data";
+import { coveringPlan } from "@/models/settings/settings";
 
 type Tier = "start" | "pro" | "team";
 type BillingCycle = "monthly" | "yearly";
@@ -52,7 +53,7 @@ export function SubscriptionsPageView() {
   const [portalLoading, setPortalLoading] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const isYearly = billingPeriod === "yearly";
-  const currentPlan = overview.data?.profile.plan;
+  const currentPlan = coveringPlan(overview.data);
   const isSubscribed = currentPlan !== undefined && currentPlan !== "free";
   const pricePeriod = isYearly ? "/year" : "/month";
   const backLabel = getBackLabel();

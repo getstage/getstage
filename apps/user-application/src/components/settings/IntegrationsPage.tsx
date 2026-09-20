@@ -736,9 +736,11 @@ function CustomModelSelect({
                             </span>
                           ) : null}
                         </span>
+                        {model.description ? (
                         <span className="mt-[3px] block truncate text-[11px] font-normal leading-[1.2] text-[#737373]">
                           {model.description}
                         </span>
+                        ) : null}
                         </span>
                       </span>
                     </button>

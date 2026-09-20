@@ -42,11 +42,17 @@ export function TeamPanel() {
       return undefined;
     }
 
+    const workspace = overview.data?.workspace;
+    const isMember = workspace?.role === "member";
     const owner: TeamMember = {
-      id: "current-user",
-      name: profile?.name ?? "You",
-      email: profile?.email ?? "Signed in user",
-      avatarUrl: profile?.avatarUrl ?? undefined,
+      id: workspace?.owner.id ?? "current-user",
+      name: isMember
+        ? (workspace.owner.name || workspace.owner.email || "Workspace owner")
+        : (profile?.name ?? "You"),
+      email: isMember ? workspace.owner.email : (profile?.email ?? "Signed in user"),
+      avatarUrl: isMember
+        ? (workspace.owner.avatarUrl ?? undefined)
+        : (profile?.avatarUrl ?? undefined),
       role: "Owner",
     };
     const invited = members.data.map<TeamMember>((member) => ({
@@ -56,12 +62,14 @@ export function TeamPanel() {
       role: "Member",
     }));
     return [owner, ...invited];
-  }, [members.data, profile?.avatarUrl, profile?.email, profile?.name]);
+  }, [members.data, overview.data?.workspace, profile?.avatarUrl, profile?.email, profile?.name]);
 
-  const seatLimit = overview.data?.subscription?.seats ?? 1;
+  const seatLimit = overview.data?.workspace?.seats ?? overview.data?.subscription?.seats ?? 1;
+  const isWorkspaceOwner = overview.data?.workspace?.role !== "member";
+  const workspaceOwner = overview.data?.workspace?.owner;
   const seatsLeft =
     rows && invites.data
-      ? Math.max(0, seatLimit - rows.length - invites.data.length)
+      ? Math.max(0, seatLimit - rows.length - (isWorkspaceOwner ? invites.data.length : 0))
       : 0;
 
   const emailInput = inviteEmail.trim();
@@ -71,7 +79,8 @@ export function TeamPanel() {
   const emailErrorMessage = isEmailInvalid
     ? emailValidation.error.issues[0]?.message ?? "Please enter a valid email address."
     : null;
-  const canInvite = rows !== undefined && seatsLeft > 0 && isEmailValid && !isSubmitting;
+  const canInvite =
+    isWorkspaceOwner && rows !== undefined && seatsLeft > 0 && isEmailValid && !isSubmitting;
 
   async function inviteMember() {
     if (!canInvite) return;
@@ -142,7 +151,9 @@ export function TeamPanel() {
   return (
     <SettingsCard title="Team">
       <p className="-mt-[12px] px-[12px] pb-[12px] text-[12px] font-normal leading-[1.5] text-[#404040]">
-        Manage who can access this workspace. Your plan includes {seatLimit} seat{seatLimit === 1 ? "" : "s"}.
+        {isWorkspaceOwner
+          ? `Manage who can access this workspace. Your plan includes ${seatLimit} seat${seatLimit === 1 ? "" : "s"}.`
+          : `You're a member of ${workspaceOwner?.name || workspaceOwner?.email || "this"} workspace. This plan includes ${seatLimit} seat${seatLimit === 1 ? "" : "s"}.`}
       </p>
 
       <div className="flex flex-col gap-[4px]">
@@ -151,7 +162,11 @@ export function TeamPanel() {
             <div>
               <h3 className="text-[13px] font-medium leading-none text-[#171717]">Invite teammate</h3>
               <p className="mt-[4px] text-[12px] font-normal leading-[1.5] text-[#525252]">
-                {seatsLeft > 0 ? `${seatsLeft} seat${seatsLeft === 1 ? "" : "s"} available.` : "All team seats are used."}
+                {isWorkspaceOwner
+                  ? seatsLeft > 0
+                    ? `${seatsLeft} seat${seatsLeft === 1 ? "" : "s"} available.`
+                    : "All team seats are used."
+                  : "Only the workspace owner can invite teammates."}
               </p>
             </div>
             <div className="flex min-w-0 flex-1 gap-[8px] sm:max-w-[360px]">
@@ -166,7 +181,7 @@ export function TeamPanel() {
                 onKeyDown={(event) => {
                   if (event.key === "Enter" && canInvite) void inviteMember();
                 }}
-                disabled={seatsLeft <= 0 || isSubmitting}
+                disabled={!isWorkspaceOwner || seatsLeft <= 0 || isSubmitting}
                 placeholder="teammate@company.com"
                 aria-invalid={isEmailInvalid}
                 className="h-[30px] min-w-0 flex-1 rounded-[6px] bg-[#F5F5F5] px-[10px] text-[12px] font-medium leading-none text-[#171717] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] outline-none placeholder:text-[#737373] focus:bg-white disabled:cursor-not-allowed disabled:opacity-50"
@@ -204,6 +219,8 @@ export function TeamPanel() {
                     </p>
                   </div>
                   <div className="flex shrink-0 items-center gap-[8px]">
+                    {isWorkspaceOwner ? (
+                      <>
                     <button
                       type="button"
                       onClick={() => void resendPendingInvite(invite._id, invite.email)}
@@ -220,6 +237,12 @@ export function TeamPanel() {
                     >
                       Revoke
                     </button>
+                      </>
+                    ) : (
+                      <span className="rounded-[4px] bg-[#F5F5F5] px-[6px] py-[4px] text-[12px] font-normal leading-none text-[#525252]">
+                        Pending
+                      </span>
+                    )}
                   </div>
                 </div>
               </SettingsRow>
@@ -232,7 +255,7 @@ export function TeamPanel() {
                 <div className="min-w-0">
                   <div className="flex items-center gap-[8px]">
                     <h3 className="truncate text-[13px] font-medium leading-[1.5] text-[#0A0A0A]">{member.name}</h3>
-                    {member.id === "current-user" ? (
+                    {member.email && member.email === profile?.email ? (
                       <span className="rounded-[4px] bg-[#F5F5F5] px-[6px] py-[3px] text-[11px] font-medium leading-none text-[#525252]">
                         You
                       </span>
@@ -245,7 +268,7 @@ export function TeamPanel() {
                 <span className="rounded-[4px] bg-[#E7E6FD] px-[6px] py-[4px] text-[12px] font-normal leading-none text-[#221E6C]">
                   {member.role}
                 </span>
-                {member.id !== "current-user" ? (
+                {isWorkspaceOwner && member.role === "Member" ? (
                   <button
                     type="button"
                     onClick={() => void removeTeamMember(member.id)}

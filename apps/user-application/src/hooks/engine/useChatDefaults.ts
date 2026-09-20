@@ -8,7 +8,7 @@ export type ChatModel = {
   id: string;
   label: string;
   provider: ChatProviderId;
-  description: string;
+  description?: string;
   badge?: string;
 };
 
@@ -34,78 +34,7 @@ type ChatDefaultsState = {
 const STORAGE_KEY = "stage.chatDefaults.v1";
 const CHANGE_EVENT = "stage:chat-defaults-changed";
 
-export const chatModels: ChatModel[] = [
-  {
-    id: "claude-opus-4.8",
-    label: "Claude Opus 4.8",
-    provider: "anthropic",
-    description: "Newest flagship Claude model",
-    badge: "New",
-  },
-  {
-    id: "claude-fable-5",
-    label: "Claude Fable 5",
-    provider: "anthropic",
-    description: "Anthropic Fable 5 frontier model",
-    badge: "New",
-  },
-  {
-    id: "claude-sonnet-4.6",
-    label: "Claude Sonnet 4.6",
-    provider: "anthropic",
-    description: "Newest balanced Claude model",
-  },
-  {
-    id: "claude-haiku-4.5",
-    label: "Claude Haiku 4.5",
-    provider: "anthropic",
-    description: "Newest fast Claude model",
-  },
-  {
-    id: "claude-opus-4.7",
-    label: "Claude Opus 4.7",
-    provider: "anthropic",
-    description: "Previous flagship Claude",
-  },
-  {
-    id: "gpt-5.6-sol",
-    label: "GPT-5.6 Sol",
-    provider: "openai",
-    description: "Newest flagship OpenAI model",
-    badge: "New",
-  },
-  {
-    id: "gpt-5.6-terra",
-    label: "GPT-5.6 Terra",
-    provider: "openai",
-    description: "Balanced GPT-5.6 for everyday work",
-  },
-  {
-    id: "gpt-5.6-luna",
-    label: "GPT-5.6 Luna",
-    provider: "openai",
-    description: "Fast, cost-efficient GPT-5.6",
-  },
-  {
-    id: "gpt-5.5",
-    label: "GPT-5.5",
-    provider: "openai",
-    description: "Newest flagship OpenAI model",
-    badge: "New",
-  },
-  {
-    id: "gpt-5.5-pro",
-    label: "GPT-5.5 Pro",
-    provider: "openai",
-    description: "Top OpenAI deep work model",
-  },
-  {
-    id: "gpt-5.4",
-    label: "GPT-5.4",
-    provider: "openai",
-    description: "Previous frontier model",
-  },
-];
+export const chatModels: ChatModel[] = [];
 
 export const reasoningEfforts: ReasoningEffortOption[] = [
   { id: "low", label: "Low" },
@@ -126,7 +55,14 @@ export const DEFAULT_CHAT_DEFAULTS: ChatDefaultsState = {
 };
 
 export function getChatModelById(modelId: string, models: ChatModel[] = chatModels) {
-  return models.find((model) => model.id === modelId) ?? models[0] ?? chatModels[0]!;
+  return (
+    models.find((model) => model.id === modelId) ??
+    models[0] ?? {
+      id: modelId,
+      label: modelId,
+      provider: "openai" as const,
+    }
+  );
 }
 
 export function useAvailableChatModels() {

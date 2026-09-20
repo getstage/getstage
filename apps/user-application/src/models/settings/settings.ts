@@ -91,6 +91,19 @@ export const settingsOverviewSchema = z.object({
     role: userRoleSchema,
     plan: planSchema,
   }),
+  workspace: z
+    .object({
+      role: z.enum(["owner", "member"]),
+      owner: z.object({
+        id: z.string().min(1),
+        name: z.string(),
+        email: z.string(),
+        avatarUrl: z.string().nullable(),
+      }),
+      plan: planSchema,
+      seats: z.number().int().positive(),
+    })
+    .optional(),
   subscription: z
     .object({
       plan: planSchema,
@@ -150,3 +163,10 @@ export const profileUpdateResultSchema = z.object({
 export type UserRole = z.infer<typeof userRoleSchema>;
 export type SettingsOverview = z.infer<typeof settingsOverviewSchema>;
 export type ProfileUpdateResult = z.infer<typeof profileUpdateResultSchema>;
+
+export function coveringPlan(overview: SettingsOverview | undefined) {
+  if (overview?.workspace?.plan && overview.workspace.plan !== "free") {
+    return overview.workspace.plan;
+  }
+  return overview?.profile.plan ?? "free";
+}

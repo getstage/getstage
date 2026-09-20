@@ -13,6 +13,46 @@ type ReaderCtx = QueryCtx | MutationCtx;
 
 export const WORKSPACE_INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
+function isPaidPlan(plan: string | null | undefined) {
+  return plan === "start" || plan === "pro" || plan === "team";
+}
+
+export async function resolveWorkspaceContext(ctx: ReaderCtx, userId: Id<"users">) {
+  const ownSubscription = await getCurrentSubscriptionSnapshot(ctx, String(userId));
+  if (isPaidPlan(ownSubscription?.plan)) {
+    return {
+      role: "owner" as const,
+      ownerUserId: userId,
+      subscription: ownSubscription,
+    };
+  }
+
+  const memberships = await ctx.db
+    .query("projectCollaborators")
+    .withIndex("by_user", (q) => q.eq("userId", userId))
+    .collect();
+
+  for (const membership of memberships) {
+    const subscription = await getCurrentSubscriptionSnapshot(
+      ctx,
+      String(membership.ownerUserId),
+    );
+    if (isPaidPlan(subscription?.plan)) {
+      return {
+        role: "member" as const,
+        ownerUserId: membership.ownerUserId,
+        subscription,
+      };
+    }
+  }
+
+  return {
+    role: "owner" as const,
+    ownerUserId: userId,
+    subscription: ownSubscription,
+  };
+}
+
 const inviteEmailSchema = z
   .string()
   .trim()

@@ -1,6 +1,5 @@
 import type { Doc, Id } from "../../../_generated/dataModel";
 import { type MutationCtx, type QueryCtx } from "../../../_generated/server";
-import { getCurrentSubscriptionSnapshot } from "../../../billing";
 import {
   deleteClientAvatarIfUnused,
   ensurePortalConfig,
@@ -10,8 +9,13 @@ import {
 } from "../../../_helpers";
 import { attachTrackedR2Asset, deleteOldR2Asset } from "../../../r2";
 import { buildApiProjectSummary } from "../../../domain/projects/apiReadModel";
+import { resolveWorkspaceContext } from "../../../domain/collaborators/service";
 import { assertProjectCreationAllowed } from "../../../domain/projects/entitlement";
-import { buildProject, recomputeProjectState } from "../../../domain/projects/readModel";
+import {
+  buildProject,
+  listAccessibleProjectDocsForUser,
+  recomputeProjectState,
+} from "../../../domain/projects/readModel";
 import { requireProjectAccessForUserId } from "../../../helpers/access/projectAccess";
 import { now } from "../../../helpers/time";
 
@@ -142,16 +146,8 @@ export async function listProjectSummariesForUser(
   ctx: ReaderCtx,
   userId: Id<"users">,
 ) {
-  const projectDocs = await ctx.db
-    .query("projects")
-    .withIndex("by_user", (q) => q.eq("userId", userId))
-    .collect();
-
-  const sortedProjectDocs = [...projectDocs].sort(
-    (a, b) => a.startDate - b.startDate || a.createdAt - b.createdAt,
-  );
-
-  return Promise.all(sortedProjectDocs.map((project) => buildApiProjectSummary(project)));
+  const projects = await listAccessibleProjectDocsForUser(ctx, userId);
+  return Promise.all(projects.map(({ project }) => buildApiProjectSummary(project)));
 }
 
 export async function createProjectForUser(
@@ -173,8 +169,9 @@ export async function createProjectForUser(
   },
 ) {
   const user = await requireActorUser(ctx, args.userId);
-  const subscription = await getCurrentSubscriptionSnapshot(ctx, String(user._id));
-  const plan = subscription?.plan ?? user.plan ?? "free";
+  const workspace = await resolveWorkspaceContext(ctx, user._id);
+  const ownerUserId = workspace.ownerUserId;
+  const plan = workspace.subscription?.plan ?? user.plan ?? "free";
   const projectName = requireNonEmptyTrimmedString(args.name, "Project name");
   const clientName = requireNonEmptyTrimmedString(args.clientName, "Client name");
   const clientEmail = args.clientEmail?.trim() || undefined;
@@ -189,7 +186,7 @@ export async function createProjectForUser(
 
   const existingProjects = await ctx.db
     .query("projects")
-    .withIndex("by_user", (q) => q.eq("userId", user._id))
+    .withIndex("by_user", (q) => q.eq("userId", ownerUserId))
     .collect();
 
   assertProjectCreationAllowed({
@@ -198,7 +195,7 @@ export async function createProjectForUser(
   });
 
   const existingClient = await getClientByUserAndName(ctx, {
-    userId: user._id,
+    userId: ownerUserId,
     name: clientName,
   });
   const nextClientEmail = clientEmail ?? existingClient?.email;
@@ -210,7 +207,7 @@ export async function createProjectForUser(
 
   // Client photo is optional in the product UI; persist when present.
   await upsertClient(ctx, {
-    userId: user._id,
+    userId: ownerUserId,
     name: clientName,
     email: nextClientEmail,
     ...(nextClientAvatarUrl ? { avatarUrl: nextClientAvatarUrl } : {}),
@@ -218,7 +215,7 @@ export async function createProjectForUser(
 
   if (requestedClientAvatarUrl) {
     const previousProjectAvatarUrls = await syncClientAvatarAcrossProjects(ctx, {
-      userId: user._id,
+      userId: ownerUserId,
       clientName,
       avatarUrl: requestedClientAvatarUrl,
     });
@@ -231,7 +228,7 @@ export async function createProjectForUser(
     await Promise.all(
       Array.from(staleAvatarUrls).map((avatarUrl) =>
         deleteClientAvatarIfUnused(ctx, {
-          userId: user._id,
+          userId: ownerUserId,
           avatarUrl,
         }),
       ),
@@ -245,7 +242,7 @@ export async function createProjectForUser(
 
   const timestamp = now();
   const projectId = await ctx.db.insert("projects", {
-    userId: user._id,
+    userId: ownerUserId,
     name: projectName,
     searchText: buildProjectSearchText(projectName, clientName),
     clientName,

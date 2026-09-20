@@ -5,6 +5,7 @@ import { useMutation } from "convex/react";
 import { z } from "zod";
 
 import { useProjectsQuery, useSettingsOverviewQuery } from "@/hooks/convex-data";
+import { coveringPlan } from "@/models/settings/settings";
 import { api } from "@/lib/convexApi";
 import { convexQueryKeys } from "@/lib/queryKeys";
 import {
@@ -39,7 +40,7 @@ export function ClientPortalSettingsView() {
   const [logoError, setLogoError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isSavingLogo, setIsSavingLogo] = useState(false);
-  const plan = overview.data?.profile.plan;
+  const plan = coveringPlan(overview.data);
   const hasPortalAccess = plan === "start" || plan === "pro" || plan === "team";
 
   useEffect(() => {

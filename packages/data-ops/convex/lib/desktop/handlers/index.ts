@@ -364,7 +364,8 @@ export async function createProjectHandler(
   if (!project) {
     throw new Error("Failed to load created project.");
   }
-  return buildApiProjectDetail(ctx, project, "owner");
+  const accessRole = project.userId === user._id ? "owner" : "editor";
+  return buildApiProjectDetail(ctx, project, accessRole);
 }
 
 export const createTaskArgs = {

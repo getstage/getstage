@@ -4,6 +4,7 @@ import type { Id } from "../../../_generated/dataModel";
 import type { ActionCtx, MutationCtx, QueryCtx } from "../../../_generated/server";
 import { components, internal } from "../../../_generated/api";
 import { deleteAccountDataForUser } from "../../../domain/accountCleanup";
+import { resolveWorkspaceContext } from "../../../domain/collaborators/service";
 import { now } from "../../../helpers/time";
 import { getCurrentSubscriptionSnapshot } from "../../billing/handlers";
 import { attachTrackedR2Asset, deleteOldR2Asset, resolveAssetUrl } from "../../../r2";
@@ -45,7 +46,10 @@ export const getOverviewArgs = {};
 
 export async function getOverviewHandler(ctx: QueryCtx) {
   const user = await requireAuthUser(ctx);
-  const subscription = await getCurrentSubscriptionSnapshot(ctx, String(user._id));
+  const ownSubscription = await getCurrentSubscriptionSnapshot(ctx, String(user._id));
+  const workspace = await resolveWorkspaceContext(ctx, user._id);
+  const workspaceOwner =
+    workspace.ownerUserId === user._id ? user : await ctx.db.get(workspace.ownerUserId);
 
   const paymentConnections = await ctx.db
     .query("paymentConnections")
@@ -75,22 +79,35 @@ export async function getOverviewHandler(ctx: QueryCtx) {
       name: user.name ?? "",
       avatarUrl: await resolveAssetUrl(user.avatarUrl ?? user.image ?? null),
       role: user.role ?? "freelancer",
-      plan: subscription?.plan ?? user.plan ?? "free",
+      plan: ownSubscription?.plan ?? user.plan ?? "free",
     },
-    subscription: subscription
+    workspace: {
+      role: workspace.role,
+      owner: {
+        id: String(workspace.ownerUserId),
+        name: workspaceOwner?.name ?? "",
+        email: workspaceOwner?.email ?? "",
+        avatarUrl: await resolveAssetUrl(
+          workspaceOwner?.avatarUrl ?? workspaceOwner?.image ?? null,
+        ),
+      },
+      plan: workspace.subscription?.plan ?? "free",
+      seats: workspace.subscription?.seats ?? 1,
+    },
+    subscription: ownSubscription
       ? {
-          plan: subscription.plan ?? "free",
-          seats: subscription.seats,
-          status: subscription.status,
-          provider: subscription.provider,
-          billingCycle: subscription.billingCycle,
-          currentPeriodEnd: subscription.currentPeriodEnd,
-          cancelAtPeriodEnd: subscription.cancelAtPeriodEnd ?? false,
-          paymentMethodBrand: subscription.paymentMethodBrand ?? null,
-          paymentMethodLast4: subscription.paymentMethodLast4 ?? null,
-          stripeCustomerId: subscription.stripeCustomerId ?? null,
-          stripeSubscriptionId: subscription.stripeSubscriptionId ?? null,
-          stripePriceId: subscription.stripePriceId ?? null,
+          plan: ownSubscription.plan ?? "free",
+          seats: ownSubscription.seats,
+          status: ownSubscription.status,
+          provider: ownSubscription.provider,
+          billingCycle: ownSubscription.billingCycle,
+          currentPeriodEnd: ownSubscription.currentPeriodEnd,
+          cancelAtPeriodEnd: ownSubscription.cancelAtPeriodEnd ?? false,
+          paymentMethodBrand: ownSubscription.paymentMethodBrand ?? null,
+          paymentMethodLast4: ownSubscription.paymentMethodLast4 ?? null,
+          stripeCustomerId: ownSubscription.stripeCustomerId ?? null,
+          stripeSubscriptionId: ownSubscription.stripeSubscriptionId ?? null,
+          stripePriceId: ownSubscription.stripePriceId ?? null,
         }
       : null,
     paymentConnection: paymentConnection

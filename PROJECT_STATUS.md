@@ -14,8 +14,8 @@
 | **!!! P0 release** | 2026-09-14 production cut: React landing/WebP, Solo–Agency pricing, Lo-Fi/export integration, bug containment, trusted login domain, deploy; Figma last | `docs/2026-09-14_SHIP_TODAY_CHECKLIST.md` |
 | **P0 STA-33 1–4** | **Lo-Fi done** (desktop smoke 2026-09-09). Export dialog destinations + skills step, GitHub Import. Wireframes UI is Lo-Fi only; the engine retains Hi-Fi. **Adrien commentary 10 Sep:** [`docs/NEW_10_SEPTEMBER.md`](docs/NEW_10_SEPTEMBER.md). **Next:** Werner picks rows; then testing Convex `importedSkillHubItems`; then sections 5–8. | [`docs/NEW_VERSION_START_SEPTEMBER_2026.md`](docs/NEW_VERSION_START_SEPTEMBER_2026.md); Linear `STA-33` |
 | **P0 STA-33 5–8** | After 1–4 ships: categories lock, Details.so during research testing, style guide, MCP. | Linear `STA-33`; same living plan |
-| **P0 STA-33 Research routing** | Testing candidate: canonical category reaches the engine; Websites → Details website sections; Web apps and iOS apps → Refero app screens, including iOS-specific search. Users select up to five relevant rows. Refero thumbnails remain available when an older R2 image is missing. Desktop smoke still required. Inventory: [`docs/STA-33_RESEARCH_CATEGORY_BREAKAGE.md`](docs/STA-33_RESEARCH_CATEGORY_BREAKAGE.md) | testing release `v0.2.41`; production remains `prod-v0.2.36` |
-| **P0 Team invites** | Email invite candidate (`/invite/:token`) tagged for Testing. Production not deployed. Manual QA still required. | [`apps/user-application/docs/AI/TEAM_CREDITS_PAYMENTS_PLAN.md`](apps/user-application/docs/AI/TEAM_CREDITS_PAYMENTS_PLAN.md); `v0.2.41` |
+| **P0 STA-33 Research routing** | Testing candidate: canonical category reaches the engine; Websites → Details website sections; Web apps and iOS apps → Refero app screens, including iOS-specific search. Users select up to five relevant rows. Refero thumbnails remain available when an older R2 image is missing. Desktop smoke still required. Inventory: [`docs/STA-33_RESEARCH_CATEGORY_BREAKAGE.md`](docs/STA-33_RESEARCH_CATEGORY_BREAKAGE.md) | `v0.2.42` / `prod-v0.2.42` |
+| **P0 Team invites** | Invited members attach to the owner's workspace for team, credits, paywall, and new projects. Claude catalog starts at 4.5. | [`apps/user-application/docs/AI/TEAM_CREDITS_PAYMENTS_PLAN.md`](apps/user-application/docs/AI/TEAM_CREDITS_PAYMENTS_PLAN.md); `prod-v0.2.42` |
 | **P1 wireframes quality** | Beat raw Claude: Taste skill → local/project skills + library packs → moodboard layouts → refine | `docs/WIREFRAMES_QUALITY_PLAN.md` |
 | **!!! P0** | Desktop idle energy P0 — PR `fix/desktop-idle-energy-p0` | `docs/AI/desktop/2026-06-07!!!-DESKTOP_IDLE_ENERGY_PLAN.md` |
 | **P1** | Run packaged-DMG benchmark + 2 h soak (RAM < 400 MB, 12 hr power < 500) | `scripts/desktop-idle-benchmark.sh` |
@@ -28,7 +28,7 @@
 | **P1 local review** | Project-aware Stage chat: `@project`, bounded Convex context, screenshots, confirmed window capture | `apps/user-application/docs/AI/chatbot/CHATBOT_PLAN.md`; branch `feat/stage-chat-project-context-vision` |
 | **P2 desktop flash-kill** | Convex queries routed through TanStack Query (`@convex-dev/react-query`) + route loaders (`ensureQueryData`) so screens paint ready data instead of setup/empty flashes. Interim: per-tab `TabLoadingState` loader on Flows/Wireframes/Assets. Branch `feat/convex-tanstack-query-loaders`. Follow-up: strip residual `isRunsLoading`/`isStyleGuideRunsLoading` guards once live smoke confirms loader cache hits. Skill: `.agents/skills/convex-tanstack-query-adapter/` | apps/user-application/src |
 
-**Current desktop version (release branch):** `0.2.36` (production tag `prod-v0.2.36`)
+**Current desktop version (release branch):** `0.2.42` (production tag `prod-v0.2.42`)
 
 ---
 

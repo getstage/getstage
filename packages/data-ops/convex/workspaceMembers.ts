@@ -1,6 +1,6 @@
 import { action, mutation, query } from "./_generated/server";
 import { v } from "convex/values";
-import { requireWorkspaceOwner } from "./_helpers";
+import { requireAuthUser, requireWorkspaceOwner } from "./_helpers";
 import { internal } from "./_generated/api";
 import { enforceWorkspaceInviteRateLimit } from "./platform/rateLimits";
 import {
@@ -12,6 +12,7 @@ import { createInviteToken, hashInviteToken } from "./platform/inviteTokens";
 import {
   listPendingWorkspaceInvites,
   listWorkspaceMembers,
+  resolveWorkspaceContext,
   revokeWorkspaceInviteRecord,
 } from "./domain/collaborators/service";
 import type { Id } from "./_generated/dataModel";
@@ -39,16 +40,18 @@ type InviteRateLimitContext = { ownerId: string; recipientEmail: string };
 export const list = query({
   args: {},
   handler: async (ctx) => {
-    const { owner } = await requireWorkspaceOwner(ctx);
-    return listWorkspaceMembers(ctx, owner._id);
+    const user = await requireAuthUser(ctx);
+    const workspace = await resolveWorkspaceContext(ctx, user._id);
+    return listWorkspaceMembers(ctx, workspace.ownerUserId);
   },
 });
 
 export const listPending = query({
   args: {},
   handler: async (ctx) => {
-    const { owner } = await requireWorkspaceOwner(ctx);
-    return listPendingWorkspaceInvites(ctx, owner._id);
+    const user = await requireAuthUser(ctx);
+    const workspace = await resolveWorkspaceContext(ctx, user._id);
+    return listPendingWorkspaceInvites(ctx, workspace.ownerUserId);
   },
 });
 

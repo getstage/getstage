@@ -110,11 +110,7 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
   const [selectedEffort, setSelectedEffort] = useState(chatDefaults.selectedEffort);
   const [selectedSpeed, setSelectedSpeed] = useState(chatDefaults.selectedSpeed);
   const [activeProvider, setActiveProvider] = useState<ChatProviderId>("favorites");
-  const [favoriteModelIds, setFavoriteModelIds] = useState<string[]>([
-    "gpt-5.6-sol",
-    "claude-fable-5",
-    "claude-opus-4.8",
-  ]);
+  const [favoriteModelIds, setFavoriteModelIds] = useState<string[]>(["gpt-5.5"]);
   const { isAuthenticated } = useDesktopAuth();
   const projectMention = draft.match(/(?:^|\s)@([^@\n]*)$/)?.[1].trimStart() ?? null;
   const rawProjectMatches = useQuery(
@@ -1046,7 +1042,9 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
                                   <span>{model.label}</span>
                                   {model.badge ? <span className="chat-model-badge">{model.badge}</span> : null}
                                 </span>
-                                <span className="chat-model-description">{model.description}</span>
+                                {model.description ? (
+                                  <span className="chat-model-description">{model.description}</span>
+                                ) : null}
                               </span>
                             </button>
                           </div>

@@ -10,6 +10,7 @@ import {
   formatSubscriptionPeriodDate,
   subscriptionPeriodLabel,
 } from "@/lib/billing/subscriptionPeriodLabel";
+import { coveringPlan } from "@/models/settings/settings";
 import {
   creditsUsedBarWidth,
   formatCreditsUsedLabel,
@@ -87,7 +88,8 @@ export function BillingPanel() {
   const [showTopupGate, setShowTopupGate] = useState(false);
 
   const subscription = overview.data?.subscription ?? null;
-  const plan = overview.data?.profile.plan ?? "free";
+  const isWorkspaceMember = overview.data?.workspace?.role === "member";
+  const plan = coveringPlan(overview.data);
   const planName = PLAN_DISPLAY_NAME[plan] ?? capitalize(plan);
   const billingCycle = subscription ? capitalize(subscription.billingCycle) : "—";
   const periodLabel = subscriptionPeriodLabel(subscription, "billing");
@@ -112,6 +114,9 @@ export function BillingPanel() {
   }
 
   async function buyTopup(size: TopupSize) {
+    if (isWorkspaceMember) {
+      return;
+    }
     if (isTrialing || !subscription) {
       setShowTopupGate(true);
       return;
@@ -171,7 +176,9 @@ export function BillingPanel() {
 
         <SettingsCard title="Current plan">
           <p className="-mt-[12px] px-[12px] pb-[12px] text-[12px] font-normal leading-[1.5] text-[#404040]">
-            Your Stage subscription, checkout, and customer portal.
+            {isWorkspaceMember
+              ? `You're on ${overview.data?.workspace?.owner.name || "this"} workspace plan.`
+              : "Your Stage subscription, checkout, and customer portal."}
           </p>
           <SettingsRow>
             <div className="flex items-end justify-between gap-[20px]">
@@ -197,6 +204,7 @@ export function BillingPanel() {
                   <PlanDetail label={periodLabel} value={periodDate} />
                 </div>
               </div>
+              {isWorkspaceMember ? null : (
               <button
                 type="button"
                 onClick={openSubscriptions}
@@ -204,6 +212,7 @@ export function BillingPanel() {
               >
                 {plan === "free" ? "Upgrade" : "Change Plan"}
               </button>
+              )}
             </div>
           </SettingsRow>
         </SettingsCard>
@@ -218,7 +227,7 @@ export function BillingPanel() {
                 <SettingsIcon name="visa" className="h-[10px] w-auto shrink-0" />
                 <span className="text-[13px] font-medium leading-[1.5] text-[#0A0A0A]">{paymentLabel}</span>
               </div>
-              <SaveButton onClick={openPortal} disabled={portalLoading || plan === "free"}>
+              <SaveButton onClick={openPortal} disabled={portalLoading || plan === "free" || isWorkspaceMember}>
                 {portalLoading ? "Loading…" : "Update Payment Method"}
               </SaveButton>
             </div>
@@ -259,6 +268,7 @@ export function BillingPanel() {
           </SettingsRow>
         </SettingsCard>
 
+        {isWorkspaceMember ? null : (
         <SettingsCard title="Additional Top-up">
           <p className="-mt-[12px] px-[12px] pb-[12px] text-[12px] font-normal leading-[1.5] text-[#404040]">
             Add extra AI credits — they stack on top of your monthly balance and never expire.
@@ -313,6 +323,7 @@ export function BillingPanel() {
             ))}
           </div>
         </SettingsCard>
+        )}
 
         <PurchaseHistory purchases={purchases.data} isLoading={purchases.isLoading} />
       </section>
