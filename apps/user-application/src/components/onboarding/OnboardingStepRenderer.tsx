@@ -38,7 +38,7 @@ type OnboardingStepRendererProps = {
   claudeConnectionId: string | null;
   onContinue: () => void;
   onCreationDone: () => void;
-  onStartTrial: () => void;
+  onStartTrial: (tier: "start" | "pro" | "team") => void;
   onClaudeActivated: () => void;
 };
 

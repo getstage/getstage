@@ -365,7 +365,10 @@ export function useOnboardingController({
     }
   }
 
-  async function handlePaywallUpgrade(billingCycle: "monthly" | "yearly") {
+  async function handlePaywallUpgrade(
+    billingCycle: "monthly" | "yearly",
+    tier: "start" | "pro" | "team",
+  ) {
     const submission = pendingSubmission ?? buildPendingSubmission(!setProjectLater);
     if (!pendingSubmission) {
       setPendingSubmission(submission);
@@ -394,7 +397,7 @@ export function useOnboardingController({
 
     try {
       const result = await createCheckoutSession({
-        tier: "start",
+        tier,
         billingCycle,
         isTrial: true,
         source: "onboarding_paywall",
@@ -407,7 +410,7 @@ export function useOnboardingController({
       trackDatafastGoal("checkout_started", {
         source: "onboarding_paywall",
         billing_cycle: billingCycle,
-        plan: "start",
+        plan: tier,
       });
       await openExternalLink(result.url);
     } catch {

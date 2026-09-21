@@ -37,6 +37,7 @@ import type * as developer_apiKeys from "../developer/apiKeys.js";
 import type * as developer_testingFixtures from "../developer/testingFixtures.js";
 import type * as domain_accountCleanup from "../domain/accountCleanup.js";
 import type * as domain_auth_cleanup from "../domain/auth/cleanup.js";
+import type * as domain_billing_plans from "../domain/billing/plans.js";
 import type * as domain_collaborators_invites from "../domain/collaborators/invites.js";
 import type * as domain_collaborators_service from "../domain/collaborators/service.js";
 import type * as domain_demo_workspace from "../domain/demo/workspace.js";
@@ -190,6 +191,7 @@ declare const fullApi: ApiFromModules<{
   "developer/testingFixtures": typeof developer_testingFixtures;
   "domain/accountCleanup": typeof domain_accountCleanup;
   "domain/auth/cleanup": typeof domain_auth_cleanup;
+  "domain/billing/plans": typeof domain_billing_plans;
   "domain/collaborators/invites": typeof domain_collaborators_invites;
   "domain/collaborators/service": typeof domain_collaborators_service;
   "domain/demo/workspace": typeof domain_demo_workspace;

@@ -49,7 +49,9 @@ export function DashboardPage() {
   const [paywallError, setPaywallError] = useState<string | null>(null);
   const { user, isLoading: authLoading } = useAuth();
   const shouldLoadDashboardData = Boolean(user);
-  const shouldLoadOnboardingState = Boolean(user && user.plan !== "pro");
+  const isPaidPlan =
+    user?.plan === "start" || user?.plan === "pro" || user?.plan === "team";
+  const shouldLoadOnboardingState = Boolean(user && !isPaidPlan);
   const dashboardData = useConvexQuery(
     api.dashboard.getOverview,
     shouldLoadDashboardData ? {} : "skip",
@@ -104,7 +106,7 @@ export function DashboardPage() {
   });
 
   useEffect(() => {
-    if (user?.plan !== "pro") {
+    if (!isPaidPlan) {
       return;
     }
 
@@ -140,7 +142,7 @@ export function DashboardPage() {
     return () => {
       cancelled = true;
     };
-  }, [createProject, markProjectCreated, user?.plan]);
+  }, [createProject, isPaidPlan, markProjectCreated, user?.plan]);
 
   const handlePreviewPrimaryAction = () => {
     setPaywallError(null);

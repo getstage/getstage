@@ -8,14 +8,11 @@ import {
   requireWorkspaceOwner,
 } from "../../_helpers";
 import { getCurrentSubscriptionSnapshot } from "../../billing";
+import { isPaidPlan } from "../billing/plans";
 
 type ReaderCtx = QueryCtx | MutationCtx;
 
 export const WORKSPACE_INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
-
-function isPaidPlan(plan: string | null | undefined) {
-  return plan === "start" || plan === "pro" || plan === "team";
-}
 
 export async function resolveWorkspaceContext(ctx: ReaderCtx, userId: Id<"users">) {
   const ownSubscription = await getCurrentSubscriptionSnapshot(ctx, String(userId));
