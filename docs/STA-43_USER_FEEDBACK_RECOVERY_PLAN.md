@@ -1,23 +1,23 @@
 # STA-43 User Feedback and Production Recovery
 
-> **Status:** Inventory complete; implementation not started
+> **Status:** Core changes shipped in `prod-v0.2.46`; live acceptance and seat-downgrade policy remain open
 > **Priority:** P0 project creation recovery, then STA-43
-> **Last updated:** 2026-09-22
+> **Last updated:** 2026-09-24
 > **Sources:** Linear `STA-43`; Figma file `1r1quTKtqFy9E2UZt3rnOd`, node `1844:2274`
 
-This is the single active plan for the September 20 user-feedback batch. It replaces the stale team-members implementation plan. Production deployment is explicitly out of scope until Werner completes the live acceptance pass.
+This is the single active plan for the September 20 user-feedback batch. It replaces the stale team-members implementation plan. Desktop `prod-v0.2.46` and matching production Convex functions were deployed on September 24; authenticated end-to-end acceptance is still open. Draft PR #81 and Stripe portal plan switching are not released.
 
 ## Executive diagnosis
 
-Users cannot create projects because the released desktop and active Convex backend do not share one project-category contract.
+Historical incident diagnosis (September 22): users could not create projects because the released desktop and active Convex backend did not share one project-category contract. The matching `prod-v0.2.46` desktop/Convex deployment addresses the version mismatch, but project creation has not been re-verified end to end.
 
 - The client sends the new canonical categories: `websites`, `web-apps`, and `ios-apps`.
 - The failing deployment still validates the old project-type values such as `web-design` and `web-app`.
 - Local source already contains the new categories in the schema and shared project validators, but `lib/desktop/handlers/index.ts` still duplicates the old return validator.
 - The onboarding error (`workCategory: "websites"`) and project-create error (`type: "web-apps"`) prove that backend deployment parity is broken, not that the user entered invalid data.
-- `workspaceMembers:listPending` fails before execution because the desktop calls a public function that is absent from the active deployment. Local source contains the function, confirming another frontend/backend release mismatch.
+- `workspaceMembers:listPending` previously failed before execution because the desktop called a public function absent from the then-active deployment. The production function-spec after the September 24 deployment includes `listPending` and `listSpaces`; authenticated behavior still requires acceptance.
 
-The immediate recovery is therefore contract consolidation plus an atomic desktop/Convex testing release. Workspace UI work must not begin until project creation is restored.
+The versioned desktop/Convex deployment has now happened; follow up with authenticated project creation and workspace smoke tests before treating recovery as complete.
 
 ## Audit table
 
@@ -26,10 +26,10 @@ The immediate recovery is therefore contract consolidation plus an atomic deskto
 | **P0** | Project creation | `desktop:createProject` rejects `type: "web-apps"` | Active Convex validator serves the legacy enum; local desktop handler also retains a duplicate legacy return validator | One imported category contract accepts all three canonical categories across args, storage, returns, onboarding, desktop, and web | Not started |
 | **P0** | Onboarding completion | `workCategory: "websites"` is rejected | Active deployment is older than local onboarding/schema contract | Onboarding and project creation use the same canonical category validator | Not started |
 | **P0** | Team settings query | `workspaceMembers:listPending` reports “Could not find public function” | Desktop bundle and Convex deployment expose different APIs | Client calls only functions present in the deployed backend; release gate checks generated API parity | Not started |
-| **P0** | Release process | Paid users received a client that the backend could not serve | Desktop and Convex were released independently without a contract smoke gate | Testing release is deployed as one versioned unit before any production promotion | Not started |
+| **P0** | Release process | Paid users received a client that the backend could not serve | Desktop and Convex were released independently without a contract smoke gate | Testing release is deployed as one versioned unit before any production promotion | Production `prod-v0.2.46` and matching Convex backend deployed; live flows still need acceptance |
 | **STA-43.1** | Model picker | AI-default model menu leaves the visible settings area | Menu used an absolute dropdown with no viewport collision handling | Menu stays inside the window, flips when needed, and scrolls internally | Done |
 | **STA-43.2** | Workspace spaces | Member sees a union of projects but cannot choose personal versus team context | `projectCollaborators.ownerUserId` already represents real spaces, but `resolveWorkspaceContext` collapses access to one workspace and the UI has no active-space state | Sidebar selector lists personal space plus every real team space; projects and members are scoped to the selected owner | Local source. Not click-tested |
-| **STA-43.3** | Team members | Settings does not match the Figma Teams view and pending query currently fails | Existing member/invite data is real, but presentation and deployed API are incomplete | Settings → Teams shows real members, Invite Member, owner-only Remove, and calm loading/error/empty states | Local source. Not click-tested |
+| **STA-43.3** | Team members | Settings does not match the Figma Teams view and pending query currently fails | Existing member/invite data is real, but presentation and deployed API are incomplete | Settings → Teams shows real members, Invite Member, owner-only Remove, and calm loading/error/empty states | UI and backend on `prod-v0.2.46`; live acceptance pending |
 | **STA-43.4** | Brief uploads | Only the first selected file is retained | UI reads `files[0]`; state, Convex context, R2 attachment fields, and engine input are singular | Multiple validated brief files can be added, removed, persisted, and supplied to Research | Done |
 | **STA-43.5** | PDF and Markdown | PDF is allowed; `.md` appears in the input accept list but fails shared upload validation | `research-brief` upload rules omit `.md` and Markdown MIME types | PDF and Markdown work end to end using the shared upload policy | Done |
 | **STA-43.6** | Competitor links | Every URL must be added separately, and a run times out above about 3–4 competitors | Paste of several URLs is in. The form stops at 4 and shows that maximum on the field. The run itself is unchanged | Paste accepts several URLs. The field shows the working maximum before any link is added. That maximum stays at 4 until a run with more competitors finishes | Local source. Cap is 4 |
@@ -55,6 +55,18 @@ Build one indexed `listAvailableSpaces` read model from the user plus their memb
 - Personal projects and team projects must never leak across a selected-space query.
 - Removing membership must immediately remove that space and its projects from the member's reads.
 - Keep invite tokens hashed, expiring, single-use, and bound to the signed-in verified email.
+
+## Seat downgrades and Stripe customer portal: release blocker
+
+**Observed 2026-09-24:** The live Stripe customer portal's default configuration had `subscription_update.enabled=false`. Werner explored enabling "Customers can switch plans"; the screenshot shows **no eligible products added**, "End trials on subscription updates" enabled, "No charges or credits" selected, and downgrades set to "Update immediately". A toggle in an unsaved dashboard screenshot is **not proof** that the live configuration changed. Do not enable or save self-service plan switching until the following policy and implementation are agreed and tested.
+
+Stage tiers: Solo (`start`) = 1 total seat, Studio (`pro`) = 5, Agency (`team`) = 15. The owner occupies one seat. Invite creation and acceptance check available seats at that moment (`convex/domain/collaborators/service.ts`), but nothing reconciles **existing** `projectCollaborators` rows or pending `workspaceInvites` when a Stripe subscription changes price. `customer.subscription.updated` mirrors the new plan and adjusts credits on payment events; it does not remove or suspend memberships. `workspaceMembers:listSpaces` discovers existing memberships without checking the owner's current seat capacity. `helpers/access/projectAccess.ts` grants a member access to the owner's projects when the membership exists and the owner has **any** active subscription, including Solo; it does not check that the owner's plan permits the member or that the member fits within the new limit. Thus a Studio owner with four invited members could switch to Solo yet all four memberships and their project access would remain. Agency → Studio can similarly retain more than five occupants. Do not delete projects, remove members, or silently revoke access as an automatic quick fix.
+
+There is a second capacity hazard: `lib/billing/handlers/index.ts:resolveSeats` uses the larger of the new price's included seats and the subscription's `metadata.seats`, which was written at checkout. If Stripe's portal changes the price without rewriting that metadata, an Agency → Solo subscription can still **report 15 seats**. Verify Stripe's actual update event and derive entitlement from the current price, not stale checkout metadata, before allowing downgrades. Draft PR #81 (`fix/team-invite-upgrade-gate`) adds a Solo invitation guard and a Studio/Agency-only entry to the existing pricing screen, but is **not merged or deployed**; it does not solve existing membership overflow or Stripe portal configuration. The new team-only cards open the Stripe portal for the existing subscription; they do not select a tier inside Stripe or guarantee that plan changes are enabled there. Do not use a second subscription checkout as a workaround.
+
+**Decision needed before self-service downgrades:** either block a downgrade when occupied/reserved seats exceed the target tier (and tell the owner whom to remove/revoke first), or define a reversible excess-member policy (which members retain access, read/write behavior, restoration after upgrade). Enforce that policy on the server at the subscription-change boundary and on every relevant member/project authorization path, not only in the desktop UI. Handle pending invitations, retries, delayed/out-of-order webhooks, renewals, and canceled plans. Keep owner data intact. Add tests for Studio → Solo with active/pending members, Agency → Studio over capacity, portal-updated stale seat metadata, and re-upgrade. Smoke the Stripe portal in test mode with the actual configured prices and billing proration/trial settings, then verify production with an authorized account before changing live defaults.
+
+**Interim safe operating rule:** keep live portal plan switching off (or at minimum do not expose downgrade paths) until the entitlement policy and enforcement are ready. Stripe's product selector is not a Convex seat-count guard; adding Solo as a portal option would not automatically clean up or restrict team access.
 
 ## Delivery order
 
