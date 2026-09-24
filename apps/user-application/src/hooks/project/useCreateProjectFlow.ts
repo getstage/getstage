@@ -78,6 +78,8 @@ export function useCreateProjectFlow() {
       clientMode: draft.clientMode,
       clientName: draft.clientName,
       clientEmail: draft.clientEmail,
+      existingClients,
+      selectedExistingClientId,
     });
     const error = getFirstZodError(result);
     setClientDetailsError(error);

@@ -13,7 +13,6 @@ export function SidebarAccountMenu({
   accountAvatarUrl,
   accountMeta,
   onCollapsedChange,
-  onOpenDemo,
   onOpenSettings,
   onLogOut,
 }: {
@@ -24,7 +23,6 @@ export function SidebarAccountMenu({
   accountAvatarUrl?: string;
   accountMeta: string;
   onCollapsedChange: (collapsed: boolean) => void;
-  onOpenDemo: () => void;
   onOpenSettings: () => void;
   onLogOut: () => Promise<void>;
 }) {
@@ -84,7 +82,6 @@ export function SidebarAccountMenu({
         type="button"
         aria-label="Help & Feedback"
         onClick={() => {
-          onOpenDemo();
           void openExternalLink(HELP_FEEDBACK_URL);
         }}
         className={cn(

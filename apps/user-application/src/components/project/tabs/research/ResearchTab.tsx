@@ -279,6 +279,7 @@ export function ResearchTab({
           </p>
         ) : null}
         <ResearchConfigureStep
+          projectId={project.id}
           projectCategory={projectCategory}
           isSubmitting={research.isStarting || research.isRunning}
           initialValues={researchContext.initialValues}
@@ -479,6 +480,7 @@ export function ResearchTab({
         }}
       />
       <ResearchRerunDialog
+        projectId={project.id}
         projectCategory={projectCategory}
         open={isRerunDialogOpen}
         onOpenChange={setIsRerunDialogOpen}

@@ -801,6 +801,14 @@ export default defineSchema({
     brief: v.optional(v.string()),
     briefAttachmentName: v.optional(v.string()),
     briefAttachmentR2ObjectKey: v.optional(v.string()),
+    briefAttachments: v.optional(
+      v.array(
+        v.object({
+          name: v.string(),
+          r2ObjectKey: v.string(),
+        }),
+      ),
+    ),
     notes: v.optional(v.string()),
     strategyFocusAreas: v.optional(v.array(v.string())),
     strategyGenerateNotes: v.optional(v.string()),

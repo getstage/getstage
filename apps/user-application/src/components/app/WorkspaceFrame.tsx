@@ -9,10 +9,8 @@ import { useSidebarState } from "@/hooks/useSidebarState";
 
 export function WorkspaceFrame({
   children,
-  onOpenDemo,
 }: {
   children: ReactNode;
-  onOpenDemo: () => void;
 }) {
   const projectsQuery = useProjectsQuery();
   const settingsOverviewQuery = useSettingsOverviewQuery();
@@ -46,7 +44,6 @@ export function WorkspaceFrame({
           collapsed={effectiveSidebarCollapsed}
           canExpand={!isCompact}
           onCollapsedChange={setSidebarCollapsed}
-          onOpenDemo={onOpenDemo}
         />
         <main
           data-sidebar-collapsed={effectiveSidebarCollapsed}

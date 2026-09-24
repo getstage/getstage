@@ -18,6 +18,7 @@ import { SidebarCollapseControl } from "./sidebar/SidebarCollapseControl";
 import { SidebarCreditsCard } from "./sidebar/SidebarCreditsCard";
 import { SidebarNavigation } from "./sidebar/SidebarNavigation";
 import { SidebarProjectList } from "./sidebar/SidebarProjectList";
+import { SidebarSpaceSelect } from "./sidebar/SidebarSpaceSelect";
 import { SidebarSearch } from "./sidebar/SidebarSearch";
 import { useDesktopBridge } from "@/hooks/useDesktopBridge";
 import { cn } from "@/lib/utils";
@@ -31,7 +32,6 @@ export function StageSidebar({
   collapsed,
   canExpand = true,
   onCollapsedChange,
-  onOpenDemo,
 }: {
   accountInitials: string;
   accountLabel: string;
@@ -41,7 +41,6 @@ export function StageSidebar({
   collapsed: boolean;
   canExpand?: boolean;
   onCollapsedChange: (collapsed: boolean) => void;
-  onOpenDemo: () => void;
 }) {
   const navigate = useNavigate();
   const desktop = useDesktopBridge();
@@ -86,6 +85,8 @@ export function StageSidebar({
           canExpand={canExpand}
           onCollapsedChange={onCollapsedChange}
         />
+
+        <SidebarSpaceSelect collapsed={collapsed} />
 
         <div className={cn("flex w-full shrink-0 flex-col gap-[clamp(10px,2.5vh,16px)]", collapsed && "items-center")}>
           <SidebarSearch
@@ -139,7 +140,6 @@ export function StageSidebar({
           accountAvatarUrl={accountAvatarUrl}
           accountMeta={accountMeta}
           onCollapsedChange={onCollapsedChange}
-          onOpenDemo={onOpenDemo}
           onOpenSettings={() => openSidebarSettings(navigate)}
           onLogOut={() => logoutFromSidebar(navigate, () => desktop.auth.logout())}
         />

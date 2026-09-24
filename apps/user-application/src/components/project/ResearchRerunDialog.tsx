@@ -5,17 +5,19 @@ import type { ValidatedResearchConfigureInput } from "@/lib/project/researchConf
 import { ResearchConfigureStep } from "./tabs/research/ResearchConfigureStep";
 
 type ResearchRerunDialogProps = {
+  projectId?: string;
   projectCategory: ProjectCategory;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   initialValues: ResearchConfigureFormValues;
   isSubmitting: boolean;
-  onBriefFileChange?: (file: File | null) => void;
+  onBriefFileChange?: (files: File[]) => void;
   onClearBriefAttachment?: () => void;
   onSubmit: (input: ValidatedResearchConfigureInput, providerId: ProviderId) => void;
 };
 
 export function ResearchRerunDialog({
+  projectId,
   projectCategory,
   open,
   onOpenChange,
@@ -32,6 +34,7 @@ export function ResearchRerunDialog({
         <Dialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[min(90vh,920px)] w-[calc(100vw-24px)] max-w-[720px] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-[12px] outline-none">
           <Dialog.Title className="sr-only">Re-run research</Dialog.Title>
           <ResearchConfigureStep
+            projectId={projectId}
             projectCategory={projectCategory}
             isSubmitting={isSubmitting}
             initialValues={initialValues}

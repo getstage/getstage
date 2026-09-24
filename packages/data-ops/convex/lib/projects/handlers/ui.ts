@@ -98,6 +98,7 @@ export async function createHandler(
     startDate: number;
     endDate: number;
     phases?: Array<{ name: string; tasks?: string[] }>;
+    spaceOwnerId?: Id<"users">;
   },
 ) {
   const user = await requireAuthUser(ctx);

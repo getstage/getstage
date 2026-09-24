@@ -182,7 +182,7 @@ function UiPatternGroup({
               <div className="grid grid-cols-1 gap-2 xl:grid-cols-2">
                 {group.recognizedPatterns.map(([title, body], patternIndex) => (
                   <PatternCard
-                    key={`${patternIndex}-${title}`}
+                    key={`pattern-${patternIndex}`}
                     title={title}
                     body={body}
                     isEditing={isEditing}

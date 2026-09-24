@@ -9,6 +9,7 @@ import {
 } from "../../_helpers";
 import { getCurrentSubscriptionSnapshot } from "../../billing";
 import { isPaidPlan } from "../billing/plans";
+import { resolveAssetUrl } from "../../helpers/r2/resolve";
 
 type ReaderCtx = QueryCtx | MutationCtx;
 
@@ -400,6 +401,7 @@ export async function listWorkspaceMembers(ctx: ReaderCtx, ownerId: Id<"users">)
         role: member.role,
         name: user?.name ?? null,
         email: user?.email ?? null,
+        avatarUrl: await resolveAssetUrl(user?.avatarUrl || user?.image || null),
         createdAt: member.createdAt,
       };
     }),

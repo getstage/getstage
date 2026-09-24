@@ -10,7 +10,7 @@ export function ScreenElementList({
   return (
     <ul className="m-0 flex list-disc flex-col gap-0 pl-[28px] text-[12px] font-medium leading-[1.25] text-[#262626]">
       {elements.map((element, elementIndex) => (
-        <li key={`${elementIndex}-${element}`} className="py-[6px] pr-3 marker:text-[#262626]">
+        <li key={`element-${elementIndex}`} className="py-[6px] pr-3 marker:text-[#262626]">
           {editing ? (
             <input
               value={element}

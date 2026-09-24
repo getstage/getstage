@@ -58,12 +58,14 @@ export function ClientDetailsStep({
     clientMode,
     clientName,
     clientEmail,
+    existingClients,
+    selectedExistingClientId,
   }).success;
 
   return (
     <CreateProjectStepShell
-      title="Client Details"
-      description="Who is this project for?"
+      title="Who is this for"
+      description="A client, or just you."
       activeStepIndex={1}
       onStepSelect={onStepSelect}
     >
@@ -74,7 +76,7 @@ export function ClientDetailsStep({
           onContinue();
         }}
       >
-        <FormCard title="Client Details" titleWeight="semibold">
+        <FormCard title="Who is this for" titleWeight="semibold">
           <Field label="Who is this for?">
             <ClientPickerDropdown
               clientMode={clientMode}
@@ -85,7 +87,7 @@ export function ClientDetailsStep({
             />
           </Field>
 
-          <Field label="Client Name">
+          <Field label="Name">
             <input
               value={clientName}
               onChange={(event) => onClientNameChange(event.target.value)}
@@ -95,13 +97,13 @@ export function ClientDetailsStep({
             />
           </Field>
 
-          <Field label="Client email">
+          <Field label="Email">
             <input
               value={clientEmail}
               onChange={(event) => onClientEmailChange(event.target.value)}
-              placeholder="client@example.com"
+              placeholder="you@company.com"
               type="email"
-              aria-label="Client email"
+              aria-label="Email"
               className={inputSurfaceClassName}
             />
           </Field>

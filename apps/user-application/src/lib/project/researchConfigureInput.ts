@@ -16,7 +16,13 @@ import { z } from "zod";
 const MAX_INDUSTRY_LENGTH = 120;
 const MAX_BRIEF_LENGTH = 5000;
 const MAX_NOTES_LENGTH = 2000;
-const MAX_COMPETITORS = 10;
+export const MAX_COMPETITORS = 4;
+export const MAX_BRIEF_FILES = 5;
+
+export type ResearchBriefAttachment = {
+  name: string;
+  r2ObjectKey: string;
+};
 
 export type ResearchConfigureFormValues = {
   industry: string;
@@ -25,7 +31,8 @@ export type ResearchConfigureFormValues = {
   additionalNotes: string;
   competitorUrls: string[];
   detailsSections: DetailsSection[];
-  briefFileName: string | null;
+  briefFileNames: string[];
+  briefAttachments: ResearchBriefAttachment[];
 };
 
 export type ResearchConfigureField = keyof ResearchConfigureFormValues | "competitorInput";
@@ -39,7 +46,8 @@ export const DEFAULT_RESEARCH_CONFIGURE_FORM_VALUES: ResearchConfigureFormValues
   additionalNotes: "",
   competitorUrls: [],
   detailsSections: [...DEFAULT_DETAILS_SECTIONS],
-  briefFileName: null,
+  briefFileNames: [],
+  briefAttachments: [],
 };
 
 export function normalizeReferenceSections(
@@ -123,7 +131,9 @@ export const validatedResearchConfigureInputSchema = z.object({
   uploadedAssetIds: z.array(z.string().min(1)).default([]),
 });
 
-export type ValidatedResearchConfigureInput = z.infer<typeof validatedResearchConfigureInputSchema>;
+export type ValidatedResearchConfigureInput = z.infer<typeof validatedResearchConfigureInputSchema> & {
+  briefAttachments?: ResearchBriefAttachment[];
+};
 
 export function parseCompetitorWebsite(
   value: string,
@@ -158,7 +168,7 @@ export function validateResearchConfigureForm(
 
   const briefText = values.projectBrief.trim();
   const hasBriefText = briefText.length > 0;
-  const hasBriefFile = values.briefFileName !== null;
+  const hasBriefFile = values.briefFileNames.length > 0 || values.briefAttachments.length > 0;
 
   if (!hasBriefText && !hasBriefFile) {
     errors.projectBrief = "Add a project brief or upload a brief file";
@@ -183,7 +193,9 @@ export function validateResearchConfigureForm(
     return { success: false, errors };
   }
 
-  const projectBrief = hasBriefText ? briefText : `[Uploaded brief: ${values.briefFileName}]`;
+  const projectBrief = hasBriefText
+    ? briefText
+    : `[Uploaded brief: ${values.briefFileNames.join(", ") || values.briefAttachments.map((file) => file.name).join(", ")}]`;
 
   try {
     const data = validatedResearchConfigureInputSchema.parse({
@@ -196,7 +208,13 @@ export function validateResearchConfigureForm(
       uploadedAssetIds: [],
     });
 
-    return { success: true, data };
+    return {
+      success: true,
+      data: {
+        ...data,
+        briefAttachments: values.briefAttachments.slice(0, MAX_BRIEF_FILES),
+      },
+    };
   } catch (error) {
     if (error instanceof z.ZodError) {
       for (const issue of error.issues) {

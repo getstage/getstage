@@ -51,6 +51,7 @@ export const projectSummarySchema = z.object({
   startDate: z.number().int().nonnegative(),
   endDate: z.number().int().nonnegative(),
   progress: z.number().min(0).max(100),
+  ownerUserId: z.string().min(1).optional(),
 });
 
 export const projectDetailSchema = projectSummarySchema.extend({

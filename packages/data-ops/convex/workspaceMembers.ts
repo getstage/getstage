@@ -16,6 +16,7 @@ import {
   revokeWorkspaceInviteRecord,
 } from "./domain/collaborators/service";
 import type { Id } from "./_generated/dataModel";
+import { resolveAssetUrl } from "./helpers/r2/resolve";
 
 // Workspace-native team API for Settings → Team. Every user owns exactly one
 // workspace (the projects they own + the members they invite); these operate on
@@ -38,20 +39,80 @@ type AddWorkspaceMemberResult = {
 type InviteRateLimitContext = { ownerId: string; recipientEmail: string };
 
 export const list = query({
-  args: {},
-  handler: async (ctx) => {
+  args: { ownerUserId: v.optional(v.id("users")) },
+  handler: async (ctx, args) => {
     const user = await requireAuthUser(ctx);
-    const workspace = await resolveWorkspaceContext(ctx, user._id);
-    return listWorkspaceMembers(ctx, workspace.ownerUserId);
+    const ownerUserId = await resolveReadableSpaceOwner(ctx, user._id, args.ownerUserId);
+    return listWorkspaceMembers(ctx, ownerUserId);
   },
 });
 
 export const listPending = query({
+  args: { ownerUserId: v.optional(v.id("users")) },
+  handler: async (ctx, args) => {
+    const user = await requireAuthUser(ctx);
+    const ownerUserId = await resolveReadableSpaceOwner(ctx, user._id, args.ownerUserId);
+    return listPendingWorkspaceInvites(ctx, ownerUserId);
+  },
+});
+
+async function resolveReadableSpaceOwner(
+  ctx: Parameters<typeof requireAuthUser>[0],
+  userId: Id<"users">,
+  ownerUserId?: Id<"users">,
+) {
+  if (!ownerUserId) {
+    const workspace = await resolveWorkspaceContext(ctx, userId);
+    return workspace.ownerUserId;
+  }
+  if (ownerUserId === userId) return ownerUserId;
+  const memberships = await ctx.db
+    .query("projectCollaborators")
+    .withIndex("by_user", (q) => q.eq("userId", userId))
+    .collect();
+  if (!memberships.some((membership) => membership.ownerUserId === ownerUserId)) {
+    throw new Error("You do not have access to that workspace.");
+  }
+  return ownerUserId;
+}
+
+export const listSpaces = query({
   args: {},
   handler: async (ctx) => {
     const user = await requireAuthUser(ctx);
-    const workspace = await resolveWorkspaceContext(ctx, user._id);
-    return listPendingWorkspaceInvites(ctx, workspace.ownerUserId);
+    const memberships = await ctx.db
+      .query("projectCollaborators")
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .collect();
+    const spaces: Array<{
+      ownerUserId: string;
+      name: string;
+      email: string;
+      avatarUrl?: string;
+      role: "owner" | "member";
+    }> = [];
+    const seen = new Set<string>([String(user._id)]);
+    for (const membership of memberships) {
+      const ownerUserId = String(membership.ownerUserId);
+      if (seen.has(ownerUserId)) continue;
+      seen.add(ownerUserId);
+      const owner = await ctx.db.get(membership.ownerUserId);
+      spaces.push({
+        ownerUserId,
+        name: owner?.name?.trim() || owner?.email || "Team",
+        email: owner?.email ?? "",
+        avatarUrl: (await resolveAssetUrl(owner?.avatarUrl || owner?.image)) ?? undefined,
+        role: "member" as const,
+      });
+    }
+    spaces.push({
+      ownerUserId: String(user._id),
+      name: user.name?.trim() || user.email || "Personal",
+      email: user.email ?? "",
+      avatarUrl: (await resolveAssetUrl(user.avatarUrl || user.image)) ?? undefined,
+      role: "owner" as const,
+    });
+    return spaces.sort((left, right) => Number(left.role === "owner") - Number(right.role === "owner"));
   },
 });
 

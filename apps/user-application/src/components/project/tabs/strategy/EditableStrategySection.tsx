@@ -37,7 +37,7 @@ function EditableStrategyFields({
     return (
       <div className="flex flex-col gap-4">
         {section.principles.map((principle, index) => (
-          <div key={`${principle.title}-${index}`} className="flex flex-col gap-[6px]">
+          <div key={`principle-${index}`} className="flex flex-col gap-[6px]">
             <div className="flex items-center gap-2">
               <span className="w-[18px] text-[13px] font-medium text-[#0A0A0A]">{index + 1}.</span>
               <input
@@ -85,7 +85,7 @@ function EditableStrategyFields({
     return (
       <div className="overflow-hidden rounded-[8px] border border-[#D9D9D9] bg-white">
         {section.table.map(([label, value], index) => (
-          <div key={`${label}-${index}`} className={cn("grid grid-cols-2", index < section.table!.length - 1 && "border-b border-[#E5E5E5]")}>
+          <div key={`table-${index}`} className={cn("grid grid-cols-2", index < section.table!.length - 1 && "border-b border-[#E5E5E5]")}>
             <input
               value={label}
               onChange={(event) => {
@@ -118,7 +118,7 @@ function EditableStrategyFields({
     return (
       <div className="grid grid-cols-1 gap-2 lg:grid-cols-3">
         {section.cards.map((card, index) => (
-          <article key={`${card.title}-${index}`} className="rounded-[10px] bg-[#FAFAFA] p-[2px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
+          <article key={`card-${index}`} className="rounded-[10px] bg-[#FAFAFA] p-[2px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
             <div className="rounded-[8px] bg-white p-4 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
               <input
                 value={card.title}
@@ -154,7 +154,7 @@ function EditableStrategyFields({
     return (
       <div className="grid grid-cols-1 gap-2">
         {section.boxes.map((box, index) => (
-          <article key={`${box.title}-${index}`} className="rounded-[8px] bg-white p-4 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.18)]">
+          <article key={`box-${index}`} className="rounded-[8px] bg-white p-4 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.18)]">
             <input
               value={box.title}
               onChange={(event) => {

@@ -135,7 +135,7 @@ export function ProblemSection() {
                 controls
                 controlsList="nofullscreen"
                 playsInline
-                preload="none"
+                preload="metadata"
                 poster="/landing-preview/assets/stage-launch-video-poster.jpg"
                 width={1920}
                 height={1080}

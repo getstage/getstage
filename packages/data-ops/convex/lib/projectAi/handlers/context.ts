@@ -14,6 +14,29 @@ import {
   type DetailsSection,
 } from "../domain/validators";
 
+const MAX_BRIEF_ATTACHMENTS = 5;
+
+function readBriefAttachments(record: {
+  briefAttachments?: Array<{ name: string; r2ObjectKey: string }>;
+  briefAttachmentName?: string;
+  briefAttachmentR2ObjectKey?: string;
+} | null) {
+  if (record?.briefAttachments) {
+    return record.briefAttachments
+      .filter((file) => file.name.trim() && file.r2ObjectKey.trim())
+      .slice(0, MAX_BRIEF_ATTACHMENTS);
+  }
+  if (record?.briefAttachmentR2ObjectKey) {
+    return [
+      {
+        name: record.briefAttachmentName?.trim() || "Brief",
+        r2ObjectKey: record.briefAttachmentR2ObjectKey,
+      },
+    ];
+  }
+  return [];
+}
+
 export const getContextArgs = {
   projectId: v.id("projects"),
 };
@@ -44,6 +67,7 @@ export async function getContextHandler(
     brief: record?.brief ?? "",
     briefAttachmentName: record?.briefAttachmentName ?? null,
     briefAttachmentR2ObjectKey: record?.briefAttachmentR2ObjectKey ?? null,
+    briefAttachments: readBriefAttachments(record),
     briefAttachmentUrl: await resolveAssetUrl(record?.briefAttachmentR2ObjectKey ?? null),
     notes: record?.notes ?? "",
     lastProviderId: record?.lastProviderId ?? null,
@@ -77,9 +101,7 @@ export async function getResearchInputHandler(
       (projectCategory === "websites" ? defaultDetailsSections : defaultReferoSections),
     targetUsers: null,
     additionalNotes: record?.notes ?? null,
-    uploadedAssetIds: record?.briefAttachmentR2ObjectKey
-      ? [record.briefAttachmentR2ObjectKey]
-      : [],
+    uploadedAssetIds: readBriefAttachments(record).map((file) => file.r2ObjectKey),
   };
 }
 
@@ -93,6 +115,14 @@ export const upsertContextArgs = {
   brief: v.optional(v.string()),
   briefAttachmentName: v.optional(v.union(v.string(), v.null())),
   briefAttachmentR2ObjectKey: v.optional(v.union(v.string(), v.null())),
+  briefAttachments: v.optional(
+    v.array(
+      v.object({
+        name: v.string(),
+        r2ObjectKey: v.string(),
+      }),
+    ),
+  ),
   notes: v.optional(v.string()),
 };
 
@@ -108,10 +138,12 @@ export async function upsertContextHandler(
     brief?: string;
     briefAttachmentName?: string | null;
     briefAttachmentR2ObjectKey?: string | null;
+    briefAttachments?: Array<{ name: string; r2ObjectKey: string }> | null;
     notes?: string;
   },
 ) {
   const { user } = await requireProjectAccess(ctx, args.projectId);
+  const briefAttachments = args.briefAttachments?.slice(0, MAX_BRIEF_ATTACHMENTS);
   await upsertContextRecord(ctx, {
     userId: user._id,
     projectId: args.projectId,
@@ -123,6 +155,7 @@ export async function upsertContextHandler(
     brief: args.brief,
     briefAttachmentName: args.briefAttachmentName,
     briefAttachmentR2ObjectKey: args.briefAttachmentR2ObjectKey,
+    briefAttachments,
     notes: args.notes,
   });
 

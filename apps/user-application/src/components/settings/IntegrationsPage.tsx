@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import {
   useAction as useConvexAction,
@@ -680,6 +680,24 @@ function CustomModelSelect({
       models: availableModels.filter((model) => model.provider === "openai"),
     },
   ];
+  const buttonRef = useRef<HTMLButtonElement | null>(null);
+  const [menuStyle, setMenuStyle] = useState<{ maxHeight: number; openUp: boolean }>({
+    maxHeight: 280,
+    openUp: false,
+  });
+
+  useLayoutEffect(() => {
+    if (!open || !buttonRef.current) return;
+    const rect = buttonRef.current.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - rect.bottom - 12;
+    const spaceAbove = rect.top - 12;
+    const openUp = spaceBelow < 220 && spaceAbove > spaceBelow;
+    const available = openUp ? spaceAbove : spaceBelow;
+    setMenuStyle({
+      maxHeight: Math.max(160, Math.min(360, available)),
+      openUp,
+    });
+  }, [open]);
 
   return (
     <div className="relative min-w-0" ref={menuRef}>
@@ -687,6 +705,7 @@ function CustomModelSelect({
         Default model
       </span>
       <button
+        ref={buttonRef}
         type="button"
         aria-expanded={open}
         onClick={() => onOpenChange(!open)}
@@ -700,7 +719,12 @@ function CustomModelSelect({
       </button>
 
       {open ? (
-        <div className="absolute left-0 top-[calc(100%+6px)] z-50 w-full min-w-[320px] rounded-[8px] border border-[#E5E5E5] bg-white p-[5px] shadow-[0_14px_36px_rgba(10,10,10,0.13)]">
+        <div
+          className={`absolute left-0 z-50 max-w-full overflow-y-auto rounded-[8px] border border-[#E5E5E5] bg-white p-[5px] shadow-[0_14px_36px_rgba(10,10,10,0.13)] ${
+            menuStyle.openUp ? "bottom-[calc(100%+6px)]" : "top-[calc(100%+6px)]"
+          }`}
+          style={{ maxHeight: menuStyle.maxHeight, width: "100%" }}
+        >
           {groupedModels.map((group) => (
             <div key={group.label} className="py-[3px]">
               <p className="px-[8px] pb-[4px] text-[11px] font-medium leading-none text-[#737373]">

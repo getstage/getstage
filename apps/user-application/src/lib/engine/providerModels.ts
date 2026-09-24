@@ -34,8 +34,42 @@ export function chatModelsFromProviders(
   return providers.flatMap((provider) =>
     provider.models
       .filter(isSafeProviderModel)
-      .map((model) => providerModelToChatModel(model, provider.id)),
+      .map((model) => providerModelToChatModel(model, provider.id))
+      .sort((left, right) => compareModelsNewestFirst(left.id, right.id, provider.id)),
   );
+}
+
+function compareModelsNewestFirst(left: string, right: string, providerId: ProviderId) {
+  const family = modelFamilyRank(left, providerId) - modelFamilyRank(right, providerId);
+  if (family !== 0) return family;
+  const leftVersion = versionParts(left);
+  const rightVersion = versionParts(right);
+  const length = Math.max(leftVersion.length, rightVersion.length);
+  for (let index = 0; index < length; index += 1) {
+    const diff = (rightVersion[index] ?? 0) - (leftVersion[index] ?? 0);
+    if (diff !== 0) return diff;
+  }
+  return left.localeCompare(right);
+}
+
+function modelFamilyRank(label: string, providerId: ProviderId) {
+  const lower = label.toLowerCase();
+  if (providerId === "claude") {
+    const families = ["fable", "opus", "sonnet", "haiku"];
+    const index = families.findIndex((family) => lower.includes(family));
+    return index === -1 ? families.length : index;
+  }
+  if (lower.includes("codex")) return 1;
+  if (lower.includes("gpt")) return 0;
+  return 2;
+}
+
+function versionParts(id: string) {
+  const parts = id
+    .split(/[^0-9]+/)
+    .filter((part) => part.length > 0 && part.length < 4)
+    .map((part) => Number(part));
+  return parts.length > 0 ? parts : [0];
 }
 
 export function getDefaultModelIdFromProviders(

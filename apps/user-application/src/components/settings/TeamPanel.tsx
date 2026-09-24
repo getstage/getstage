@@ -11,25 +11,30 @@ import {
   useWorkspaceMembersQuery,
 } from "@/hooks/convex-data";
 import { SettingsCard, SettingsRow } from "./SettingsPrimitives";
+import { useActiveSpace } from "@/hooks/workspace/useActiveSpace";
+import { WorkspaceSpaceSelect } from "@/components/dashboard/sidebar/SidebarSpaceSelect";
 
 type TeamMember = {
   id: string;
   name: string;
   email: string;
   avatarUrl?: string;
-  role: "Owner" | "Member";
+  isOwner: boolean;
 };
 
 export function TeamPanel() {
   const overview = useSettingsOverviewQuery();
+  const { spaces, activeId } = useActiveSpace();
+  const activeSpace = spaces.find((space) => space.ownerUserId === activeId) ?? spaces[0];
   const profile = overview.data?.profile;
-  const members = useWorkspaceMembersQuery();
-  const invites = useWorkspaceInvitesQuery();
+  const members = useWorkspaceMembersQuery(activeSpace?.ownerUserId);
+  const invites = useWorkspaceInvitesQuery(activeSpace?.ownerUserId);
   const addMember = useAction(api.workspaceMembers.add);
   const resendInvite = useAction(api.workspaceMembers.resend);
   const removeMember = useMutation(api.workspaceMembers.remove);
   const revokeInvite = useMutation(api.workspaceMembers.revoke);
 
+  const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
   const [notice, setNotice] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -42,31 +47,31 @@ export function TeamPanel() {
       return undefined;
     }
 
-    const workspace = overview.data?.workspace;
-    const isMember = workspace?.role === "member";
+    const isMember = activeSpace?.role === "member";
     const owner: TeamMember = {
-      id: workspace?.owner.id ?? "current-user",
+      id: activeSpace?.ownerUserId ?? "current-user",
       name: isMember
-        ? (workspace.owner.name || workspace.owner.email || "Workspace owner")
-        : (profile?.name ?? "You"),
-      email: isMember ? workspace.owner.email : (profile?.email ?? "Signed in user"),
-      avatarUrl: isMember
-        ? (workspace.owner.avatarUrl ?? undefined)
-        : (profile?.avatarUrl ?? undefined),
-      role: "Owner",
+        ? (activeSpace?.name || "Workspace owner")
+        : (profile?.name ?? activeSpace?.name ?? "You"),
+      email: isMember ? (activeSpace?.email ?? "") : (profile?.email ?? activeSpace?.email ?? ""),
+      avatarUrl: isMember ? activeSpace?.avatarUrl : (profile?.avatarUrl ?? activeSpace?.avatarUrl),
+      isOwner: true,
     };
     const invited = members.data.map<TeamMember>((member) => ({
       id: member._id,
       name: member.name ?? member.email ?? "Team member",
       email: member.email ?? "",
-      role: "Member",
+      avatarUrl: member.avatarUrl ?? undefined,
+      isOwner: false,
     }));
     return [owner, ...invited];
-  }, [members.data, overview.data?.workspace, profile?.avatarUrl, profile?.email, profile?.name]);
+  }, [activeSpace, members.data, profile?.avatarUrl, profile?.email, profile?.name]);
 
   const seatLimit = overview.data?.workspace?.seats ?? overview.data?.subscription?.seats ?? 1;
-  const isWorkspaceOwner = overview.data?.workspace?.role !== "member";
-  const workspaceOwner = overview.data?.workspace?.owner;
+  const signedInEmail = profile?.email?.trim().toLowerCase() ?? "";
+  const isWorkspaceOwner =
+    activeSpace?.role === "owner" ||
+    (signedInEmail.length > 0 && activeSpace?.email.trim().toLowerCase() === signedInEmail);
   const seatsLeft =
     rows && invites.data
       ? Math.max(0, seatLimit - rows.length - (isWorkspaceOwner ? invites.data.length : 0))
@@ -91,6 +96,7 @@ export function TeamPanel() {
     try {
       const result = await addMember({ email });
       setInviteEmail("");
+      setInviteOpen(false);
       setNotice(
         result.inviteSent
           ? `Invitation sent to ${email}. They can create an account from the link.`
@@ -148,28 +154,34 @@ export function TeamPanel() {
     }
   }
 
+
   return (
-    <SettingsCard title="Team">
-      <p className="-mt-[12px] px-[12px] pb-[12px] text-[12px] font-normal leading-[1.5] text-[#404040]">
-        {isWorkspaceOwner
-          ? `Manage who can access this workspace. Your plan includes ${seatLimit} seat${seatLimit === 1 ? "" : "s"}.`
-          : `You're a member of ${workspaceOwner?.name || workspaceOwner?.email || "this"} workspace. This plan includes ${seatLimit} seat${seatLimit === 1 ? "" : "s"}.`}
-      </p>
+    <SettingsCard>
+      <div className="flex items-start justify-between gap-[16px] px-[12px] pb-[12px] pt-[8px]">
+        <div className="min-w-0">
+          <h2 className="text-[13px] font-medium leading-none text-[#171717]">Team Members</h2>
+          <p className="mt-[6px] text-[12px] font-normal leading-[1.5] text-[#737373]">
+            Manage members in your workspace
+          </p>
+        </div>
+        <div className="flex shrink-0 items-center gap-[8px]">
+          <WorkspaceSpaceSelect hideWhenSingle={false} className="w-[220px]" />
+          {isWorkspaceOwner ? (
+            <button
+              type="button"
+              onClick={() => setInviteOpen((open) => !open)}
+              className="inline-flex h-[30px] shrink-0 items-center justify-center rounded-[6px] bg-[#171717] px-[12px] text-[12px] font-medium leading-none text-white"
+            >
+              + Invite Member
+            </button>
+          ) : null}
+        </div>
+      </div>
 
       <div className="flex flex-col gap-[4px]">
-        <SettingsRow>
-          <div className="flex flex-col gap-[14px] sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <h3 className="text-[13px] font-medium leading-none text-[#171717]">Invite teammate</h3>
-              <p className="mt-[4px] text-[12px] font-normal leading-[1.5] text-[#525252]">
-                {isWorkspaceOwner
-                  ? seatsLeft > 0
-                    ? `${seatsLeft} seat${seatsLeft === 1 ? "" : "s"} available.`
-                    : "All team seats are used."
-                  : "Only the workspace owner can invite teammates."}
-              </p>
-            </div>
-            <div className="flex min-w-0 flex-1 gap-[8px] sm:max-w-[360px]">
+        {inviteOpen && isWorkspaceOwner ? (
+          <SettingsRow>
+            <div className="flex min-w-0 flex-col gap-[8px] sm:flex-row sm:items-center">
               <input
                 type="email"
                 value={inviteEmail}
@@ -181,25 +193,32 @@ export function TeamPanel() {
                 onKeyDown={(event) => {
                   if (event.key === "Enter" && canInvite) void inviteMember();
                 }}
-                disabled={!isWorkspaceOwner || seatsLeft <= 0 || isSubmitting}
-                placeholder="teammate@company.com"
+                disabled={seatsLeft <= 0 || isSubmitting}
+                placeholder="name@company.com"
+                aria-label="Invite member email"
                 aria-invalid={isEmailInvalid}
+                autoFocus
                 className="h-[30px] min-w-0 flex-1 rounded-[6px] bg-[#F5F5F5] px-[10px] text-[12px] font-medium leading-none text-[#171717] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] outline-none placeholder:text-[#737373] focus:bg-white disabled:cursor-not-allowed disabled:opacity-50"
               />
               <button
                 type="button"
                 onClick={() => void inviteMember()}
                 disabled={!canInvite}
-                className="inline-flex h-[30px] shrink-0 items-center justify-center rounded-[6px] bg-gradient-to-b from-[#8D87FF] to-[#4B3DCB] px-[12px] text-[12px] font-medium leading-none text-white shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] transition-opacity enabled:hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-40"
+                className="inline-flex h-[30px] shrink-0 items-center justify-center rounded-[6px] bg-[#171717] px-[12px] text-[12px] font-medium leading-none text-white disabled:cursor-not-allowed disabled:opacity-40"
               >
-                {isSubmitting ? "Adding…" : "Add"}
+                {isSubmitting ? "Sending…" : "Send invite"}
               </button>
             </div>
-          </div>
-          {emailErrorMessage ? <p className="mt-[10px] text-[12px] font-medium leading-[1.5] text-[#b91c1c]">{emailErrorMessage}</p> : null}
-          {notice ? <p className="mt-[10px] text-[12px] font-medium leading-[1.5] text-[#166534]">{notice}</p> : null}
-          {errorMessage ? <p className="mt-[10px] text-[12px] font-medium leading-[1.5] text-[#b91c1c]">{errorMessage}</p> : null}
-        </SettingsRow>
+            {seatsLeft <= 0 ? (
+              <p className="mt-[10px] text-[12px] font-medium leading-[1.5] text-[#525252]">
+                All team seats are used.
+              </p>
+            ) : null}
+            {emailErrorMessage ? <p className="mt-[10px] text-[12px] font-medium leading-[1.5] text-[#b91c1c]">{emailErrorMessage}</p> : null}
+          </SettingsRow>
+        ) : null}
+        {notice ? <p className="px-[12px] text-[12px] font-medium leading-[1.5] text-[#166534]">{notice}</p> : null}
+        {errorMessage ? <p className="px-[12px] text-[12px] font-medium leading-[1.5] text-[#b91c1c]">{errorMessage}</p> : null}
 
         {members.isLoading || invites.isLoading ? (
           <SettingsRow>
@@ -207,6 +226,34 @@ export function TeamPanel() {
           </SettingsRow>
         ) : (
           <>
+            {rows?.map((member) => {
+              const isSelf =
+                Boolean(signedInEmail) && member.email.trim().toLowerCase() === signedInEmail;
+              const canRemove = isWorkspaceOwner && !member.isOwner && !isSelf;
+              return (
+                <SettingsRow key={member.id}>
+                  <div className="flex items-center justify-between gap-[16px]">
+                    <div className="flex min-w-0 items-center gap-[12px]">
+                      <Avatar name={member.name} src={member.avatarUrl} size="md" />
+                      <div className="min-w-0">
+                        <h3 className="truncate text-[13px] font-medium leading-[1.5] text-[#0A0A0A]">{member.name}</h3>
+                        <p className="truncate text-[12px] font-normal leading-[1.5] text-[#737373]">{member.email}</p>
+                      </div>
+                    </div>
+                    {canRemove ? (
+                      <button
+                        type="button"
+                        onClick={() => void removeTeamMember(member.id)}
+                        disabled={removingId === member.id}
+                        className="inline-flex h-[26px] shrink-0 items-center rounded-[6px] bg-[#FFF1F2] px-[10px] text-[12px] font-medium leading-none text-[#E11D48] disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {removingId === member.id ? "Removing…" : "Remove"}
+                      </button>
+                    ) : null}
+                  </div>
+                </SettingsRow>
+              );
+            })}
             {invites.data?.map((invite) => (
               <SettingsRow key={invite._id}>
                 <div className="flex items-center justify-between gap-[16px]">
@@ -214,73 +261,30 @@ export function TeamPanel() {
                     <h3 className="truncate text-[13px] font-medium leading-[1.5] text-[#0A0A0A]">
                       {invite.email}
                     </h3>
-                    <p className="text-[12px] font-normal leading-[1.5] text-[#737373]">
-                      Invitation pending
-                    </p>
+                    <p className="text-[12px] font-normal leading-[1.5] text-[#737373]">Pending</p>
                   </div>
-                  <div className="flex shrink-0 items-center gap-[8px]">
-                    {isWorkspaceOwner ? (
-                      <>
-                    <button
-                      type="button"
-                      onClick={() => void resendPendingInvite(invite._id, invite.email)}
-                      disabled={pendingActionId === invite._id}
-                      className="rounded-[6px] bg-[#F5F5F5] px-[10px] py-[6px] text-[12px] font-medium leading-none text-[#525252] hover:bg-[#E5E5E5] disabled:opacity-50"
-                    >
-                      Resend
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => void revokePendingInvite(invite._id)}
-                      disabled={pendingActionId === invite._id}
-                      className="rounded-[6px] bg-[#F5F5F5] px-[10px] py-[6px] text-[12px] font-medium leading-none text-[#B91C1C] hover:bg-[#FEF2F2] disabled:opacity-50"
-                    >
-                      Revoke
-                    </button>
-                      </>
-                    ) : (
-                      <span className="rounded-[4px] bg-[#F5F5F5] px-[6px] py-[4px] text-[12px] font-normal leading-none text-[#525252]">
-                        Pending
-                      </span>
-                    )}
-                  </div>
+                  {isWorkspaceOwner ? (
+                    <div className="flex shrink-0 items-center gap-[12px]">
+                      <button
+                        type="button"
+                        onClick={() => void resendPendingInvite(invite._id, invite.email)}
+                        disabled={pendingActionId === invite._id}
+                        className="text-[13px] font-medium leading-none text-[#525252] disabled:opacity-50"
+                      >
+                        Resend
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void revokePendingInvite(invite._id)}
+                        disabled={pendingActionId === invite._id}
+                        className="text-[13px] font-medium leading-none text-[#E11D48] disabled:opacity-50"
+                      >
+                        Revoke
+                      </button>
+                    </div>
+                  ) : null}
                 </div>
               </SettingsRow>
-            ))}
-            {rows?.map((member) => (
-          <SettingsRow key={member.id}>
-            <div className="flex items-center justify-between gap-[16px]">
-              <div className="flex min-w-0 items-center gap-[12px]">
-                <Avatar name={member.name} src={member.avatarUrl} size="md" />
-                <div className="min-w-0">
-                  <div className="flex items-center gap-[8px]">
-                    <h3 className="truncate text-[13px] font-medium leading-[1.5] text-[#0A0A0A]">{member.name}</h3>
-                    {member.email && member.email === profile?.email ? (
-                      <span className="rounded-[4px] bg-[#F5F5F5] px-[6px] py-[3px] text-[11px] font-medium leading-none text-[#525252]">
-                        You
-                      </span>
-                    ) : null}
-                  </div>
-                  <p className="truncate text-[12px] font-normal leading-[1.5] text-[#404040]">{member.email}</p>
-                </div>
-              </div>
-              <div className="flex shrink-0 items-center gap-[8px]">
-                <span className="rounded-[4px] bg-[#E7E6FD] px-[6px] py-[4px] text-[12px] font-normal leading-none text-[#221E6C]">
-                  {member.role}
-                </span>
-                {isWorkspaceOwner && member.role === "Member" ? (
-                  <button
-                    type="button"
-                    onClick={() => void removeTeamMember(member.id)}
-                    disabled={removingId === member.id}
-                    className="rounded-[6px] bg-[#F5F5F5] px-[12px] py-[6px] text-[12px] font-medium leading-none text-[#b91c1c] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#FEF2F2] disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    {removingId === member.id ? "Removing…" : "Remove"}
-                  </button>
-                ) : null}
-              </div>
-            </div>
-          </SettingsRow>
             ))}
           </>
         )}

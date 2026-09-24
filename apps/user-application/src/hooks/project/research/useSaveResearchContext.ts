@@ -1,7 +1,11 @@
 import { useCallback, useRef } from "react";
 import { useMutation } from "convex/react";
 import type { Id } from "@stage/data-ops/convex/data-model";
-import type { ValidatedResearchConfigureInput } from "@/lib/project/researchConfigureInput";
+import {
+  MAX_BRIEF_FILES,
+  type ResearchBriefAttachment,
+  type ValidatedResearchConfigureInput,
+} from "@/lib/project/researchConfigureInput";
 import { api } from "@/lib/convexApi";
 import { uploadFileToR2 } from "@/lib/r2Uploads";
 
@@ -9,19 +13,14 @@ export function useSaveResearchContext(projectId: string) {
   const upsertContext = useMutation(api.projectAi.upsertContext);
   const generateUploadUrl = useMutation(api.r2.generateUploadUrl);
   const syncMetadata = useMutation(api.r2.syncMetadata);
-  const briefFileRef = useRef<File | null>(null);
-  const briefRemovalRequestedRef = useRef(false);
+  const briefFilesRef = useRef<File[]>([]);
 
-  const setBriefFile = useCallback((file: File | null) => {
-    briefFileRef.current = file;
-    if (file) {
-      briefRemovalRequestedRef.current = false;
-    }
+  const setBriefFile = useCallback((files: File[]) => {
+    briefFilesRef.current = files.slice(0, MAX_BRIEF_FILES);
   }, []);
 
   const markBriefForRemoval = useCallback(() => {
-    briefFileRef.current = null;
-    briefRemovalRequestedRef.current = true;
+    briefFilesRef.current = [];
   }, []);
 
   return {
@@ -29,29 +28,22 @@ export function useSaveResearchContext(projectId: string) {
     markBriefForRemoval,
     saveResearchContext: useCallback(
       async (input: ValidatedResearchConfigureInput) => {
-        let briefAttachment:
-          | { briefAttachmentName: string; briefAttachmentR2ObjectKey: string }
-          | { briefAttachmentName: null; briefAttachmentR2ObjectKey: null }
-          | Record<string, never> = {};
-
-        if (briefFileRef.current) {
-          const briefAttachmentR2ObjectKey = await uploadFileToR2({
+        const uploaded: ResearchBriefAttachment[] = [];
+        for (const file of briefFilesRef.current) {
+          const r2ObjectKey = await uploadFileToR2({
             generateUploadUrl,
             syncMetadata,
             purpose: "research-brief",
-            file: briefFileRef.current,
+            file,
             scopeId: projectId,
           });
-          briefAttachment = {
-            briefAttachmentName: briefFileRef.current.name,
-            briefAttachmentR2ObjectKey,
-          };
-        } else if (briefRemovalRequestedRef.current) {
-          briefAttachment = {
-            briefAttachmentName: null,
-            briefAttachmentR2ObjectKey: null,
-          };
+          uploaded.push({ name: file.name, r2ObjectKey });
         }
+
+        const briefAttachments = [...(input.briefAttachments ?? []), ...uploaded]
+          .filter((file) => file.name.trim() && file.r2ObjectKey.trim())
+          .slice(0, MAX_BRIEF_FILES);
+        const first = briefAttachments[0];
 
         await upsertContext({
           projectId: projectId as Id<"projects">,
@@ -62,11 +54,12 @@ export function useSaveResearchContext(projectId: string) {
           referenceUrls: [],
           brief: input.projectBrief,
           notes: input.additionalNotes,
-          ...briefAttachment,
+          briefAttachments,
+          briefAttachmentName: first?.name ?? null,
+          briefAttachmentR2ObjectKey: first?.r2ObjectKey ?? null,
         });
 
-        briefFileRef.current = null;
-        briefRemovalRequestedRef.current = false;
+        briefFilesRef.current = [];
       },
       [generateUploadUrl, projectId, syncMetadata, upsertContext],
     ),

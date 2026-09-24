@@ -71,6 +71,7 @@ export async function buildApiProjectSummary(
     startDate: project.startDate,
     endDate: project.endDate,
     progress: project.progress,
+    ownerUserId: String(project.userId),
   };
 }
 

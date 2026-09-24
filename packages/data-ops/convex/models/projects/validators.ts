@@ -44,6 +44,7 @@ export const createProjectArgsValidator = {
   startDate: v.number(),
   endDate: v.number(),
   phases: v.optional(v.array(phaseCreationInputValidator)),
+  spaceOwnerId: v.optional(v.id("users")),
 } as const;
 
 /** Keep in sync with `skillHubIdSchema` in user-application/shared/models/safeHttpsUrl.ts */

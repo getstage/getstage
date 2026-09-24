@@ -72,7 +72,7 @@ export function AuthedWorkspaceLayout() {
   return (
     <>
       {shouldRenderChrome ? (
-        <WorkspaceFrame onOpenDemo={() => setDemoOpen(true)}>
+        <WorkspaceFrame>
           <Outlet />
         </WorkspaceFrame>
       ) : (

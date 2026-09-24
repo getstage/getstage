@@ -73,6 +73,7 @@ export const projectSummaryReturn = v.object({
   startDate: v.number(),
   endDate: v.number(),
   progress: v.number(),
+  ownerUserId: v.string(),
 });
 
 export const projectDetailReturn = v.object({
