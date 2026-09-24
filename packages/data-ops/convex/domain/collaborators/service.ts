@@ -10,6 +10,10 @@ import {
 import { getCurrentSubscriptionSnapshot } from "../../billing";
 import { isPaidPlan } from "../billing/plans";
 import { resolveAssetUrl } from "../../helpers/r2/resolve";
+import {
+  listActiveMembershipsForUser,
+  listOverLimitMemberIds,
+} from "../../helpers/access/seatEntitlement";
 
 type ReaderCtx = QueryCtx | MutationCtx;
 
@@ -25,10 +29,7 @@ export async function resolveWorkspaceContext(ctx: ReaderCtx, userId: Id<"users"
     };
   }
 
-  const memberships = await ctx.db
-    .query("projectCollaborators")
-    .withIndex("by_user", (q) => q.eq("userId", userId))
-    .collect();
+  const memberships = await listActiveMembershipsForUser(ctx, userId);
 
   for (const membership of memberships) {
     const subscription = await getCurrentSubscriptionSnapshot(
@@ -85,6 +86,9 @@ async function requireInviteSubscription(ctx: ReaderCtx, ownerUserId: Id<"users"
   const subscription = await getCurrentSubscriptionSnapshot(ctx, String(ownerUserId));
   if (!subscription || !subscription.plan) {
     throw new Error("Active Stage subscription required to invite members.");
+  }
+  if (subscription.plan === "start") {
+    throw new Error("Upgrade to Studio or Agency to invite team members.");
   }
   return subscription;
 }
@@ -387,10 +391,13 @@ export async function listPendingWorkspaceInvites(ctx: ReaderCtx, ownerId: Id<"u
 }
 
 export async function listWorkspaceMembers(ctx: ReaderCtx, ownerId: Id<"users">) {
-  const members = await ctx.db
-    .query("projectCollaborators")
-    .withIndex("by_owner", (q) => q.eq("ownerUserId", ownerId))
-    .collect();
+  const [members, overLimit] = await Promise.all([
+    ctx.db
+      .query("projectCollaborators")
+      .withIndex("by_owner", (q) => q.eq("ownerUserId", ownerId))
+      .collect(),
+    listOverLimitMemberIds(ctx, ownerId),
+  ]);
 
   return Promise.all(
     members.map(async (member) => {
@@ -403,6 +410,7 @@ export async function listWorkspaceMembers(ctx: ReaderCtx, ownerId: Id<"users">)
         email: user?.email ?? null,
         avatarUrl: await resolveAssetUrl(user?.avatarUrl || user?.image || null),
         createdAt: member.createdAt,
+        overLimit: overLimit.has(member._id),
       };
     }),
   );

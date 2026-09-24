@@ -1,7 +1,7 @@
 # Stage — Project Status
 
 > **Living document.** Update weekly (or before each release).  
-> **Last updated:** 2026-09-21
+> **Last updated:** 2026-09-24
 
 **Positioning:** Stage does the thinking. Your AI does the building.
 
@@ -12,7 +12,8 @@
 | Priority | Item | Owner / where |
 |----------|------|----------------|
 | **!!! P0 project creation** | Released client sends `websites` / `web-apps` / `ios-apps`, while the failing Convex deployment serves legacy validators. `workspaceMembers:listPending` also proves client/backend API drift. Restore contract and deployment parity before feature work. | [`docs/STA-43_USER_FEEDBACK_RECOVERY_PLAN.md`](docs/STA-43_USER_FEEDBACK_RECOVERY_PLAN.md); Linear `STA-43` |
-| **P0 STA-43** | Model-picker containment, real personal/team space selector, Figma Teams UI, multi-file PDF/MD briefs, multi-URL competitor entry, and Help & Feedback correction. Local + Testing only until Werner accepts. | [`docs/STA-43_USER_FEEDBACK_RECOVERY_PLAN.md`](docs/STA-43_USER_FEEDBACK_RECOVERY_PLAN.md); Figma `1844:2274` |
+| **P0 seats/downgrade** | Stripe portal plan switching is not configured; enabling self-service downgrades without server-side seat reconciliation can leave Studio/Agency members with project access after the owner moves to Solo. Checkout seat metadata may also remain stale after a price switch. Do not enable live downgrades or release draft PR #81 as a complete solution. | [`docs/STA-43_USER_FEEDBACK_RECOVERY_PLAN.md`](docs/STA-43_USER_FEEDBACK_RECOVERY_PLAN.md#seat-downgrades-and-stripe-customer-portal-release-blocker); draft PR #81 |
+| **P0 STA-43** | Model-picker containment, real personal/team space selector, Figma Teams UI, multi-file PDF/MD briefs, multi-URL competitor entry, and Help & Feedback correction. Live acceptance still pending. | [`docs/STA-43_USER_FEEDBACK_RECOVERY_PLAN.md`](docs/STA-43_USER_FEEDBACK_RECOVERY_PLAN.md); Figma `1844:2274` |
 | **!!! P0 release** | 2026-09-14 production cut: React landing/WebP, Solo–Agency pricing, Lo-Fi/export integration, bug containment, trusted login domain, deploy; Figma last | `docs/2026-09-14_SHIP_TODAY_CHECKLIST.md` |
 | **P0 STA-33 1–4** | **Lo-Fi done** (desktop smoke 2026-09-09). Export dialog destinations + skills step, GitHub Import. Wireframes UI is Lo-Fi only; the engine retains Hi-Fi. **Adrien commentary 10 Sep:** [`docs/NEW_10_SEPTEMBER.md`](docs/NEW_10_SEPTEMBER.md). **Next:** Werner picks rows; then testing Convex `importedSkillHubItems`; then sections 5–8. | [`docs/NEW_VERSION_START_SEPTEMBER_2026.md`](docs/NEW_VERSION_START_SEPTEMBER_2026.md); Linear `STA-33` |
 | **P0 STA-33 5–8** | After 1–4 ships: categories lock, Details.so during research testing, style guide, MCP. | Linear `STA-33`; same living plan |
@@ -29,7 +30,7 @@
 | **P1 local review** | Project-aware Stage chat: `@project`, bounded Convex context, screenshots, confirmed window capture | `apps/user-application/docs/AI/chatbot/CHATBOT_PLAN.md`; branch `feat/stage-chat-project-context-vision` |
 | **P2 desktop flash-kill** | Convex queries routed through TanStack Query (`@convex-dev/react-query`) + route loaders (`ensureQueryData`) so screens paint ready data instead of setup/empty flashes. Interim: per-tab `TabLoadingState` loader on Flows/Wireframes/Assets. Branch `feat/convex-tanstack-query-loaders`. Follow-up: strip residual `isRunsLoading`/`isStyleGuideRunsLoading` guards once live smoke confirms loader cache hits. Skill: `.agents/skills/convex-tanstack-query-adapter/` | apps/user-application/src |
 
-**Current desktop version (release branch):** `0.2.43` (production tag `prod-v0.2.43`; testing tag `v0.2.46` includes the local workspace/STA-43 checkpoint). Testing auto-update feed `desktop-testing-feed` published `v0.2.45`; a signed `v0.2.45` → `v0.2.46` in-app update smoke and testing Convex deployment parity for `workspaceMembers:listSpaces` remain pending. No production tag for this snapshot. Production feed is unchanged.
+**Current desktop version (release branch):** `0.2.46` (production tag `prod-v0.2.46`; production Convex deployed from the matching `work` merge). Testing feed also published `v0.2.46`. Testing tag `v0.2.47` is built from draft PR #81 (`fix/team-invite-upgrade-gate`): Solo invite upgrade entry, derived seat enforcement on downgrade, invoice-based credit grants, and the task-assignee owner fix. It needs the matching testing Convex deploy before acceptance. Not merged; no production tag. Live Stripe portal plan switching stays off until production has this backend.
 
 ---
 

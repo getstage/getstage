@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import { useAction, useMutation } from "convex/react";
 import type { Id } from "@stage/data-ops/convex/data-model";
 import { Avatar } from "@/components/ui/Avatar";
@@ -20,9 +21,11 @@ type TeamMember = {
   email: string;
   avatarUrl?: string;
   isOwner: boolean;
+  overLimit: boolean;
 };
 
 export function TeamPanel() {
+  const navigate = useNavigate();
   const overview = useSettingsOverviewQuery();
   const { spaces, activeId } = useActiveSpace();
   const activeSpace = spaces.find((space) => space.ownerUserId === activeId) ?? spaces[0];
@@ -56,6 +59,7 @@ export function TeamPanel() {
       email: isMember ? (activeSpace?.email ?? "") : (profile?.email ?? activeSpace?.email ?? ""),
       avatarUrl: isMember ? activeSpace?.avatarUrl : (profile?.avatarUrl ?? activeSpace?.avatarUrl),
       isOwner: true,
+      overLimit: false,
     };
     const invited = members.data.map<TeamMember>((member) => ({
       id: member._id,
@@ -63,11 +67,13 @@ export function TeamPanel() {
       email: member.email ?? "",
       avatarUrl: member.avatarUrl ?? undefined,
       isOwner: false,
+      overLimit: member.overLimit,
     }));
     return [owner, ...invited];
   }, [activeSpace, members.data, profile?.avatarUrl, profile?.email, profile?.name]);
 
   const seatLimit = overview.data?.workspace?.seats ?? overview.data?.subscription?.seats ?? 1;
+  const isSolo = overview.data?.subscription?.plan === "start";
   const signedInEmail = profile?.email?.trim().toLowerCase() ?? "";
   const isWorkspaceOwner =
     activeSpace?.role === "owner" ||
@@ -88,7 +94,7 @@ export function TeamPanel() {
     isWorkspaceOwner && rows !== undefined && seatsLeft > 0 && isEmailValid && !isSubmitting;
 
   async function inviteMember() {
-    if (!canInvite) return;
+    if (!canInvite || isSolo) return;
     const email = emailInput;
     setIsSubmitting(true);
     setNotice(null);
@@ -169,7 +175,16 @@ export function TeamPanel() {
           {isWorkspaceOwner ? (
             <button
               type="button"
-              onClick={() => setInviteOpen((open) => !open)}
+              onClick={() => {
+                if (!overview.data) return;
+                if (isSolo) {
+                  sessionStorage.setItem("stage:subscriptions-back-label", "Back to team members");
+                  void navigate({ to: "/subscriptions", search: { from: "teams" } });
+                } else {
+                  setInviteOpen((open) => !open);
+                }
+              }}
+              disabled={!overview.data}
               className="inline-flex h-[30px] shrink-0 items-center justify-center rounded-[6px] bg-[#171717] px-[12px] text-[12px] font-medium leading-none text-white"
             >
               + Invite Member
@@ -179,7 +194,7 @@ export function TeamPanel() {
       </div>
 
       <div className="flex flex-col gap-[4px]">
-        {inviteOpen && isWorkspaceOwner ? (
+        {inviteOpen && isWorkspaceOwner && !isSolo ? (
           <SettingsRow>
             <div className="flex min-w-0 flex-col gap-[8px] sm:flex-row sm:items-center">
               <input
@@ -238,6 +253,11 @@ export function TeamPanel() {
                       <div className="min-w-0">
                         <h3 className="truncate text-[13px] font-medium leading-[1.5] text-[#0A0A0A]">{member.name}</h3>
                         <p className="truncate text-[12px] font-normal leading-[1.5] text-[#737373]">{member.email}</p>
+                        {member.overLimit ? (
+                          <p className="text-[12px] font-normal leading-[1.5] text-[#E11D48]">
+                            No access: over your plan&apos;s seat limit. Upgrade or remove a member.
+                          </p>
+                        ) : null}
                       </div>
                     </div>
                     {canRemove ? (
