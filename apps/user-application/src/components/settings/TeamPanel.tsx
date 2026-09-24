@@ -1,9 +1,11 @@
 import { useMemo, useState } from "react";
+import * as Dialog from "@radix-ui/react-dialog";
 import { useAction, useMutation } from "convex/react";
 import type { Id } from "@stage/data-ops/convex/data-model";
 import { Avatar } from "@/components/ui/Avatar";
 import { api } from "@/lib/convexApi";
 import { toUserFacingErrorMessage } from "@/lib/errors";
+import { openExternalLink } from "@/lib/settings/openExternalLink";
 import { inviteTeamMemberSchema } from "@/lib/validation";
 import {
   useSettingsOverviewQuery,
@@ -30,11 +32,15 @@ export function TeamPanel() {
   const members = useWorkspaceMembersQuery(activeSpace?.ownerUserId);
   const invites = useWorkspaceInvitesQuery(activeSpace?.ownerUserId);
   const addMember = useAction(api.workspaceMembers.add);
+  const createCustomerPortalSession = useAction(api.billing.createCustomerPortalSession);
   const resendInvite = useAction(api.workspaceMembers.resend);
   const removeMember = useMutation(api.workspaceMembers.remove);
   const revokeInvite = useMutation(api.workspaceMembers.revoke);
 
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
+  const [upgradeLoading, setUpgradeLoading] = useState(false);
+  const [upgradeError, setUpgradeError] = useState<string | null>(null);
   const [inviteEmail, setInviteEmail] = useState("");
   const [notice, setNotice] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -68,6 +74,7 @@ export function TeamPanel() {
   }, [activeSpace, members.data, profile?.avatarUrl, profile?.email, profile?.name]);
 
   const seatLimit = overview.data?.workspace?.seats ?? overview.data?.subscription?.seats ?? 1;
+  const isSolo = overview.data?.subscription?.plan === "start";
   const signedInEmail = profile?.email?.trim().toLowerCase() ?? "";
   const isWorkspaceOwner =
     activeSpace?.role === "owner" ||
@@ -88,7 +95,7 @@ export function TeamPanel() {
     isWorkspaceOwner && rows !== undefined && seatsLeft > 0 && isEmailValid && !isSubmitting;
 
   async function inviteMember() {
-    if (!canInvite) return;
+    if (!canInvite || isSolo) return;
     const email = emailInput;
     setIsSubmitting(true);
     setNotice(null);
@@ -106,6 +113,22 @@ export function TeamPanel() {
       setErrorMessage(toUserFacingErrorMessage(error, "Could not add this team member."));
     } finally {
       setIsSubmitting(false);
+    }
+  }
+
+  async function openUpgradePortal() {
+    if (upgradeLoading) return;
+    setUpgradeLoading(true);
+    setUpgradeError(null);
+    try {
+      const { url } = await createCustomerPortalSession({ platform: "desktop" });
+      if (!url) throw new Error("Subscription portal URL missing.");
+      await openExternalLink(url);
+      setUpgradeOpen(false);
+    } catch (error) {
+      setUpgradeError(toUserFacingErrorMessage(error, "Could not open subscription management."));
+    } finally {
+      setUpgradeLoading(false);
     }
   }
 
@@ -169,7 +192,17 @@ export function TeamPanel() {
           {isWorkspaceOwner ? (
             <button
               type="button"
-              onClick={() => setInviteOpen((open) => !open)}
+              onClick={() => {
+                if (overview.data === undefined) return;
+                if (isSolo) {
+                  setInviteOpen(false);
+                  setUpgradeError(null);
+                  setUpgradeOpen(true);
+                } else {
+                  setInviteOpen((open) => !open);
+                }
+              }}
+              disabled={overview.data === undefined}
               className="inline-flex h-[30px] shrink-0 items-center justify-center rounded-[6px] bg-[#171717] px-[12px] text-[12px] font-medium leading-none text-white"
             >
               + Invite Member
@@ -179,7 +212,7 @@ export function TeamPanel() {
       </div>
 
       <div className="flex flex-col gap-[4px]">
-        {inviteOpen && isWorkspaceOwner ? (
+        {inviteOpen && isWorkspaceOwner && !isSolo ? (
           <SettingsRow>
             <div className="flex min-w-0 flex-col gap-[8px] sm:flex-row sm:items-center">
               <input
@@ -289,6 +322,42 @@ export function TeamPanel() {
           </>
         )}
       </div>
+      <Dialog.Root open={upgradeOpen} onOpenChange={setUpgradeOpen}>
+        <Dialog.Portal>
+          <Dialog.Overlay className="fixed inset-0 z-50 bg-black/40" />
+          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[90vh] w-[calc(100%-32px)] max-w-[520px] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-[12px] bg-white p-[20px] shadow-xl outline-none">
+            <Dialog.Title className="text-[18px] font-semibold text-[#171717]">Invite your team</Dialog.Title>
+            <Dialog.Description className="mt-[6px] text-[13px] text-[#525252]">
+              Solo includes one seat. Choose a team plan to invite members to your workspace.
+            </Dialog.Description>
+            <div className="mt-[20px] grid gap-[10px] sm:grid-cols-2">
+              <div className="rounded-[8px] border border-[#E5E5E5] p-[14px]">
+                <h3 className="text-[15px] font-semibold">Studio</h3>
+                <p className="mt-[6px] text-[13px] text-[#525252]">5 seats · 10,000 pooled AI credits/month</p>
+                <p className="mt-[12px] text-[13px] font-medium">$99/month</p>
+              </div>
+              <div className="rounded-[8px] border border-[#E5E5E5] p-[14px]">
+                <h3 className="text-[15px] font-semibold">Agency</h3>
+                <p className="mt-[6px] text-[13px] text-[#525252]">15 seats · 30,000 pooled AI credits/month</p>
+                <p className="mt-[12px] text-[13px] font-medium">$249/month</p>
+              </div>
+            </div>
+            <p className="mt-[14px] text-[12px] text-[#737373]">Choose your new plan in the Stripe subscription portal. Your existing subscription is managed there.</p>
+            {upgradeError ? <p role="alert" className="mt-[10px] text-[12px] text-[#B91C1C]">{upgradeError}</p> : null}
+            <div className="mt-[20px] flex justify-end gap-[8px]">
+              <Dialog.Close className="rounded-[6px] px-[12px] py-[8px] text-[13px]">Not now</Dialog.Close>
+              <button
+                type="button"
+                onClick={() => void openUpgradePortal()}
+                disabled={upgradeLoading}
+                className="rounded-[6px] bg-[#463FBA] px-[12px] py-[8px] text-[13px] text-white disabled:opacity-50"
+              >
+                {upgradeLoading ? "Opening…" : "Manage subscription"}
+              </button>
+            </div>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
     </SettingsCard>
   );
 }

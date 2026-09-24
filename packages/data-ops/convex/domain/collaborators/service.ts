@@ -86,6 +86,9 @@ async function requireInviteSubscription(ctx: ReaderCtx, ownerUserId: Id<"users"
   if (!subscription || !subscription.plan) {
     throw new Error("Active Stage subscription required to invite members.");
   }
+  if (subscription.plan === "start") {
+    throw new Error("Upgrade to Studio or Agency to invite team members.");
+  }
   return subscription;
 }
 
