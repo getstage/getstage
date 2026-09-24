@@ -47,6 +47,7 @@ import type * as domain_projects_readModel from "../domain/projects/readModel.js
 import type * as domain_projects_service from "../domain/projects/service.js";
 import type * as emails from "../emails.js";
 import type * as helpers_access_projectAccess from "../helpers/access/projectAccess.js";
+import type * as helpers_access_seatEntitlement from "../helpers/access/seatEntitlement.js";
 import type * as helpers_auth_requireAuthUser from "../helpers/auth/requireAuthUser.js";
 import type * as helpers_env from "../helpers/env.js";
 import type * as helpers_integrations_notion_researchExport from "../helpers/integrations/notion/researchExport.js";
@@ -201,6 +202,7 @@ declare const fullApi: ApiFromModules<{
   "domain/projects/service": typeof domain_projects_service;
   emails: typeof emails;
   "helpers/access/projectAccess": typeof helpers_access_projectAccess;
+  "helpers/access/seatEntitlement": typeof helpers_access_seatEntitlement;
   "helpers/auth/requireAuthUser": typeof helpers_auth_requireAuthUser;
   "helpers/env": typeof helpers_env;
   "helpers/integrations/notion/researchExport": typeof helpers_integrations_notion_researchExport;

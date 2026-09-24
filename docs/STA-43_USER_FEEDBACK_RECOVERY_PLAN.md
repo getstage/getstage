@@ -58,15 +58,66 @@ Build one indexed `listAvailableSpaces` read model from the user plus their memb
 
 ## Seat downgrades and Stripe customer portal: release blocker
 
-**Observed 2026-09-24:** The live Stripe customer portal's default configuration had `subscription_update.enabled=false`. Werner explored enabling "Customers can switch plans"; the screenshot shows **no eligible products added**, "End trials on subscription updates" enabled, "No charges or credits" selected, and downgrades set to "Update immediately". A toggle in an unsaved dashboard screenshot is **not proof** that the live configuration changed. Do not enable or save self-service plan switching until the following policy and implementation are agreed and tested.
+### Observed portal configuration (2026-09-24, screenshots)
 
-Stage tiers: Solo (`start`) = 1 total seat, Studio (`pro`) = 5, Agency (`team`) = 15. The owner occupies one seat. Invite creation and acceptance check available seats at that moment (`convex/domain/collaborators/service.ts`), but nothing reconciles **existing** `projectCollaborators` rows or pending `workspaceInvites` when a Stripe subscription changes price. `customer.subscription.updated` mirrors the new plan and adjusts credits on payment events; it does not remove or suspend memberships. `workspaceMembers:listSpaces` discovers existing memberships without checking the owner's current seat capacity. `helpers/access/projectAccess.ts` grants a member access to the owner's projects when the membership exists and the owner has **any** active subscription, including Solo; it does not check that the owner's plan permits the member or that the member fits within the new limit. Thus a Studio owner with four invited members could switch to Solo yet all four memberships and their project access would remain. Agency → Studio can similarly retain more than five occupants. Do not delete projects, remove members, or silently revoke access as an automatic quick fix.
+| Setting | Observed | Required |
+|---------|----------|----------|
+| Customers can switch plans | On | On, **only after** the server changes below are deployed |
+| Eligible products | Stage Agency, Studio, Solo; each monthly + yearly | Same six prices |
+| Customers can change quantity | Off | Off (each tier has a fixed seat count) |
+| End trials on subscription updates | On | **On.** If off, a trial user who switches plan gets a $0 proration invoice; `invoice.paid` would then grant the full tier allotment instead of the 150-credit trial cap |
+| When customers change plans or quantities | Prorate charges and credits (updated 18:41) | **Prorate charges and credits**, charge timing **Invoice prorations immediately**. "No charges or credits" makes an upgrade free until the next renewal, which is up to a year of Agency for the Solo price on yearly plans |
+| When switching to a cheaper plan | Wait until end of billing period (updated 18:41) | **Wait until end of billing period** (Stripe creates a subscription schedule) |
+| When switching to a shorter interval | Wait until end of billing period (updated 18:41) | **Wait until end of billing period** |
+| Promotion codes | Off | Off |
 
-There is a second capacity hazard: `lib/billing/handlers/index.ts:resolveSeats` uses the larger of the new price's included seats and the subscription's `metadata.seats`, which was written at checkout. If Stripe's portal changes the price without rewriting that metadata, an Agency → Solo subscription can still **report 15 seats**. Verify Stripe's actual update event and derive entitlement from the current price, not stale checkout metadata, before allowing downgrades. Draft PR #81 (`fix/team-invite-upgrade-gate`) adds a Solo invitation guard and a Studio/Agency-only entry to the existing pricing screen, but is **not merged or deployed**; it does not solve existing membership overflow or Stripe portal configuration. The new team-only cards open the Stripe portal for the existing subscription; they do not select a tier inside Stripe or guarantee that plan changes are enabled there. Do not use a second subscription checkout as a workaround.
+The screenshots show unsaved changes. Confirm in Stripe whether **Save changes** was pressed. If it was, plan switching is live now without seat enforcement, so turn it off until the server fix ships.
 
-**Decision needed before self-service downgrades:** either block a downgrade when occupied/reserved seats exceed the target tier (and tell the owner whom to remove/revoke first), or define a reversible excess-member policy (which members retain access, read/write behavior, restoration after upgrade). Enforce that policy on the server at the subscription-change boundary and on every relevant member/project authorization path, not only in the desktop UI. Handle pending invitations, retries, delayed/out-of-order webhooks, renewals, and canceled plans. Keep owner data intact. Add tests for Studio → Solo with active/pending members, Agency → Studio over capacity, portal-updated stale seat metadata, and re-upgrade. Smoke the Stripe portal in test mode with the actual configured prices and billing proration/trial settings, then verify production with an authorized account before changing live defaults.
+### Verified server gaps
 
-**Interim safe operating rule:** keep live portal plan switching off (or at minimum do not expose downgrade paths) until the entitlement policy and enforcement are ready. Stripe's product selector is not a Convex seat-count guard; adding Solo as a portal option would not automatically clean up or restrict team access.
+Stage tiers: Solo (`start`) = 1 total seat, Studio (`pro`) = 5, Agency (`team`) = 15. The owner occupies one seat.
+
+1. **Stale seat count.** `lib/billing/handlers/index.ts:resolveSeats` returns the larger of the current price's `includedSeats` and `metadata.seats`. Checkout writes `metadata.seats` equal to the tier's included seats, and the portal does not rewrite it. After Agency → Solo, the subscription still reports **15 seats**.
+2. **No enforcement on existing members.** Invite creation and acceptance check capacity (`domain/collaborators/service.ts`). Nothing re-checks existing `projectCollaborators` rows. `helpers/access/projectAccess.ts` grants access when a membership row exists and the owner has **any** active subscription, including Solo. `workspaceMembers:listSpaces` lists memberships without a capacity check.
+
+### AI credits on plan changes (verified in `lib/billing/handlers/webhooks.ts`, `lib/credits/service.ts`)
+
+Monthly allotment: Solo 2,000, Studio 10,000, Agency 30,000. A `monthly_grant` **resets** the monthly bucket to the tier amount; top-up credits are never touched.
+
+- **Upgrade** (prorated, invoiced immediately): Stripe sends `invoice.paid` with `billing_reason = subscription_update`. The existing handler skips only `subscription_create`, so it resets the monthly bucket to the new tier's amount. The customer pays the prorated difference and gets the full new allotment at once. No code change; verify in test mode.
+- **Downgrade** (scheduled at period end): nothing changes until renewal. At renewal the schedule switches the price and the renewal `invoice.paid` resets the bucket to the lower tier. No mid-period credit reduction, so no refund logic is needed.
+- **Risk to fix:** `handleInvoicePaid` reads the tier from the *synced subscription*, not from the invoice. If the invoice webhook arrives before the subscription sync at the downgrade renewal, it grants the old (higher) tier. Read the price from the invoice line instead (small change in one function).
+- **Existing gap, separate from downgrades:** yearly plans get one `invoice.paid` per year, and nothing else grants credits, so yearly customers receive a single month's allotment per year. Needs its own fix (e.g. a monthly refill for active yearly subscriptions). Not part of this change.
+
+### Decision: derived, reversible seat entitlement
+
+The Stripe portal cannot ask Stage before it applies a plan change, so a downgrade cannot be blocked there. Instead, entitlement is **derived at read time** from the current plan. No data is written or deleted when a plan changes:
+
+- Seat limit = `includedSeats` of the current price. Ignore `metadata.seats`.
+- A member is **active** if they are among the first `seatLimit - 1` members of that owner, ordered by `projectCollaborators.createdAt` (earliest joined first).
+- Members beyond that count stay stored as **over limit**: no project access, their team space is hidden, and they cannot use the owner's credits.
+- An upgrade restores them automatically. The rule does not depend on webhook order or retries because it is recomputed from the current subscription on every read.
+- The owner's projects and data are never touched.
+- Pending invites: no change. Creating and accepting an invite already check free seats.
+- Canceled or ended subscriptions: the existing "owner needs an active subscription" check already applies.
+
+Out of scope (YAGNI until a customer asks): the owner choosing *which* members stay active, a stored suspension state, webhook reconciliation jobs, a blocked-invite UI. The owner can remove members to free seats.
+
+### Local implementation (ponytail-sized)
+
+No new table, field, webhook handler, or screen. Implemented on `fix/team-invite-upgrade-gate` (local, not deployed):
+
+- [x] `resolveSeats`: seats come from the current price's `includedSeats` only. Checkout only ever sold exactly the included seats (quantity 1), so no customer loses paid seats.
+- [x] `handleInvoicePaid`: tier comes from the invoice's positive subscription line, falling back to the synced subscription. This also fixes upgrades, where the invoice can arrive before the subscription sync and grant the old tier.
+- [x] `helpers/access/seatEntitlement.ts`: the single place that decides who is over the limit (`listOverLimitMemberIds`, `isActiveMembership`, `listActiveMembershipsForUser`).
+- [x] Applied at every membership read: `projectAccess.ts`, `readModel.ts` (project list), `projectService.ts` (space check), `resolveWorkspaceContext` (credits and settings), `workspaceMembers` (`listSpaces`, readable space owner).
+- [x] `workspaceMembers:list` returns `overLimit`; Settings → Teams shows "No access: over your plan's seat limit. Upgrade or remove a member." The existing Remove action stays.
+- [x] Task assignee list (`tasks:getProjectMembers`): lists the **project owner** instead of the viewer, skips over-limit members, and never lists a person twice. Before, a member viewing the board saw themselves twice and the owner was missing.
+- [ ] Verify (security path, not trimmed): Studio → Solo with members, Agency → Studio over capacity, stale `metadata.seats`, re-upgrade restores access. Run as a Convex test if a harness exists by then, otherwise as a scripted smoke on Testing.
+- [ ] Stripe test mode: apply the required portal settings; run Solo → Studio (prorated charge, credits reset to 10,000), Studio → Solo (scheduled; at renewal credits 2,000 and seats enforced), upgrade during trial, and monthly ↔ yearly.
+- [ ] After deploy: set the live portal to the required settings and verify with an authorized account.
+
+Draft PR #81 (`fix/team-invite-upgrade-gate`) adds a Solo invite guard and Studio/Agency upgrade cards that open the Stripe portal. It does not include the items above. Do not use a second subscription checkout as a workaround.
 
 ## Delivery order
 

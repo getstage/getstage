@@ -21,6 +21,7 @@ type TeamMember = {
   email: string;
   avatarUrl?: string;
   isOwner: boolean;
+  overLimit: boolean;
 };
 
 export function TeamPanel() {
@@ -58,6 +59,7 @@ export function TeamPanel() {
       email: isMember ? (activeSpace?.email ?? "") : (profile?.email ?? activeSpace?.email ?? ""),
       avatarUrl: isMember ? activeSpace?.avatarUrl : (profile?.avatarUrl ?? activeSpace?.avatarUrl),
       isOwner: true,
+      overLimit: false,
     };
     const invited = members.data.map<TeamMember>((member) => ({
       id: member._id,
@@ -65,6 +67,7 @@ export function TeamPanel() {
       email: member.email ?? "",
       avatarUrl: member.avatarUrl ?? undefined,
       isOwner: false,
+      overLimit: member.overLimit,
     }));
     return [owner, ...invited];
   }, [activeSpace, members.data, profile?.avatarUrl, profile?.email, profile?.name]);
@@ -250,6 +253,11 @@ export function TeamPanel() {
                       <div className="min-w-0">
                         <h3 className="truncate text-[13px] font-medium leading-[1.5] text-[#0A0A0A]">{member.name}</h3>
                         <p className="truncate text-[12px] font-normal leading-[1.5] text-[#737373]">{member.email}</p>
+                        {member.overLimit ? (
+                          <p className="text-[12px] font-normal leading-[1.5] text-[#E11D48]">
+                            No access: over your plan&apos;s seat limit. Upgrade or remove a member.
+                          </p>
+                        ) : null}
                       </div>
                     </div>
                     {canRemove ? (

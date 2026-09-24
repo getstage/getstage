@@ -91,6 +91,24 @@ function subscriptionIdFromInvoice(invoice: Stripe.Invoice): string | null {
   return null;
 }
 
+// The price this invoice charges for. A plan-change invoice also carries a
+// negative proration line for the old price, so take the first positive line
+// that maps to a subscription tier.
+function subscriptionPriceIdFromInvoice(invoice: Stripe.Invoice): string | null {
+  for (const line of invoice.lines.data) {
+    // Same API-version split as subscriptionIdFromInvoice: older versions put the
+    // price directly on the line.
+    const price =
+      line.pricing?.price_details?.price ??
+      (line as { price?: string | { id: string } | null }).price;
+    const priceId = typeof price === "string" ? price : price?.id;
+    if (priceId && line.amount > 0 && configForPriceId(priceId)?.kind === "subscription") {
+      return priceId;
+    }
+  }
+  return null;
+}
+
 // checkout.session.completed — first payment for a subscription, a top-up, or a
 // trial start. We trust the metadata we baked in at createCheckoutSession time
 // (userId, priceId, isTrial). Idempotent on the Stripe event id.
@@ -194,7 +212,9 @@ async function handleInvoicePaid(ctx: WebhookCtx, event: Stripe.Event) {
     return;
   }
 
-  const config = configForPriceId(subscription.priceId);
+  // Prefer the invoice's own price: on a plan change the invoice webhook can
+  // arrive before the synced subscription reflects the new price.
+  const config = configForPriceId(subscriptionPriceIdFromInvoice(invoice) ?? subscription.priceId);
   if (!config || config.kind !== "subscription") {
     return;
   }

@@ -38,14 +38,10 @@ const ACTIVE_SUBSCRIPTION_STATUSES = new Set([
   "incomplete",
 ]);
 
-// Total purchased seats for a Team subscription. We bake the requested seat count
-// into subscription metadata at checkout (createCheckoutSession), and the Stripe
-// component syncs metadata, so this is readable from a query/mutation ctx. Falls
-// back to the tier's included seats when metadata is absent (legacy subs).
+// Seats come from the current price only. Checkout also writes `metadata.seats`,
+// but a portal plan change does not rewrite it, so it goes stale on downgrade.
 function resolveSeats(subscription: StripeSubscriptionSummary): number {
-  const included = configForPriceId(subscription.priceId)?.includedSeats ?? 1;
-  const raw = Number((subscription.metadata as { seats?: unknown } | null | undefined)?.seats);
-  return Number.isFinite(raw) && raw > included ? Math.round(raw) : included;
+  return configForPriceId(subscription.priceId)?.includedSeats ?? 1;
 }
 
 type ViewerContext = {
