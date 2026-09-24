@@ -29,7 +29,7 @@
 | **P1 local review** | Project-aware Stage chat: `@project`, bounded Convex context, screenshots, confirmed window capture | `apps/user-application/docs/AI/chatbot/CHATBOT_PLAN.md`; branch `feat/stage-chat-project-context-vision` |
 | **P2 desktop flash-kill** | Convex queries routed through TanStack Query (`@convex-dev/react-query`) + route loaders (`ensureQueryData`) so screens paint ready data instead of setup/empty flashes. Interim: per-tab `TabLoadingState` loader on Flows/Wireframes/Assets. Branch `feat/convex-tanstack-query-loaders`. Follow-up: strip residual `isRunsLoading`/`isStyleGuideRunsLoading` guards once live smoke confirms loader cache hits. Skill: `.agents/skills/convex-tanstack-query-adapter/` | apps/user-application/src |
 
-**Current desktop version (release branch):** `0.2.43` (production tag `prod-v0.2.43`; testing tag `v0.2.44` is CI artifacts only). Testing auto-update pipeline now targets a separate GitHub prerelease feed (`desktop-testing-feed`); first signed feed build and installed-DMG update smoke remain pending. Testing environment needs the five Apple signing/notarization secrets before the feed can publish. Production feed is unchanged.
+**Current desktop version (release branch):** `0.2.43` (production tag `prod-v0.2.43`; testing tag `v0.2.45` is the first feed-enabled candidate). Testing auto-update pipeline targets a separate GitHub prerelease feed (`desktop-testing-feed`); first feed build and installed-DMG update smoke remain pending. Repository-level Apple signing secrets already work for testing (v0.2.44 CI logs). Production feed is unchanged.
 
 ---
 

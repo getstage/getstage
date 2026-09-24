@@ -1,6 +1,8 @@
-# Pushen en bundelen van Stage Desktop
+# Push and bundle Stage Desktop
 
-Gebruik dit document als checklist voor de eerste GitHub Release met DMG.
+> Release note (September 2026): The older examples below predate the testing/production split. The current workflow is `.github/workflows/release-desktop.yml`: `v*` builds testing DMGs and publishes to the separate `desktop-testing-feed` prerelease; `prod-v*` publishes the production Latest Release. A green GitHub Actions run means a build succeeded, not necessarily that an installed app can see an update. `v0.2.44` was signed/notarized but only uploaded as workflow artifacts (before the testing feed was added). Repository-level Apple secrets already sign both tracks. Testing builds made **after** the feed change need a one-time install before they can receive further testing updates automatically.
+
+This document retains the original first-release checklist below; do not use its old release-asset or secret-location claims as current instructions.
 
 ## 1. Check lokaal
 
@@ -118,14 +120,16 @@ Verwacht:
 - job `macOS arm64`
 - job `macOS x64`
 - beide maken een `.dmg`
-- bij tag push worden assets naar GitHub Releases gepubliceerd
+- for current `v*` testing tags, versioned assets are published to the `desktop-testing-feed` prerelease, not the production Latest Release (older builds like `v0.2.44` have workflow artifacts only)
+- for `prod-v*` tags, the production Latest Release receives assets
 
 ## 8. DMG downloaden
 
 Ga naar:
 
 ```text
-GitHub -> Releases -> v0.1.0
+GitHub -> Releases -> desktop-testing-feed (testing, current workflow)
+# or download workflow artifacts for older testing tags such as v0.2.44
 ```
 
 Gebruik:

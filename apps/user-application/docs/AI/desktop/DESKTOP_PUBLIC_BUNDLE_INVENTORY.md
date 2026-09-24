@@ -129,12 +129,12 @@ Before `git push origin prod-vX.Y.Z`:
 |-------|--------|
 | Refero / OpenRouter out of DMG | Done — fetch from Convex after auth |
 | `runtime-secrets.env` public-only writer | Done — script allows only `R2_PUBLIC_BASE_URL` |
-| Testing vs prod tag split | `v*` CI artifacts plus a separate public prerelease update feed (`desktop-testing-feed`); `prod-v*` remains the production Latest Release. Testing feed publishing requires Apple signing in the testing environment. |
+| Testing vs prod tag split | `v*` CI artifacts plus a separate public prerelease update feed (`desktop-testing-feed`); `prod-v*` remains the production Latest Release. Testing builds are already signed/notarized using repository-level Apple secrets. |
 
 ### Testing auto-update activation
 
-1. Add `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`, `APPLE_TEAM_ID`, `CSC_LINK`, and `CSC_KEY_PASSWORD` to the **testing** GitHub Environment. The production Environment already has these names, but environment secrets are not shared. Do not put the certificate or passwords in the repository or desktop bundle.
-2. Push a **new** `v*` tag on the tested commit (package version must match). CI signs and notarizes both architectures, uploads versioned ZIP/DMG assets to the `desktop-testing-feed` prerelease, and replaces `latest-mac.yml` last. The public prerelease is intentionally not GitHub's production Latest Release; anyone can download testing assets from the public repository.
+1. Repository-level Apple signing secrets are already configured and apply to both environments. The `v0.2.44` GitHub Actions logs confirm signed and notarized arm64 and x64 DMGs. Do not put the certificate or passwords in the repository or desktop bundle.
+2. Push a **new** `v*` tag on the tested commit (package version must match). CI uploads versioned signed ZIP/DMG assets to the `desktop-testing-feed` prerelease and replaces `latest-mac.yml` last. The public prerelease is intentionally not GitHub's production Latest Release; anyone can download testing assets from the public repository.
 3. Install that testing DMG once on each tester's Mac. Older testing DMGs have the production updater URL baked in and cannot discover this feed retroactively. For the update smoke, install one signed testing version, publish a strictly newer signed testing tag, then verify Settings → Account → Check for Updates downloads and installs it. Check both architectures. Until this test passes, do not claim the updater is live.
 4. Production `prod-v*` continues to use the existing production updater. Testing and production still share the same app identity/name and cannot be kept as independent parallel installations; separating installations is a separate change.
 | Update GitHub PAT baked into main | **Still NOT WISE** — remove or stop defining for `prod-v*` |
