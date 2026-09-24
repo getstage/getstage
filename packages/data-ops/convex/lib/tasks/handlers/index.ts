@@ -12,6 +12,7 @@ import { addTaskForUser, toggleTaskForUser } from "../../../domain/projects/serv
 import { recomputeProjectState } from "../../../domain/projects/readModel";
 import { attachTrackedR2Asset, deleteOldR2Asset, resolveAssetUrl } from "../../../r2";
 import { now } from "../../../helpers/time";
+import { listOverLimitMemberIds } from "../../../helpers/access/seatEntitlement";
 
 export const getProjectMembersArgs = {
   projectId: v.id("projects"),
@@ -28,14 +29,22 @@ export async function getProjectMembersHandler(
   if (!access) {
     return [];
   }
-  const { user, project } = access;
+  const { project } = access;
+  const owner = await ctx.db.get(project.userId);
+  if (!owner) {
+    return [];
+  }
 
-  // Members are workspace-level: everyone with editor access to the owner's
-  // projects, not just this one.
-  const collaborators = await ctx.db
-    .query("projectCollaborators")
-    .withIndex("by_owner", (q) => q.eq("ownerUserId", project.userId))
-    .collect();
+  // Members are workspace-level: the project owner plus every member within the
+  // owner's seat limit. The viewer may be the owner or a member; either way each
+  // person appears once, and the owner is always listed.
+  const [collaborators, overLimit] = await Promise.all([
+    ctx.db
+      .query("projectCollaborators")
+      .withIndex("by_owner", (q) => q.eq("ownerUserId", project.userId))
+      .collect(),
+    listOverLimitMemberIds(ctx, project.userId),
+  ]);
 
   const members: Array<{
     userId: string;
@@ -44,14 +53,17 @@ export async function getProjectMembersHandler(
     role: "owner" | "editor";
   }> = [
     {
-      userId: String(user._id),
-      name: user.name ?? null,
-      email: user.email ?? null,
+      userId: String(owner._id),
+      name: owner.name ?? null,
+      email: owner.email ?? null,
       role: "owner",
     },
   ];
 
   for (const collab of collaborators) {
+    if (overLimit.has(collab._id) || members.some((member) => member.userId === String(collab.userId))) {
+      continue;
+    }
     const collabUser = await ctx.db.get(collab.userId);
     if (collabUser) {
       members.push({
