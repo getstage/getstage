@@ -1,11 +1,28 @@
-import { researchInputSchema, type ResearchInput } from "@stage/data-ops/contracts";
+import {
+  DEFAULT_DETAILS_SECTIONS,
+  DEFAULT_REFERO_APP_SECTIONS,
+  DETAILS_SECTIONS,
+  REFERO_IOS_APP_SECTIONS,
+  REFERO_WEB_APP_SECTIONS,
+  detailsSectionSchema,
+  researchInputSchema,
+  type DetailsSection,
+  type ResearchInput,
+} from "@stage/data-ops/contracts";
 import type { Project } from "@/models/project/project";
+import type { ProjectCategory } from "@/types";
 import { z } from "zod";
 
 const MAX_INDUSTRY_LENGTH = 120;
 const MAX_BRIEF_LENGTH = 5000;
 const MAX_NOTES_LENGTH = 2000;
-const MAX_COMPETITORS = 10;
+export const MAX_COMPETITORS = 4;
+export const MAX_BRIEF_FILES = 5;
+
+export type ResearchBriefAttachment = {
+  name: string;
+  r2ObjectKey: string;
+};
 
 export type ResearchConfigureFormValues = {
   industry: string;
@@ -13,7 +30,9 @@ export type ResearchConfigureFormValues = {
   projectBrief: string;
   additionalNotes: string;
   competitorUrls: string[];
-  briefFileName: string | null;
+  detailsSections: DetailsSection[];
+  briefFileNames: string[];
+  briefAttachments: ResearchBriefAttachment[];
 };
 
 export type ResearchConfigureField = keyof ResearchConfigureFormValues | "competitorInput";
@@ -26,8 +45,29 @@ export const DEFAULT_RESEARCH_CONFIGURE_FORM_VALUES: ResearchConfigureFormValues
   projectBrief: "",
   additionalNotes: "",
   competitorUrls: [],
-  briefFileName: null,
+  detailsSections: [...DEFAULT_DETAILS_SECTIONS],
+  briefFileNames: [],
+  briefAttachments: [],
 };
+
+export function normalizeReferenceSections(
+  sections: DetailsSection[],
+  projectCategory: ProjectCategory,
+): DetailsSection[] {
+  const available: readonly string[] =
+    projectCategory === "websites"
+      ? DETAILS_SECTIONS
+      : projectCategory === "ios-apps"
+        ? REFERO_IOS_APP_SECTIONS
+        : REFERO_WEB_APP_SECTIONS;
+  if (sections.length > 0 && sections.every((section) => available.includes(section))) {
+    return sections;
+  }
+
+  return projectCategory === "websites"
+    ? [...DEFAULT_DETAILS_SECTIONS]
+    : [...DEFAULT_REFERO_APP_SECTIONS];
+}
 
 export function normalizeWebsite(value: string): string {
   const trimmed = value.trim();
@@ -86,11 +126,14 @@ export const validatedResearchConfigureInputSchema = z.object({
   website: optionalWebsiteValueSchema.optional(),
   projectBrief: z.string().trim().min(1).max(MAX_BRIEF_LENGTH),
   competitorUrls: z.array(websiteValueSchema.transform(normalizeWebsite)).max(MAX_COMPETITORS),
+  detailsSections: z.array(detailsSectionSchema).min(1),
   additionalNotes: z.string().trim().min(1).max(MAX_NOTES_LENGTH).optional(),
   uploadedAssetIds: z.array(z.string().min(1)).default([]),
 });
 
-export type ValidatedResearchConfigureInput = z.infer<typeof validatedResearchConfigureInputSchema>;
+export type ValidatedResearchConfigureInput = z.infer<typeof validatedResearchConfigureInputSchema> & {
+  briefAttachments?: ResearchBriefAttachment[];
+};
 
 export function parseCompetitorWebsite(
   value: string,
@@ -125,7 +168,7 @@ export function validateResearchConfigureForm(
 
   const briefText = values.projectBrief.trim();
   const hasBriefText = briefText.length > 0;
-  const hasBriefFile = values.briefFileName !== null;
+  const hasBriefFile = values.briefFileNames.length > 0 || values.briefAttachments.length > 0;
 
   if (!hasBriefText && !hasBriefFile) {
     errors.projectBrief = "Add a project brief or upload a brief file";
@@ -142,11 +185,17 @@ export function validateResearchConfigureForm(
     errors.competitorUrls = `Add up to ${MAX_COMPETITORS} competitors`;
   }
 
+  if (values.detailsSections.length === 0) {
+    errors.detailsSections = "Choose at least 1 reference section";
+  }
+
   if (Object.keys(errors).length > 0 || !industryResult.success) {
     return { success: false, errors };
   }
 
-  const projectBrief = hasBriefText ? briefText : `[Uploaded brief: ${values.briefFileName}]`;
+  const projectBrief = hasBriefText
+    ? briefText
+    : `[Uploaded brief: ${values.briefFileNames.join(", ") || values.briefAttachments.map((file) => file.name).join(", ")}]`;
 
   try {
     const data = validatedResearchConfigureInputSchema.parse({
@@ -154,11 +203,18 @@ export function validateResearchConfigureForm(
       website: websiteResult.data,
       projectBrief,
       competitorUrls: values.competitorUrls,
+      detailsSections: values.detailsSections,
       additionalNotes: notes || undefined,
       uploadedAssetIds: [],
     });
 
-    return { success: true, data };
+    return {
+      success: true,
+      data: {
+        ...data,
+        briefAttachments: values.briefAttachments.slice(0, MAX_BRIEF_FILES),
+      },
+    };
   } catch (error) {
     if (error instanceof z.ZodError) {
       for (const issue of error.issues) {
@@ -185,17 +241,21 @@ export function isResearchConfigureFormSubmittable(values: ResearchConfigureForm
 }
 
 export function buildResearchInput(
-  project: Pick<Project, "id" | "name" | "clientName">,
+  project: Pick<Project, "id" | "name" | "clientName"> & {
+    projectCategory: ProjectCategory;
+  },
   input: ValidatedResearchConfigureInput,
 ): ResearchInput {
   return researchInputSchema.parse({
     projectId: project.id,
     projectName: project.name,
+    projectCategory: project.projectCategory,
     clientName: project.clientName,
     industry: input.industry,
     website: input.website,
     projectBrief: input.projectBrief,
     competitorUrls: input.competitorUrls,
+    detailsSections: input.detailsSections,
     additionalNotes: input.additionalNotes,
     uploadedAssetIds: input.uploadedAssetIds,
   });

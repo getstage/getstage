@@ -1,5 +1,6 @@
 import { strategyInputSchema, type StrategyInput } from "@stage/data-ops/contracts";
 import type { Project } from "@/models/project/project";
+import type { ProjectCategory } from "@/types";
 import { z } from "zod";
 
 const MAX_NOTES_LENGTH = 2000;
@@ -107,13 +108,14 @@ export function isStrategyGenerateFormSubmittable(values: StrategyGenerateFormVa
 }
 
 export function buildStrategyInput(
-  project: Pick<Project, "id" | "name">,
+  project: Pick<Project, "id" | "name"> & { projectCategory: ProjectCategory },
   input: ValidatedStrategyGenerateInput,
   researchArtifactId?: string | null,
 ): StrategyInput {
   return strategyInputSchema.parse({
     projectId: project.id,
     projectName: project.name,
+    projectCategory: project.projectCategory,
     researchArtifactId: researchArtifactId ?? undefined,
     additionalNotes: input.additionalNotes,
     focusAreas: input.focusAreas,

@@ -85,6 +85,16 @@ pub struct RunSubscription {
     pub receiver: broadcast::Receiver<RunEvent>,
 }
 
+pub struct RunWorkflows {
+    pub chat: Option<Arc<ChatWorkflow>>,
+    pub research: Option<Arc<ResearchWorkflow>>,
+    pub strategy: Option<Arc<StrategyWorkflow>>,
+    pub styleguide: Option<Arc<StyleguideWorkflow>>,
+    pub moodboard: Option<Arc<MoodboardWorkflow>>,
+    pub flows: Option<Arc<FlowsWorkflow>>,
+    pub wireframes: Option<Arc<WireframesWorkflow>>,
+}
+
 #[derive(Debug)]
 pub struct RunManager {
     api_version: &'static str,
@@ -100,27 +110,18 @@ pub struct RunManager {
 }
 
 impl RunManager {
-    pub fn new(
-        api_version: &'static str,
-        chat: Option<Arc<ChatWorkflow>>,
-        research: Option<Arc<ResearchWorkflow>>,
-        strategy: Option<Arc<StrategyWorkflow>>,
-        styleguide: Option<Arc<StyleguideWorkflow>>,
-        moodboard: Option<Arc<MoodboardWorkflow>>,
-        flows: Option<Arc<FlowsWorkflow>>,
-        wireframes: Option<Arc<WireframesWorkflow>>,
-    ) -> Self {
+    pub fn new(api_version: &'static str, workflows: RunWorkflows) -> Self {
         Self {
             api_version,
             runs: Arc::new(RwLock::new(HashMap::new())),
             project_run_dedupe: Arc::new(RwLock::new(HashMap::new())),
-            chat,
-            research,
-            strategy,
-            styleguide,
-            moodboard,
-            flows,
-            wireframes,
+            chat: workflows.chat,
+            research: workflows.research,
+            strategy: workflows.strategy,
+            styleguide: workflows.styleguide,
+            moodboard: workflows.moodboard,
+            flows: workflows.flows,
+            wireframes: workflows.wireframes,
         }
     }
 

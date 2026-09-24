@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { cn, getInitials } from "@/lib/utils";
 
 interface AvatarProps {
@@ -21,11 +22,14 @@ export function Avatar({
   variant = "default",
   className,
 }: AvatarProps) {
-  if (src) {
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
+  const photo = src && /^https?:\/\//i.test(src) && src !== failedSrc ? src : undefined;
+  if (photo) {
     return (
       <img
-        src={src}
+        src={photo}
         alt={name}
+        onError={() => setFailedSrc(photo)}
         className={cn(
           "rounded-full object-cover",
           sizeMap[size],

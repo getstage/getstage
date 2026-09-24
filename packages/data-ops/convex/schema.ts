@@ -93,6 +93,9 @@ const projectType = v.union(
   v.literal("motion-design"),
   v.literal("illustration"),
   v.literal("other"),
+  v.literal("websites"),
+  v.literal("web-apps"),
+  v.literal("ios-apps"),
 );
 
 const projectStatus = v.union(
@@ -100,6 +103,59 @@ const projectStatus = v.union(
   v.literal("paused"),
   v.literal("completed"),
 );
+
+const detailsSection = v.union(
+  v.literal("CTA"),
+  v.literal("Footer"),
+  v.literal("Hero"),
+  v.literal("Legal"),
+  v.literal("Navigation"),
+  v.literal("Drawer"),
+  v.literal("Dropdown"),
+  v.literal("Fullscreen"),
+  v.literal("Morphing"),
+  v.literal("404"),
+  v.literal("Article"),
+  v.literal("Blog"),
+  v.literal("Case Study"),
+  v.literal("Contact"),
+  v.literal("Content"),
+  v.literal("About"),
+  v.literal("FAQ"),
+  v.literal("Features"),
+  v.literal("Services"),
+  v.literal("Steps"),
+  v.literal("Newsletter"),
+  v.literal("Portfolio"),
+  v.literal("Pricing"),
+  v.literal("Products"),
+  v.literal("Social Proof"),
+  v.literal("Logo"),
+  v.literal("Testimonial"),
+  v.literal("Stats"),
+  v.literal("Team"),
+    v.literal("Timeline"),
+    v.literal("Onboarding"),
+    v.literal("Login / Sign up"),
+    v.literal("Homepage"),
+    v.literal("Checkout"),
+    v.literal("Dashboard"),
+    v.literal("Analytics / Reports"),
+    v.literal("Table / List"),
+    v.literal("Search"),
+    v.literal("Detail View"),
+    v.literal("Forms"),
+    v.literal("Settings"),
+    v.literal("Profile"),
+    v.literal("Team / Permissions"),
+    v.literal("Integrations"),
+    v.literal("Billing"),
+    v.literal("Browse / Discovery"),
+    v.literal("Notifications"),
+    v.literal("Empty State"),
+    v.literal("Success / Confirmation"),
+    v.literal("Splash Screen"),
+  );
 
 const phaseStatus = v.union(
   v.literal("completed"),
@@ -168,6 +224,7 @@ const uploadPurpose = v.union(
   v.literal("moodboard-figma"),
   v.literal("moodboard-url"),
   v.literal("wireframe-brand-kit"),
+  v.literal("wireframe-screen"),
 );
 
 const subscriptionStatus = v.union(
@@ -276,6 +333,7 @@ const aiRunStatus = v.union(
   v.literal("running"),
   v.literal("completed"),
   v.literal("failed"),
+  v.literal("cancelled"),
   v.literal("needs_input"),
 );
 
@@ -368,6 +426,18 @@ export default defineSchema({
     installedSkillIds: v.optional(v.array(v.string())),
     enabledSkillIds: v.optional(v.array(v.string())),
     enabledComponentPackIds: v.optional(v.array(v.string())),
+            importedSkillHubItems: v.optional(
+      v.array(
+        v.object({
+          id: v.string(),
+          kind: v.union(v.literal("skill"), v.literal("component")),
+          name: v.string(),
+          sourceUrl: v.string(),
+          subtitle: v.optional(v.string()),
+          iconUrl: v.optional(v.string()),
+        }),
+      ),
+    ),
     createdAt: v.optional(v.number()),
     updatedAt: v.optional(v.number()),
   })
@@ -403,6 +473,8 @@ export default defineSchema({
     startDate: v.number(),
     endDate: v.number(),
     progress: v.number(),
+    skillIds: v.optional(v.array(v.string())),
+    componentPackIds: v.optional(v.array(v.string())),
     // Workflow steps the owner has enabled for this project (e.g. a project that
     // skips "flows"). Absent = every step is enabled. "overview" is always shown.
     enabledSteps: v.optional(v.array(v.string())),
@@ -520,6 +592,32 @@ export default defineSchema({
     .index("by_user", ["userId"])
     .index("by_owner", ["ownerUserId"])
     .index("by_owner_user", ["ownerUserId", "userId"]),
+
+  // Pending workspace invitations exist before the recipient has a Stage user.
+  // Tokens are stored as SHA-256 hashes so a database read cannot reveal a
+  // usable invitation link.
+  workspaceInvites: defineTable({
+    ownerUserId: v.id("users"),
+    email: v.string(),
+    role: v.literal("editor"),
+    tokenHash: v.string(),
+    status: v.union(
+      v.literal("pending"),
+      v.literal("accepted"),
+      v.literal("revoked"),
+      v.literal("expired"),
+    ),
+    expiresAt: v.number(),
+    acceptedBy: v.optional(v.id("users")),
+    acceptedAt: v.optional(v.number()),
+    revokedAt: v.optional(v.number()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_token_hash", ["tokenHash"])
+    .index("by_owner", ["ownerUserId"])
+    .index("by_owner_email", ["ownerUserId", "email"])
+    .index("by_owner_status_expiresAt", ["ownerUserId", "status", "expiresAt"]),
 
   // Credit wallet per workspace owner. Team pools use ownerUserId = workspace
   // owner, so members spend from the owner's single wallet. monthlyBalance resets
@@ -698,10 +796,19 @@ export default defineSchema({
     industry: v.optional(v.string()),
     clientWebsite: v.optional(v.string()),
     competitorUrls: v.array(v.string()),
+    detailsSections: v.optional(v.array(detailsSection)),
     referenceUrls: v.array(v.string()),
     brief: v.optional(v.string()),
     briefAttachmentName: v.optional(v.string()),
     briefAttachmentR2ObjectKey: v.optional(v.string()),
+    briefAttachments: v.optional(
+      v.array(
+        v.object({
+          name: v.string(),
+          r2ObjectKey: v.string(),
+        }),
+      ),
+    ),
     notes: v.optional(v.string()),
     strategyFocusAreas: v.optional(v.array(v.string())),
     strategyGenerateNotes: v.optional(v.string()),
@@ -731,6 +838,21 @@ export default defineSchema({
     .index("by_project", ["projectId"])
     .index("by_project_module", ["projectId", "module"])
     .index("by_project_startedAt", ["projectId", "startedAt"])
+    .index("by_user", ["userId"]),
+
+  projectAiRunCheckpoints: defineTable({
+    userId: v.id("users"),
+    projectId: v.id("projects"),
+    runId: v.id("projectAiRuns"),
+    kind: v.union(v.literal("design-plan"), v.literal("screen")),
+    screenId: v.optional(v.string()),
+    contentJson: v.string(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_project", ["projectId"])
+    .index("by_run", ["runId"])
+    .index("by_run_kind_screen", ["runId", "kind", "screenId"])
     .index("by_user", ["userId"]),
 
   projectAiArtifacts: defineTable({
@@ -936,6 +1058,54 @@ export default defineSchema({
     .index("by_key", ["key"])
     .index("by_createdAt", ["createdAt"])
     .index("by_user_createdAt", ["userId", "createdAt"]),
+
+  wireframeCatalogComponents: defineTable({
+    componentId: v.string(),
+    library: v.string(),
+    name: v.string(),
+    kind: v.string(),
+    sourceRevision: v.string(),
+    sourceBundleKey: v.string(),
+    verified: v.boolean(),
+    runtime: v.optional(v.union(v.literal("client"), v.literal("universal"))),
+    verifiedAt: v.optional(v.number()),
+    verificationError: v.optional(v.string()),
+    embeddingReady: v.optional(v.boolean()),
+    embeddingIndexAttempts: v.optional(v.number()),
+    embeddingIndexedRevision: v.optional(v.string()),
+    ragIndexAttempts: v.optional(v.number()),
+    ragEntryId: v.optional(v.string()),
+    ragIndexedRevision: v.optional(v.string()),
+    updatedAt: v.number(),
+  })
+    .index("by_componentId", ["componentId"])
+    .index("by_verified", ["verified"])
+    .index("by_embeddingReady", ["embeddingReady"]),
+
+  wireframeCatalogEmbeddings: defineTable({
+    componentId: v.string(),
+    sourceRevision: v.string(),
+    scope: v.string(),
+    embedding: v.array(v.float64()),
+    updatedAt: v.number(),
+  })
+    .index("by_componentId", ["componentId"])
+    .vectorIndex("by_embedding", {
+      vectorField: "embedding",
+      dimensions: 4096,
+      filterFields: ["scope"],
+    }),
+
+  r2DeletionQueue: defineTable({
+    key: v.string(),
+    attempts: v.number(),
+    nextAttemptAt: v.number(),
+    lastError: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_key", ["key"])
+    .index("by_nextAttemptAt", ["nextAttemptAt"]),
 
   // Audit + idempotency for the email drip engine. One row per (user, event);
   // recordEmailEvent no-ops if a row already exists, so retries/double-clicks

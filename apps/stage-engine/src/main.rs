@@ -2,6 +2,7 @@ mod app;
 mod chat;
 mod config;
 mod convex_store;
+mod details;
 mod exports;
 mod figma;
 mod flows;

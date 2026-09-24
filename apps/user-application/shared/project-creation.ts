@@ -1,5 +1,5 @@
 import type { ChangeEvent, DragEvent } from "react";
-import type { CreateProjectInput, ProjectType } from "../src/types";
+import type { CreateProjectInput, ProjectCategory, ProjectType } from "../src/types";
 
 export type Method = "ai" | "manual" | null;
 
@@ -27,8 +27,7 @@ export type ProjectDraft = {
   avatarUrlOpen: boolean;
   avatarUrlInput: string;
   avatarFetching: boolean;
-  projectType: ProjectType | null;
-  typeOtherLabel: string;
+  projectType: ProjectCategory | null;
   method: Method;
   startDate: string;
   endDate: string;
@@ -43,8 +42,7 @@ export type ProjectDraftActions = {
   setClientName: (value: string) => void;
   setClientEmail: (value: string) => void;
   setClientAvatar: (value: string | null) => void;
-  setProjectType: (value: ProjectType | null) => void;
-  setTypeOtherLabel: (value: string) => void;
+  setProjectType: (value: ProjectCategory | null) => void;
   setMethod: (value: Method) => void;
   setAvatarUrlOpen: (open: boolean) => void;
   setAvatarUrlInput: (value: string) => void;
@@ -82,7 +80,7 @@ export function buildRoadmapPreview({
 }: {
   activePhases: PhaseItem[];
   method: Method;
-  projectType: ProjectType | null;
+  projectType: ProjectCategory | null;
   aiRoadmaps: Record<ProjectType, RoadmapTemplateItem[]>;
 }) {
   if (method === "manual") {
@@ -103,7 +101,6 @@ export function buildPreparedProjectPayload({
   clientEmail,
   clientAvatarUrl,
   projectType,
-  typeOtherLabel,
   method,
   startDate,
   endDate,
@@ -115,8 +112,7 @@ export function buildPreparedProjectPayload({
   clientName: string;
   clientEmail?: string;
   clientAvatarUrl?: string;
-  projectType: ProjectType;
-  typeOtherLabel?: string;
+  projectType: ProjectCategory;
   method: Exclude<Method, null>;
   startDate: number;
   endDate: number;
@@ -141,8 +137,6 @@ export function buildPreparedProjectPayload({
     clientEmail: clientEmail?.trim() || undefined,
     clientAvatarUrl,
     type: projectType,
-    typeOtherLabel:
-      projectType === "other" ? typeOtherLabel?.trim() || undefined : undefined,
     method,
     startDate,
     endDate,

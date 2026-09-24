@@ -1,8 +1,8 @@
 import { Helmet } from "react-helmet-async";
-import { Link } from "@tanstack/react-router";
-import stageLogo from "@/assets/logos/stage-logo-light.png";
-import { FooterSection } from "@/components/landing/sections/FooterSection";
-import "@/styles/landing.css";
+import { LandingOverlays } from "@/components/stage-landing/markup/LandingOverlays";
+import { Navigation } from "@/components/stage-landing/markup/Navigation";
+import { SiteFooter } from "@/components/stage-landing/markup/SiteFooter";
+import { useStageLanding } from "@/components/stage-landing/useStageLanding";
 
 const EFFECTIVE_DATE = "May 14, 2026";
 const COMPANY_NAME = "Logiaweb Pte. Ltd.";
@@ -280,6 +280,12 @@ export function LegalPage({ kind }: { kind: LegalPageKind }) {
       ? `https://getstage.co${canonicalPath}`
       : new URL(canonicalPath, window.location.origin).toString();
 
+  useStageLanding({
+    title: `${copy.title} — Stage`,
+    description: copy.description,
+    bodyClass: "legal-page",
+  });
+
   return (
     <>
       <Helmet prioritizeSeoTags>
@@ -293,36 +299,30 @@ export function LegalPage({ kind }: { kind: LegalPageKind }) {
         <meta property="og:url" content={canonicalUrl} />
       </Helmet>
 
-      <div className="legal-page">
-        <header className="legal-header">
-          <div className="landing-container legal-header-inner">
-            <Link to="/" className="legal-logo" aria-label="Stage home">
-              <img src={stageLogo} alt="Stage" />
-            </Link>
-            <nav className="legal-nav" aria-label="Legal navigation">
-              <Link to="/terms" className="legal-nav-link">
-                Terms
-              </Link>
-              <Link to="/privacy" className="legal-nav-link">
-                Privacy
-              </Link>
-              <Link to="/auth" className="legal-nav-cta">
-                Sign in
-              </Link>
-            </nav>
-          </div>
-        </header>
-
-        <main className="landing-container legal-main">
-          <div className="legal-hero">
+      <div id="top" />
+      <a className="skip-link" href="#main">
+        Skip to content
+      </a>
+      <Navigation />
+      <main className="legal-main" id="main">
+        <div className="legal-content">
+          <header className="legal-hero">
             <span className="legal-eyebrow">{copy.eyebrow}</span>
             <h1>{copy.title}</h1>
             <p>{copy.description}</p>
+            <nav className="legal-switch" aria-label="Legal documents">
+              <a href="/terms" aria-current={kind === "terms" ? "page" : undefined}>
+                Terms
+              </a>
+              <a href="/privacy" aria-current={kind === "privacy" ? "page" : undefined}>
+                Privacy
+              </a>
+            </nav>
             <div className="legal-meta">
               <span>Effective date: {EFFECTIVE_DATE}</span>
               <span>{COMPANY_NAME}</span>
             </div>
-          </div>
+          </header>
 
           <article className="legal-document" aria-label={copy.title}>
             {copy.sections.map((section) => (
@@ -341,10 +341,10 @@ export function LegalPage({ kind }: { kind: LegalPageKind }) {
               </section>
             ))}
           </article>
-        </main>
-
-        <FooterSection />
-      </div>
+        </div>
+      </main>
+      <SiteFooter />
+      <LandingOverlays />
     </>
   );
 }

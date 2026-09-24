@@ -21,7 +21,7 @@ pub enum ReferoPlatform {
     Unknown,
 }
 
-/// Fixed UI Patterns row categories — mirrors `referoUiPatternCategorySchema` in data-ops.
+/// UI Patterns row categories shared by legacy Refero research and Details research.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Deserialize, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ReferoUiPatternCategory {
@@ -30,6 +30,10 @@ pub enum ReferoUiPatternCategory {
     Pricing,
     Checkout,
     Dashboard,
+    #[serde(rename = "app-screen")]
+    AppScreen,
+    #[serde(rename = "website-section")]
+    WebsiteSection,
 }
 
 impl ReferoUiPatternCategory {
@@ -40,6 +44,8 @@ impl ReferoUiPatternCategory {
             Self::Pricing => "Pricing",
             Self::Checkout => "Checkout",
             Self::Dashboard => "Dashboard",
+            Self::AppScreen => "App Screen",
+            Self::WebsiteSection => "Website Section",
         }
     }
 
@@ -54,6 +60,8 @@ impl ReferoUiPatternCategory {
             Self::Pricing => "pricing",
             Self::Checkout => "checkout",
             Self::Dashboard => "dashboard",
+            Self::AppScreen => "app-screen",
+            Self::WebsiteSection => "website-section",
         }
     }
 
@@ -82,6 +90,8 @@ pub struct ReferoSearchRequest {
 #[serde(rename_all = "camelCase")]
 pub struct ReferoCategorySearchRequest {
     pub category: ReferoUiPatternCategory,
+    #[serde(default)]
+    pub section: Option<String>,
     pub query: String,
     pub platform: ReferoPlatform,
     pub limit: u8,
@@ -115,9 +125,33 @@ pub struct ReferoReference {
 #[serde(rename_all = "camelCase")]
 pub struct ReferoCategorySearch {
     pub category: ReferoUiPatternCategory,
+    #[serde(default)]
+    pub section: Option<String>,
     pub query: String,
     #[serde(default)]
     pub references: Vec<ReferoReference>,
+}
+
+impl ReferoCategorySearch {
+    pub fn display_title(&self) -> &str {
+        self.section
+            .as_deref()
+            .unwrap_or_else(|| self.category.display_title())
+    }
+
+    pub fn row_id(&self) -> String {
+        self.section.as_ref().map_or_else(
+            || self.category.row_id(),
+            |section| {
+                format!(
+                    "ui-patterns-{}",
+                    section
+                        .to_ascii_lowercase()
+                        .replace(|character: char| !character.is_ascii_alphanumeric(), "-")
+                )
+            },
+        )
+    }
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]

@@ -2,17 +2,55 @@ import type { Doc, Id } from "../../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../../_generated/server";
 import { z } from "zod";
 import {
-  ensurePortalConfig,
   getUserByEmail,
+  requireAuthUser,
   requireProjectOwner,
   requireWorkspaceOwner,
 } from "../../_helpers";
 import { getCurrentSubscriptionSnapshot } from "../../billing";
+import { isPaidPlan } from "../billing/plans";
+import { resolveAssetUrl } from "../../helpers/r2/resolve";
 
 type ReaderCtx = QueryCtx | MutationCtx;
 
-// Server-side email format guard. Validates before any DB lookup so malformed
-// input never reaches getUserByEmail. Mirrors the client inviteTeamMemberSchema.
+export const WORKSPACE_INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+
+export async function resolveWorkspaceContext(ctx: ReaderCtx, userId: Id<"users">) {
+  const ownSubscription = await getCurrentSubscriptionSnapshot(ctx, String(userId));
+  if (isPaidPlan(ownSubscription?.plan)) {
+    return {
+      role: "owner" as const,
+      ownerUserId: userId,
+      subscription: ownSubscription,
+    };
+  }
+
+  const memberships = await ctx.db
+    .query("projectCollaborators")
+    .withIndex("by_user", (q) => q.eq("userId", userId))
+    .collect();
+
+  for (const membership of memberships) {
+    const subscription = await getCurrentSubscriptionSnapshot(
+      ctx,
+      String(membership.ownerUserId),
+    );
+    if (isPaidPlan(subscription?.plan)) {
+      return {
+        role: "member" as const,
+        ownerUserId: membership.ownerUserId,
+        subscription,
+      };
+    }
+  }
+
+  return {
+    role: "owner" as const,
+    ownerUserId: userId,
+    subscription: ownSubscription,
+  };
+}
+
 const inviteEmailSchema = z
   .string()
   .trim()
@@ -20,127 +58,334 @@ const inviteEmailSchema = z
   .max(254, "Email is too long.")
   .email("Please enter a valid email address.");
 
-// process is a Node global Convex's runtime types do not expose.
-const globalProcess = (globalThis as { process?: { env?: Record<string, string | undefined> } })
-  .process;
-const SITE_URL = globalProcess?.env?.SITE_URL ?? "https://getstage.co";
+function normalizeInviteEmail(email: string) {
+  return inviteEmailSchema.parse(email).toLowerCase();
+}
 
 function getInviterName(name?: string | null, email?: string | null) {
   const trimmedName = name?.trim();
-  if (trimmedName) {
-    return trimmedName;
-  }
+  if (trimmedName) return trimmedName;
 
   const trimmedEmail = email?.trim().toLowerCase();
-  if (!trimmedEmail) {
-    return "A Stage collaborator";
-  }
+  if (!trimmedEmail) return "A Stage collaborator";
 
   const [localPart] = trimmedEmail.split("@");
   return localPart || "A Stage collaborator";
 }
 
-// Insert a workspace membership: one row = one editor on ALL of the owner's
-// projects. Requires the owner's active subscription (members are covered by it)
-// and dedups per (owner, user).
-async function insertWorkspaceMembership(
-  ctx: MutationCtx,
-  args: { owner: Doc<"users">; email: string },
-) {
-  const normalizedEmail = inviteEmailSchema.parse(args.email).toLowerCase();
-  const ownerSubscription = await getCurrentSubscriptionSnapshot(ctx, String(args.owner._id));
-  if (!ownerSubscription || !ownerSubscription.plan) {
+function maskEmail(email: string) {
+  const [localPart, domain] = email.split("@");
+  if (!localPart || !domain) return email;
+
+  const visible = localPart.slice(0, Math.min(2, localPart.length));
+  return `${visible}${"*".repeat(Math.max(1, localPart.length - visible.length))}@${domain}`;
+}
+
+async function requireInviteSubscription(ctx: ReaderCtx, ownerUserId: Id<"users">) {
+  const subscription = await getCurrentSubscriptionSnapshot(ctx, String(ownerUserId));
+  if (!subscription || !subscription.plan) {
     throw new Error("Active Stage subscription required to invite members.");
   }
+  return subscription;
+}
 
-  const targetUser = await getUserByEmail(ctx, normalizedEmail);
-  if (!targetUser) {
-    throw new Error("No user found with that email address.");
+async function assertInviteSeatAvailable(
+  ctx: ReaderCtx,
+  ownerUserId: Id<"users">,
+  seatLimit: number,
+  excludeInviteId?: Id<"workspaceInvites">,
+) {
+  const now = Date.now();
+  const [members, pendingInvites] = await Promise.all([
+    ctx.db
+      .query("projectCollaborators")
+      .withIndex("by_owner", (q) => q.eq("ownerUserId", ownerUserId))
+      .collect(),
+    ctx.db
+      .query("workspaceInvites")
+      .withIndex("by_owner_status_expiresAt", (q) =>
+        q.eq("ownerUserId", ownerUserId).eq("status", "pending").gt("expiresAt", now),
+      )
+      .collect(),
+  ]);
+
+  const reservedInvites = pendingInvites.filter((invite) => invite._id !== excludeInviteId).length;
+  if (1 + members.length + reservedInvites >= seatLimit) {
+    throw new Error(
+      `You've reached your plan's seat limit (${seatLimit}). Upgrade your plan to add more members.`,
+    );
   }
+}
 
-  if (targetUser._id === args.owner._id) {
+async function prepareInvite(
+  ctx: MutationCtx,
+  args: {
+    owner: Doc<"users">;
+    email: string;
+    tokenHash: string;
+    projectName: string;
+  },
+) {
+  const normalizedEmail = normalizeInviteEmail(args.email);
+  if (args.owner.email?.trim().toLowerCase() === normalizedEmail) {
     throw new Error("You are already the owner of this workspace.");
   }
 
-  const existing = await ctx.db
-    .query("projectCollaborators")
-    .withIndex("by_owner_user", (q) =>
-      q.eq("ownerUserId", args.owner._id).eq("userId", targetUser._id),
+  const targetUser = await getUserByEmail(ctx, normalizedEmail);
+  if (targetUser) {
+    const existingMember = await ctx.db
+      .query("projectCollaborators")
+      .withIndex("by_owner_user", (q) =>
+        q.eq("ownerUserId", args.owner._id).eq("userId", targetUser._id),
+      )
+      .first();
+    if (existingMember) {
+      throw new Error("This user is already a member of your workspace.");
+    }
+  }
+
+  const existingInvite = await ctx.db
+    .query("workspaceInvites")
+    .withIndex("by_owner_email", (q) =>
+      q.eq("ownerUserId", args.owner._id).eq("email", normalizedEmail),
     )
-    .first();
+    .unique();
+  const subscription = await requireInviteSubscription(ctx, args.owner._id);
+  await assertInviteSeatAvailable(ctx, args.owner._id, subscription.seats, existingInvite?._id);
 
-  if (existing) {
-    throw new Error("This user is already a member of your workspace.");
-  }
-
-  const currentMembers = await ctx.db
-    .query("projectCollaborators")
-    .withIndex("by_owner", (q) => q.eq("ownerUserId", args.owner._id))
-    .collect();
-
-  // Owner occupies one seat; reject once the remaining seats are full.
-  const seatLimit = ownerSubscription.seats;
-  if (currentMembers.length + 1 >= seatLimit) {
-    throw new Error(
-      `You've reached your plan's seat limit (${seatLimit}). Upgrade to Team to add more members.`,
-    );
-  }
-
-  const memberId = await ctx.db.insert("projectCollaborators", {
+  const timestamp = Date.now();
+  const values = {
     ownerUserId: args.owner._id,
-    userId: targetUser._id,
-    role: "editor",
-    addedBy: args.owner._id,
-    createdAt: Date.now(),
-  });
+    email: normalizedEmail,
+    role: "editor" as const,
+    tokenHash: args.tokenHash,
+    status: "pending" as const,
+    expiresAt: timestamp + WORKSPACE_INVITE_TTL_MS,
+    acceptedBy: undefined,
+    acceptedAt: undefined,
+    revokedAt: undefined,
+    createdAt: timestamp,
+    updatedAt: timestamp,
+  };
 
-  return { memberId, targetUser, normalizedEmail };
+  let inviteId: Id<"workspaceInvites">;
+  if (existingInvite) {
+    await ctx.db.patch(existingInvite._id, values);
+    inviteId = existingInvite._id;
+  } else {
+    inviteId = await ctx.db.insert("workspaceInvites", values);
+  }
+
+  return {
+    inviteId,
+    ownerId: String(args.owner._id),
+    inviterName: getInviterName(args.owner.name ?? null, args.owner.email ?? null),
+    recipientEmail: normalizedEmail,
+    projectName: args.projectName,
+  };
 }
 
-// Legacy per-project entry point, kept so the existing project share dialogs
-// keep working. Membership is still workspace-wide.
-export async function addCollaboratorRecord(
+export async function createProjectInviteRecord(
   ctx: MutationCtx,
-  args: { projectId: Id<"projects">; email: string },
+  args: { projectId: Id<"projects">; email: string; tokenHash: string },
 ) {
   const { user: owner, project } = await requireProjectOwner(ctx, args.projectId);
-  const { memberId, targetUser, normalizedEmail } = await insertWorkspaceMembership(ctx, {
+  return prepareInvite(ctx, {
     owner,
     email: args.email,
-  });
-
-  const portalConfig = await ensurePortalConfig(ctx, args.projectId);
-
-  return {
-    collaboratorId: memberId,
-    ownerId: String(owner._id),
-    inviterName: getInviterName(owner.name ?? null, owner.email ?? null),
-    recipientEmail: targetUser.email ?? normalizedEmail,
+    tokenHash: args.tokenHash,
     projectName: project.name,
-    portalUrl: portalConfig.shareUrl,
-    workspaceUrl: `${SITE_URL}/project/${args.projectId}`,
+  });
+}
+
+export async function getProjectInviteRateLimitContext(
+  ctx: ReaderCtx,
+  args: { projectId: Id<"projects">; email: string },
+) {
+  const { user: owner } = await requireProjectOwner(ctx, args.projectId);
+  return {
+    ownerId: String(owner._id),
+    recipientEmail: normalizeInviteEmail(args.email),
   };
 }
 
-// Workspace-native entry point for Settings → Team (no project context).
-export async function addWorkspaceMemberRecord(ctx: MutationCtx, args: { email: string }) {
+export async function createWorkspaceInviteRecord(
+  ctx: MutationCtx,
+  args: { email: string; tokenHash: string },
+) {
   const { owner } = await requireWorkspaceOwner(ctx);
-  const { memberId, targetUser, normalizedEmail } = await insertWorkspaceMembership(ctx, {
+  return prepareInvite(ctx, {
     owner,
     email: args.email,
+    tokenHash: args.tokenHash,
+    projectName: "your workspace",
+  });
+}
+
+export async function getWorkspaceInviteRateLimitContext(ctx: ReaderCtx, email: string) {
+  const { owner } = await requireWorkspaceOwner(ctx);
+  return {
+    ownerId: String(owner._id),
+    recipientEmail: normalizeInviteEmail(email),
+  };
+}
+
+export async function getResendInviteRateLimitContext(
+  ctx: ReaderCtx,
+  inviteId: Id<"workspaceInvites">,
+) {
+  const { owner } = await requireWorkspaceOwner(ctx);
+  const invite = await ctx.db.get(inviteId);
+  if (!invite || invite.ownerUserId !== owner._id || invite.status !== "pending") {
+    throw new Error("Pending invitation not found.");
+  }
+  return { ownerId: String(owner._id), recipientEmail: invite.email };
+}
+
+export async function refreshWorkspaceInviteRecord(
+  ctx: MutationCtx,
+  args: { inviteId: Id<"workspaceInvites">; tokenHash: string },
+) {
+  const { owner } = await requireWorkspaceOwner(ctx);
+  const invite = await ctx.db.get(args.inviteId);
+  if (!invite || invite.ownerUserId !== owner._id || invite.status !== "pending") {
+    throw new Error("Pending invitation not found.");
+  }
+
+  const subscription = await requireInviteSubscription(ctx, owner._id);
+  await assertInviteSeatAvailable(ctx, owner._id, subscription.seats, invite._id);
+  const timestamp = Date.now();
+  await ctx.db.patch(invite._id, {
+    tokenHash: args.tokenHash,
+    expiresAt: timestamp + WORKSPACE_INVITE_TTL_MS,
+    updatedAt: timestamp,
   });
 
   return {
-    memberId,
+    inviteId: invite._id,
     ownerId: String(owner._id),
     inviterName: getInviterName(owner.name ?? null, owner.email ?? null),
-    recipientEmail: targetUser.email ?? normalizedEmail,
-    workspaceUrl: SITE_URL,
+    recipientEmail: invite.email,
+    projectName: "your workspace",
   };
 }
 
-// Owner-facing member list, shared by the project and workspace list queries so
-// both return the same member shape.
+export async function revokeWorkspaceInviteRecord(
+  ctx: MutationCtx,
+  inviteId: Id<"workspaceInvites">,
+) {
+  const { owner } = await requireWorkspaceOwner(ctx);
+  const invite = await ctx.db.get(inviteId);
+  if (!invite || invite.ownerUserId !== owner._id || invite.status !== "pending") {
+    throw new Error("Pending invitation not found.");
+  }
+
+  const timestamp = Date.now();
+  await ctx.db.patch(invite._id, {
+    status: "revoked",
+    revokedAt: timestamp,
+    updatedAt: timestamp,
+  });
+}
+
+export async function getWorkspaceInvitePreview(ctx: ReaderCtx, tokenHash: string) {
+  const invite = await ctx.db
+    .query("workspaceInvites")
+    .withIndex("by_token_hash", (q) => q.eq("tokenHash", tokenHash))
+    .unique();
+  if (!invite) return { status: "invalid" as const };
+
+  const status =
+    invite.status === "pending" && invite.expiresAt <= Date.now() ? "expired" : invite.status;
+  const owner = await ctx.db.get(invite.ownerUserId);
+  return {
+    status,
+    inviterName: getInviterName(owner?.name ?? null, owner?.email ?? null),
+    invitedEmail: maskEmail(invite.email),
+    expiresAt: invite.expiresAt,
+  };
+}
+
+export async function acceptWorkspaceInviteRecord(ctx: MutationCtx, tokenHash: string) {
+  const user = await requireAuthUser(ctx);
+  const invite = await ctx.db
+    .query("workspaceInvites")
+    .withIndex("by_token_hash", (q) => q.eq("tokenHash", tokenHash))
+    .unique();
+  if (!invite) throw new Error("This invitation link is invalid.");
+
+  if (invite.status === "accepted") {
+    if (invite.acceptedBy !== user._id) {
+      throw new Error("This invitation has already been accepted.");
+    }
+    return { ownerUserId: invite.ownerUserId, alreadyAccepted: true };
+  }
+  if (invite.status === "revoked") {
+    throw new Error("This invitation has been revoked.");
+  }
+  if (invite.status === "expired" || invite.expiresAt <= Date.now()) {
+    if (invite.status !== "expired") {
+      await ctx.db.patch(invite._id, { status: "expired", updatedAt: Date.now() });
+    }
+    throw new Error("This invitation has expired. Ask the workspace owner to resend it.");
+  }
+
+  const userEmail = user.email?.trim().toLowerCase();
+  if (!userEmail || userEmail !== invite.email) {
+    throw new Error(`Sign in with the invited email address (${maskEmail(invite.email)}).`);
+  }
+
+  const existingMember = await ctx.db
+    .query("projectCollaborators")
+    .withIndex("by_owner_user", (q) =>
+      q.eq("ownerUserId", invite.ownerUserId).eq("userId", user._id),
+    )
+    .first();
+  if (!existingMember) {
+    const subscription = await requireInviteSubscription(ctx, invite.ownerUserId);
+    const members = await ctx.db
+      .query("projectCollaborators")
+      .withIndex("by_owner", (q) => q.eq("ownerUserId", invite.ownerUserId))
+      .collect();
+    if (1 + members.length >= subscription.seats) {
+      throw new Error("This workspace no longer has an available seat.");
+    }
+    await ctx.db.insert("projectCollaborators", {
+      ownerUserId: invite.ownerUserId,
+      userId: user._id,
+      role: "editor",
+      addedBy: invite.ownerUserId,
+      createdAt: Date.now(),
+    });
+  }
+
+  const timestamp = Date.now();
+  await ctx.db.patch(invite._id, {
+    status: "accepted",
+    acceptedBy: user._id,
+    acceptedAt: timestamp,
+    updatedAt: timestamp,
+  });
+  return { ownerUserId: invite.ownerUserId, alreadyAccepted: Boolean(existingMember) };
+}
+
+export async function listPendingWorkspaceInvites(ctx: ReaderCtx, ownerId: Id<"users">) {
+  const timestamp = Date.now();
+  const invites = await ctx.db
+    .query("workspaceInvites")
+    .withIndex("by_owner_status_expiresAt", (q) =>
+      q.eq("ownerUserId", ownerId).eq("status", "pending").gt("expiresAt", timestamp),
+    )
+    .collect();
+
+  return invites.map((invite) => ({
+    _id: invite._id,
+    email: invite.email,
+    expiresAt: invite.expiresAt,
+    createdAt: invite.createdAt,
+  }));
+}
+
 export async function listWorkspaceMembers(ctx: ReaderCtx, ownerId: Id<"users">) {
   const members = await ctx.db
     .query("projectCollaborators")
@@ -156,6 +401,7 @@ export async function listWorkspaceMembers(ctx: ReaderCtx, ownerId: Id<"users">)
         role: member.role,
         name: user?.name ?? null,
         email: user?.email ?? null,
+        avatarUrl: await resolveAssetUrl(user?.avatarUrl || user?.image || null),
         createdAt: member.createdAt,
       };
     }),

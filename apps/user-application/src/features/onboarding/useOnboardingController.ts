@@ -96,7 +96,6 @@ export function useOnboardingController({
     clientName: draft.clientName,
     clientEmail: draft.clientEmail,
     projectType: draft.projectType,
-    typeOtherLabel: draft.typeOtherLabel,
     activePhasesLength: activePhases.length,
     startDate: draft.startDate,
     endDate: draft.endDate,
@@ -165,7 +164,6 @@ export function useOnboardingController({
     draft.projectImage,
     draft.projectName,
     draft.projectType,
-    draft.typeOtherLabel,
     draft.selectedExistingClientName,
     draft.startDate,
     fieldOfWork,
@@ -246,13 +244,12 @@ export function useOnboardingController({
         ? current.filter((item) => item !== value)
         : [...current, value];
 
-      draftState.setProjectType(draft.projectType ?? next[0] ?? null);
       return next;
     });
   }
 
   function buildPendingSubmission(createProject: boolean): OnboardingSubmission {
-    const fallbackProjectType = draft.projectType ?? fieldOfWork[0] ?? "web-design";
+    const fallbackProjectType = draft.projectType ?? "websites";
     const fieldSelections = fieldOfWork.length > 0 ? fieldOfWork : [fallbackProjectType];
     const projectName = draft.projectName.trim();
     const clientName = draft.clientName.trim() || projectName || "Stage setup";
@@ -306,7 +303,6 @@ export function useOnboardingController({
       clientName: draft.clientName,
       clientEmail: draft.clientEmail,
       projectType: draft.projectType,
-      typeOtherLabel: draft.typeOtherLabel,
       activePhasesLength: activePhases.length,
       startDate: draft.startDate,
       endDate: draft.endDate,
@@ -369,7 +365,10 @@ export function useOnboardingController({
     }
   }
 
-  async function handlePaywallUpgrade(billingCycle: "monthly" | "yearly") {
+  async function handlePaywallUpgrade(
+    billingCycle: "monthly" | "yearly",
+    tier: "start" | "pro" | "team",
+  ) {
     const submission = pendingSubmission ?? buildPendingSubmission(!setProjectLater);
     if (!pendingSubmission) {
       setPendingSubmission(submission);
@@ -398,7 +397,7 @@ export function useOnboardingController({
 
     try {
       const result = await createCheckoutSession({
-        tier: "pro",
+        tier,
         billingCycle,
         isTrial: true,
         source: "onboarding_paywall",
@@ -411,7 +410,7 @@ export function useOnboardingController({
       trackDatafastGoal("checkout_started", {
         source: "onboarding_paywall",
         billing_cycle: billingCycle,
-        plan: "pro",
+        plan: tier,
       });
       await openExternalLink(result.url);
     } catch {

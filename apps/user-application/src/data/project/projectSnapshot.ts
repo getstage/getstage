@@ -428,6 +428,8 @@ export const mockProjectDetails: ProjectDetail[] = mockProjectSummaries.map((sum
     createdAt: summary.startDate,
     updatedAt: now - 2 * ONE_HOUR,
     enabledSteps: [...WORKFLOW_STEPS],
+    skillIds: [],
+    componentPackIds: [],
   };
 });
 

@@ -121,7 +121,8 @@ fn research_web_search_enabled(context: &ProviderRunContext) -> bool {
 fn codex_model_id(model_id: &str) -> Option<&str> {
     match model_id {
         "codex-default" => None,
-        other => Some(other),
+        other if crate::providers::models::is_safe_provider_model_id(other) => Some(other),
+        _ => None,
     }
 }
 

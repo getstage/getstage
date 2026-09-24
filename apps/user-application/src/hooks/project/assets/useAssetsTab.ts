@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { ASSET_CATEGORY_ICONS, EXPORT_OPTIONS } from "@/mock/project/assets";
 import type { Project } from "@/models/project/project";
 import { useAssetsArtifact } from "./useAssetsArtifact";
+import { hasLofiBlocks } from "@/lib/project/mapWireframesArtifactToTabData";
 import type { AssetsTabData } from "@/types/project/assetsTab";
 import { useWireframesArtifact } from "../wireframes/useWireframesArtifact";
 
@@ -37,20 +38,28 @@ export function useAssetsTab(
   const tabData = useMemo<AssetsTabData>(() => {
     const base = backendData?.tabData ?? emptyTabData;
     const artifactRecord = wireframesArtifact.data;
+    const artifact = artifactRecord?.artifact;
     const wireframeAssets =
-      artifactRecord?.artifact.generatedScreens.map((screen) => ({
-        id: screen.id,
-        artifactId: artifactRecord.id,
-        screenId: screen.id,
-        title: `${screen.title} Wireframe`,
-        type: artifactRecord.artifact.wireframeKind,
-        date: screen.generatedAtLabel,
-        source: "AI Generated",
-        priority: screen.priority,
-        figmaUrl: screen.figmaUrl,
-        html: screen.html,
-        sections: screen.sections,
-      })) ?? [];
+      artifact?.generatedScreens.flatMap((screen) => {
+        if (!artifactRecord) {
+          return [];
+        }
+        if (artifact.wireframeKind !== "lofi" || !hasLofiBlocks(screen)) {
+          return [];
+        }
+        return [{
+          id: screen.id,
+          artifactId: artifactRecord.id,
+          screenId: screen.id,
+          title: `${screen.title} Wireframe`,
+          type: "lofi",
+          date: screen.generatedAtLabel,
+          source: "AI Generated",
+          priority: screen.priority,
+          figmaUrl: screen.figmaUrl,
+          sections: screen.sections,
+        }];
+      }) ?? [];
 
     return {
       ...base,

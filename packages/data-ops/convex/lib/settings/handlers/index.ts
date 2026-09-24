@@ -4,10 +4,12 @@ import type { Id } from "../../../_generated/dataModel";
 import type { ActionCtx, MutationCtx, QueryCtx } from "../../../_generated/server";
 import { components, internal } from "../../../_generated/api";
 import { deleteAccountDataForUser } from "../../../domain/accountCleanup";
+import { resolveWorkspaceContext } from "../../../domain/collaborators/service";
 import { now } from "../../../helpers/time";
 import { getCurrentSubscriptionSnapshot } from "../../billing/handlers";
 import { attachTrackedR2Asset, deleteOldR2Asset, resolveAssetUrl } from "../../../r2";
 import { ensurePortalConfig, pruneOrphanClientsForUser, requireAuthUser } from "../../../_helpers";
+import { assertImportedSkillHubItems, importedSkillHubItemValidator } from "../githubImport";
 
 const DEFAULT_PORTAL_COLOR = "#E8734A";
 const DELETE_ACCOUNT_CONFIRMATION = "DELETE";
@@ -44,7 +46,10 @@ export const getOverviewArgs = {};
 
 export async function getOverviewHandler(ctx: QueryCtx) {
   const user = await requireAuthUser(ctx);
-  const subscription = await getCurrentSubscriptionSnapshot(ctx, String(user._id));
+  const ownSubscription = await getCurrentSubscriptionSnapshot(ctx, String(user._id));
+  const workspace = await resolveWorkspaceContext(ctx, user._id);
+  const workspaceOwner =
+    workspace.ownerUserId === user._id ? user : await ctx.db.get(workspace.ownerUserId);
 
   const paymentConnections = await ctx.db
     .query("paymentConnections")
@@ -74,21 +79,35 @@ export async function getOverviewHandler(ctx: QueryCtx) {
       name: user.name ?? "",
       avatarUrl: await resolveAssetUrl(user.avatarUrl ?? user.image ?? null),
       role: user.role ?? "freelancer",
-      plan: subscription?.plan ?? user.plan ?? "free",
+      plan: ownSubscription?.plan ?? user.plan ?? "free",
     },
-    subscription: subscription
+    workspace: {
+      role: workspace.role,
+      owner: {
+        id: String(workspace.ownerUserId),
+        name: workspaceOwner?.name ?? "",
+        email: workspaceOwner?.email ?? "",
+        avatarUrl: await resolveAssetUrl(
+          workspaceOwner?.avatarUrl ?? workspaceOwner?.image ?? null,
+        ),
+      },
+      plan: workspace.subscription?.plan ?? "free",
+      seats: workspace.subscription?.seats ?? 1,
+    },
+    subscription: ownSubscription
       ? {
-          plan: subscription.plan ?? "free",
-          status: subscription.status,
-          provider: subscription.provider,
-          billingCycle: subscription.billingCycle,
-          currentPeriodEnd: subscription.currentPeriodEnd,
-          cancelAtPeriodEnd: subscription.cancelAtPeriodEnd ?? false,
-          paymentMethodBrand: subscription.paymentMethodBrand ?? null,
-          paymentMethodLast4: subscription.paymentMethodLast4 ?? null,
-          stripeCustomerId: subscription.stripeCustomerId ?? null,
-          stripeSubscriptionId: subscription.stripeSubscriptionId ?? null,
-          stripePriceId: subscription.stripePriceId ?? null,
+          plan: ownSubscription.plan ?? "free",
+          seats: ownSubscription.seats,
+          status: ownSubscription.status,
+          provider: ownSubscription.provider,
+          billingCycle: ownSubscription.billingCycle,
+          currentPeriodEnd: ownSubscription.currentPeriodEnd,
+          cancelAtPeriodEnd: ownSubscription.cancelAtPeriodEnd ?? false,
+          paymentMethodBrand: ownSubscription.paymentMethodBrand ?? null,
+          paymentMethodLast4: ownSubscription.paymentMethodLast4 ?? null,
+          stripeCustomerId: ownSubscription.stripeCustomerId ?? null,
+          stripeSubscriptionId: ownSubscription.stripeSubscriptionId ?? null,
+          stripePriceId: ownSubscription.stripePriceId ?? null,
         }
       : null,
     paymentConnection: paymentConnection
@@ -102,6 +121,12 @@ export async function getOverviewHandler(ctx: QueryCtx) {
       accentColor: user.defaultPortalAccentColor ?? previewConfig?.accentColor ?? DEFAULT_PORTAL_COLOR,
     },
     previewPortalUrl: previewConfig?.shareUrl ? `${previewConfig.shareUrl}?preview=1` : null,
+    skillHub: {
+      installedSkillIds: user.installedSkillIds ?? null,
+      enabledSkillIds: user.enabledSkillIds ?? null,
+      enabledComponentPackIds: user.enabledComponentPackIds ?? null,
+      importedSkillHubItems: user.importedSkillHubItems ?? null,
+    },
   };
 }
 
@@ -261,5 +286,82 @@ export async function deleteAccountHandler(ctx: ActionCtx, args: { confirmation:
 
   return {
     deleted: true,
+  };
+}
+
+/** Keep in sync with `skillHubIdSchema` in user-application/shared/models/safeHttpsUrl.ts */
+const SKILL_HUB_ID_PATTERN = /^[a-z][a-z0-9-]{0,62}$/;
+const MAX_SKILL_HUB_IDS = 64;
+
+function assertSkillHubIds(ids: string[], label: string) {
+  if (ids.length > MAX_SKILL_HUB_IDS) {
+    throw new Error(`${label} exceeds ${MAX_SKILL_HUB_IDS} entries.`);
+  }
+  for (const id of ids) {
+    if (!SKILL_HUB_ID_PATTERN.test(id)) {
+      throw new Error(`${label} contains an invalid id.`);
+    }
+  }
+}
+
+export const updateSkillHubPrefsArgs = {
+  installedSkillIds: v.optional(v.array(v.string())),
+  enabledSkillIds: v.optional(v.array(v.string())),
+  enabledComponentPackIds: v.optional(v.array(v.string())),
+  importedSkillHubItems: v.optional(v.array(importedSkillHubItemValidator)),
+};
+
+export async function updateSkillHubPrefsHandler(
+  ctx: MutationCtx,
+  args: {
+    installedSkillIds?: string[];
+    enabledSkillIds?: string[];
+    enabledComponentPackIds?: string[];
+    importedSkillHubItems?: Array<{
+      id: string;
+      kind: "skill" | "component";
+      name: string;
+      sourceUrl: string;
+      subtitle?: string;
+      iconUrl?: string;
+    }>;
+  },
+) {
+  const user = await requireAuthUser(ctx);
+  if (args.installedSkillIds !== undefined) {
+    assertSkillHubIds(args.installedSkillIds, "installedSkillIds");
+  }
+  if (args.enabledSkillIds !== undefined) {
+    assertSkillHubIds(args.enabledSkillIds, "enabledSkillIds");
+  }
+  if (args.enabledComponentPackIds !== undefined) {
+    assertSkillHubIds(args.enabledComponentPackIds, "enabledComponentPackIds");
+  }
+  if (args.importedSkillHubItems !== undefined) {
+    assertImportedSkillHubItems(args.importedSkillHubItems);
+  }
+  const timestamp = now();
+  await ctx.db.patch(user._id, {
+    ...(args.installedSkillIds !== undefined
+      ? { installedSkillIds: args.installedSkillIds }
+      : {}),
+    ...(args.enabledSkillIds !== undefined
+      ? { enabledSkillIds: args.enabledSkillIds }
+      : {}),
+    ...(args.enabledComponentPackIds !== undefined
+      ? { enabledComponentPackIds: args.enabledComponentPackIds }
+      : {}),
+    ...(args.importedSkillHubItems !== undefined
+      ? { importedSkillHubItems: args.importedSkillHubItems }
+      : {}),
+    updatedAt: timestamp,
+  });
+  return {
+    installedSkillIds: args.installedSkillIds ?? user.installedSkillIds ?? null,
+    enabledSkillIds: args.enabledSkillIds ?? user.enabledSkillIds ?? null,
+    enabledComponentPackIds:
+      args.enabledComponentPackIds ?? user.enabledComponentPackIds ?? null,
+    importedSkillHubItems:
+      args.importedSkillHubItems ?? user.importedSkillHubItems ?? null,
   };
 }

@@ -3,6 +3,7 @@ const PUBLIC_WEB_PATHS = new Set([
   "/auth",
   "/auth/desktop",
   "/billing/return",
+  "/download",
   "/download/mac",
   "/open",
   "/terms",
@@ -16,7 +17,7 @@ export function isPublicWebPath(pathname: string) {
     return true;
   }
 
-  return pathname.startsWith("/portal/");
+  return pathname.startsWith("/portal/") || pathname.startsWith("/invite/");
 }
 
 export function isProductWorkspacePath(pathname: string) {

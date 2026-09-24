@@ -1,32 +1,20 @@
-import type { WireframeKind } from "@/types/project/wireframesTab";
 import type { WireframeAssetCard } from "@/types/project/assetsTab";
 import { ImagePlaceholderIcon, SparkleIcon } from "./assetsIcons";
 import { WireframeBlockPreview } from "../wireframes/WireframeBlockPreview";
-import { WireframeHtmlThumbnail } from "../wireframes/WireframeHtmlPreview";
 
 export function AssetCard({
   asset,
-  view,
   onExport,
 }: {
   asset: WireframeAssetCard;
-  view: WireframeKind;
   onExport: () => void;
 }) {
-  const html = asset.html?.trim();
-  const showHtml = view === "hifi" && Boolean(html);
   const hasBlocks = asset.sections.some((section) => section.blocks.length > 0);
 
   return (
     <article className="flex h-[240px] flex-col overflow-hidden rounded-[8px] bg-white p-[2px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] sm:h-[336px]">
-      <div
-        className={`flex min-h-0 flex-1 items-stretch justify-center overflow-hidden rounded-[6px] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] ${
-          showHtml && html ? "bg-white p-0" : "bg-[#E5E5E5] p-2"
-        }`}
-      >
-        {showHtml && html ? (
-          <WireframeHtmlThumbnail html={html} />
-        ) : hasBlocks ? (
+      <div className="flex min-h-0 flex-1 items-stretch justify-center overflow-hidden rounded-[6px] bg-[#E5E5E5] p-2 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
+        {hasBlocks ? (
           <WireframeBlockPreview sections={asset.sections} />
         ) : (
           <ImagePlaceholderIcon />

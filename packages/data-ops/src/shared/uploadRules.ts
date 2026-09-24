@@ -99,8 +99,10 @@ export const UPLOAD_RULES: Record<UploadPurpose, UploadRule> = {
       "application/msword",
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
       "text/plain",
+      "text/markdown",
+      "text/x-markdown",
     ],
-    allowedExtensions: [".jpg", ".jpeg", ".png", ".webp", ".pdf", ".doc", ".docx", ".txt"],
+    allowedExtensions: [".jpg", ".jpeg", ".png", ".webp", ".pdf", ".doc", ".docx", ".txt", ".md"],
     maxBytes: 5 * 1024 * 1024,
   },
   "wireframe-brand-kit": {

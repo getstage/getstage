@@ -5,12 +5,11 @@ import type { ProjectType } from "@/types";
 
 export const CREATE_PROJECT_PROGRESS_STEPS = [0, 1, 2, 3, 4] as const;
 
-export const CREATE_PROJECT_TYPE_VALUES: ProjectType[] = [
-  "web-design",
-  "app-design",
-  "web-app",
-  "other",
-];
+export const CREATE_PROJECT_TYPE_VALUES = [
+  "websites",
+  "web-apps",
+  "ios-apps",
+] as const satisfies readonly ProjectType[];
 
 export const SMART_ROADMAP_PHASES = ["Research", "Architecture", "Design", "Development", "Testing"];
 export const DEFAULT_MANUAL_PHASES = ["Discovery", "Strategy", "Design", "Development", "Launch"];
@@ -33,6 +32,26 @@ export const clientDetailsFormSchema = z.object({
   clientMode: z.enum(["new", "existing"]),
   clientName: z.string().trim().min(1, "Client name is required."),
   clientEmail: z.string().trim().min(1, "Client email is required.").email("Enter a valid client email."),
+  existingClients: z.array(z.object({
+    id: z.string(),
+    name: z.string(),
+    email: z.string().optional(),
+  })),
+  selectedExistingClientId: z.string().optional(),
+}).superRefine((value, context) => {
+  const email = value.clientEmail.toLowerCase();
+  const name = value.clientName.toLowerCase();
+  if (value.existingClients.some((client) =>
+    client.email?.trim().toLowerCase() === email &&
+    client.name.trim().toLowerCase() !== name &&
+    client.id !== value.selectedExistingClientId
+  )) {
+    context.addIssue({
+      code: "custom",
+      path: ["clientEmail"],
+      message: "A client with this email already exists. Pick that client instead.",
+    });
+  }
 });
 
 export const timelineFormSchema = z

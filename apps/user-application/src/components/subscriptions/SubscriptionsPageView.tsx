@@ -1,47 +1,43 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useAction as useConvexAction } from "convex/react";
-import type { ReactNode } from "react";
 import { api } from "@/lib/convexApi";
 import { toUserFacingErrorMessage } from "@/lib/errors";
 import { openExternalLink } from "@/lib/settings/openExternalLink";
 import { useSettingsOverviewQuery } from "@/hooks/convex-data";
+import { coveringPlan } from "@/models/settings/settings";
 
 type Tier = "start" | "pro" | "team";
 type BillingCycle = "monthly" | "yearly";
 
 const PLAN_LABEL: Record<string, string> = {
-  start: "Start",
-  pro: "Pro",
-  team: "Team",
+  start: "Solo",
+  pro: "Studio",
+  team: "Agency",
   free: "Free",
 };
 
-const MIN_TEAM_SEATS = 3;
-const TEAM_MONTHLY_PRICE = 49;
-const TEAM_YEARLY_PRICE = 41;
-const TEAM_EXTRA_MONTHLY_SEAT_PRICE = 15;
-const TEAM_EXTRA_YEARLY_SEAT_PRICE = 12;
-
 const PLAN_FEATURES: Record<Tier, Array<{ iconSrc: string; label: string }>> = {
   start: [
-    { iconSrc: "/logos/pricing/folder.svg", label: "1 seat, 5,000 credits/mo (~20 projects)" },
+    { iconSrc: "/logos/pricing/folder.svg", label: "1 seat, 2,000 AI credits/mo" },
     { iconSrc: "/logos/ai-workflow.svg", label: "Full design workflow" },
     { iconSrc: "/logos/pricing/connect.svg", label: "Bring your own Claude or Codex" },
     { iconSrc: "/logos/pricing/portal.svg", label: "Standard client portal" },
     { iconSrc: "/logos/support.svg", label: "Standard support" },
   ],
   pro: [
-    { iconSrc: "/logos/pricing/folder.svg", label: "10,000 credits/mo (~40 projects)" },
+    { iconSrc: "/logos/dashboard/clients.svg", label: "5 workspace seats" },
+    { iconSrc: "/logos/pricing/folder.svg", label: "10,000 pooled AI credits/mo" },
     { iconSrc: "/logos/pricing/folder.svg", label: "Unlimited projects" },
     { iconSrc: "/logos/pricing/portal.svg", label: "Custom client portal (your brand, your domain)" },
     { iconSrc: "/logos/pricing/storage.svg", label: "Top up credits anytime" },
     { iconSrc: "/logos/support.svg", label: "Priority support" },
   ],
   team: [
-    { iconSrc: "/logos/dashboard/clients.svg", label: "3 seats included" },
-    { iconSrc: "/logos/dashboard/account.svg", label: "Unlimited extra seats ($15/mo each)" },
-    { iconSrc: "/logos/pricing/folder.svg", label: "18,000 pooled credits/mo (~70 projects)" },
+    { iconSrc: "/logos/dashboard/clients.svg", label: "15 workspace seats" },
+    { iconSrc: "/logos/pricing/folder.svg", label: "30,000 pooled AI credits/mo" },
+    { iconSrc: "/logos/pricing/folder.svg", label: "Unlimited projects" },
+    { iconSrc: "/logos/pricing/portal.svg", label: "Custom client portals with your brand" },
     { iconSrc: "/logos/pricing/connect.svg", label: "Shared workspace & integrations" },
     { iconSrc: "/logos/support.svg", label: "Priority support" },
   ],
@@ -53,21 +49,13 @@ export function SubscriptionsPageView() {
   const createCheckoutSession = useConvexAction(api.billing.createCheckoutSession);
   const createCustomerPortalSession = useConvexAction(api.billing.createCustomerPortalSession);
   const [billingPeriod, setBillingPeriod] = useState<BillingCycle>("monthly");
-  const [teamSeats, setTeamSeats] = useState(MIN_TEAM_SEATS);
   const [pendingTier, setPendingTier] = useState<Tier | null>(null);
   const [portalLoading, setPortalLoading] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const isYearly = billingPeriod === "yearly";
-  const currentPlan = overview.data?.profile.plan;
+  const currentPlan = coveringPlan(overview.data);
   const isSubscribed = currentPlan !== undefined && currentPlan !== "free";
-  const teamPrice = useMemo(
-    () =>
-      (isYearly ? TEAM_YEARLY_PRICE : TEAM_MONTHLY_PRICE) +
-      Math.max(0, teamSeats - MIN_TEAM_SEATS) *
-        (isYearly ? TEAM_EXTRA_YEARLY_SEAT_PRICE : TEAM_EXTRA_MONTHLY_SEAT_PRICE),
-    [isYearly, teamSeats],
-  );
-  const pricePeriod = isYearly ? "/month, billed yearly" : "/month";
+  const pricePeriod = isYearly ? "/year" : "/month";
   const backLabel = getBackLabel();
 
   function goBack() {
@@ -78,7 +66,7 @@ export function SubscriptionsPageView() {
     void navigate({ to: "/settings/billing" });
   }
 
-  async function selectPlan(tier: Tier, seats?: number) {
+  async function selectPlan(tier: Tier) {
     setCheckoutError(null);
     setPendingTier(tier);
     const isCurrentPlan = isSubscribed && currentPlan === tier;
@@ -92,7 +80,6 @@ export function SubscriptionsPageView() {
         tier,
         billingCycle: billingPeriod,
         isTrial: !isSubscribed,
-        ...(seats !== undefined ? { seats } : {}),
         platform: "desktop",
       });
       if (!result.url) {
@@ -182,10 +169,10 @@ export function SubscriptionsPageView() {
           <section className="mx-auto w-full rounded-[12px] bg-[#f5f5f5] p-[4px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
             <div className="flex flex-col gap-[4px] min-[900px]:flex-row">
               <PlanCard
-                name="Start"
-                price={isYearly ? 16 : 19}
+                name="Solo"
+                price={isYearly ? 290 : 29}
                 pricePeriod={pricePeriod}
-                description="For builders shipping their first real products."
+                description="For individual product builders."
                 features={PLAN_FEATURES.start}
                 cta={planCta("start", currentPlan, isSubscribed)}
                 onCtaClick={() => selectPlan("start")}
@@ -193,10 +180,10 @@ export function SubscriptionsPageView() {
                 ctaDisabled={pendingTier !== null || (isSubscribed && currentPlan === "start")}
               />
               <PlanCard
-                name="Pro"
-                price={isYearly ? 24 : 29}
+                name="Studio"
+                price={isYearly ? 990 : 99}
                 pricePeriod={pricePeriod}
-                description="For freelancers who need full control."
+                description="For design teams collaborating on the same projects."
                 features={PLAN_FEATURES.pro}
                 cta={planCta("pro", currentPlan, isSubscribed)}
                 popular
@@ -206,23 +193,16 @@ export function SubscriptionsPageView() {
                 ctaDisabled={pendingTier !== null || (isSubscribed && currentPlan === "pro")}
               />
               <PlanCard
-                name="Team"
-                price={teamPrice}
+                name="Agency"
+                price={isYearly ? 2490 : 249}
                 pricePeriod={pricePeriod}
-                description="For small teams building together."
+                description="For agencies managing multiple client projects."
                 features={PLAN_FEATURES.team}
                 cta={planCta("team", currentPlan, isSubscribed)}
-                meta="Team Plan"
-                onCtaClick={() => selectPlan("team", teamSeats)}
+                meta="Agency Plan"
+                onCtaClick={() => selectPlan("team")}
                 ctaLoading={pendingTier === "team"}
                 ctaDisabled={pendingTier !== null || (isSubscribed && currentPlan === "team")}
-                seatControl={
-                  <SeatControl
-                    seats={teamSeats}
-                    onDecrease={() => setTeamSeats((seats) => Math.max(MIN_TEAM_SEATS, seats - 1))}
-                    onIncrease={() => setTeamSeats((seats) => seats + 1)}
-                  />
-                }
               />
             </div>
           </section>
@@ -232,7 +212,7 @@ export function SubscriptionsPageView() {
           ) : null}
 
           <p className="text-center text-[13px] font-medium leading-[1.5] text-[#737373]">
-            You connect your own AI provider (Claude, Codex). No usage limits from Stage.
+            AI credits are pooled across each Studio or Agency workspace.
           </p>
         </div>
       </div>
@@ -265,7 +245,6 @@ function PlanCard({
   meta,
   popular = false,
   primary = false,
-  seatControl,
   onCtaClick,
   ctaLoading = false,
   ctaDisabled = false,
@@ -281,7 +260,6 @@ function PlanCard({
   meta?: string;
   popular?: boolean;
   primary?: boolean;
-  seatControl?: ReactNode;
   onCtaClick: () => void;
   ctaLoading?: boolean;
   ctaDisabled?: boolean;
@@ -313,7 +291,6 @@ function PlanCard({
           <p className="mt-[3px] text-[13px] font-medium leading-none text-[#525252]">{pricePeriod}</p>
           <p className="mt-[10px] text-[13px] font-normal leading-[1.35] text-[#525252]">{description}</p>
         </div>
-        {seatControl}
       </div>
 
       <div className="flex flex-1 flex-col gap-[12px]">
@@ -392,53 +369,5 @@ function FeatureRow({ iconSrc, children }: { iconSrc: string; children: string }
       />
       <span className="min-w-0 flex-1">{children}</span>
     </div>
-  );
-}
-
-function SeatControl({
-  seats,
-  onDecrease,
-  onIncrease,
-}: {
-  seats: number;
-  onDecrease: () => void;
-  onIncrease: () => void;
-}) {
-  return (
-    <div className="flex shrink-0 items-center rounded-[8px] bg-[#f5f5f5] p-[2px]">
-      <SeatButton label="Remove seat" disabled={seats <= MIN_TEAM_SEATS} onClick={onDecrease}>
-        -
-      </SeatButton>
-      <div className="flex h-[26px] min-w-[32px] items-center justify-center rounded-[6px] px-[10px] text-[13px] font-medium leading-none text-[#0a0a0a]">
-        {seats}
-      </div>
-      <SeatButton label="Add seat" onClick={onIncrease}>
-        +
-      </SeatButton>
-    </div>
-  );
-}
-
-function SeatButton({
-  label,
-  disabled,
-  onClick,
-  children,
-}: {
-  label: string;
-  disabled?: boolean;
-  onClick: () => void;
-  children: string;
-}) {
-  return (
-    <button
-      type="button"
-      aria-label={label}
-      disabled={disabled}
-      onClick={onClick}
-      className="flex h-[26px] w-[26px] items-center justify-center rounded-[6px] bg-white text-[16px] font-medium leading-none text-[#525252] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition disabled:cursor-not-allowed disabled:opacity-45"
-    >
-      <span className="translate-y-[-1px]">{children}</span>
-    </button>
   );
 }

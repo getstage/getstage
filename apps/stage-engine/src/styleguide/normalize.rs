@@ -1,5 +1,8 @@
+use crate::models::research::ProjectCategory;
 use serde_json::{Map as JsonMap, Value as JsonValue, json};
 use uuid::Uuid;
+
+use super::category_conventions;
 
 /// Fonts the styleguide spec forbids as generated defaults — the ubiquitous system /
 /// AI-default sans-serifs and generic serifs that make every output look the same.
@@ -129,6 +132,37 @@ pub fn normalize_style_guide(
     raw
 }
 
+pub fn apply_style_guide_grounding(
+    style_guide: &mut JsonValue,
+    project_category: ProjectCategory,
+    research_reference_ids: Vec<String>,
+) -> anyhow::Result<()> {
+    let object = style_guide
+        .as_object_mut()
+        .ok_or_else(|| anyhow::anyhow!("normalized style guide was not an object"))?;
+
+    object.insert("projectCategory".to_string(), json!(project_category));
+    object.insert(
+        "categoryConventions".to_string(),
+        json!(category_conventions(project_category)),
+    );
+    object.insert(
+        "researchReferenceIds".to_string(),
+        json!(research_reference_ids),
+    );
+    object.insert(
+        "implementationNotes".to_string(),
+        json!([
+            "Use the supplied colors as named design tokens; do not replace them with framework defaults.",
+            "Load the specified typeface and implement every listed size, weight, and line height as a reusable text style.",
+            "Treat the selected moodboard direction as the visual source of truth; do not substitute a generic palette, typeface, or grid.",
+            "Apply the category conventions to structure and interaction without overriding the moodboard's visual character."
+        ]),
+    );
+
+    Ok(())
+}
+
 pub fn merge_style_guide_into_artifact(
     artifact: &mut JsonValue,
     style_guide: JsonValue,
@@ -146,12 +180,8 @@ pub fn merge_style_guide_into_artifact(
         .and_then(JsonValue::as_array_mut)
         .ok_or_else(|| anyhow::anyhow!("moodboard artifact missing styleGuides array"))?;
 
-    style_guides.retain(|entry| {
-        entry
-            .get("directionId")
-            .and_then(JsonValue::as_str)
-            .map_or(true, |value| value != direction_id)
-    });
+    style_guides
+        .retain(|entry| entry.get("directionId").and_then(JsonValue::as_str) != Some(direction_id));
     style_guides.push(style_guide);
 
     let directions = artifact

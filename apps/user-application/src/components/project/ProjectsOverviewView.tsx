@@ -8,21 +8,24 @@ import { cn } from "@/lib/utils";
 const TABLE_COLUMNS = [
   "Project Name",
   "Status",
-  "Project Type",
+  "Project category",
   "Created",
   "Actions",
 ];
 
 const PROJECT_TYPE_LABEL: Record<ProjectSummary["type"], string> = {
   branding: "Branding",
-  "web-design": "Web Design",
+  "web-design": "Websites",
   "product-design": "Product Design",
-  "app-design": "App Design",
-  "web-app": "Web-App Design",
+  "app-design": "iOS apps",
+  "web-app": "Web apps",
   packaging: "Packaging",
   "motion-design": "Motion Design",
   illustration: "Illustration",
   other: "Other",
+  websites: "Websites",
+  "web-apps": "Web apps",
+  "ios-apps": "iOS apps",
 };
 
 const PROJECT_STATUS_LABEL: Record<ProjectSummary["status"], string> = {

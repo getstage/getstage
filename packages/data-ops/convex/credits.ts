@@ -2,6 +2,7 @@ import { internalMutation, internalQuery, mutation, query } from "./_generated/s
 import { v } from "convex/values";
 import { components } from "./_generated/api";
 import { requireAuthUser, requireProjectAccess } from "./_helpers";
+import { resolveWorkspaceContext } from "./domain/collaborators/service";
 import {
   CREDIT_COSTS,
   capTrialWalletTo150Once,
@@ -13,7 +14,6 @@ import {
   reverseCredits,
 } from "./lib/credits/service";
 import { TRIAL_CREDIT_CAP, monthlyCreditsForTier, type Tier } from "./lib/credits/priceConfig";
-import { getCurrentSubscriptionSnapshot } from "./billing";
 
 // Monthly credit pool for the card: the trial cap while trialing, otherwise the
 // tier's monthly allotment. Free / no subscription → 0 (card shows an empty pool).
@@ -36,9 +36,9 @@ export const getCreditSummary = query({
   args: {},
   handler: async (ctx) => {
     const user = await requireAuthUser(ctx);
-    const subscription = await getCurrentSubscriptionSnapshot(ctx, String(user._id));
-    const monthlyAllowance = monthlyAllowanceForSubscription(subscription);
-    return getCreditSummaryForOwner(ctx, user._id, monthlyAllowance);
+    const workspace = await resolveWorkspaceContext(ctx, user._id);
+    const monthlyAllowance = monthlyAllowanceForSubscription(workspace.subscription);
+    return getCreditSummaryForOwner(ctx, workspace.ownerUserId, monthlyAllowance);
   },
 });
 
@@ -102,9 +102,10 @@ export const recordVoiceUsageSelf = mutation({
   },
   handler: async (ctx, args) => {
     const user = await requireAuthUser(ctx);
+    const workspace = await resolveWorkspaceContext(ctx, user._id);
     const minutes = Math.max(1, Math.ceil(args.durationMs / 60000));
     return recordUsage(ctx, {
-      ownerUserId: user._id,
+      ownerUserId: workspace.ownerUserId,
       kind: "voice",
       credits: minutes * CREDIT_COSTS.voicePerMinute,
       userId: user._id,

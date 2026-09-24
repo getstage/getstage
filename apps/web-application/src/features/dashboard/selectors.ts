@@ -209,7 +209,9 @@ export function getPreviewFlags({
   projectsLength: number;
   previewStage: PreviewStage;
 }) {
-  const previewFlowActive = !isLoading && userPlan !== "pro";
+  const isPaidPlan =
+    userPlan === "start" || userPlan === "pro" || userPlan === "team";
+  const previewFlowActive = !isLoading && !isPaidPlan;
   const previewEligible = previewFlowActive;
 
   return {

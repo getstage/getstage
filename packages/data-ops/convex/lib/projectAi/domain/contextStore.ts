@@ -4,6 +4,7 @@ import { attachTrackedR2Asset, deleteOldR2Asset } from "../../../r2";
 import { getContextRecord } from "./records";
 import { normalizeList, normalizeOptional } from "./normalize";
 import { now } from "./time";
+import type { DetailsSection } from "./validators";
 
 type ProjectAiProviderId = "claude" | "codex";
 
@@ -45,44 +46,72 @@ export async function upsertContextRecord(
     industry?: string;
     clientWebsite?: string;
     competitorUrls: string[];
+    detailsSections?: DetailsSection[];
     referenceUrls: string[];
     brief?: string;
     briefAttachmentName?: string | null;
     briefAttachmentR2ObjectKey?: string | null;
+    briefAttachments?: Array<{ name: string; r2ObjectKey: string }> | null;
     notes?: string;
   },
 ) {
   const existing = await getContextRecord(ctx, args.projectId);
   const timestamp = now();
-  const hasBriefAttachmentKey = args.briefAttachmentR2ObjectKey !== undefined;
-  const hasBriefAttachmentName = args.briefAttachmentName !== undefined;
-  const nextBriefAttachmentKey = hasBriefAttachmentKey
-    ? normalizeOptional(args.briefAttachmentR2ObjectKey)
-    : existing?.briefAttachmentR2ObjectKey;
+  const hasBriefList = args.briefAttachments !== undefined;
+  const nextBriefFiles = hasBriefList
+    ? (args.briefAttachments ?? [])
+        .map((file) => ({ name: file.name.trim(), r2ObjectKey: file.r2ObjectKey.trim() }))
+        .filter((file) => file.name.length > 0 && file.r2ObjectKey.length > 0)
+        .slice(0, 5)
+    : null;
+  const hasBriefAttachmentKey = hasBriefList || args.briefAttachmentR2ObjectKey !== undefined;
+  const hasBriefAttachmentName = hasBriefList || args.briefAttachmentName !== undefined;
+  const nextBriefAttachmentKey = hasBriefList
+    ? nextBriefFiles?.[0]?.r2ObjectKey
+    : args.briefAttachmentR2ObjectKey !== undefined
+      ? normalizeOptional(args.briefAttachmentR2ObjectKey)
+      : existing?.briefAttachmentR2ObjectKey;
+  const nextBriefAttachmentName = hasBriefList
+    ? nextBriefFiles?.[0]?.name
+    : args.briefAttachmentName !== undefined
+      ? normalizeOptional(args.briefAttachmentName ?? undefined)
+      : existing?.briefAttachmentName;
   const payload = {
     industry: normalizeOptional(args.industry),
     clientWebsite: normalizeOptional(args.clientWebsite),
     competitorUrls: normalizeList(args.competitorUrls),
+    detailsSections:
+      args.detailsSections === undefined
+        ? existing?.detailsSections
+        : Array.from(new Set(args.detailsSections)),
     referenceUrls: normalizeList(args.referenceUrls),
     brief: normalizeOptional(args.brief),
     briefAttachmentName: hasBriefAttachmentName
-      ? normalizeOptional(args.briefAttachmentName ?? undefined)
+      ? nextBriefAttachmentName
       : existing?.briefAttachmentName,
     briefAttachmentR2ObjectKey: nextBriefAttachmentKey,
+    ...(hasBriefList ? { briefAttachments: nextBriefFiles ?? [] } : {}),
     notes: normalizeOptional(args.notes),
     updatedAt: timestamp,
   };
 
-  if (
-    hasBriefAttachmentKey &&
-    existing?.briefAttachmentR2ObjectKey &&
-    existing.briefAttachmentR2ObjectKey !== nextBriefAttachmentKey
-  ) {
-    await deleteOldR2Asset(ctx, existing.briefAttachmentR2ObjectKey);
+  const previousKeys = new Set<string>();
+  if (existing?.briefAttachmentR2ObjectKey) previousKeys.add(existing.briefAttachmentR2ObjectKey);
+  for (const file of existing?.briefAttachments ?? []) {
+    if (file.r2ObjectKey) previousKeys.add(file.r2ObjectKey);
+  }
+  const nextKeys = new Set<string>();
+  if (nextBriefAttachmentKey) nextKeys.add(nextBriefAttachmentKey);
+  for (const file of nextBriefFiles ?? []) nextKeys.add(file.r2ObjectKey);
+
+  if (hasBriefAttachmentKey) {
+    for (const key of previousKeys) {
+      if (!nextKeys.has(key)) await deleteOldR2Asset(ctx, key);
+    }
   }
 
-  if (nextBriefAttachmentKey && existing?.briefAttachmentR2ObjectKey !== nextBriefAttachmentKey) {
-    await attachTrackedR2Asset(ctx, { key: nextBriefAttachmentKey });
+  for (const key of nextKeys) {
+    if (!previousKeys.has(key)) await attachTrackedR2Asset(ctx, { key });
   }
 
   if (existing) {

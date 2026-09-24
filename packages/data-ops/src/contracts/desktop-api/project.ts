@@ -10,7 +10,12 @@ export const projectTypeSchema = z.enum([
   "motion-design",
   "illustration",
   "other",
+  "websites",
+  "web-apps",
+  "ios-apps",
 ]);
+
+export const projectCategorySchema = z.enum(["websites", "web-apps", "ios-apps"]);
 
 export const projectStatusSchema = z.enum(["active", "paused", "completed"]);
 
@@ -46,6 +51,7 @@ export const projectSummarySchema = z.object({
   startDate: z.number().int().nonnegative(),
   endDate: z.number().int().nonnegative(),
   progress: z.number().min(0).max(100),
+  ownerUserId: z.string().min(1).optional(),
 });
 
 export const projectDetailSchema = projectSummarySchema.extend({
@@ -63,10 +69,32 @@ export const projectDetailSchema = projectSummarySchema.extend({
   // Workflow steps enabled for this project (excludes the always-on "overview").
   // Resolved at the read boundary, so consumers always get a concrete array.
   enabledSteps: z.array(projectStepSchema),
+  // Skills / component libraries chosen for this project (Integrations catalog ids).
+  // Empty = nothing chosen yet; the Hi-Fi selector falls back to catalog defaults.
+  skillIds: z.array(z.string()).default([]),
+  componentPackIds: z.array(z.string()).default([]),
 });
 
 export type ProjectType = z.infer<typeof projectTypeSchema>;
+export type ProjectCategory = z.infer<typeof projectCategorySchema>;
 export type ProjectStatus = z.infer<typeof projectStatusSchema>;
 export type ProjectStep = z.infer<typeof projectStepSchema>;
 export type ProjectSummary = z.infer<typeof projectSummarySchema>;
 export type ProjectDetail = z.infer<typeof projectDetailSchema>;
+
+export function resolveProjectCategory(type: ProjectType): ProjectCategory | null {
+  switch (type) {
+    case "websites":
+    case "web-apps":
+    case "ios-apps":
+      return type;
+    case "web-design":
+      return "websites";
+    case "web-app":
+      return "web-apps";
+    case "app-design":
+      return "ios-apps";
+    default:
+      return null;
+  }
+}

@@ -17,7 +17,9 @@ function NewProjectRoute() {
     );
   }
 
-  if (user?.plan !== "pro") {
+  const canCreateProjects =
+    user?.plan === "start" || user?.plan === "pro" || user?.plan === "team";
+  if (!canCreateProjects) {
     return <Navigate to="/dashboard" replace />;
   }
 

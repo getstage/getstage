@@ -24,10 +24,10 @@ pub fn unwrap_mcp_tool_result(raw: &Value) -> Value {
         }
 
         let trimmed = merged_text.trim();
-        if !trimmed.is_empty() {
-            if let Ok(parsed) = serde_json::from_str::<Value>(trimmed) {
-                return parsed;
-            }
+        if !trimmed.is_empty()
+            && let Ok(parsed) = serde_json::from_str::<Value>(trimmed)
+        {
+            return parsed;
         }
 
         if !collected.is_empty() {
@@ -43,36 +43,38 @@ pub fn extract_reference_values(raw: &Value) -> Vec<Value> {
 
     // Refero search tools return `{ pagination, records: [...] }`.
     for key in ["records", "items", "results", "screens", "flows", "data"] {
-        if let Some(items) = unwrapped.get(key).and_then(Value::as_array) {
-            if !items.is_empty() {
-                return items.to_vec();
-            }
+        if let Some(items) = unwrapped.get(key).and_then(Value::as_array)
+            && !items.is_empty()
+        {
+            return items.to_vec();
         }
     }
 
     // Refero defaults to markdown when `response_format: "json"` is omitted.
     for source in [raw, &unwrapped] {
-        if let Some(markdown_records) = extract_records_from_refero_markdown(source) {
-            if !markdown_records.is_empty() {
-                tracing::warn!(
-                    record_count = markdown_records.len(),
-                    "Parsed Refero search results from markdown fallback (missing response_format=json?)"
-                );
-                return markdown_records;
-            }
+        if let Some(markdown_records) = extract_records_from_refero_markdown(source)
+            && !markdown_records.is_empty()
+        {
+            tracing::warn!(
+                record_count = markdown_records.len(),
+                "Parsed Refero search results from markdown fallback (missing response_format=json?)"
+            );
+            return markdown_records;
         }
     }
 
-    if let Some(content) = unwrapped.get("content").and_then(Value::as_array) {
-        if content.iter().all(|item| looks_like_refero_record(item)) && !content.is_empty() {
-            return content.to_vec();
-        }
+    if let Some(content) = unwrapped.get("content").and_then(Value::as_array)
+        && content.iter().all(looks_like_refero_record)
+        && !content.is_empty()
+    {
+        return content.to_vec();
     }
 
-    if let Some(items) = unwrapped.as_array() {
-        if items.iter().all(|item| looks_like_refero_record(item)) && !items.is_empty() {
-            return items.to_vec();
-        }
+    if let Some(items) = unwrapped.as_array()
+        && items.iter().all(looks_like_refero_record)
+        && !items.is_empty()
+    {
+        return items.to_vec();
     }
 
     Vec::new()
@@ -312,16 +314,16 @@ pub fn decode_image_bytes(raw: &Value) -> Option<Vec<u8>> {
         );
     }
 
-    if let Some(structured) = raw.get("structuredContent") {
-        if let Some(decoded) = decode_image_bytes(structured) {
-            return Some(decoded);
-        }
+    if let Some(structured) = raw.get("structuredContent")
+        && let Some(decoded) = decode_image_bytes(structured)
+    {
+        return Some(decoded);
     }
 
-    if let Some(result) = raw.get("result") {
-        if let Some(decoded) = decode_image_bytes(result) {
-            return Some(decoded);
-        }
+    if let Some(result) = raw.get("result")
+        && let Some(decoded) = decode_image_bytes(result)
+    {
+        return Some(decoded);
     }
 
     if let Some(text) = raw.as_str() {
@@ -332,10 +334,10 @@ pub fn decode_image_bytes(raw: &Value) -> Option<Vec<u8>> {
         return base64_decode(text);
     }
 
-    if let Some(content) = raw.get("content") {
-        if let Some(decoded) = decode_image_bytes(content) {
-            return Some(decoded);
-        }
+    if let Some(content) = raw.get("content")
+        && let Some(decoded) = decode_image_bytes(content)
+    {
+        return Some(decoded);
     }
 
     for key in ["data", "image", "bytes", "base64"] {

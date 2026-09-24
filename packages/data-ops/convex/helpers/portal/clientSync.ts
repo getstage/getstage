@@ -63,10 +63,20 @@ export async function upsertClient(
   const timestamp = now();
   const hasAvatarUpdate = Object.prototype.hasOwnProperty.call(args, "avatarUrl");
   const hasEmailUpdate = Object.prototype.hasOwnProperty.call(args, "email");
+  const nextEmail = hasEmailUpdate ? (args.email ?? undefined) : existing?.email;
+  if (nextEmail) {
+    const email = normalizeEmailAddress(nextEmail);
+    const clients = await ctx.db
+      .query("clients")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .collect();
+    if (clients.some((client) => client._id !== existing?._id && client.email && normalizeEmailAddress(client.email) === email)) {
+      throw new Error("A client with this email already exists. Pick that client instead.");
+    }
+  }
 
   if (existing) {
     const nextAvatarUrl = hasAvatarUpdate ? (args.avatarUrl ?? undefined) : existing.avatarUrl;
-    const nextEmail = hasEmailUpdate ? (args.email ?? undefined) : existing.email;
     if (nextAvatarUrl !== existing.avatarUrl || nextEmail !== existing.email) {
       await ctx.db.patch(existing._id, {
         avatarUrl: nextAvatarUrl,

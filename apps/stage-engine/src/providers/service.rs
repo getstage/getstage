@@ -175,7 +175,10 @@ async fn update_provider_with_spec(
                 status: ProviderUpdateStatus::Updated,
                 version_before,
                 version_after,
-                message: Some(format!("{} update completed (`{command_label}`).", spec.label)),
+                message: Some(format!(
+                    "{} update completed (`{command_label}`).",
+                    spec.label
+                )),
                 command: Some(command_label),
                 output: truncate_command_output(&result),
                 error: None,

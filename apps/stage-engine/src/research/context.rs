@@ -1,7 +1,7 @@
 use crate::models::refero::{
     ReferoCategorySearchRequest, ReferoPlatform, ReferoSearchRequest, ReferoUiPatternCategory,
 };
-use crate::models::research::ResearchInput;
+use crate::models::research::{ProjectCategory, ResearchInput};
 use crate::research::competitive::allowed_competitor_names;
 
 const CATEGORY_SCREEN_LIMIT: u8 = 4;
@@ -9,12 +9,13 @@ const CATEGORY_SCREEN_LIMIT: u8 = 4;
 pub fn build_refero_category_search_requests(
     input: &ResearchInput,
 ) -> Vec<ReferoCategorySearchRequest> {
-    ReferoUiPatternCategory::all()
-        .iter()
-        .map(|category| ReferoCategorySearchRequest {
-            category: *category,
-            query: build_category_query(input, *category),
-            platform: ReferoPlatform::Web,
+    selected_refero_searches(input)
+        .into_iter()
+        .map(|(category, section)| ReferoCategorySearchRequest {
+            category,
+            query: build_category_query(input, category, section.as_deref()),
+            section,
+            platform: refero_platform(input),
             limit: CATEGORY_SCREEN_LIMIT,
         })
         .collect()
@@ -26,7 +27,11 @@ pub fn build_refero_flow_search_request(input: &ResearchInput) -> ReferoSearchRe
     // plus the project descriptor so two same-industry projects don't share one flow query.
     let mut query_parts = vec![
         input.industry.clone(),
-        "B2B buyer approval onboarding checkout subscription flow".to_string(),
+        match input.project_category {
+            ProjectCategory::IosApps => "mobile app onboarding subscription checkout flow",
+            _ => "web app onboarding checkout subscription flow",
+        }
+        .to_string(),
     ];
     let descriptor = project_descriptor(input);
     if !descriptor.is_empty() {
@@ -35,7 +40,7 @@ pub fn build_refero_flow_search_request(input: &ResearchInput) -> ReferoSearchRe
 
     ReferoSearchRequest {
         query: query_parts.join(" "),
-        platform: ReferoPlatform::Web,
+        platform: refero_platform(input),
         limit: 4,
         tags: vec!["competitive-analysis".to_string()],
     }
@@ -52,7 +57,7 @@ pub fn build_refero_competitor_search_requests(
         .map(|name| {
             let request = ReferoSearchRequest {
                 query: name.clone(),
-                platform: ReferoPlatform::Web,
+                platform: refero_platform(input),
                 limit: CATEGORY_SCREEN_LIMIT,
                 tags: Vec::new(),
             };
@@ -61,18 +66,53 @@ pub fn build_refero_competitor_search_requests(
         .collect()
 }
 
-fn build_category_query(input: &ResearchInput, category: ReferoUiPatternCategory) -> String {
+fn build_category_query(
+    input: &ResearchInput,
+    category: ReferoUiPatternCategory,
+    section: Option<&str>,
+) -> String {
     // Lead with the concrete UI pattern — that is what makes each category distinct and
     // pulls a different region of Refero's index. Leading every query with the same
     // industry phrase made all five collide and return the same generic screens. Industry
     // stays only as a light trailing qualifier (and never the client name — see flow note).
-    let pattern = match category {
-        ReferoUiPatternCategory::Onboarding => "account signup onboarding wizard first run",
-        ReferoUiPatternCategory::Homepage => "marketing homepage hero sections",
-        ReferoUiPatternCategory::Pricing => "pricing page plans comparison table",
-        ReferoUiPatternCategory::Checkout => "mobile checkout payment order summary",
-        ReferoUiPatternCategory::Dashboard => "orders analytics dashboard overview",
-    };
+    let pattern = section.map_or_else(
+        || match (input.project_category, category) {
+            (ProjectCategory::IosApps, ReferoUiPatternCategory::Onboarding) => {
+                "mobile app onboarding signup first run".to_string()
+            }
+            (ProjectCategory::IosApps, ReferoUiPatternCategory::Homepage) => {
+                "mobile app home feed main screen".to_string()
+            }
+            (ProjectCategory::IosApps, ReferoUiPatternCategory::Pricing) => {
+                "mobile app paywall subscription pricing".to_string()
+            }
+            (ProjectCategory::IosApps, ReferoUiPatternCategory::Checkout) => {
+                "mobile checkout payment order summary".to_string()
+            }
+            (ProjectCategory::IosApps, ReferoUiPatternCategory::Dashboard) => {
+                "mobile app dashboard overview".to_string()
+            }
+            (_, ReferoUiPatternCategory::Onboarding) => {
+                "account signup onboarding wizard first run".to_string()
+            }
+            (_, ReferoUiPatternCategory::Homepage) => {
+                "web app homepage product overview".to_string()
+            }
+            (_, ReferoUiPatternCategory::Pricing) => {
+                "pricing page plans comparison table".to_string()
+            }
+            (_, ReferoUiPatternCategory::Checkout) => "checkout payment order summary".to_string(),
+            (_, ReferoUiPatternCategory::Dashboard) => {
+                "orders analytics dashboard overview".to_string()
+            }
+            (_, ReferoUiPatternCategory::AppScreen) => "app interface screen".to_string(),
+            (_, ReferoUiPatternCategory::WebsiteSection) => "marketing website section".to_string(),
+        },
+        |section| match input.project_category {
+            ProjectCategory::IosApps => format!("mobile app {section} interface"),
+            _ => format!("web app {section} interface"),
+        },
+    );
 
     // Two same-industry projects (e.g. both "SaaS") otherwise produce identical queries and
     // get back the exact same screens. Appending a short, project-specific descriptor mined
@@ -82,6 +122,61 @@ fn build_category_query(input: &ResearchInput, category: ReferoUiPatternCategory
         format!("{pattern} {}", input.industry.trim())
     } else {
         format!("{pattern} {} {descriptor}", input.industry.trim())
+    }
+}
+
+fn selected_refero_searches(
+    input: &ResearchInput,
+) -> Vec<(ReferoUiPatternCategory, Option<String>)> {
+    let selected = input
+        .details_sections
+        .iter()
+        .filter_map(|section| match section.as_str() {
+            "Onboarding" => Some((ReferoUiPatternCategory::Onboarding, None)),
+            "Homepage" => Some((ReferoUiPatternCategory::Homepage, None)),
+            "Pricing" => Some((ReferoUiPatternCategory::Pricing, None)),
+            "Checkout" => Some((ReferoUiPatternCategory::Checkout, None)),
+            "Dashboard" => Some((ReferoUiPatternCategory::Dashboard, None)),
+            "Login / Sign up"
+            | "Analytics / Reports"
+            | "Table / List"
+            | "Search"
+            | "Detail View"
+            | "Forms"
+            | "Settings"
+            | "Profile"
+            | "Team / Permissions"
+            | "Integrations"
+            | "Billing"
+            | "Browse / Discovery"
+            | "Notifications"
+            | "Empty State"
+            | "Success / Confirmation"
+            | "Splash Screen" => Some((ReferoUiPatternCategory::AppScreen, Some(section.clone()))),
+            _ => None,
+        })
+        .fold(Vec::new(), |mut searches, search| {
+            if !searches.contains(&search) {
+                searches.push(search);
+            }
+            searches
+        });
+
+    if selected.is_empty() || selected.len() != input.details_sections.len() {
+        ReferoUiPatternCategory::all()
+            .iter()
+            .copied()
+            .map(|category| (category, None))
+            .collect()
+    } else {
+        selected
+    }
+}
+
+fn refero_platform(input: &ResearchInput) -> ReferoPlatform {
+    match input.project_category {
+        ProjectCategory::IosApps => ReferoPlatform::Ios,
+        _ => ReferoPlatform::Web,
     }
 }
 
@@ -202,17 +297,19 @@ fn project_descriptor(input: &ResearchInput) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::models::research::ResearchInput;
+    use crate::models::research::{ProjectCategory, ResearchInput};
 
     fn sample_input() -> ResearchInput {
         ResearchInput {
             project_id: "proj-1".to_string(),
+            project_category: ProjectCategory::WebApps,
             project_name: "Example B2B".to_string(),
             client_name: Some("Northwind Traders".to_string()),
             industry: "E-commerce".to_string(),
             website: Some("www.example.com".to_string()),
             project_brief: None,
             competitor_urls: vec![],
+            details_sections: vec![],
             target_users: None,
             additional_notes: None,
             uploaded_asset_ids: vec![],
@@ -227,6 +324,47 @@ mod tests {
         assert!(requests[0].query.contains("onboarding"));
         assert_eq!(requests[0].category, ReferoUiPatternCategory::Onboarding);
         assert_eq!(requests[0].limit, 4);
+    }
+
+    #[test]
+    fn uses_selected_app_sections_and_ios_platform() {
+        let mut input = sample_input();
+        input.project_category = ProjectCategory::IosApps;
+        input.details_sections = vec!["Onboarding".to_string(), "Dashboard".to_string()];
+
+        let requests = build_refero_category_search_requests(&input);
+
+        assert_eq!(requests.len(), 2);
+        assert_eq!(requests[0].category, ReferoUiPatternCategory::Onboarding);
+        assert_eq!(requests[1].category, ReferoUiPatternCategory::Dashboard);
+        assert!(
+            requests
+                .iter()
+                .all(|request| request.platform == ReferoPlatform::Ios)
+        );
+        assert!(requests[0].query.contains("mobile app onboarding"));
+    }
+
+    #[test]
+    fn builds_distinct_queries_for_extended_app_screens() {
+        let mut input = sample_input();
+        input.details_sections = vec!["Search".to_string(), "Settings".to_string()];
+
+        let requests = build_refero_category_search_requests(&input);
+
+        assert_eq!(requests.len(), 2);
+        assert_eq!(requests[0].section.as_deref(), Some("Search"));
+        assert_eq!(requests[1].section.as_deref(), Some("Settings"));
+        assert!(requests[0].query.contains("web app Search interface"));
+        assert!(requests[1].query.contains("web app Settings interface"));
+    }
+
+    #[test]
+    fn ignores_website_sections_saved_for_an_app() {
+        let mut input = sample_input();
+        input.details_sections = vec!["Hero".to_string(), "Pricing".to_string()];
+
+        assert_eq!(build_refero_category_search_requests(&input).len(), 5);
     }
 
     #[test]

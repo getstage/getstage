@@ -37,6 +37,7 @@ import type * as developer_apiKeys from "../developer/apiKeys.js";
 import type * as developer_testingFixtures from "../developer/testingFixtures.js";
 import type * as domain_accountCleanup from "../domain/accountCleanup.js";
 import type * as domain_auth_cleanup from "../domain/auth/cleanup.js";
+import type * as domain_billing_plans from "../domain/billing/plans.js";
 import type * as domain_collaborators_invites from "../domain/collaborators/invites.js";
 import type * as domain_collaborators_service from "../domain/collaborators/service.js";
 import type * as domain_demo_workspace from "../domain/demo/workspace.js";
@@ -120,6 +121,7 @@ import type * as lib_projectAi_handlers_runs from "../lib/projectAi/handlers/run
 import type * as lib_projectAi_handlers_strategy from "../lib/projectAi/handlers/strategy.js";
 import type * as lib_projectAi_handlers_wireframes from "../lib/projectAi/handlers/wireframes.js";
 import type * as lib_projects_domain_delete from "../lib/projects/domain/delete.js";
+import type * as lib_projects_domain_projectCategory from "../lib/projects/domain/projectCategory.js";
 import type * as lib_projects_domain_projectService from "../lib/projects/domain/projectService.js";
 import type * as lib_projects_handlers_access from "../lib/projects/handlers/access.js";
 import type * as lib_projects_handlers_mutations from "../lib/projects/handlers/mutations.js";
@@ -127,6 +129,7 @@ import type * as lib_projects_handlers_queries from "../lib/projects/handlers/qu
 import type * as lib_projects_handlers_ui from "../lib/projects/handlers/ui.js";
 import type * as lib_r2_domain from "../lib/r2/domain.js";
 import type * as lib_r2_handlers from "../lib/r2/handlers.js";
+import type * as lib_settings_githubImport from "../lib/settings/githubImport.js";
 import type * as lib_settings_handlers_index from "../lib/settings/handlers/index.js";
 import type * as lib_tasks_handlers_index from "../lib/tasks/handlers/index.js";
 import type * as maintenance from "../maintenance.js";
@@ -137,6 +140,7 @@ import type * as models_integrations_stripeConnect from "../models/integrations/
 import type * as models_projects_validators from "../models/projects/validators.js";
 import type * as onboarding from "../onboarding.js";
 import type * as platform_inviteEmail from "../platform/inviteEmail.js";
+import type * as platform_inviteTokens from "../platform/inviteTokens.js";
 import type * as platform_rateLimits from "../platform/rateLimits.js";
 import type * as portal from "../portal.js";
 import type * as projectAi from "../projectAi.js";
@@ -148,6 +152,7 @@ import type * as tasks from "../tasks.js";
 import type * as userEmails from "../userEmails.js";
 import type * as users from "../users.js";
 import type * as viewer from "../viewer.js";
+import type * as workspaceInvites from "../workspaceInvites.js";
 import type * as workspaceMembers from "../workspaceMembers.js";
 
 import type {
@@ -186,6 +191,7 @@ declare const fullApi: ApiFromModules<{
   "developer/testingFixtures": typeof developer_testingFixtures;
   "domain/accountCleanup": typeof domain_accountCleanup;
   "domain/auth/cleanup": typeof domain_auth_cleanup;
+  "domain/billing/plans": typeof domain_billing_plans;
   "domain/collaborators/invites": typeof domain_collaborators_invites;
   "domain/collaborators/service": typeof domain_collaborators_service;
   "domain/demo/workspace": typeof domain_demo_workspace;
@@ -269,6 +275,7 @@ declare const fullApi: ApiFromModules<{
   "lib/projectAi/handlers/strategy": typeof lib_projectAi_handlers_strategy;
   "lib/projectAi/handlers/wireframes": typeof lib_projectAi_handlers_wireframes;
   "lib/projects/domain/delete": typeof lib_projects_domain_delete;
+  "lib/projects/domain/projectCategory": typeof lib_projects_domain_projectCategory;
   "lib/projects/domain/projectService": typeof lib_projects_domain_projectService;
   "lib/projects/handlers/access": typeof lib_projects_handlers_access;
   "lib/projects/handlers/mutations": typeof lib_projects_handlers_mutations;
@@ -276,6 +283,7 @@ declare const fullApi: ApiFromModules<{
   "lib/projects/handlers/ui": typeof lib_projects_handlers_ui;
   "lib/r2/domain": typeof lib_r2_domain;
   "lib/r2/handlers": typeof lib_r2_handlers;
+  "lib/settings/githubImport": typeof lib_settings_githubImport;
   "lib/settings/handlers/index": typeof lib_settings_handlers_index;
   "lib/tasks/handlers/index": typeof lib_tasks_handlers_index;
   maintenance: typeof maintenance;
@@ -286,6 +294,7 @@ declare const fullApi: ApiFromModules<{
   "models/projects/validators": typeof models_projects_validators;
   onboarding: typeof onboarding;
   "platform/inviteEmail": typeof platform_inviteEmail;
+  "platform/inviteTokens": typeof platform_inviteTokens;
   "platform/rateLimits": typeof platform_rateLimits;
   portal: typeof portal;
   projectAi: typeof projectAi;
@@ -297,6 +306,7 @@ declare const fullApi: ApiFromModules<{
   userEmails: typeof userEmails;
   users: typeof users;
   viewer: typeof viewer;
+  workspaceInvites: typeof workspaceInvites;
   workspaceMembers: typeof workspaceMembers;
 }>;
 

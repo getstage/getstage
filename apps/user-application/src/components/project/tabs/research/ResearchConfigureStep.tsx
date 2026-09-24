@@ -1,10 +1,21 @@
 import { useEffect, useRef, useState, type ChangeEvent, type KeyboardEvent } from "react";
-import type { ProviderId } from "@stage/data-ops/contracts";
+import {
+  DETAILS_PAGE_SECTIONS,
+  DETAILS_STRUCTURE_SECTIONS,
+  REFERO_IOS_APP_SECTIONS,
+  REFERO_WEB_APP_SECTIONS,
+  type DetailsSection,
+  type ProjectCategory,
+  type ProviderId,
+} from "@stage/data-ops/contracts";
 import { useResearchProviderSelection } from "@/hooks/project/research/useResearchProviderSelection";
 import {
   DEFAULT_RESEARCH_CONFIGURE_FORM_VALUES,
   isResearchConfigureFormSubmittable,
+  normalizeReferenceSections,
   parseCompetitorWebsite,
+  MAX_BRIEF_FILES,
+  MAX_COMPETITORS,
   validateResearchConfigureForm,
   type ResearchConfigureFieldErrors,
   type ResearchConfigureFormValues,
@@ -16,22 +27,49 @@ import { PlusIcon } from "./researchIcons";
 
 const suggestedIndustries = "e.g. Fintech, E-commerce, SaaS, Health";
 
+function draftHasContent(draft: Partial<ResearchConfigureFormValues>) {
+  return Boolean(
+    draft.industry?.trim() ||
+    draft.website?.trim() ||
+    draft.projectBrief?.trim() ||
+    draft.additionalNotes?.trim() ||
+    (Array.isArray(draft.competitorUrls) && draft.competitorUrls.length > 0) ||
+    (Array.isArray(draft.briefAttachments) && draft.briefAttachments.length > 0)
+  );
+}
+
+function readResearchDraft(key: string): Partial<ResearchConfigureFormValues> | null {
+  try {
+    const raw = sessionStorage.getItem(key);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<ResearchConfigureFormValues>;
+    if (!parsed || typeof parsed !== "object") return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
 export function ResearchConfigureStep({
+  projectCategory,
   isSubmitting,
   initialValues = DEFAULT_RESEARCH_CONFIGURE_FORM_VALUES,
   onBriefFileChange,
+  projectId,
   onClearBriefAttachment,
   onSubmit,
   onCancel,
   title = "Configure Research",
-  description = "Provide context about the client and their market. The more you give, the better the research.",
+  description = "Provide context about the product and the market. The more you give, the better the research.",
   submitLabel = "Run Research",
   submitVariant = "primary",
   warningMessage,
 }: {
+  projectCategory: ProjectCategory;
   isSubmitting: boolean;
   initialValues?: ResearchConfigureFormValues;
-  onBriefFileChange?: (file: File | null) => void;
+  onBriefFileChange?: (files: File[]) => void;
+  projectId?: string;
   onClearBriefAttachment?: () => void;
   onSubmit: (input: ValidatedResearchConfigureInput, providerId: ProviderId) => void;
   onCancel?: () => void;
@@ -41,15 +79,75 @@ export function ResearchConfigureStep({
   submitVariant?: "primary" | "secondary";
   warningMessage?: string;
 }) {
-  const [values, setValues] = useState<ResearchConfigureFormValues>(initialValues);
+  const [values, setValues] = useState<ResearchConfigureFormValues>(() => ({
+    ...initialValues,
+    detailsSections: normalizeReferenceSections(initialValues.detailsSections, projectCategory),
+  }));
 
   useEffect(() => {
-    setValues(initialValues);
-  }, [initialValues]);
+    if (editingDraft.current) return;
+    const draftKey = projectId ? `stage:research-draft:${projectId}` : null;
+    const draft = draftKey ? readResearchDraft(draftKey) : null;
+    const base = {
+      ...initialValues,
+      detailsSections: normalizeReferenceSections(initialValues.detailsSections, projectCategory),
+    };
+    const savedAttachments = (draft?.briefAttachments ?? []).filter(
+      (file): file is ResearchConfigureFormValues["briefAttachments"][number] =>
+        Boolean(
+          file &&
+            typeof file.name === "string" &&
+            file.name.trim() &&
+            typeof file.r2ObjectKey === "string" &&
+            file.r2ObjectKey.trim(),
+        ),
+    );
+    if (draft && draftHasContent(draft)) {
+      setValues({
+        ...base,
+        ...draft,
+        detailsSections: normalizeReferenceSections(
+          draft.detailsSections ?? base.detailsSections,
+          projectCategory,
+        ),
+        competitorUrls: Array.isArray(draft.competitorUrls)
+          ? draft.competitorUrls.filter((url) => typeof url === "string")
+          : base.competitorUrls,
+        briefAttachments: savedAttachments,
+        briefFileNames: savedAttachments.map((file) => file.name),
+      });
+      return;
+    }
+    setValues(base);
+  }, [initialValues, projectCategory, projectId]);
+
+  useEffect(() => {
+    if (!projectId) return;
+    if (!draftReady.current) {
+      draftReady.current = true;
+      return;
+    }
+    sessionStorage.setItem(
+      `stage:research-draft:${projectId}`,
+      JSON.stringify({
+        industry: values.industry,
+        website: values.website,
+        projectBrief: values.projectBrief,
+        additionalNotes: values.additionalNotes,
+        competitorUrls: values.competitorUrls,
+        detailsSections: values.detailsSections,
+        briefFileNames: values.briefAttachments.map((file) => file.name),
+        briefAttachments: values.briefAttachments,
+      }),
+    );
+  }, [projectId, values]);
   const [competitorInput, setCompetitorInput] = useState("");
   const [fieldErrors, setFieldErrors] = useState<ResearchConfigureFieldErrors>({});
   const [providerError, setProviderError] = useState<string | null>(null);
+  const [pendingBriefs, setPendingBriefs] = useState<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const draftReady = useRef(false);
+  const editingDraft = useRef(false);
   const {
     selectedProviderId,
     selectProvider,
@@ -57,16 +155,13 @@ export function ResearchConfigureStep({
     canRunWithProvider,
   } = useResearchProviderSelection();
 
-  useEffect(() => {
-    setValues(initialValues);
-  }, [initialValues]);
-
   const canSubmit = isResearchConfigureFormSubmittable(values) && canRunWithProvider;
 
   function updateField<Key extends keyof ResearchConfigureFormValues>(
     key: Key,
     value: ResearchConfigureFormValues[Key],
   ) {
+    editingDraft.current = true;
     setValues((current) => ({ ...current, [key]: value }));
     setFieldErrors((current) => {
       if (!current[key]) {
@@ -80,45 +175,47 @@ export function ResearchConfigureStep({
   }
 
   function addCompetitor() {
-    const parsed = parseCompetitorWebsite(competitorInput);
-    if (!parsed.ok) {
-      setFieldErrors((current) => ({ ...current, competitorInput: parsed.error }));
+    editingDraft.current = true;
+    const parts = competitorInput.split(/[\s,]+/).map((part) => part.trim()).filter(Boolean);
+    if (parts.length === 0) {
+      setFieldErrors((current) => ({ ...current, competitorInput: "Enter a competitor website" }));
       return;
     }
 
-    setValues((current) => {
-      if (current.competitorUrls.includes(parsed.value)) {
-        setFieldErrors((errors) => ({
-          ...errors,
-          competitorInput: "This competitor is already added",
-        }));
-        return current;
+    const next = [...values.competitorUrls];
+    const invalid: string[] = [];
+    for (const part of parts) {
+      const parsed = parseCompetitorWebsite(part);
+      if (!parsed.ok || next.includes(parsed.value)) {
+        if (!parsed.ok) invalid.push(part);
+        continue;
       }
-
-      if (current.competitorUrls.length >= 10) {
-        setFieldErrors((errors) => ({
-          ...errors,
-          competitorUrls: "Add up to 10 competitors",
-        }));
-        return current;
+      if (next.length >= MAX_COMPETITORS) {
+        invalid.push(part);
+        continue;
       }
+      next.push(parsed.value);
+    }
 
-      return {
-        ...current,
-        competitorUrls: [...current.competitorUrls, parsed.value],
-      };
-    });
-
-    setCompetitorInput("");
+    setValues((current) => ({ ...current, competitorUrls: next }));
+    setCompetitorInput(invalid.join(" "));
     setFieldErrors((current) => {
-      const next = { ...current };
-      delete next.competitorInput;
-      delete next.competitorUrls;
-      return next;
+      const errors = { ...current };
+      delete errors.competitorUrls;
+      if (invalid.length > 0) {
+        errors.competitorInput = "Check the skipped links. Use a full website address.";
+      } else {
+        delete errors.competitorInput;
+      }
+      if (next.length >= MAX_COMPETITORS && invalid.length > 0) {
+        errors.competitorUrls = `Add up to ${MAX_COMPETITORS} competitors`;
+      }
+      return errors;
     });
   }
 
   function removeCompetitor(value: string) {
+    editingDraft.current = true;
     setValues((current) => ({
       ...current,
       competitorUrls: current.competitorUrls.filter((item) => item !== value),
@@ -135,49 +232,48 @@ export function ResearchConfigureStep({
   }
 
   function handleBriefUpload(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    if (!file) {
-      return;
-    }
+    const selected = Array.from(event.target.files ?? []);
+    event.target.value = "";
+    if (selected.length === 0) return;
 
-    const validationError = validateUploadFile("research-brief", file);
-    if (validationError) {
-      onBriefFileChange?.(null);
-      setFieldErrors((current) => ({ ...current, projectBrief: validationError }));
-      event.target.value = "";
-      return;
-    }
-
-    updateField("briefFileName", file.name);
-    onBriefFileChange?.(file);
-    setFieldErrors((current) => {
-      if (!current.projectBrief) {
-        return current;
+    const kept = [...pendingBriefs];
+    const names = [...values.briefFileNames];
+    let error: string | null = null;
+    for (const file of selected) {
+      if (names.length >= MAX_BRIEF_FILES) {
+        error = `Add up to ${MAX_BRIEF_FILES} brief files.`;
+        break;
       }
+      const validationError = validateUploadFile("research-brief", file);
+      if (validationError) {
+        error = `${file.name}: ${validationError}`;
+        continue;
+      }
+      if (names.includes(file.name)) continue;
+      kept.push(file);
+      names.push(file.name);
+    }
 
+    setPendingBriefs(kept);
+    onBriefFileChange?.(kept);
+    updateField("briefFileNames", names);
+    setFieldErrors((current) => {
       const next = { ...current };
-      delete next.projectBrief;
+      if (error) next.projectBrief = error;
+      else delete next.projectBrief;
       return next;
     });
-    event.target.value = "";
   }
 
-  function clearBriefAttachment() {
-    updateField("briefFileName", null);
-    onBriefFileChange?.(null);
-    onClearBriefAttachment?.();
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
-    setFieldErrors((current) => {
-      if (!current.projectBrief) {
-        return current;
-      }
-
-      const next = { ...current };
-      delete next.projectBrief;
-      return next;
-    });
+  function removeBrief(name: string) {
+    editingDraft.current = true;
+    const names = values.briefFileNames.filter((item) => item !== name);
+    const kept = pendingBriefs.filter((file) => file.name !== name);
+    const saved = values.briefAttachments.filter((file) => file.name !== name);
+    setPendingBriefs(kept);
+    onBriefFileChange?.(kept);
+    setValues((current) => ({ ...current, briefFileNames: names, briefAttachments: saved }));
+    if (names.length === 0) onClearBriefAttachment?.();
   }
 
   function handleCompetitorKeyDown(event: KeyboardEvent<HTMLInputElement>) {
@@ -190,8 +286,16 @@ export function ResearchConfigureStep({
   }
 
   function resetForm() {
-    clearBriefAttachment();
-    setValues(DEFAULT_RESEARCH_CONFIGURE_FORM_VALUES);
+    setPendingBriefs([]);
+    onBriefFileChange?.([]);
+    onClearBriefAttachment?.();
+    setValues({
+      ...DEFAULT_RESEARCH_CONFIGURE_FORM_VALUES,
+      detailsSections: normalizeReferenceSections(
+        DEFAULT_RESEARCH_CONFIGURE_FORM_VALUES.detailsSections,
+        projectCategory,
+      ),
+    });
     setCompetitorInput("");
     setFieldErrors({});
   }
@@ -210,6 +314,7 @@ export function ResearchConfigureStep({
 
     setFieldErrors({});
     setProviderError(null);
+    if (projectId) sessionStorage.removeItem(`stage:research-draft:${projectId}`);
     onSubmit(result.data, selectedProviderId);
   }
 
@@ -237,7 +342,7 @@ export function ResearchConfigureStep({
                 />
               </FormField>
 
-              <FormField label="Client Website" error={fieldErrors.website}>
+              <FormField label="Website" error={fieldErrors.website}>
                 <input
                   value={values.website}
                   onChange={(event) => updateField("website", event.target.value)}
@@ -259,12 +364,13 @@ export function ResearchConfigureStep({
                     placeholder="Type here..."
                     className="h-full w-full resize-none bg-transparent text-[12px] font-medium text-[#171717] outline-none placeholder:text-[#525252]"
                   />
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <input
                       ref={fileInputRef}
                       type="file"
                       className="hidden"
                       accept=".pdf,.doc,.docx,.txt,.md"
+                      multiple
                       onChange={handleBriefUpload}
                     />
                     <button
@@ -275,25 +381,26 @@ export function ResearchConfigureStep({
                       <img src="/logos/upload-brief.svg" alt="" aria-hidden="true" className="h-4 w-4" />
                       Upload Brief
                     </button>
-                    {values.briefFileName ? (
+                    {values.briefFileNames.map((name) => (
                       <button
+                        key={name}
                         type="button"
-                        onClick={clearBriefAttachment}
+                        onClick={() => removeBrief(name)}
                         className="inline-flex max-w-[220px] items-center gap-2 rounded-full bg-white px-3 py-[6px] text-[12px] font-medium text-[#525252] shadow-[0_0.45px_1px_rgba(10,10,10,0.15)] transition-colors hover:bg-[#FAFAFA]"
                         title="Remove uploaded brief"
                       >
-                        <span className="truncate">{values.briefFileName}</span>
+                        <span className="truncate">{name}</span>
                         <span className="shrink-0 text-[#A3A3A3]" aria-hidden="true">
                           ×
                         </span>
-                        <span className="sr-only">Remove brief</span>
+                        <span className="sr-only">Remove {name}</span>
                       </button>
-                    ) : null}
+                    ))}
                   </div>
                 </div>
               </FormField>
 
-              <FormField label="Specific Competitors to include" error={fieldErrors.competitorUrls}>
+              <FormField label="Specific Competitors to include" error={fieldErrors.competitorUrls} hint={`Up to ${MAX_COMPETITORS}. More than that times out the research run.`}>
                 <div className="flex flex-col gap-3">
                   <div className="flex flex-col gap-1">
                     <div className="flex w-[290px] items-center overflow-hidden rounded-[8px] bg-[#F5F5F5] pl-3 pr-[2px] py-[2px] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
@@ -345,6 +452,22 @@ export function ResearchConfigureStep({
                     </div>
                   ) : null}
                 </div>
+              </FormField>
+
+              <FormField
+                label={projectCategory === "websites" ? "Sections to analyze" : "Screens to analyze"}
+                hint={
+                  projectCategory === "websites"
+                    ? "Pick page sections (hero, pricing, testimonials...). Stage collects how competitors design each one and surfaces the patterns they share."
+                    : "Pick app screens. Stage collects how relevant products design each one and surfaces the patterns they share."
+                }
+                error={fieldErrors.detailsSections}
+              >
+                <ReferenceSectionPicker
+                  projectCategory={projectCategory}
+                  selected={values.detailsSections}
+                  onChange={(detailsSections) => updateField("detailsSections", detailsSections)}
+                />
               </FormField>
 
               <FormField label="Additional notes" error={fieldErrors.additionalNotes}>
@@ -404,6 +527,116 @@ export function ResearchConfigureStep({
         </div>
       </div>
     </section>
+  );
+}
+
+function ReferenceSectionPicker({
+  projectCategory,
+  selected,
+  onChange,
+}: {
+  projectCategory: ProjectCategory;
+  selected: DetailsSection[];
+  onChange: (sections: DetailsSection[]) => void;
+}) {
+  const selectionLabel =
+    selected.length === 0
+      ? "Choose sections"
+      : `${selected.slice(0, 3).join(", ")}${selected.length > 3 ? ` +${selected.length - 3}` : ""}`;
+
+  function toggle(section: DetailsSection) {
+    if (selected.includes(section)) {
+      if (selected.length > 1) {
+        onChange(selected.filter((item) => item !== section));
+      }
+      return;
+    }
+
+    onChange([...selected, section]);
+  }
+
+  return (
+    <details className="relative w-full max-w-[560px]">
+      <summary className="flex min-h-[44px] cursor-pointer list-none items-center justify-between gap-4 rounded-[6px] bg-[#F5F5F5] px-4 text-[12px] font-medium text-[#171717] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] marker:content-none">
+        <span className="min-w-0 truncate">{selectionLabel}</span>
+        <span aria-hidden="true">⌄</span>
+      </summary>
+      <div className="absolute left-0 top-[50px] z-20 max-h-[360px] w-full overflow-y-auto rounded-[8px] bg-white p-3 shadow-[0_4px_18px_rgba(10,10,10,0.18)]">
+        {projectCategory === "websites" ? (
+          <>
+            <SectionOptions
+              title="Structure"
+              options={DETAILS_STRUCTURE_SECTIONS}
+              selected={selected}
+              onToggle={toggle}
+            />
+            <SectionOptions
+              title="Page sections"
+              options={DETAILS_PAGE_SECTIONS}
+              selected={selected}
+              onToggle={toggle}
+            />
+          </>
+        ) : (
+          <SectionOptions
+            title={projectCategory === "ios-apps" ? "iOS screens" : "Web app screens"}
+            options={
+              projectCategory === "ios-apps"
+                ? REFERO_IOS_APP_SECTIONS
+                : REFERO_WEB_APP_SECTIONS
+            }
+            selected={selected}
+            onToggle={toggle}
+            labels={
+              projectCategory === "ios-apps"
+                ? { Homepage: "Home", Pricing: "Paywall / Pricing" }
+                : undefined
+            }
+          />
+        )}
+      </div>
+    </details>
+  );
+}
+
+function SectionOptions({
+  title,
+  options,
+  selected,
+  onToggle,
+  labels,
+}: {
+  title: string;
+  options: readonly DetailsSection[];
+  selected: DetailsSection[];
+  onToggle: (section: DetailsSection) => void;
+  labels?: Partial<Record<DetailsSection, string>>;
+}) {
+  return (
+    <fieldset className="mb-2 last:mb-0">
+      <legend className="px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#A3A3A3]">
+        {title}
+      </legend>
+      {options.map((section) => {
+        const checked = selected.includes(section);
+        const disabled = checked && selected.length === 1;
+        return (
+          <label
+            key={section}
+            className="flex min-h-[32px] cursor-pointer items-center gap-2 rounded-[5px] px-2 text-[12px] font-medium text-[#525252] hover:bg-[#F5F5F5] has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-45"
+          >
+            <input
+              type="checkbox"
+              checked={checked}
+              disabled={disabled}
+              onChange={() => onToggle(section)}
+              className="accent-[#635BDF]"
+            />
+            {labels?.[section] ?? section}
+          </label>
+        );
+      })}
+    </fieldset>
   );
 }
 

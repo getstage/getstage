@@ -13,24 +13,24 @@ const FLOWS_SHAPE_EXAMPLE: &str = r#"{
   "flows": [
     {
       "id": "flow-1",
-      "title": "Evaluator Requests a Demo",
-      "description": "Move from landing page interest to a scheduled sales conversation.",
+      "title": "User Completes the Core Task",
+      "description": "Move from the primary product surface to a successful domain action.",
       "status": "Draft",
       "category": "Conversion",
       "screenCount": 5,
       "steps": [
-        { "id": "flow-1-step-1", "order": 0, "label": "Landing page -> Review value proposition", "screenId": "screen-landing" },
-        { "id": "flow-1-step-2", "order": 1, "label": "Landing page -> Click \"Request Demo\"", "screenId": "screen-landing" }
+        { "id": "flow-1-step-1", "order": 0, "label": "Primary workspace -> Review current state", "screenId": "screen-workspace" },
+        { "id": "flow-1-step-2", "order": 1, "label": "Primary workspace -> Start core action", "screenId": "screen-workspace" }
       ]
     }
   ],
   "screens": [
     {
-      "id": "screen-landing",
-      "title": "Landing page",
-      "description": "Primary entry screen that frames the offer and routes visitors to conversion paths.",
+      "id": "screen-workspace",
+      "title": "Primary workspace",
+      "description": "Main product screen for reviewing state and starting the core domain action.",
       "flowCount": 2,
-      "keyElements": ["Navigation with primary CTA", "Hero value proposition"]
+      "keyElements": ["Domain-specific overview", "Primary task action"]
     }
   ],
   "generatedAt": 0
@@ -69,11 +69,15 @@ Existing flows artifact ID, if any:
 Requirements:
 - Generate 5 high-signal product/user flows by default.
 - Make every generated flow specific to the saved Research, Strategy, and Moodboard context.
+- First determine the intended product surface from those artifacts: marketing website, web app, mobile app, desktop app, or another interface.
+- For apps, platforms, dashboards, and authenticated products, prioritize functional screens for the domain's core tasks, data, transactions, states, and settings. Do not default to Homepage, About Us, Features, Pricing, Testimonials, Blog, Contact Us, or Demo Request unless the artifacts explicitly require a marketing website.
+- Marketing pages are appropriate only when the project scope actually includes a public marketing website.
+- Use any existing flows only for continuity. Replace generic screens that conflict with the current product type or domain.
 - Do not call or assume external Refero flow search. Use only the Stage artifacts above.
 - Every generated flow must use `status: "Draft"`. The Stage user approves flows later.
 - Use concise categories such as `Onboarding`, `Conversion`, `Evaluation`, `Client portal`, or `Handoff`.
 - Each flow should have 4-7 ordered steps.
-- Each step label should read like `Landing page -> Click "Request Demo"` or `Form screen -> Fill details`.
+- Each step label should read like `Portfolio -> Review asset` or `Transfer form -> Confirm transaction`, adapted to the actual project domain.
 - Use stable screen IDs in `screenId` when a step maps to a generated screen.
 - Generate 10-15 reusable unique screens when possible.
 - Screens should include specific `keyElements` grounded in the strategy and moodboard direction.

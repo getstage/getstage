@@ -1,3 +1,5 @@
+import { isPaidPlan } from "../billing/plans";
+
 const FREE_PROJECT_LIMIT = 1;
 
 export const PROJECT_UPGRADE_REQUIRED_MESSAGE =
@@ -12,7 +14,11 @@ export function isProjectUpgradeRequired({
   plan,
   projectCount,
 }: ProjectCreationEntitlementInput) {
-  return plan !== "pro" && projectCount >= FREE_PROJECT_LIMIT;
+  if (isPaidPlan(plan)) {
+    return false;
+  }
+
+  return projectCount >= FREE_PROJECT_LIMIT;
 }
 
 export function assertProjectCreationAllowed(

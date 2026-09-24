@@ -22,10 +22,10 @@ pub enum LocalAuthProbe {
 }
 
 pub async fn probe_local_auth(spec: ProviderRuntimeSpec) -> LocalAuthProbe {
-    if spec.id == ProviderId::Claude {
-        if let Some(probe) = probe_claude_cli_auth(spec.binary).await {
-            return probe;
-        }
+    if spec.id == ProviderId::Claude
+        && let Some(probe) = probe_claude_cli_auth(spec.binary).await
+    {
+        return probe;
     }
 
     probe_auth_files(spec.auth_files).await

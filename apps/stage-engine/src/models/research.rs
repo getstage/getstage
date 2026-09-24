@@ -6,6 +6,26 @@ use serde::{Deserialize, Serialize};
 
 use super::refero::ReferoContext;
 
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub enum ProjectCategory {
+    #[serde(rename = "websites", alias = "web-design")]
+    Websites,
+    #[serde(rename = "web-apps", alias = "web-app")]
+    WebApps,
+    #[serde(rename = "ios-apps", alias = "app-design")]
+    IosApps,
+}
+
+impl ProjectCategory {
+    pub fn display_name(self) -> &'static str {
+        match self {
+            Self::Websites => "Websites",
+            Self::WebApps => "Web apps",
+            Self::IosApps => "iOS apps",
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
 pub enum ResearchMatrixScore {
     Strong,
@@ -30,11 +50,14 @@ pub struct ResearchInput {
     pub project_id: String,
     pub project_name: String,
     pub client_name: Option<String>,
+    pub project_category: ProjectCategory,
     pub industry: String,
     pub website: Option<String>,
     pub project_brief: Option<String>,
     #[serde(default)]
     pub competitor_urls: Vec<String>,
+    #[serde(default)]
+    pub details_sections: Vec<String>,
     pub target_users: Option<String>,
     pub additional_notes: Option<String>,
     #[serde(default)]
@@ -149,7 +172,16 @@ pub enum ResearchSourceProvider {
     Notion,
     Sheets,
     Website,
+    Details,
     User,
+}
+
+#[derive(Clone, Copy, Debug, Default, Deserialize, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum ResearchUiPatternProvider {
+    #[default]
+    Refero,
+    Details,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -177,6 +209,8 @@ pub struct ResearchArtifact {
     #[serde(default)]
     pub ui_patterns: Vec<ResearchUiPatternGroup>,
     #[serde(default)]
+    pub ui_pattern_provider: ResearchUiPatternProvider,
+    #[serde(default)]
     pub target_users: Vec<ResearchTargetUser>,
     #[serde(default)]
     pub opportunities: Vec<ResearchOpportunity>,
@@ -195,4 +229,49 @@ pub struct ResearchArtifactPatch {
     pub section: ResearchArtifactSection,
     pub patch: serde_json::Value,
     pub reason: Option<String>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::ProjectCategory;
+
+    #[test]
+    fn project_category_serializes_with_canonical_ids() {
+        assert_eq!(
+            serde_json::to_string(&ProjectCategory::Websites).expect("serialize category"),
+            "\"websites\""
+        );
+        assert_eq!(
+            serde_json::to_string(&ProjectCategory::WebApps).expect("serialize category"),
+            "\"web-apps\""
+        );
+        assert_eq!(
+            serde_json::to_string(&ProjectCategory::IosApps).expect("serialize category"),
+            "\"ios-apps\""
+        );
+    }
+
+    #[test]
+    fn project_category_accepts_legacy_aliases() {
+        assert_eq!(
+            serde_json::from_str::<ProjectCategory>("\"web-design\"")
+                .expect("deserialize legacy website category"),
+            ProjectCategory::Websites
+        );
+        assert_eq!(
+            serde_json::from_str::<ProjectCategory>("\"web-app\"")
+                .expect("deserialize legacy web app category"),
+            ProjectCategory::WebApps
+        );
+        assert_eq!(
+            serde_json::from_str::<ProjectCategory>("\"app-design\"")
+                .expect("deserialize legacy iOS category"),
+            ProjectCategory::IosApps
+        );
+    }
+
+    #[test]
+    fn project_category_rejects_unknown_values() {
+        assert!(serde_json::from_str::<ProjectCategory>("\"branding\"").is_err());
+    }
 }

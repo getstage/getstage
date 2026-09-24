@@ -9,10 +9,10 @@ import {
 } from "@/components/onboarding/OnboardingFigmaPrimitives";
 import { FigmaIntegrationConfig } from "@/components/onboarding/OnboardingIntegrationPanels";
 import { AlmostSetupPreview, ProSuccessCard } from "@/components/onboarding/OnboardingPreviewPanels";
-import { FIGMA_PROJECT_TYPE_VALUES, ONBOARDING_ICON_SRC } from "@/components/onboarding/constants";
+import { ONBOARDING_ICON_SRC } from "@/components/onboarding/constants";
 import { OnboardingMethodStep } from "@/components/onboarding/steps/OnboardingMethodStep";
 import { OnboardingPhaseSelectStep } from "@/components/onboarding/steps/OnboardingPhaseSelectStep";
-import { PROJECT_TYPES, PROJECT_TYPE_ICONS } from "@/lib/constants";
+import { PROJECT_CATEGORIES, PROJECT_TYPES, PROJECT_TYPE_ICONS } from "@/lib/constants";
 import { AVATAR_ACCEPT, PROJECT_MARKER_ACCEPT } from "@/lib/r2Uploads";
 import { cn } from "@/lib/utils";
 import type { UseProjectDraftResult } from "@/features/project-creation/useProjectDraft";
@@ -38,7 +38,7 @@ type OnboardingStepRendererProps = {
   claudeConnectionId: string | null;
   onContinue: () => void;
   onCreationDone: () => void;
-  onStartTrial: () => void;
+  onStartTrial: (tier: "start" | "pro" | "team") => void;
   onClaudeActivated: () => void;
 };
 
@@ -208,12 +208,10 @@ export function OnboardingStepRenderer({
           <FigmaOnboardingFrame>
             <FigmaStepHeader step={step} />
             <div className="mt-6">
-              <FigmaSection label="Project Type" innerClassName="p-1">
+              <FigmaSection label="Project category" innerClassName="p-1">
                 <div className="flex flex-col gap-1">
                   <div className="grid grid-cols-2 gap-1">
-                    {PROJECT_TYPES.filter((option) =>
-                      FIGMA_PROJECT_TYPE_VALUES.includes(option.value),
-                    ).map((option) => {
+                    {PROJECT_CATEGORIES.map((option) => {
                       const iconSrc = PROJECT_TYPE_ICONS[option.value];
                       const isSelected = draft.projectType === option.value;
                       return (
@@ -236,17 +234,6 @@ export function OnboardingStepRenderer({
                       );
                     })}
                   </div>
-                  {draft.projectType === "other" ? (
-                    <input
-                      value={draft.typeOtherLabel}
-                      onChange={(event) => draftState.setTypeOtherLabel(event.target.value)}
-                      placeholder="Please specify your project type..."
-                      aria-label="Specify project type"
-                      maxLength={60}
-                      autoFocus
-                      className={figmaFieldClass}
-                    />
-                  ) : null}
                 </div>
               </FigmaSection>
             </div>

@@ -55,3 +55,7 @@ agent-mode/
 # MCP server configs are local-only; each contributor opts in via the README.
 .mcp.json
 **/.mcp.json
+
+# Local Firecrawl dumps and one-off deploy notes — never ship
+.firecrawl/
+docs/CONVEX_PROD_DEPLOY.md

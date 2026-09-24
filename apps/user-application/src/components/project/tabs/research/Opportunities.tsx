@@ -63,7 +63,7 @@ export function Opportunities({
         <div className="flex flex-col items-start justify-center gap-4 rounded-[8px] bg-[#F5F5F5] p-3">
           <ul className="min-w-full list-disc pl-[19.5px] text-[13px] font-medium leading-[1.5] text-[#525252]">
             {opportunities.map((opportunity, index) => (
-              <li key={`${index}-${opportunity}`}>
+              <li key={`opportunity-${index}`}>
                 <textarea
                   ref={(element) => {
                     textareaRefs.current[index] = element;

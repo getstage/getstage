@@ -1,16 +1,18 @@
 use super::*;
-use crate::models::research::ResearchInput;
+use crate::models::research::{ProjectCategory, ResearchInput};
 use serde_json::json;
 
 fn sample_input() -> ResearchInput {
     ResearchInput {
         project_id: "project_123".to_string(),
+        project_category: ProjectCategory::WebApps,
         project_name: "Shopify".to_string(),
         client_name: Some("Lumen Apps".to_string()),
         industry: "E-commerce".to_string(),
         website: Some("https://www.shopify.com".to_string()),
         project_brief: Some("Brief".to_string()),
         competitor_urls: vec!["https://www.amazon.com".to_string()],
+        details_sections: vec![],
         target_users: None,
         additional_notes: None,
         uploaded_asset_ids: vec![],

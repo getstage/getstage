@@ -86,3 +86,35 @@ fn distinctive_font_family_is_preserved() {
     );
     assert_eq!(normalized["typography"]["fontFamily"], json!("Fraunces"));
 }
+
+#[test]
+fn grounding_keeps_visual_output_and_adds_verified_context() {
+    let mut style_guide = json!({
+        "colorPalettes": [{ "label": "Ink", "hex": "#18230F", "colors": ["#F5F2E8", "#18230F"] }],
+        "typography": { "fontFamily": "Fraunces" }
+    });
+
+    apply_style_guide_grounding(
+        &mut style_guide,
+        ProjectCategory::Websites,
+        vec!["research-ref-1".to_string()],
+    )
+    .expect("grounding should succeed");
+
+    assert_eq!(
+        style_guide,
+        json!({
+            "colorPalettes": [{ "label": "Ink", "hex": "#18230F", "colors": ["#F5F2E8", "#18230F"] }],
+            "typography": { "fontFamily": "Fraunces" },
+            "projectCategory": "websites",
+            "categoryConventions": category_conventions(ProjectCategory::Websites),
+            "researchReferenceIds": ["research-ref-1"],
+            "implementationNotes": [
+                "Use the supplied colors as named design tokens; do not replace them with framework defaults.",
+                "Load the specified typeface and implement every listed size, weight, and line height as a reusable text style.",
+                "Treat the selected moodboard direction as the visual source of truth; do not substitute a generic palette, typeface, or grid.",
+                "Apply the category conventions to structure and interaction without overriding the moodboard's visual character."
+            ]
+        })
+    );
+}

@@ -4,13 +4,14 @@ export const referoReferenceKindSchema = z.enum(["screen", "flow", "style"]);
 
 export const referoPlatformSchema = z.enum(["web", "ios", "android", "unknown"]);
 
-/** Fixed UI Patterns row categories — engine maps Refero screen searches to these. */
+/** UI Patterns rows shared by Refero app research and Details website research. */
 export const referoUiPatternCategorySchema = z.enum([
   "onboarding",
   "homepage",
   "pricing",
   "checkout",
   "dashboard",
+  "website-section",
 ]);
 
 export const referoSearchRequestSchema = z.object({
@@ -73,6 +74,7 @@ export const referoReferenceSchema = z.discriminatedUnion("kind", [
 
 export const referoCategorySearchSchema = z.object({
   category: referoUiPatternCategorySchema,
+  section: referoOptionalTextSchema,
   query: z.string().min(1),
   references: z.array(referoReferenceSchema).default([]),
 });

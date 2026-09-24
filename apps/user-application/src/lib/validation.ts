@@ -1,16 +1,6 @@
 import { z } from "zod";
 
-const projectTypeValues = [
-  "branding",
-  "web-design",
-  "product-design",
-  "app-design",
-  "web-app",
-  "packaging",
-  "motion-design",
-  "illustration",
-  "other",
-] as const;
+const projectTypeValues = ["websites", "web-apps", "ios-apps"] as const;
 
 export const signInEmailSchema = z.object({
   email: z.string().trim().email("Please enter a valid email address."),
@@ -40,7 +30,7 @@ export const profileNameSchema = z
   .max(80, "Please keep your name under 80 characters.");
 
 export const projectTypeSchema = z.enum(projectTypeValues, {
-  message: "Please choose your field of work.",
+  message: "Please choose a project category.",
 });
 
 export { typeOtherLabelSchema } from "@stage/data-ops/shared/type-other-label";

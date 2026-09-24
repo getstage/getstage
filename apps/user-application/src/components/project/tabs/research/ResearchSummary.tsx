@@ -118,7 +118,7 @@ export function ResearchSummary({
         <div className="flex flex-col items-start justify-center rounded-[8px] bg-[#F5F5F5] p-3">
           <ul className="min-w-full list-disc pl-[19.5px] text-[13px] font-medium leading-[1.5] text-[#525252]">
             {items.map((item, index) => (
-              <li key={`${index}-${summary[index] ?? ""}`}>
+              <li key={`summary-${index}`}>
                 <textarea
                   ref={(element) => {
                     editTextareaRefs.current[index] = element;

@@ -11,6 +11,7 @@ use crate::convex_store::moodboard_repository::MoodboardRepository;
 use crate::convex_store::research_repository::ResearchRepository;
 use crate::convex_store::strategy_repository::StrategyRepository;
 use crate::convex_store::wireframes_repository::WireframesRepository;
+use crate::details::service::DetailsService;
 use crate::exports::delivery::paper::PaperClient;
 use crate::exports::delivery::service::DeliveryExportService;
 use crate::exports::figma::repository::FigmaExportRepository;
@@ -23,7 +24,7 @@ use crate::refero::client::ReferoClient;
 use crate::refero::service::ReferoService;
 use crate::research::service::ResearchService;
 use crate::research::workflow::ResearchWorkflow;
-use crate::runs::RunManager;
+use crate::runs::{RunManager, RunWorkflows};
 use crate::server;
 use crate::strategy::workflow::StrategyWorkflow;
 use crate::styleguide::StyleguideWorkflow;
@@ -43,11 +44,13 @@ impl AppState {
     pub fn new(config: &AppConfig) -> anyhow::Result<Self> {
         let refero_client = ReferoClient::new(&config.refero)?;
         let refero = ReferoService::new(refero_client);
+        let details = DetailsService::from_config(&config.details)?;
         let figma = FigmaService::new(&config.figma)?;
         let research = Arc::new(ResearchWorkflow::new(
             ResearchRepository::new(&config.convex),
             AppSecretsRepository::new(&config.convex),
             ResearchService::new(refero.clone()),
+            details,
         ));
         let moodboard = Arc::new(MoodboardWorkflow::new(
             MoodboardRepository::new(&config.convex),
@@ -76,13 +79,15 @@ impl AppState {
             started_at_ms: now_millis(),
             runs: Arc::new(RunManager::new(
                 "v1",
-                Some(chat),
-                Some(research),
-                Some(strategy),
-                Some(styleguide),
-                Some(moodboard),
-                Some(flows),
-                Some(wireframes),
+                RunWorkflows {
+                    chat: Some(chat),
+                    research: Some(research),
+                    strategy: Some(strategy),
+                    styleguide: Some(styleguide),
+                    moodboard: Some(moodboard),
+                    flows: Some(flows),
+                    wireframes: Some(wireframes),
+                },
             )),
             figma_exports: Arc::new(FigmaExportService::new(
                 FigmaExportRepository::new(&config.convex),
@@ -101,6 +106,8 @@ pub fn build_app(config: AppConfig) -> Router {
     tracing::info!(
         refero_configured = config.refero.is_configured(),
         refero_mcp_url = %config.refero.mcp_url,
+        details_configured = config.details.is_configured(),
+        details_mcp_url = %config.details.mcp_url,
         paper_mcp_url = %config.paper.mcp_url,
         convex_url = %config.convex.deployment_url,
         "stage engine config loaded"

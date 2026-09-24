@@ -26,7 +26,6 @@ export {
   WIREFRAMES_RESULTS_PREVIEW_LIMIT,
   WIREFRAMES_STATS,
 } from "./constants";
-export { createSeedConfigureScreens } from "./tabSeed";
 
 /** Simulate backend wireframes in dev until Convex returns a saved artifact. */
 export const USE_MOCK_WIREFRAMES_DATA = import.meta.env.DEV;

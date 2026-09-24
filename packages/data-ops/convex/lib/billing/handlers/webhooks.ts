@@ -195,7 +195,7 @@ async function handleInvoicePaid(ctx: WebhookCtx, event: Stripe.Event) {
   }
 
   const config = configForPriceId(subscription.priceId);
-  if (!config || config.kind !== "subscription" || config.isSeatAddOn) {
+  if (!config || config.kind !== "subscription") {
     return;
   }
 

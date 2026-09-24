@@ -71,6 +71,7 @@ export async function buildApiProjectSummary(
     startDate: project.startDate,
     endDate: project.endDate,
     progress: project.progress,
+    ownerUserId: String(project.userId),
   };
 }
 
@@ -105,6 +106,8 @@ export async function buildApiProjectDetail(
     endDate: project.endDate,
     progress: project.progress,
     enabledSteps: project.enabledSteps ?? [...WORKFLOW_STEPS],
+    skillIds: project.skillIds ?? [],
+    componentPackIds: project.componentPackIds ?? [],
     accessRole,
     phaseCount: stats.phaseCount,
     taskCount: stats.taskCount,

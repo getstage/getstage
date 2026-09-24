@@ -44,7 +44,7 @@ function continueAfterAuth(
     return;
   }
 
-  navigate({ to: "/download/mac", replace: true });
+  window.location.assign(redirectTo);
 }
 
 export function AuthPage() {
@@ -610,4 +610,3 @@ function GoogleIcon() {
     </svg>
   );
 }
-

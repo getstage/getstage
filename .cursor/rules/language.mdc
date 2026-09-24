@@ -1,16 +1,12 @@
 ---
-description: German chat with user; English for all repo markdown and docs; short replies; gentle German corrections
+description: English chat with user; English for all repo markdown and docs; short replies
 alwaysApply: true
 ---
 
 # Language
 
-- **Chat with the user:** German. Short, direct, efficient.
+- **Chat with the user:** English. Short, direct, efficient.
 - **Repo artifacts** (`*.md`, plans, audits, specs, new doc comments): **English**.
 - **Code / APIs / commits:** English (repo conventions).
 
-The user practices German for freelance work in Germany. When they write German (or mixed text) with mistakes, answer first, then add at most 1–3 lines:
-
-`Korrektur: «wrong» → «right» (brief reason)`
-
-If they explicitly ask for Dutch or English in chat for one message, follow that request.
+Do not switch chat to German unless the user explicitly asks for German for that turn.

@@ -15,10 +15,12 @@ export type { ProjectTimeline };
 export function ProjectHeader({
   project,
   projectImageUrl,
+  projectCategoryLabel,
   clientAvatarUrl,
   timeline,
   activeTab,
   onTabChange,
+  onExport,
   onShare,
   onSaveProjectProfile,
   onSaveClientProfile,
@@ -35,11 +37,13 @@ export function ProjectHeader({
   deleteError,
 }: {
   project: Project;
+  projectCategoryLabel?: string;
   projectImageUrl?: string;
   clientAvatarUrl?: string;
   timeline: ProjectTimeline;
   activeTab: ProjectTab;
   onTabChange: (tab: ProjectTab) => void;
+  onExport: (opts?: { step?: "sections" | "skills" }) => void;
   onShare: () => void;
   onSaveProjectProfile: (input: SaveProjectProfileInput) => Promise<void>;
   onSaveClientProfile: (input: SaveClientProfileInput) => Promise<void>;
@@ -96,12 +100,27 @@ export function ProjectHeader({
           <h1 className="max-w-[720px] truncate font-heading text-[20px] font-semibold leading-[1.2] text-[#0A0A0A]">
             {project.name}
           </h1>
-          <p className="mt-2 truncate text-[13px] font-medium leading-[1.2] text-[#737373]">
-            {project.clientName}
-          </p>
+          <div className="mt-2 flex min-w-0 items-center gap-2 text-[13px] font-medium leading-[1.2] text-[#737373]">
+            <span className="truncate">{project.clientName}</span>
+            {projectCategoryLabel ? (
+              <>
+                <span aria-hidden="true">·</span>
+                <span className="shrink-0" aria-label={`Project category: ${projectCategoryLabel}`}>
+                  {projectCategoryLabel}
+                </span>
+              </>
+            ) : null}
+          </div>
         </div>
 
         <div ref={projectMenuRef} className="relative flex min-w-0 items-center justify-end gap-[6px]">
+          <button
+            type="button"
+            onClick={() => onExport({ step: "sections" })}
+            className="inline-flex h-[27px] shrink-0 cursor-pointer items-center rounded-[6px] bg-[#F5F5F5] py-[6px] px-3 text-[13px] font-medium leading-[1.25] text-[#262626] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#ECECEC]"
+          >
+            Export
+          </button>
           <button
             type="button"
             onClick={onShare}

@@ -398,15 +398,12 @@ pub fn repair_competitive_analysis(
                 .get("score")
                 .or_else(|| cell.get("rating"))
                 .and_then(Value::as_str);
-            match (competitor_id, score) {
+            matches!(
+                (competitor_id, score),
                 (Some(id), Some(raw_score))
                     if allowed_ids.contains(id)
-                        && normalize_matrix_score_label(raw_score).is_some() =>
-                {
-                    true
-                }
-                _ => false,
-            }
+                        && normalize_matrix_score_label(raw_score).is_some()
+            )
         });
         report.unsupported_cells_removed += before.saturating_sub(cells.len());
     }
@@ -501,17 +498,20 @@ pub fn competitive_host(raw: &str) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::models::research::ProjectCategory;
 
     #[test]
     fn allowed_targets_prefers_user_competitors() {
         let input = ResearchInput {
             project_id: "p1".to_string(),
+            project_category: ProjectCategory::WebApps,
             project_name: "Test".to_string(),
             client_name: None,
             industry: "Retail".to_string(),
             website: Some("https://client.com".to_string()),
             project_brief: None,
             competitor_urls: vec!["https://competitor.com".to_string()],
+            details_sections: vec![],
             target_users: None,
             additional_notes: None,
             uploaded_asset_ids: vec![],
@@ -527,12 +527,14 @@ mod tests {
     fn allowed_targets_falls_back_to_client_website() {
         let input = ResearchInput {
             project_id: "p1".to_string(),
+            project_category: ProjectCategory::WebApps,
             project_name: "Test".to_string(),
             client_name: None,
             industry: "Retail".to_string(),
             website: Some("https://shopify.com".to_string()),
             project_brief: None,
             competitor_urls: vec![],
+            details_sections: vec![],
             target_users: None,
             additional_notes: None,
             uploaded_asset_ids: vec![],
@@ -574,12 +576,14 @@ mod tests {
 
         let input = ResearchInput {
             project_id: "p1".to_string(),
+            project_category: ProjectCategory::WebApps,
             project_name: "Test".to_string(),
             client_name: None,
             industry: "Retail".to_string(),
             website: Some("https://shopify.com".to_string()),
             project_brief: None,
             competitor_urls: vec![],
+            details_sections: vec![],
             target_users: None,
             additional_notes: None,
             uploaded_asset_ids: vec![],
@@ -619,6 +623,7 @@ mod tests {
 
         let input = ResearchInput {
             project_id: "p1".to_string(),
+            project_category: ProjectCategory::WebApps,
             project_name: "Test".to_string(),
             client_name: None,
             industry: "Retail".to_string(),
@@ -628,6 +633,7 @@ mod tests {
                 "https://amazon.com".to_string(),
                 "https://www.amazon.com".to_string(),
             ],
+            details_sections: vec![],
             target_users: None,
             additional_notes: None,
             uploaded_asset_ids: vec![],
@@ -674,6 +680,7 @@ mod tests {
         )]);
         let input = ResearchInput {
             project_id: "p1".to_string(),
+            project_category: ProjectCategory::WebApps,
             project_name: "Test".to_string(),
             client_name: None,
             industry: "Retail".to_string(),
@@ -683,6 +690,7 @@ mod tests {
                 "https://www.squarespace.com".to_string(),
                 "https://www.amazon.com".to_string(),
             ],
+            details_sections: vec![],
             target_users: None,
             additional_notes: None,
             uploaded_asset_ids: vec![],
@@ -718,12 +726,14 @@ mod tests {
         )]);
         let input = ResearchInput {
             project_id: "p1".to_string(),
+            project_category: ProjectCategory::WebApps,
             project_name: "Test".to_string(),
             client_name: None,
             industry: "Retail".to_string(),
             website: Some("https://shopify.com".to_string()),
             project_brief: None,
             competitor_urls: vec![],
+            details_sections: vec![],
             target_users: None,
             additional_notes: None,
             uploaded_asset_ids: vec![],
@@ -765,12 +775,14 @@ mod tests {
         )]);
         let input = ResearchInput {
             project_id: "p1".to_string(),
+            project_category: ProjectCategory::WebApps,
             project_name: "Test".to_string(),
             client_name: None,
             industry: "Retail".to_string(),
             website: Some("https://shopify.com".to_string()),
             project_brief: None,
             competitor_urls: vec![],
+            details_sections: vec![],
             target_users: None,
             additional_notes: None,
             uploaded_asset_ids: vec![],
@@ -807,12 +819,14 @@ mod tests {
         )]);
         let input = ResearchInput {
             project_id: "p1".to_string(),
+            project_category: ProjectCategory::WebApps,
             project_name: "Test".to_string(),
             client_name: None,
             industry: "Retail".to_string(),
             website: Some("https://shopify.com".to_string()),
             project_brief: None,
             competitor_urls: vec!["https://shopify.com".to_string()],
+            details_sections: vec![],
             target_users: None,
             additional_notes: None,
             uploaded_asset_ids: vec![],

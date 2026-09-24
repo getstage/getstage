@@ -18,6 +18,7 @@ import { SidebarCollapseControl } from "./sidebar/SidebarCollapseControl";
 import { SidebarCreditsCard } from "./sidebar/SidebarCreditsCard";
 import { SidebarNavigation } from "./sidebar/SidebarNavigation";
 import { SidebarProjectList } from "./sidebar/SidebarProjectList";
+import { SidebarSpaceSelect } from "./sidebar/SidebarSpaceSelect";
 import { SidebarSearch } from "./sidebar/SidebarSearch";
 import { useDesktopBridge } from "@/hooks/useDesktopBridge";
 import { cn } from "@/lib/utils";
@@ -84,6 +85,8 @@ export function StageSidebar({
           canExpand={canExpand}
           onCollapsedChange={onCollapsedChange}
         />
+
+        <SidebarSpaceSelect collapsed={collapsed} />
 
         <div className={cn("flex w-full shrink-0 flex-col gap-[clamp(10px,2.5vh,16px)]", collapsed && "items-center")}>
           <SidebarSearch

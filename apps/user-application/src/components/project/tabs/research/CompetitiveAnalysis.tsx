@@ -68,7 +68,7 @@ export function CompetitiveAnalysis({
         <div className="grid grid-cols-1 gap-2 xl:grid-cols-2">
           {competitors.map((competitor, index) => (
             <CompetitorCard
-              key={`${index}-${competitor.name}`}
+              key={competitor.id}
               competitor={competitor}
               isEditing={isEditing}
               onChange={(patch) => updateCompetitor(index, patch)}

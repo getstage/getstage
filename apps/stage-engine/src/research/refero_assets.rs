@@ -23,6 +23,24 @@ pub async fn persist_refero_context_images(
         .await
         .context("failed to hydrate Refero category screen images")?;
 
+    persist_context_images(uploader, auth_token, project_id, context).await
+}
+
+pub async fn persist_prepared_context_images(
+    uploader: &ConvexAssetUploader,
+    auth_token: &str,
+    project_id: &str,
+    context: &mut ReferoContext,
+) -> anyhow::Result<HashMap<String, String>> {
+    persist_context_images(uploader, auth_token, project_id, context).await
+}
+
+async fn persist_context_images(
+    uploader: &ConvexAssetUploader,
+    auth_token: &str,
+    project_id: &str,
+    context: &mut ReferoContext,
+) -> anyhow::Result<HashMap<String, String>> {
     sync_category_bytes_to_flat_references(context);
 
     let mut uploaded_keys = HashMap::new();
@@ -76,12 +94,16 @@ fn build_ui_pattern_group(
     bucket: &ReferoCategorySearch,
     image_keys: &HashMap<String, String>,
 ) -> Value {
-    let recognized_patterns = collect_recognized_patterns(bucket.category, &bucket.references);
+    let recognized_patterns = if bucket.category == ReferoUiPatternCategory::WebsiteSection {
+        Vec::new()
+    } else {
+        collect_recognized_patterns(bucket.category, &bucket.references)
+    };
     let pattern_count_label = if recognized_patterns.is_empty() {
         None
     } else {
         Some(format!(
-            "{} recognized patterns from {} Refero screens",
+            "{} recognized patterns from {} reference screens",
             recognized_patterns.len(),
             bucket.references.len()
         ))
@@ -95,9 +117,12 @@ fn build_ui_pattern_group(
         .collect::<Vec<_>>();
 
     json!({
-        "id": bucket.category.row_id(),
-        "title": bucket.category.display_title(),
-        "summary": build_group_summary(bucket.category, &bucket.references),
+        "id": bucket.row_id(),
+        "title": bucket.display_title(),
+        "summary": bucket.section.as_ref().map_or_else(
+            || build_group_summary(bucket.category, &bucket.references),
+            |section| Some(format!("{section} references from {} provide focused design inspiration.", reference_evidence(&bucket.references))),
+        ),
         "patternCountLabel": pattern_count_label,
         "recognizedPatterns": recognized_patterns,
         "examples": examples,
@@ -157,14 +182,14 @@ fn reference_evidence(references: &[ReferoReference]) -> String {
     products.dedup();
 
     if products.is_empty() {
-        return "the selected Refero screens".to_string();
+        return "the selected reference screens".to_string();
     }
 
     match products.as_slice() {
         [one] => format!("screens from {one}"),
         [one, two] => format!("screens from {one} and {two}"),
         [one, two, three, ..] => format!("screens from {one}, {two}, and {three}"),
-        [] => "the selected Refero screens".to_string(),
+        [] => "the selected reference screens".to_string(),
     }
 }
 
@@ -172,28 +197,36 @@ fn category_summary(category: ReferoUiPatternCategory, evidence: &str) -> String
     match category {
         ReferoUiPatternCategory::Onboarding => {
             format!(
-                "Refero onboarding {evidence} show how first-run setup is broken into visible, low-risk decisions."
+                "Onboarding {evidence} show how first-run setup is broken into visible, low-risk decisions."
             )
         }
         ReferoUiPatternCategory::Homepage => {
             format!(
-                "Refero homepage {evidence} show how marketing pages frame value, proof, and primary action hierarchy."
+                "Homepage {evidence} show how marketing pages frame value, proof, and primary action hierarchy."
             )
         }
         ReferoUiPatternCategory::Pricing => {
             format!(
-                "Refero pricing {evidence} show how plan comparison, billing details, and commitment cues are arranged."
+                "Pricing {evidence} show how plan comparison, billing details, and commitment cues are arranged."
             )
         }
         ReferoUiPatternCategory::Checkout => {
             format!(
-                "Refero checkout {evidence} show how review, payment, totals, and submission stay close together."
+                "Checkout {evidence} show how review, payment, totals, and submission stay close together."
             )
         }
         ReferoUiPatternCategory::Dashboard => {
             format!(
-                "Refero dashboard {evidence} show how activity, status, and next actions are prioritized after login."
+                "Dashboard {evidence} show how activity, status, and next actions are prioritized after login."
             )
+        }
+        ReferoUiPatternCategory::AppScreen => {
+            format!(
+                "App-screen {evidence} show how hierarchy, feedback, and primary actions are handled in this interface context."
+            )
+        }
+        ReferoUiPatternCategory::WebsiteSection => {
+            format!("Website section {evidence} provide focused marketing-site inspiration.")
         }
     }
 }
@@ -255,6 +288,27 @@ fn category_pattern_insights(
                 ),
             ),
         ],
+        ReferoUiPatternCategory::AppScreen => vec![
+            (
+                "Primary task is visually dominant",
+                format!(
+                    "{evidence} prioritize one main task while keeping secondary actions available without competing for attention."
+                ),
+            ),
+            (
+                "State remains visible",
+                format!(
+                    "{evidence} use clear selected, loading, empty, and completion states so users understand what the interface is doing."
+                ),
+            ),
+            (
+                "Controls follow content hierarchy",
+                format!(
+                    "{evidence} place navigation and actions close to the content they affect, reducing scanning and interpretation effort."
+                ),
+            ),
+        ],
+        ReferoUiPatternCategory::WebsiteSection => Vec::new(),
         ReferoUiPatternCategory::Pricing => vec![
             (
                 "Comparison-first plan grid",

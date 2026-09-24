@@ -86,7 +86,7 @@ fn claude_args(context: &ProviderRunContext) -> Vec<String> {
         "--permission-mode".to_string(),
         "dontAsk".to_string(),
         "--model".to_string(),
-        claude_model_id(&context.request.model_id).to_string(),
+        claude_model_id(&context.request.model_id),
     ];
 
     if !allowed_tools.is_empty() {
@@ -112,13 +112,22 @@ fn research_web_tools_enabled(context: &ProviderRunContext) -> bool {
         )
 }
 
-fn claude_model_id(model_id: &str) -> &str {
-    match model_id {
-        "claude-opus" | "claude-opus-4.8" | "claude-opus-4.7" => "opus",
-        "claude-sonnet" | "claude-sonnet-4.6" => "sonnet",
-        "claude-haiku-4.5" => "haiku",
-        "claude-fable" | "claude-fable-5" => "fable",
-        other => other,
+fn claude_model_id(model_id: &str) -> String {
+    let normalized = model_id.trim();
+    match normalized {
+        "opus" | "sonnet" | "haiku" | "fable" | "best" => return normalized.to_string(),
+        "claude-opus" => return "opus".to_string(),
+        "claude-sonnet" => return "sonnet".to_string(),
+        "claude-haiku" => return "haiku".to_string(),
+        "claude-fable" => return "fable".to_string(),
+        _ => {}
+    }
+
+    let dashed = normalized.replace('.', "-");
+    if crate::providers::models::is_safe_provider_model_id(&dashed) {
+        dashed
+    } else {
+        "sonnet".to_string()
     }
 }
 
@@ -149,17 +158,22 @@ mod tests {
     #[test]
     fn claude_model_id_should_map_stage_fallback_sonnet_alias() {
         assert_eq!(claude_model_id("claude-sonnet"), "sonnet");
-        assert_eq!(claude_model_id("claude-sonnet-4.6"), "sonnet");
+        assert_eq!(claude_model_id("claude-sonnet-4.6"), "claude-sonnet-4-6");
     }
 
     #[test]
-    fn claude_model_id_should_map_stage_fallback_opus_alias() {
-        assert_eq!(claude_model_id("claude-opus-4.8"), "opus");
-    }
-
-    #[test]
-    fn claude_model_id_should_keep_provider_owned_model_ids() {
+    fn claude_model_id_should_keep_versioned_ids() {
+        assert_eq!(claude_model_id("claude-opus-4.8"), "claude-opus-4-8");
         assert_eq!(claude_model_id("claude-opus-4-8"), "claude-opus-4-8");
+        assert_eq!(claude_model_id("claude-opus-5"), "claude-opus-5");
+        assert_eq!(claude_model_id("opus"), "opus");
+        assert_eq!(claude_model_id("claude-fable-5.1"), "claude-fable-5-1");
+    }
+
+    #[test]
+    fn claude_model_id_should_reject_unsafe_ids() {
+        assert_eq!(claude_model_id("../evil"), "sonnet");
+        assert_eq!(claude_model_id("opus; rm -rf /"), "sonnet");
     }
 
     #[test]

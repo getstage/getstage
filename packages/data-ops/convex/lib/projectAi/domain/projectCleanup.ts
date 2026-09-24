@@ -54,8 +54,13 @@ export async function deleteAllProjectAiData(
     .unique();
 
   if (context) {
-    if (context.briefAttachmentR2ObjectKey) {
-      await deleteOldR2Asset(ctx, context.briefAttachmentR2ObjectKey);
+    const briefKeys = new Set<string>();
+    if (context.briefAttachmentR2ObjectKey) briefKeys.add(context.briefAttachmentR2ObjectKey);
+    for (const file of context.briefAttachments ?? []) {
+      if (file.r2ObjectKey) briefKeys.add(file.r2ObjectKey);
+    }
+    for (const key of briefKeys) {
+      await deleteOldR2Asset(ctx, key);
     }
     await ctx.db.delete(context._id);
   }
@@ -153,8 +158,13 @@ export async function cleanupOrphanedProjectAiDataForUser(
 
   for (const context of contexts) {
     if (!(await projectExists(context.projectId))) {
-      if (context.briefAttachmentR2ObjectKey) {
-        await deleteOldR2Asset(ctx, context.briefAttachmentR2ObjectKey);
+      const briefKeys = new Set<string>();
+      if (context.briefAttachmentR2ObjectKey) briefKeys.add(context.briefAttachmentR2ObjectKey);
+      for (const file of context.briefAttachments ?? []) {
+        if (file.r2ObjectKey) briefKeys.add(file.r2ObjectKey);
+      }
+      for (const key of briefKeys) {
+        await deleteOldR2Asset(ctx, key);
       }
       await ctx.db.delete(context._id);
       deletedContexts += 1;

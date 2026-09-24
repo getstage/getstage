@@ -1,6 +1,4 @@
-use crate::models::providers::{
-    ProviderId, ProviderModel, ProviderModelSource, ProviderOptionChoice, ProviderOptionDescriptor,
-};
+use crate::models::providers::ProviderId;
 
 #[derive(Clone, Copy)]
 pub struct AuthFileSpec {
@@ -29,71 +27,6 @@ pub fn spec_by_route_id(provider_id: &str) -> Option<ProviderRuntimeSpec> {
         "claude" => Some(CLAUDE_SPEC),
         "codex" => Some(CODEX_SPEC),
         _ => None,
-    }
-}
-
-pub fn fallback_models(provider_id: ProviderId) -> Vec<ProviderModel> {
-    match provider_id {
-        ProviderId::Claude => vec![
-            claude_fallback_model("claude-opus-4.8", "Claude Opus 4.8", Some(true)),
-            claude_fallback_model("claude-fable-5", "Claude Fable 5", None),
-            claude_fallback_model("claude-sonnet-4.6", "Claude Sonnet 4.6", None),
-            claude_fallback_model("claude-haiku-4.5", "Claude Haiku 4.5", None),
-            claude_fallback_model("claude-opus-4.7", "Claude Opus 4.7", None),
-        ],
-        ProviderId::Codex => vec![
-            codex_fallback_model("gpt-5.6-sol", "GPT-5.6 Sol", None),
-            codex_fallback_model("gpt-5.6-terra", "GPT-5.6 Terra", None),
-            codex_fallback_model("gpt-5.6-luna", "GPT-5.6 Luna", None),
-            codex_fallback_model("gpt-5.5", "GPT-5.5", Some(true)),
-            ProviderModel {
-                id: "codex-default".to_string(),
-                label: "Codex Default".to_string(),
-                source: ProviderModelSource::Fallback,
-                is_default: None,
-                options: Vec::new(),
-            },
-        ],
-    }
-}
-
-fn claude_fallback_model(id: &str, label: &str, is_default: Option<bool>) -> ProviderModel {
-    ProviderModel {
-        id: id.to_string(),
-        label: label.to_string(),
-        source: ProviderModelSource::Fallback,
-        is_default,
-        options: vec![ProviderOptionDescriptor::Select {
-            id: "reasoning_effort".to_string(),
-            label: "Reasoning effort".to_string(),
-            description: None,
-            options: vec![
-                effort_choice("low", "Low", false),
-                effort_choice("medium", "Medium", true),
-                effort_choice("high", "High", false),
-                effort_choice("extra-high", "Extra High", false),
-            ],
-            current_value: Some("medium".to_string()),
-        }],
-    }
-}
-
-fn codex_fallback_model(id: &str, label: &str, is_default: Option<bool>) -> ProviderModel {
-    ProviderModel {
-        id: id.to_string(),
-        label: label.to_string(),
-        source: ProviderModelSource::Fallback,
-        is_default,
-        options: Vec::new(),
-    }
-}
-
-fn effort_choice(id: &str, label: &str, is_default: bool) -> ProviderOptionChoice {
-    ProviderOptionChoice {
-        id: id.to_string(),
-        label: label.to_string(),
-        description: None,
-        is_default: is_default.then_some(true),
     }
 }
 

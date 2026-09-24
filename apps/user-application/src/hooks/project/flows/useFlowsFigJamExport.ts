@@ -10,6 +10,10 @@ export function useFlowsFigJamExport(projectId: string) {
   const [isExporting, setIsExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const inFlightRef = useRef<Promise<CreateFigmaExportResponse> | null>(null);
+  const nativeConnections = useQuery(
+    api.integrations.contentPlatforms.getNativeConnectionStatus,
+    {},
+  );
   const job = useQuery(
     api.integrations.contentPlatforms.getFigmaExportJob,
     request ? { jobId: request.jobId as Id<"figmaExportJobs"> } : "skip",
@@ -18,6 +22,14 @@ export function useFlowsFigJamExport(projectId: string) {
   const sendToFigJam = useCallback(
     async (artifactId: string) => {
       if (inFlightRef.current) return inFlightRef.current;
+      if (nativeConnections === undefined) {
+        setError("Checking your Figma connection. Try again in a moment.");
+        return;
+      }
+      if (nativeConnections.figma?.status !== "active") {
+        setError("Connect Figma in Settings → Integrations before exporting to FigJam.");
+        return;
+      }
 
       setIsExporting(true);
       setError(null);
@@ -34,13 +46,13 @@ export function useFlowsFigJamExport(projectId: string) {
       } catch (err) {
         console.error("[FigJam export] failed:", err);
         setError(toUserFacingErrorMessage(err, "Could not send flows to FigJam. Please try again."));
-        throw err;
+        return undefined;
       } finally {
         if (inFlightRef.current === exportPromise) inFlightRef.current = null;
         setIsExporting(false);
       }
     },
-    [projectId],
+    [nativeConnections, projectId],
   );
 
   return {

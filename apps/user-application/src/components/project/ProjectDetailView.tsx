@@ -1,9 +1,10 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
-import type { ProviderId } from "@stage/data-ops/contracts";
+import { resolveProjectCategory, type ProviderId } from "@stage/data-ops/contracts";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { motion } from "motion/react";
 import { Avatar } from "@/components/ui/Avatar";
 import { ProjectHeader } from "./ProjectHeader";
+import { ProjectExportDialog } from "./header/ProjectExportDialog";
 import { KanbanBoard } from "./KanbanBoard";
 import {
   useLiveProject,
@@ -16,6 +17,7 @@ import { getProjectBackDestination } from "@/lib/projectBackDestination";
 import { WORKFLOW_STEPS } from "@stage/data-ops";
 import { formatRelativeTime } from "@/lib/utils";
 import type { Project, ProjectTab } from "@/models/project/project";
+import { PROJECT_TYPE_LABELS } from "@/types";
 import { TabLoadingState } from "./tabs/TabLoadingState";
 
 type StepTab = Exclude<ProjectTab, "overview">;
@@ -29,6 +31,7 @@ const PROJECT_STEP_LABELS: Record<StepTab, string> = {
   assets: "Assets",
 };
 
+/** Stable identity for the frame before the project detail has loaded. */
 const ProjectStepView = lazy(() =>
   import("./ProjectStepView").then((module) => ({
     default: module.ProjectStepView,
@@ -66,6 +69,7 @@ export function ProjectDetailView() {
     onLeavingAfterDelete: setIsLeavingAfterDelete,
   });
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [exportStep, setExportStep] = useState<"sections" | "skills" | null>(null);
   const [pendingStrategyGeneration, setPendingStrategyGeneration] = useState(false);
   const [pendingStrategyProviderId, setPendingStrategyProviderId] = useState<ProviderId | null>(
     null,
@@ -178,10 +182,18 @@ export function ProjectDetailView() {
             <ProjectHeader
               project={project}
               projectImageUrl={live.detail?.projectImageUrl}
+              projectCategoryLabel={
+                live.detail
+                  ? live.detail.type === "other" && live.detail.typeOtherLabel
+                    ? live.detail.typeOtherLabel
+                    : PROJECT_TYPE_LABELS[live.detail.type]
+                  : undefined
+              }
               clientAvatarUrl={live.detail?.clientAvatarUrl}
               timeline={timeline}
               activeTab={activeTab}
               onTabChange={setActiveTab}
+              onExport={(opts) => setExportStep(opts?.step ?? "sections")}
               onShare={() => setIsShareModalOpen(true)}
               onSaveProjectProfile={(input) => runModalAction(() => actions.saveProjectProfile(input))}
               onSaveClientProfile={(input) => runModalAction(() => actions.saveClientProfile(input))}
@@ -261,6 +273,7 @@ export function ProjectDetailView() {
               <ProjectStepView
                 activeTab={activeTab as StepTab}
                 project={project}
+                projectCategory={resolveProjectCategory(live.detail?.type ?? "websites") ?? "websites"}
                 artifactQueriesEnabled={artifactQueriesEnabled}
                 pendingStrategyGeneration={pendingStrategyGeneration}
                 pendingStrategyProviderId={pendingStrategyProviderId}
@@ -280,6 +293,26 @@ export function ProjectDetailView() {
           projectId={projectId}
           detail={live.detail}
           onClose={() => setIsShareModalOpen(false)}
+          onManageTeam={() => {
+            setIsShareModalOpen(false);
+            void navigate({ to: "/settings/team" });
+          }}
+        />
+      ) : null}
+      {exportStep && live.detail ? (
+        <ProjectExportDialog
+          projectId={projectId}
+          projectName={live.detail.name}
+          clientName={live.detail.clientName}
+          typeLabel={
+            live.detail.type === "other" && live.detail.typeOtherLabel
+              ? live.detail.typeOtherLabel
+              : PROJECT_TYPE_LABELS[live.detail.type]
+          }
+          skillIds={live.detail.skillIds ?? []}
+          componentPackIds={live.detail.componentPackIds ?? []}
+          initialStep={exportStep}
+          onClose={() => setExportStep(null)}
         />
       ) : null}
     </>
@@ -298,10 +331,12 @@ function ShareModal({
   projectId,
   detail,
   onClose,
+  onManageTeam,
 }: {
   projectId: string;
   detail: ReturnType<typeof useLiveProject>["detail"];
   onClose: () => void;
+  onManageTeam: () => void;
 }) {
   const share = useProjectShareLink({
     projectId,
@@ -365,96 +400,24 @@ function ShareModal({
             </button>
           </div>
 
-          <div className="flex flex-col gap-[8px]">
-            <div className="flex flex-col gap-[4px]">
-              <div className="flex items-center gap-[6px]">
-                <p className="text-[13px] font-medium leading-none text-[#171717]">
-                  Team members
-                </p>
-                <button
-                  type="button"
-                  className="inline-flex cursor-pointer items-center justify-center gap-[6px] rounded-[4px] bg-[rgba(70,63,186,0.1)] px-[6px] py-[4px] text-[12px] font-medium leading-none text-[#463FBA] transition-colors hover:bg-[rgba(70,63,186,0.16)]"
-                >
-                  <img
-                    src="/logos/dashboard/lock.svg"
-                    alt=""
-                    aria-hidden="true"
-                    className="h-[14px] w-[14px] shrink-0"
-                  />
-                  Upgrade plan
-                </button>
-              </div>
-              <p className="text-[12px] font-normal leading-[1.5] text-[#525252]">
-                Team members with an active subscription can open this project in the stage workspace and collaborate there.
+          <div className="flex flex-wrap items-center justify-between gap-[12px]">
+            <div className="min-w-0">
+              <p className="text-[13px] font-medium leading-none text-[#171717]">Team members</p>
+              <p className="mt-[4px] text-[12px] font-normal leading-[1.5] text-[#525252]">
+                Members can collaborate on every project in your workspace.
               </p>
             </div>
-            <div className="flex min-h-[38px] items-center justify-between overflow-hidden rounded-[8px] bg-[#F5F5F5] py-[2px] pl-3 pr-[2px] opacity-50 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
-              <input
-                type="url"
-                placeholder="ex. www.google.com"
-                disabled
-                className="min-w-0 flex-1 bg-transparent text-[12px] font-medium leading-[1.25] text-[#525252] outline-none placeholder:text-[#525252]"
-              />
-              <button
-                type="button"
-                disabled
-                className="inline-flex h-[30px] shrink-0 items-center gap-[6px] rounded-[6px] border border-[#525252] bg-gradient-to-b from-[#404040] to-[#0A0A0A] pl-[10px] pr-[12px] text-[12px] font-medium leading-none text-[#FAFAFA] opacity-50 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]"
-              >
-                <span
-                  aria-hidden="true"
-                  className="h-[12px] w-[12px] shrink-0 bg-current"
-                  style={{
-                    WebkitMask: 'url("/logos/dashboard/plus.svg") center / contain no-repeat',
-                    mask: 'url("/logos/dashboard/plus.svg") center / contain no-repeat',
-                  }}
-                />
-                Add Member
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex items-center justify-between gap-4 p-[12px]">
-          <div className="flex min-w-0 items-center gap-[8px]">
-            <SparkleIcon />
-            <p className="truncate text-[13px] font-medium leading-[1.5] text-[#0A0A0A]">
-              Invite your team members with PRO
-            </p>
-          </div>
-          <div className="flex shrink-0 items-center">
             <button
               type="button"
-              onClick={onClose}
-              className="inline-flex cursor-pointer items-center justify-center gap-[6px] rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7B76DF] to-[#463FBA] py-[6px] pl-[10px] pr-[12px] text-[12px] font-medium leading-none text-[#FAFAFA] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-opacity hover:opacity-90"
+              onClick={onManageTeam}
+              className="inline-flex h-[30px] shrink-0 items-center justify-center rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7B76DF] to-[#463FBA] px-[12px] text-[12px] font-medium leading-none text-[#FAFAFA] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-opacity hover:opacity-90"
             >
-              Upgrade Plan
-              <ArrowRightIconSmall />
+              Manage team
             </button>
           </div>
         </div>
       </div>
     </div>
-  );
-}
-
-function SparkleIcon() {
-  return (
-    <span
-      aria-hidden="true"
-      className="h-[18px] w-[18px] shrink-0 bg-[#7B76DF]"
-      style={{
-        WebkitMask: 'url("/logos/dashboard/ai-generated.svg") center / contain no-repeat',
-        mask: 'url("/logos/dashboard/ai-generated.svg") center / contain no-repeat',
-      }}
-    />
-  );
-}
-
-function ArrowRightIconSmall() {
-  return (
-    <svg viewBox="0 0 16 16" fill="none" aria-hidden="true" className="h-4 w-4">
-      <path d="M3.5 8h8.25M8.75 5l3 3-3 3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
   );
 }
 

@@ -53,6 +53,7 @@ fn builds_distinct_ui_pattern_groups_per_category() {
         category_searches: vec![
             ReferoCategorySearch {
                 category: ReferoUiPatternCategory::Onboarding,
+                section: None,
                 query: "onboarding".to_string(),
                 references: vec![sample_screen(
                     "uuid-onboard",
@@ -62,6 +63,7 @@ fn builds_distinct_ui_pattern_groups_per_category() {
             },
             ReferoCategorySearch {
                 category: ReferoUiPatternCategory::Pricing,
+                section: None,
                 query: "pricing".to_string(),
                 references: vec![sample_screen(
                     "uuid-pricing",
@@ -100,12 +102,39 @@ fn builds_distinct_ui_pattern_groups_per_category() {
 }
 
 #[test]
+fn details_website_groups_do_not_claim_canned_pattern_recognition() {
+    let context = ReferoContext {
+        query: "marketing website pricing".to_string(),
+        references: vec![],
+        category_searches: vec![ReferoCategorySearch {
+            category: ReferoUiPatternCategory::WebsiteSection,
+            section: Some("Pricing".to_string()),
+            query: "marketing website pricing".to_string(),
+            references: vec![sample_screen(
+                "uuid-pricing",
+                ReferoUiPatternCategory::WebsiteSection,
+                "Linear",
+            )],
+        }],
+        fetched_at: 1,
+    };
+
+    let groups = build_ui_patterns_from_refero(&context, &HashMap::new());
+    let group = &groups.as_array().expect("ui patterns array")[0];
+
+    assert_eq!(group["title"], "Pricing");
+    assert_eq!(group["recognizedPatterns"], serde_json::json!([]));
+    assert_eq!(group["patternCountLabel"], serde_json::Value::Null);
+}
+
+#[test]
 fn uses_refero_thumbnail_when_r2_image_key_is_missing() {
     let context = ReferoContext {
         query: "onboarding".to_string(),
         references: vec![],
         category_searches: vec![ReferoCategorySearch {
             category: ReferoUiPatternCategory::Onboarding,
+            section: None,
             query: "onboarding".to_string(),
             references: vec![sample_screen(
                 "uuid-onboard",

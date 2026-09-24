@@ -13,7 +13,7 @@ export const settingsSnapshot = settingsSnapshotSchema.parse({
     ],
   },
   billing: {
-    planName: "Stage Pro",
+    planName: "Stage Studio",
     billingCycle: "Monthly",
     renewsOn: "24/05/2026",
     paymentMethod: "Visa Mastercard",

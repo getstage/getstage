@@ -27,7 +27,10 @@ pub fn resolve_codex_model_id(
 
     match base_model_id {
         "codex-default" => None,
-        other => Some(other.to_string()),
+        other if crate::providers::models::is_safe_provider_model_id(other) => {
+            Some(other.to_string())
+        }
+        _ => None,
     }
 }
 
@@ -36,7 +39,7 @@ pub fn resolve_codex_effort(options: &[RunModelOptionSelection]) -> Option<Strin
         return Some("low".to_string());
     }
 
-    option_string(options, "reasoning_effort").map(map_codex_effort)
+    option_string(options, "reasoning_effort").map(map_known_effort)
 }
 
 fn resolve_codex_verbosity(options: &[RunModelOptionSelection]) -> Option<&'static str> {
@@ -60,7 +63,7 @@ fn resolve_claude_effort(options: &[RunModelOptionSelection]) -> Option<String> 
         return Some("low".to_string());
     }
 
-    option_string(options, "reasoning_effort").map(map_claude_effort)
+    option_string(options, "reasoning_effort").map(map_known_effort)
 }
 
 fn option_string<'a>(options: &'a [RunModelOptionSelection], id: &str) -> Option<&'a str> {
@@ -76,24 +79,11 @@ fn option_string<'a>(options: &'a [RunModelOptionSelection], id: &str) -> Option
     })
 }
 
-fn map_claude_effort(value: &str) -> String {
+fn map_known_effort(value: &str) -> String {
     match value {
-        "low" => "low",
-        "medium" => "medium",
-        "high" => "high",
-        "extra-high" => "xhigh",
-        other => other,
-    }
-    .to_string()
-}
-
-fn map_codex_effort(value: &str) -> String {
-    match value {
-        "low" => "low".to_string(),
-        "medium" => "medium".to_string(),
-        "high" => "high".to_string(),
+        "low" | "medium" | "high" => value.to_string(),
         "extra-high" => "xhigh".to_string(),
-        other => other.to_string(),
+        _ => "medium".to_string(),
     }
 }
 
@@ -124,6 +114,11 @@ mod tests {
             resolve_codex_model_id("gpt-5.5", &options).as_deref(),
             Some("gpt-5.5")
         );
+        assert_eq!(
+            resolve_codex_model_id("gpt-6-astra", &options).as_deref(),
+            Some("gpt-6-astra")
+        );
+        assert_eq!(resolve_codex_model_id("../evil", &options), None);
     }
 
     #[test]

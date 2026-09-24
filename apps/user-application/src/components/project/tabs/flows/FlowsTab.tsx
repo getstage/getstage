@@ -258,11 +258,7 @@ export function FlowsTab({ project, onGoToResearch, onGoToStrategy }: FlowsTabPr
   async function handleSendToFigJam() {
     if (!artifactRecord) return;
     setUiError(null);
-    try {
-      await figJamExport.sendToFigJam(artifactRecord.id);
-    } catch (error) {
-      setUiError(error instanceof Error ? error.message : "Could not send flows to FigJam.");
-    }
+    await figJamExport.sendToFigJam(artifactRecord.id);
   }
 
   if (flowsTab.isLoading) {

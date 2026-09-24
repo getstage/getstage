@@ -19,7 +19,7 @@ export function TargetUsers({ users, isEditing, onUsersChange }: TargetUsersProp
       <SectionTitle>Target Users</SectionTitle>
       <div className="grid grid-cols-1 gap-2 xl:grid-cols-2">
         {users.map((user, index) => (
-          <article key={user.name} className="flex flex-col items-start gap-2 rounded-[8px] bg-[#FAFAFA] p-4 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
+          <article key={`target-user-${index}`} className="flex flex-col items-start gap-2 rounded-[8px] bg-[#FAFAFA] p-4 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
             <div className="flex w-full items-center justify-center gap-3">
               <img
                 src="/images/project-modals/avatar.png"

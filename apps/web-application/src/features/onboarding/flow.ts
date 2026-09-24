@@ -6,7 +6,7 @@ import {
 } from "@/lib/validation";
 import type { Method } from "../../../shared/project-creation";
 import type { OnboardingStepId } from "./model";
-import type { ProjectType } from "@/types";
+import type { ProjectCategory } from "@/types";
 
 type ValidationContext = {
   step: OnboardingStepId;
@@ -17,7 +17,7 @@ type ValidationContext = {
   clientName: string;
   clientEmail: string;
   hasClientAvatar: boolean;
-  projectType: ProjectType | null;
+  projectType: ProjectCategory | null;
   activePhasesLength: number;
   startDate: string;
   endDate: string;

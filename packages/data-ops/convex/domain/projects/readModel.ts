@@ -48,7 +48,10 @@ export async function buildProjectWithAccess(
   };
 }
 
-export async function listProjectsForUser(ctx: ReaderCtx, userId: Id<"users">) {
+export async function listAccessibleProjectDocsForUser(
+  ctx: ReaderCtx,
+  userId: Id<"users">,
+) {
   const ownedProjects = await ctx.db
     .query("projects")
     .withIndex("by_user", (q) => q.eq("userId", userId))
@@ -62,30 +65,35 @@ export async function listProjectsForUser(ctx: ReaderCtx, userId: Id<"users">) {
     .withIndex("by_user", (q) => q.eq("userId", userId))
     .collect();
 
-  const roleByProject = new Map<Id<"projects">, "owner" | "editor">();
+  const projectsById = new Map<
+    Id<"projects">,
+    { project: Doc<"projects">; accessRole: "owner" | "editor" }
+  >();
   for (const project of ownedProjects) {
-    roleByProject.set(project._id, "owner");
+    projectsById.set(project._id, { project, accessRole: "owner" });
   }
 
-  const sharedProjects: Doc<"projects">[] = [];
   for (const membership of memberships) {
     const ownerProjects = await ctx.db
       .query("projects")
       .withIndex("by_user", (q) => q.eq("userId", membership.ownerUserId))
       .collect();
     for (const project of ownerProjects) {
-      if (roleByProject.has(project._id)) continue;
-      roleByProject.set(project._id, "editor");
-      sharedProjects.push(project);
+      if (projectsById.has(project._id)) continue;
+      projectsById.set(project._id, { project, accessRole: "editor" });
     }
   }
 
-  const allProjects = [...ownedProjects, ...sharedProjects].sort(
-    (a, b) => a.startDate - b.startDate,
+  return Array.from(projectsById.values()).sort(
+    (a, b) => a.project.startDate - b.project.startDate,
   );
+}
+
+export async function listProjectsForUser(ctx: ReaderCtx, userId: Id<"users">) {
+  const projects = await listAccessibleProjectDocsForUser(ctx, userId);
   return Promise.all(
-    allProjects.map((project) =>
-      buildProjectWithAccess(ctx, project, roleByProject.get(project._id) ?? "editor"),
+    projects.map(({ project, accessRole }) =>
+      buildProjectWithAccess(ctx, project, accessRole),
     ),
   );
 }

@@ -81,7 +81,9 @@ export function SidebarAccountMenu({
       <button
         type="button"
         aria-label="Help & Feedback"
-        onClick={() => void openExternalLink(HELP_FEEDBACK_URL)}
+        onClick={() => {
+          void openExternalLink(HELP_FEEDBACK_URL);
+        }}
         className={cn(
           "flex h-[32px] items-center overflow-hidden bg-[#f5f5f5] text-[#525252] transition-[width,padding,gap,background-color] duration-200 ease-out hover:bg-[#ebebeb]",
           "cursor-pointer",

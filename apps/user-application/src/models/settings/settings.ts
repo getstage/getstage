@@ -91,9 +91,23 @@ export const settingsOverviewSchema = z.object({
     role: userRoleSchema,
     plan: planSchema,
   }),
+  workspace: z
+    .object({
+      role: z.enum(["owner", "member"]),
+      owner: z.object({
+        id: z.string().min(1),
+        name: z.string(),
+        email: z.string(),
+        avatarUrl: z.string().nullable(),
+      }),
+      plan: planSchema,
+      seats: z.number().int().positive(),
+    })
+    .optional(),
   subscription: z
     .object({
       plan: planSchema,
+      seats: z.number().int().positive(),
       status: z.string(),
       provider: z.string(),
       billingCycle: z.string(),
@@ -117,6 +131,26 @@ export const settingsOverviewSchema = z.object({
     accentColor: z.string(),
   }),
   previewPortalUrl: z.string().nullable(),
+  skillHub: z
+    .object({
+      installedSkillIds: z.array(z.string()).nullable().optional(),
+      enabledSkillIds: z.array(z.string()).nullable(),
+      enabledComponentPackIds: z.array(z.string()).nullable(),
+          importedSkillHubItems: z
+        .array(
+          z.object({
+            id: z.string(),
+            kind: z.enum(["skill", "component"]),
+            name: z.string(),
+            sourceUrl: z.string(),
+            subtitle: z.string().optional(),
+            iconUrl: z.string().optional(),
+          }),
+        )
+        .nullable()
+        .optional(),
+    })
+    .optional(),
 });
 
 export const profileUpdateResultSchema = z.object({
@@ -129,3 +163,10 @@ export const profileUpdateResultSchema = z.object({
 export type UserRole = z.infer<typeof userRoleSchema>;
 export type SettingsOverview = z.infer<typeof settingsOverviewSchema>;
 export type ProfileUpdateResult = z.infer<typeof profileUpdateResultSchema>;
+
+export function coveringPlan(overview: SettingsOverview | undefined) {
+  if (overview?.workspace?.plan && overview.workspace.plan !== "free") {
+    return overview.workspace.plan;
+  }
+  return overview?.profile.plan ?? "free";
+}

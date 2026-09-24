@@ -21,6 +21,7 @@ import {
 import { normalizeList, normalizeOptional } from "../domain/normalize";
 import { now } from "../domain/time";
 import { projectAiProviderId } from "../domain/validators";
+import { resolveProjectCategory } from "../../projects/domain/projectCategory";
 
 export const upsertStrategyGenerateInputArgs = {
   projectId: v.id("projects"),
@@ -82,6 +83,7 @@ export async function getStrategyInputHandler(
   return {
     projectId: String(project._id),
     projectName: project.name,
+    projectCategory: resolveProjectCategory(project.type),
     researchArtifactId: String(latestResearch._id),
     researchArtifactJson: latestResearch.contentJson,
     focusAreas: record?.strategyFocusAreas ?? [],

@@ -13,7 +13,9 @@ type UpdateCheckOptions = {
   manual?: boolean;
 };
 
-const RELEASES_PAGE_URL = "https://github.com/getstage/getstage/releases/latest";
+const RELEASES_PAGE_URL = process.env.STAGE_DESKTOP_UPDATES_URL?.includes("desktop-testing-feed")
+  ? "https://github.com/getstage/getstage/releases/tag/desktop-testing-feed"
+  : "https://github.com/getstage/getstage/releases/latest";
 const GITHUB_OWNER = "getstage";
 const GITHUB_REPO = "getstage";
 const GITHUB_LATEST_RELEASE_API_URL =
@@ -372,7 +374,8 @@ export async function checkForUpdates(options: UpdateCheckOptions = {}) {
   } catch (error: unknown) {
     logUpdateWarning(error instanceof Error ? error.message : "unknown update check error");
     if (manual) {
-      const handled = await handleManualUpdateFallback(error);
+      // A generic testing feed must never fall back to the production "Latest" release.
+      const handled = !process.env.STAGE_DESKTOP_UPDATES_URL && await handleManualUpdateFallback(error);
       if (!handled) {
         await showManualCheckError(error);
       }

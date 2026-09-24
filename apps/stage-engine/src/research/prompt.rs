@@ -1,7 +1,5 @@
-use crate::models::refero::{
-    ReferoContext, ReferoReference, ReferoReferenceKind, ReferoUiPatternCategory,
-};
-use crate::models::research::ResearchInput;
+use crate::models::refero::{ReferoContext, ReferoReference, ReferoReferenceKind};
+use crate::models::research::{ProjectCategory, ResearchInput};
 
 use super::competitive::{competitive_rules_for_prompt, format_competitive_targets_for_prompt};
 
@@ -12,6 +10,18 @@ pub fn build_research_prompt(
 ) -> String {
     let competitive_targets = format_competitive_targets_for_prompt(input);
     let competitive_rules = competitive_rules_for_prompt(input);
+    let reference_provider = match input.project_category {
+        ProjectCategory::Websites => "Details",
+        ProjectCategory::WebApps | ProjectCategory::IosApps => "Refero",
+    };
+    let preferred_web_evidence = match input.project_category {
+        ProjectCategory::Websites => {
+            "homepage, features, social proof, pricing, and contact/signup evidence"
+        }
+        ProjectCategory::WebApps | ProjectCategory::IosApps => {
+            "pricing, product/features, onboarding/signup, checkout, or dashboard evidence"
+        }
+    };
 
     let category_lines = refero_context
         .category_searches
@@ -24,7 +34,7 @@ pub fn build_research_prompt(
                 .count();
             format!(
                 "- {} ({} screens): {}",
-                bucket.category.display_title(),
+                bucket.display_title(),
                 hits,
                 bucket.query
             )
@@ -54,7 +64,9 @@ pub fn build_research_prompt(
         .iter()
         .all(|(_, screens)| screens.is_empty())
     {
-        "No Refero competitor screens found — fall back to web evidence for the matrix.".to_string()
+        format!(
+            "No {reference_provider} competitor screens found — fall back to web evidence for the matrix."
+        )
     } else {
         competitor_evidence
             .iter()
@@ -73,7 +85,7 @@ pub fn build_research_prompt(
                     })
                     .collect::<Vec<_>>();
                 if screen_lines.is_empty() {
-                    format!("- {name}: no Refero screens found.")
+                    format!("- {name}: no {reference_provider} screens found.")
                 } else {
                     format!("- {name}:\n{}", screen_lines.join("\n"))
                 }
@@ -95,6 +107,7 @@ Project:
 - Client: {client_name}
 - Industry: {industry}
 - Website: {website}
+- Project category: {project_category}
 
 Project brief:
 {project_brief}
@@ -110,21 +123,21 @@ Allowed competitive sites (and ONLY these):
 
 {competitive_rules}
 
-Real competitor UI evidence (from Refero — actual product screenshots, bot-proof; PREFER this over web fetch when scoring the competitive matrix):
+Real competitor UI evidence (from {reference_provider} — actual product screenshots; prefer this over web fetch when scoring the competitive matrix):
 {competitor_evidence_lines}
 
 Web research rules:
 - Use web search/fetch to inspect only the project website and allowed competitive sites.
 - Inspect at most the homepage plus three relevant pages per site.
-- Prefer pricing, product/features, onboarding/signup, checkout, or dashboard evidence.
+- Prefer {preferred_web_evidence}.
 - Every factual competitive claim must be supported by a real fetched page and represented in sourceReferences with its URL.
 - If a claim cannot be supported by fetched evidence, omit it.
 - Do not use model memory as evidence.
 
-Refero category searches (UI Patterns are built by Stage from these — do not author uiPatterns):
+{reference_provider} category searches (UI Patterns are built by Stage from these — do not author uiPatterns):
 {category_lines}
 
-Refero flow references (journey context only):
+{reference_provider} flow references (journey context only):
 {flow_lines}
 
 Required artifact sections:
@@ -159,7 +172,7 @@ Required competitiveAnalysis matrix shape:
 ```
 - Use the 7 matrix labels from the competitive rules (Navigation, Onboarding, Visual Style, Content Hierarchy, Mobile Experience, Dashboard Layout, Data Visualization).
 - Every matrix cell MUST have `competitorId` and `score` ("Strong" | "OK" | "Weak").
-- Score each competitor from the Real competitor UI evidence (Refero) above — it is reliable visual evidence and does not need a fetched URL. Only give a low score when the real screens show a genuine UX weakness, never because a live page failed to load or was bot-gated.
+- Score each competitor from the Real competitor UI evidence ({reference_provider}) above — it is reliable visual evidence and does not need a fetched URL. Only give a low score when the real screens show a genuine UX weakness, never because a live page failed to load or was bot-gated.
 - Matrix `note` must be omitted. Cells are score-only (Strong / OK / Weak).
 - Never put URLs or multi-sentence notes in matrix cells.
 
@@ -183,7 +196,7 @@ opportunities rules:
 - Never invent facts, competitors, user needs, or evidence just to create an opportunity.
 - If you cannot generate at least 3 grounded opportunities, return no artifact; do not return an empty opportunities array.
 
-Do NOT include uiPatterns in your JSON — Stage engine builds UI Patterns rows ({ui_pattern_rows}) from Refero screenshots after your response.
+Do NOT include uiPatterns in your JSON — Stage engine builds UI Patterns rows ({ui_pattern_rows}) from the attached {reference_provider} screenshots after your response.
 
 The JSON must use:
 - apiVersion: "v1"
@@ -193,6 +206,7 @@ The JSON must use:
         project_id = input.project_id,
         project_name = input.project_name,
         client_name = input.client_name.as_deref().unwrap_or("Unknown"),
+        project_category = input.project_category.display_name(),
         industry = input.industry,
         website = input.website.as_deref().unwrap_or("Unknown"),
         project_brief = input.project_brief.as_deref().unwrap_or("Not provided."),
@@ -202,19 +216,22 @@ The JSON must use:
         competitive_rules = competitive_rules,
         competitor_evidence_lines = competitor_evidence_lines,
         category_lines = if category_lines.is_empty() {
-            "No Refero category searches returned.".to_string()
+            format!("No {reference_provider} category searches returned.")
         } else {
             category_lines
         },
         flow_lines = if flow_lines.is_empty() {
-            "No Refero flow references returned.".to_string()
+            format!("No {reference_provider} flow references returned.")
         } else {
             flow_lines
         },
-        ui_pattern_rows = ReferoUiPatternCategory::all()
+        ui_pattern_rows = refero_context
+            .category_searches
             .iter()
-            .map(|category| category.display_title())
+            .map(|bucket| bucket.display_title())
             .collect::<Vec<_>>()
             .join(", "),
+        preferred_web_evidence = preferred_web_evidence,
+        reference_provider = reference_provider,
     )
 }

@@ -1,10 +1,153 @@
 import { z } from "zod";
 
+import { projectCategorySchema } from "./desktop-api/project";
 import { referoContextSchema } from "./refero";
 
 /** Codex/engine emits explicit null for absent fields — use nullish, not optional-only. */
 const optionalText = z.string().min(1).nullish();
 const optionalUrl = z.string().min(1).nullish();
+
+export const DETAILS_STRUCTURE_SECTIONS = [
+  "CTA",
+  "Footer",
+  "Hero",
+  "Legal",
+  "Navigation",
+  "Drawer",
+  "Dropdown",
+  "Fullscreen",
+  "Morphing",
+] as const;
+
+export const DETAILS_PAGE_SECTIONS = [
+  "404",
+  "Article",
+  "Blog",
+  "Case Study",
+  "Contact",
+  "Content",
+  "About",
+  "FAQ",
+  "Features",
+  "Services",
+  "Steps",
+  "Newsletter",
+  "Portfolio",
+  "Pricing",
+  "Products",
+  "Social Proof",
+  "Logo",
+  "Testimonial",
+  "Stats",
+  "Team",
+  "Timeline",
+] as const;
+
+export const DETAILS_SECTIONS = [
+  ...DETAILS_STRUCTURE_SECTIONS,
+  ...DETAILS_PAGE_SECTIONS,
+] as const;
+export const REFERO_APP_SECTIONS = [
+  "Onboarding",
+  "Login / Sign up",
+  "Homepage",
+  "Dashboard",
+  "Analytics / Reports",
+  "Table / List",
+  "Search",
+  "Detail View",
+  "Forms",
+  "Settings",
+  "Profile",
+  "Team / Permissions",
+  "Integrations",
+  "Billing",
+  "Pricing",
+  "Checkout",
+  "Browse / Discovery",
+  "Notifications",
+  "Empty State",
+  "Success / Confirmation",
+  "Splash Screen",
+] as const;
+export const REFERO_WEB_APP_SECTIONS = [
+  "Onboarding",
+  "Login / Sign up",
+  "Homepage",
+  "Dashboard",
+  "Analytics / Reports",
+  "Table / List",
+  "Search",
+  "Detail View",
+  "Forms",
+  "Settings",
+  "Profile",
+  "Team / Permissions",
+  "Integrations",
+  "Billing",
+  "Pricing",
+  "Checkout",
+  "Notifications",
+  "Empty State",
+  "Success / Confirmation",
+] as const;
+export const REFERO_IOS_APP_SECTIONS = [
+  "Splash Screen",
+  "Onboarding",
+  "Login / Sign up",
+  "Homepage",
+  "Browse / Discovery",
+  "Search",
+  "Detail View",
+  "Dashboard",
+  "Analytics / Reports",
+  "Forms",
+  "Pricing",
+  "Checkout",
+  "Profile",
+  "Settings",
+  "Notifications",
+  "Empty State",
+  "Success / Confirmation",
+] as const;
+export const RESEARCH_REFERENCE_SECTIONS = [
+  ...DETAILS_SECTIONS,
+  "Onboarding",
+  "Login / Sign up",
+  "Homepage",
+  "Checkout",
+  "Dashboard",
+  "Analytics / Reports",
+  "Table / List",
+  "Search",
+  "Detail View",
+  "Forms",
+  "Settings",
+  "Profile",
+  "Team / Permissions",
+  "Integrations",
+  "Billing",
+  "Browse / Discovery",
+  "Notifications",
+  "Empty State",
+  "Success / Confirmation",
+  "Splash Screen",
+] as const;
+export const DEFAULT_DETAILS_SECTIONS = [
+  "Hero",
+  "Features",
+  "Social Proof",
+  "Pricing",
+  "Contact",
+] as const;
+export const DEFAULT_REFERO_APP_SECTIONS = [
+  "Onboarding",
+  "Homepage",
+  "Pricing",
+  "Checkout",
+  "Dashboard",
+] as const;
+export const detailsSectionSchema = z.enum(RESEARCH_REFERENCE_SECTIONS);
 
 export const researchMatrixScoreSchema = z.enum(["Strong", "OK", "Weak"]);
 
@@ -20,11 +163,13 @@ export const researchArtifactSectionSchema = z.enum([
 export const researchInputSchema = z.object({
   projectId: z.string().min(1),
   projectName: z.string().min(1),
+  projectCategory: projectCategorySchema,
   clientName: z.string().min(1).optional(),
   industry: z.string().min(1),
   website: z.string().min(1).optional(),
   projectBrief: z.string().min(1).optional(),
   competitorUrls: z.array(z.string().min(1)).default([]),
+  detailsSections: z.array(detailsSectionSchema).min(1).default([...DEFAULT_DETAILS_SECTIONS]),
   targetUsers: z.string().min(1).optional(),
   additionalNotes: z.string().min(1).optional(),
   uploadedAssetIds: z.array(z.string().min(1)).default([]),
@@ -110,7 +255,7 @@ export const researchCustomSectionSchema = z.object({
 
 export const researchSourceReferenceSchema = z.object({
   id: z.string().min(1),
-  provider: z.enum(["refero", "figma", "notion", "sheets", "website", "user"]),
+  provider: z.enum(["refero", "details", "figma", "notion", "sheets", "website", "user"]),
   label: z.string().min(1),
   url: optionalUrl,
   externalId: optionalText,
@@ -125,6 +270,7 @@ export const researchArtifactSchema = z.object({
   companySnapshot: z.array(researchCompanySnapshotRowSchema).min(1).default([]),
   competitiveAnalysis: researchCompetitiveAnalysisSchema,
   uiPatterns: z.array(researchUiPatternGroupSchema).default([]),
+  uiPatternProvider: z.enum(["refero", "details"]).optional(),
   targetUsers: z.array(researchTargetUserSchema).min(1).default([]),
   opportunities: z.array(researchOpportunitySchema).min(1).default([]),
   customSections: z.array(researchCustomSectionSchema).default([]),
@@ -142,6 +288,7 @@ export const researchArtifactPatchSchema = z.object({
 });
 
 export type ResearchMatrixScore = z.infer<typeof researchMatrixScoreSchema>;
+export type DetailsSection = z.infer<typeof detailsSectionSchema>;
 export type ResearchArtifactSection = z.infer<typeof researchArtifactSectionSchema>;
 export type ResearchInput = z.infer<typeof researchInputSchema>;
 export type ResearchCompanySnapshotRow = z.infer<typeof researchCompanySnapshotRowSchema>;

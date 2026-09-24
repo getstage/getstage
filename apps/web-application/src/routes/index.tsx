@@ -1,10 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { StageV2LandingPage } from "@/components/landing-v2/StageV2LandingPage";
+import { StageLandingPage } from "@/components/stage-landing/StageLandingPage";
 
 export const Route = createFileRoute("/")({
-  component: IndexRoute,
+  component: StageLandingPage,
 });
-
-function IndexRoute() {
-  return <StageV2LandingPage />;
-}

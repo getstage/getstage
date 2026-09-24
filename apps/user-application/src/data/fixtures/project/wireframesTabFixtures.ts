@@ -1,5 +1,4 @@
 export {
-  createSeedConfigureScreens,
   FIGMA_SYMBOL_URL,
   getSeedWireframesTabData,
   MOCK_BRAND_KIT,

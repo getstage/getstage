@@ -541,7 +541,7 @@ function QuickstartSection({
               {[
                 {
                   step: "1",
-                  text: "Create an API key in Settings > Developer (Pro plan required)",
+                  text: "Create an API key in Settings > Developer (Studio plan required)",
                 },
                 {
                   step: "2",

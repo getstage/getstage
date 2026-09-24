@@ -19,13 +19,26 @@ export function useResearchContext(projectId: string | undefined) {
       return DEFAULT_RESEARCH_CONFIGURE_FORM_VALUES;
     }
 
+    const attachments = record.briefAttachments
+      ? record.briefAttachments
+      : record.briefAttachmentR2ObjectKey
+        ? [
+            {
+              name: record.briefAttachmentName ?? "Brief",
+              r2ObjectKey: record.briefAttachmentR2ObjectKey,
+            },
+          ]
+        : [];
+
     return {
       industry: record.industry ?? "",
       website: record.clientWebsite ?? "",
       projectBrief: record.brief ?? "",
       additionalNotes: record.notes ?? "",
       competitorUrls: record.competitorUrls ?? [],
-      briefFileName: record.briefAttachmentName ?? null,
+      detailsSections: record.detailsSections ?? DEFAULT_RESEARCH_CONFIGURE_FORM_VALUES.detailsSections,
+      briefFileNames: attachments.map((file) => file.name),
+      briefAttachments: attachments,
     };
   }, [record]);
 

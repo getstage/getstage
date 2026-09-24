@@ -23,7 +23,7 @@ export function UpgradePaywallModal({
   const content =
     variant === "general"
       ? {
-          title: "Upgrade to Stage Pro",
+          title: "Upgrade to Stage Studio",
           headline: "Unlock the full workspace.",
           description:
             "Start checkout to unlock more projects, billing access, and the full Stage workspace.",
@@ -40,7 +40,7 @@ export function UpgradePaywallModal({
             },
             {
               icon: <CrownSimple size={18} weight="fill" />,
-              title: "Pro workspace",
+              title: "Studio workspace",
               description: "Unlock the paid workspace without routing through settings first.",
             },
           ],

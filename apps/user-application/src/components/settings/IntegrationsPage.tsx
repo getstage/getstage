@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import {
   useAction as useConvexAction,
@@ -35,6 +35,13 @@ import { SetupStepsDialog } from "@/components/ui/SetupStepsDialog";
 import { ProviderCliSetupDialog } from "./ProviderCliSetupDialog";
 import { ProviderUpdatesBanner } from "./ProviderUpdatesBanner";
 import { SettingsIcon } from "./SettingsIcons";
+import {
+  ComponentsHubPanel,
+  MarketplaceHubPanel,
+  SkillsHubPanel,
+} from "./SkillsComponentsHub";
+import type { IntegrationsHubTab } from "@/lib/settings/skillsCatalog";
+import { HUB_TAB_ICON_PATHS } from "@/lib/settings/skillsCatalog";
 
 export function IntegrationsPage() {
   const { isAuthenticated } = useConvexAuth();
@@ -42,6 +49,7 @@ export function IntegrationsPage() {
   const providerRefresh = useProviderRefresh();
   const providerPreferences = useProviderPreferences();
   const chatDefaults = useChatDefaults();
+  const [hubTab, setHubTab] = useState<IntegrationsHubTab>("tools");
   const [busyIntegrationId, setBusyIntegrationId] = useState<string | null>(null);
   const [setupDialogProviderId, setSetupDialogProviderId] = useState<ProviderId | null>(null);
   const [aiDefaultsOpen, setAiDefaultsOpen] = useState(false);
@@ -266,19 +274,34 @@ export function IntegrationsPage() {
               Integrations
             </h1>
             <p className="mt-[8px] text-[13px] font-medium leading-[1.2] text-[#737373]">
-              Manage all your integrations and tool connections here
+              Manage your tools, skills and libraries all in one place.
             </p>
           </div>
-          <button
-            type="button"
-            disabled={isRefreshing}
-            onClick={() => void refreshIntegrations()}
-            className="inline-flex h-[32px] items-center justify-center rounded-[6px] bg-[#F5F5F5] px-[12px] text-[12px] font-medium leading-none text-[#171717] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors enabled:hover:bg-[#ECECEC] disabled:cursor-wait disabled:text-[#737373]"
-          >
-            {isRefreshing ? "Checking..." : "Refresh"}
-          </button>
+          {hubTab === "tools" ? (
+            <button
+              type="button"
+              disabled={isRefreshing}
+              onClick={() => void refreshIntegrations()}
+              className="inline-flex h-[32px] items-center justify-center rounded-[6px] bg-[#F5F5F5] px-[12px] text-[12px] font-medium leading-none text-[#171717] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors enabled:hover:bg-[#ECECEC] disabled:cursor-wait disabled:text-[#737373]"
+            >
+              {isRefreshing ? "Checking..." : "Refresh"}
+            </button>
+          ) : null}
         </header>
 
+        <IntegrationsHubTabs active={hubTab} onChange={setHubTab} />
+
+        {hubTab === "skills" ? <SkillsHubPanel /> : null}
+        {hubTab === "components" ? <ComponentsHubPanel /> : null}
+        {hubTab === "marketplace" ? (
+          <MarketplaceHubPanel
+            onViewLibraries={() => setHubTab("components")}
+            onViewSkills={() => setHubTab("skills")}
+          />
+        ) : null}
+
+        {hubTab === "tools" ? (
+          <>
         <ProviderUpdatesBanner />
 
         <IntegrationGroup title="AI defaults">
@@ -392,6 +415,8 @@ export function IntegrationsPage() {
             </div>
           </IntegrationGroup>
         </div>
+          </>
+        ) : null}
       </div>
 
       {setupDialogProviderId ? (
@@ -421,6 +446,58 @@ export function IntegrationsPage() {
         }}
       />
     </div>
+  );
+}
+
+function IntegrationsHubTabs({
+  active,
+  onChange,
+}: {
+  active: IntegrationsHubTab;
+  onChange: (tab: IntegrationsHubTab) => void;
+}) {
+  const tabs: Array<{ id: IntegrationsHubTab; label: string }> = [
+    { id: "tools", label: "Tools" },
+    { id: "skills", label: "Skills" },
+    { id: "components", label: "Components" },
+    { id: "marketplace", label: "Marketplace" },
+  ];
+
+  return (
+    <div className="inline-flex w-fit max-w-full self-start items-center gap-[8px] overflow-x-auto rounded-[8px] bg-[#F5F5F5] p-[2px]">
+      {tabs.map((tab) => {
+        const selected = tab.id === active;
+        return (
+          <button
+            key={tab.id}
+            type="button"
+            onClick={() => onChange(tab.id)}
+            className={`inline-flex items-center gap-[8px] whitespace-nowrap rounded-[6px] py-[6px] pl-[10px] pr-[12px] text-[13px] font-medium leading-none transition-all ${
+              selected
+                ? "bg-gradient-to-b from-[#8D87FF] to-[#7B76DF] text-white shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]"
+                : "text-[#737373] hover:bg-white"
+            }`}
+          >
+            <HubTabIcon tab={tab.id} />
+            {tab.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function HubTabIcon({ tab }: { tab: IntegrationsHubTab }) {
+  const iconPath = HUB_TAB_ICON_PATHS[tab];
+  return (
+    <span
+      aria-hidden="true"
+      className="h-[15px] w-[15px] shrink-0 bg-current"
+      style={{
+        WebkitMask: `url("${iconPath}") center / contain no-repeat`,
+        mask: `url("${iconPath}") center / contain no-repeat`,
+      }}
+    />
   );
 }
 
@@ -603,6 +680,24 @@ function CustomModelSelect({
       models: availableModels.filter((model) => model.provider === "openai"),
     },
   ];
+  const buttonRef = useRef<HTMLButtonElement | null>(null);
+  const [menuStyle, setMenuStyle] = useState<{ maxHeight: number; openUp: boolean }>({
+    maxHeight: 280,
+    openUp: false,
+  });
+
+  useLayoutEffect(() => {
+    if (!open || !buttonRef.current) return;
+    const rect = buttonRef.current.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - rect.bottom - 12;
+    const spaceAbove = rect.top - 12;
+    const openUp = spaceBelow < 220 && spaceAbove > spaceBelow;
+    const available = openUp ? spaceAbove : spaceBelow;
+    setMenuStyle({
+      maxHeight: Math.max(160, Math.min(360, available)),
+      openUp,
+    });
+  }, [open]);
 
   return (
     <div className="relative min-w-0" ref={menuRef}>
@@ -610,6 +705,7 @@ function CustomModelSelect({
         Default model
       </span>
       <button
+        ref={buttonRef}
         type="button"
         aria-expanded={open}
         onClick={() => onOpenChange(!open)}
@@ -623,7 +719,12 @@ function CustomModelSelect({
       </button>
 
       {open ? (
-        <div className="absolute left-0 top-[calc(100%+6px)] z-50 w-full min-w-[320px] rounded-[8px] border border-[#E5E5E5] bg-white p-[5px] shadow-[0_14px_36px_rgba(10,10,10,0.13)]">
+        <div
+          className={`absolute left-0 z-50 max-w-full overflow-y-auto rounded-[8px] border border-[#E5E5E5] bg-white p-[5px] shadow-[0_14px_36px_rgba(10,10,10,0.13)] ${
+            menuStyle.openUp ? "bottom-[calc(100%+6px)]" : "top-[calc(100%+6px)]"
+          }`}
+          style={{ maxHeight: menuStyle.maxHeight, width: "100%" }}
+        >
           {groupedModels.map((group) => (
             <div key={group.label} className="py-[3px]">
               <p className="px-[8px] pb-[4px] text-[11px] font-medium leading-none text-[#737373]">
@@ -659,9 +760,11 @@ function CustomModelSelect({
                             </span>
                           ) : null}
                         </span>
+                        {model.description ? (
                         <span className="mt-[3px] block truncate text-[11px] font-normal leading-[1.2] text-[#737373]">
                           {model.description}
                         </span>
+                        ) : null}
                         </span>
                       </span>
                     </button>

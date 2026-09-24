@@ -8,7 +8,7 @@ import { useClearResearchAndStrategyForRerun } from "@/hooks/project/useClearRes
 import { useProjectDownstreamWork } from "@/hooks/project/useProjectDownstreamWork";
 import type { Project } from "@/models/project/project";
 import type { ValidatedResearchConfigureInput } from "@/lib/project/researchConfigureInput";
-import type { ProviderId, ResearchArtifactSection } from "@stage/data-ops/contracts";
+import type { ProjectCategory, ProviderId, ResearchArtifactSection } from "@stage/data-ops/contracts";
 import type { Id } from "@stage/data-ops/convex/data-model";
 import type { CompetitiveView, ResearchTabData } from "@/types/project/researchTab";
 import { useResearchContext } from "@/hooks/project/research/useResearchContext";
@@ -38,9 +38,11 @@ import { UiPatterns } from "./UiPatterns";
 
 export function ResearchTab({
   project,
+  projectCategory,
   onGenerateStrategy,
 }: {
   project: Project;
+  projectCategory: ProjectCategory;
   onGenerateStrategy: (providerId: ProviderId) => void;
 }) {
   const [isEditing, setIsEditing] = useState(false);
@@ -277,6 +279,8 @@ export function ResearchTab({
           </p>
         ) : null}
         <ResearchConfigureStep
+          projectId={project.id}
+          projectCategory={projectCategory}
           isSubmitting={research.isStarting || research.isRunning}
           initialValues={researchContext.initialValues}
           onBriefFileChange={research.setBriefFile}
@@ -349,6 +353,7 @@ export function ResearchTab({
             <Divider />
             <UiPatterns
               groups={tabData.uiPatternGroups}
+              provider={tabData.uiPatternProvider}
               isEditing={isEditing}
               openGroupId={openPatternGroup}
               onToggleGroup={(groupId) => setOpenPatternGroup((current) => (current === groupId ? null : groupId))}
@@ -415,7 +420,13 @@ export function ResearchTab({
           </div>
         </div>
       </section>
-      {openPhoto ? <PhotoLightbox src={openPhoto} onClose={() => setOpenPhoto(null)} /> : null}
+      {openPhoto ? (
+        <PhotoLightbox
+          src={openPhoto}
+          label={`${tabData.uiPatternProvider === "details" ? "Details inspiration" : "Refero screen"} preview`}
+          onClose={() => setOpenPhoto(null)}
+        />
+      ) : null}
       <NotionParentPageDialog
         open={notionExport.needsParentPage}
         onOpenChange={(open) => {
@@ -469,6 +480,8 @@ export function ResearchTab({
         }}
       />
       <ResearchRerunDialog
+        projectId={project.id}
+        projectCategory={projectCategory}
         open={isRerunDialogOpen}
         onOpenChange={setIsRerunDialogOpen}
         initialValues={researchContext.initialValues}

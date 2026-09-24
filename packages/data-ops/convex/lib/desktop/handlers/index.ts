@@ -13,7 +13,10 @@ import {
   setTaskKanbanColumnForUser,
   setTaskPriorityForUser,
 } from "../../../domain/projects/service";
-import { recomputeProjectState } from "../../../domain/projects/readModel";
+import {
+  listAccessibleProjectDocsForUser,
+  recomputeProjectState,
+} from "../../../domain/projects/readModel";
 import { requireAuthUser, requirePhaseAccess, requireProjectAccess, requireProjectAccessOrNull } from "../../../_helpers";
 import { now } from "../../../helpers/time";
 import { createProjectArgsObject } from "../../../models/projects/validators";
@@ -28,6 +31,9 @@ const projectTypeValidator = v.union(
   v.literal("motion-design"),
   v.literal("illustration"),
   v.literal("other"),
+  v.literal("websites"),
+  v.literal("web-apps"),
+  v.literal("ios-apps"),
 );
 
 const projectStatusValidator = v.union(
@@ -67,6 +73,7 @@ export const projectSummaryReturn = v.object({
   startDate: v.number(),
   endDate: v.number(),
   progress: v.number(),
+  ownerUserId: v.string(),
 });
 
 export const projectDetailReturn = v.object({
@@ -83,6 +90,8 @@ export const projectDetailReturn = v.object({
   endDate: v.number(),
   progress: v.number(),
   enabledSteps: v.array(v.string()),
+  skillIds: v.array(v.string()),
+  componentPackIds: v.array(v.string()),
   accessRole: v.union(v.literal("owner"), v.literal("editor")),
   phaseCount: v.number(),
   taskCount: v.number(),
@@ -160,13 +169,8 @@ export const listProjectsReturns = v.array(projectSummaryReturn);
 
 export async function listProjectsHandler(ctx: QueryCtx) {
   const user = await requireAuthUser(ctx);
-  const projects = await ctx.db
-    .query("projects")
-    .withIndex("by_user", (q) => q.eq("userId", user._id))
-    .collect();
-
-  const sortedProjects = [...projects].sort((a, b) => a.startDate - b.startDate);
-  return Promise.all(sortedProjects.map((project) => buildApiProjectSummary(project)));
+  const projects = await listAccessibleProjectDocsForUser(ctx, user._id);
+  return Promise.all(projects.map(({ project }) => buildApiProjectSummary(project)));
 }
 
 export const searchProjectsForChatArgs = {
@@ -188,11 +192,8 @@ export async function searchProjectsForChatHandler(
   const user = await requireAuthUser(ctx);
   const limit = Math.max(1, Math.min(args.limit ?? 10, 200));
   const search = args.search.trim().toLocaleLowerCase();
-  const projects = await ctx.db
-    .query("projects")
-    .withIndex("by_user_updatedAt", (q) => q.eq("userId", user._id))
-    .order("desc")
-    .take(200);
+  const accessibleProjects = await listAccessibleProjectDocsForUser(ctx, user._id);
+  const projects = accessibleProjects.map(({ project }) => project);
   const matches = projects
     .filter((project) => {
       if (!search) return true;
@@ -318,10 +319,8 @@ export const listUserTasksReturns = v.array(taskSummaryReturn);
 export async function listUserTasksHandler(ctx: QueryCtx, args: { limit?: number }) {
   const user = await requireAuthUser(ctx);
   const limit = Math.max(1, Math.min(args.limit ?? 100, 200));
-  const projects = await ctx.db
-    .query("projects")
-    .withIndex("by_user", (q) => q.eq("userId", user._id))
-    .collect();
+  const accessibleProjects = await listAccessibleProjectDocsForUser(ctx, user._id);
+  const projects = accessibleProjects.map(({ project }) => project);
   const phases = (
     await Promise.all(
       projects.map((project) =>
@@ -366,7 +365,8 @@ export async function createProjectHandler(
   if (!project) {
     throw new Error("Failed to load created project.");
   }
-  return buildApiProjectDetail(ctx, project, "owner");
+  const accessRole = project.userId === user._id ? "owner" : "editor";
+  return buildApiProjectDetail(ctx, project, accessRole);
 }
 
 export const createTaskArgs = {

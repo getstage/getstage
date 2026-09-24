@@ -38,7 +38,7 @@ export const generate = mutation({
     const plan = subscription?.plan ?? user.plan ?? "free";
 
     if (plan !== "pro") {
-      throw new Error("API keys require Stage Pro.");
+      throw new Error("API keys require Stage Studio.");
     }
 
     if (!trimmedName || trimmedName.length > 64) {

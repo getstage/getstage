@@ -1,4 +1,4 @@
-import type { ProjectType } from "@/types";
+import type { ProjectCategory, ProjectType } from "@/types";
 
 export type ProjectTypeOption = {
   value: ProjectType;
@@ -14,14 +14,20 @@ export const FREE_PLAN_PROJECT_LIMIT = 3;
 
 export const PROJECT_TYPES: ProjectTypeOption[] = [
   { value: "branding", label: "Branding" },
-  { value: "web-design", label: "Web Design" },
+  { value: "web-design", label: "Websites" },
   { value: "product-design", label: "Product Design" },
-  { value: "app-design", label: "App Design" },
-  { value: "web-app", label: "Web App" },
+  { value: "app-design", label: "iOS apps" },
+  { value: "web-app", label: "Web apps" },
   { value: "packaging", label: "Packaging" },
   { value: "motion-design", label: "Motion Design" },
   { value: "illustration", label: "Illustration" },
   { value: "other", label: "Other" },
+];
+
+export const PROJECT_CATEGORIES: Array<{ value: ProjectCategory; label: string }> = [
+  { value: "websites", label: "Websites" },
+  { value: "ios-apps", label: "iOS apps" },
+  { value: "web-apps", label: "Web apps" },
 ];
 
 export const PROJECT_TYPE_ICONS: Record<ProjectType, string | null> = {
@@ -34,11 +40,14 @@ export const PROJECT_TYPE_ICONS: Record<ProjectType, string | null> = {
   "motion-design": "/logos/create-project/bounce.svg",
   illustration: "/logos/create-project/draw.svg",
   other: null,
+  websites: "/logos/create-project/globe.svg",
+  "web-apps": "/logos/create-project/computer.svg",
+  "ios-apps": "/logos/create-project/mobile.svg",
 };
 
 export const DEFAULT_PHASES = ["Discovery", "Strategy", "Design", "Development", "Launch"];
 
-export const AI_ROADMAPS: Record<ProjectType, RoadmapTemplateItem[]> = {
+const LEGACY_AI_ROADMAPS: Record<Exclude<ProjectType, ProjectCategory>, RoadmapTemplateItem[]> = {
   branding: [
     {
       name: "Research",
@@ -321,6 +330,13 @@ export const AI_ROADMAPS: Record<ProjectType, RoadmapTemplateItem[]> = {
   ],
 };
 
+export const AI_ROADMAPS: Record<ProjectType, RoadmapTemplateItem[]> = {
+  ...LEGACY_AI_ROADMAPS,
+  websites: LEGACY_AI_ROADMAPS["web-design"],
+  "web-apps": LEGACY_AI_ROADMAPS["web-app"],
+  "ios-apps": LEGACY_AI_ROADMAPS["app-design"],
+};
+
 export const FAQ_ITEMS = [
   {
     question: "Is it really free to get started?",
@@ -360,7 +376,7 @@ export const FAQ_ITEMS = [
   {
     question: "How many projects can I have?",
     answer:
-      "Free tier: up to 3 active projects. Pro plan: unlimited projects with no restrictions.",
+      "Free tier: up to 3 active projects. Solo, Studio, and Agency plans include unlimited projects.",
   },
   {
     question: "Can I export my data?",

@@ -5,6 +5,7 @@ import {
   useProjectsQuery,
   useSettingsOverviewQuery,
 } from "@/hooks/convex-data";
+import { coveringPlan } from "@/models/settings/settings";
 import { useDesktopSession } from "@/hooks/engine/useDesktopSession";
 
 /**
@@ -43,7 +44,7 @@ export function useNonProOnboardingGate() {
     }
 
     const projectCount = projectsQuery.data?.length ?? 0;
-    const isPaid = settingsOverviewQuery.data?.profile.plan !== "free";
+    const isPaid = coveringPlan(settingsOverviewQuery.data) !== "free";
     const isOnboardingCompleted =
       hasCompletedOnboarding || (onboardingStateQuery.data?.isCompleted ?? false);
 

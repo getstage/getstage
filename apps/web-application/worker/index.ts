@@ -42,6 +42,21 @@ export default {
       return fetch(new Request(proxyUrl.toString(), request));
     }
 
-    return env.ASSETS.fetch(request);
+    const assetResponse = await env.ASSETS.fetch(request);
+    const pathname = requestUrl.pathname;
+    if (
+      assetResponse.ok &&
+      pathname.startsWith("/landing-preview/") &&
+      /\.(?:css|js|woff2|png|jpe?g|svg|webp|mp4)$/i.test(pathname)
+    ) {
+      const headers = new Headers(assetResponse.headers);
+      headers.set("Cache-Control", "public, max-age=86400, stale-while-revalidate=604800");
+      return new Response(assetResponse.body, {
+        status: assetResponse.status,
+        statusText: assetResponse.statusText,
+        headers,
+      });
+    }
+    return assetResponse;
   },
 };

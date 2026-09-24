@@ -46,9 +46,26 @@ jobs:
           echo "Selected environment: ${ENVIRONMENT} (ref ${GITHUB_REF_NAME}, event ${{ github.event_name }})"
           echo "environment=${ENVIRONMENT}" >> "$GITHUB_OUTPUT"
 
+  lint-stage-engine:
+    name: Stage engine quality
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - name: Require warning-free Rust
+        run: cargo clippy --manifest-path apps/stage-engine/Cargo.toml --all-targets --all-features --locked -- -D warnings
+
   build-macos:
     name: macOS ${{ matrix.arch }}
-    needs: resolve-environment
+    needs:
+      - resolve-environment
+      - lint-stage-engine
     environment: ${{ needs.resolve-environment.outputs.environment }}
     runs-on: macos-14
     strategy:
@@ -65,8 +82,8 @@ jobs:
       VITE_BRANDFETCH_CLIENT_ID: ${{ secrets.VITE_BRANDFETCH_CLIENT_ID }}
       # Read-only PAT for in-app updates (private GitHub repo). Fine-grained: Contents read on getstage.
       STAGE_UPDATE_GITHUB_TOKEN: ${{ secrets.DESKTOP_UPDATE_GITHUB_TOKEN }}
-      # Optional public feed, e.g. https://assets.getstage.co/desktop/macos — overrides GitHub when set.
-      STAGE_DESKTOP_UPDATES_URL: ${{ vars.STAGE_DESKTOP_UPDATES_URL }}
+      # Testing uses its own prerelease as a generic update feed; production retains its current feed.
+      STAGE_DESKTOP_UPDATES_URL: ${{ needs.resolve-environment.outputs.environment == 'testing' && 'https://github.com/getstage/getstage/releases/download/desktop-testing-feed' || vars.STAGE_DESKTOP_UPDATES_URL }}
       # Testing release: login via testing.getstage.co (override with repo variable for prod later)
       STAGE_DESKTOP_AUTH_URL: ${{ vars.STAGE_DESKTOP_AUTH_URL != '' && vars.STAGE_DESKTOP_AUTH_URL || 'https://testing.getstage.co/auth/desktop' }}
     steps:
@@ -152,17 +169,24 @@ jobs:
         run: |
           cd apps/user-application
           MAC_BUILD_ARGS=(-c.mac.hardenedRuntime=false -c.mac.notarize=false)
+          if [ "${{ needs.resolve-environment.outputs.environment }}" = "testing" ] && {
+            [ -z "$APPLE_ID" ] || [ -z "$APPLE_APP_SPECIFIC_PASSWORD" ] ||
+            [ -z "$APPLE_TEAM_ID" ] || [ -z "$CSC_LINK" ] || [ -z "$CSC_KEY_PASSWORD" ];
+          }; then
+            echo "::error::Testing auto-updates require Apple signing. Add APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD, APPLE_TEAM_ID, CSC_LINK, and CSC_KEY_PASSWORD to the testing environment."
+            exit 1
+          fi
           if [ -n "$APPLE_ID" ] && [ -n "$APPLE_APP_SPECIFIC_PASSWORD" ] && [ -n "$APPLE_TEAM_ID" ] && [ -n "$CSC_LINK" ]; then
             MAC_BUILD_ARGS=(-c.mac.hardenedRuntime=true -c.mac.notarize=true)
             echo "Apple signing + notarization enabled"
           else
             echo "Building unsigned DMG (add APPLE_* and CSC_LINK secrets to sign)"
           fi
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.publish_release }}" != "true" ]; then
-            pnpm exec electron-builder --mac --${{ matrix.arch }} "${MAC_BUILD_ARGS[@]}" --publish never
-          else
-            pnpm exec electron-builder --mac --${{ matrix.arch }} "${MAC_BUILD_ARGS[@]}" --publish never
+          if [ "${{ needs.resolve-environment.outputs.environment }}" = "testing" ]; then
+            # Versioned names keep older downloads valid while the shared manifest is replaced.
+            MAC_BUILD_ARGS+=('-c.mac.artifactName=${productName}-${version}-${arch}.${ext}')
           fi
+          pnpm exec electron-builder --mac --${{ matrix.arch }} "${MAC_BUILD_ARGS[@]}" --publish never
 
       - name: Upload release artifacts (${{ matrix.arch }})
         uses: actions/upload-artifact@v4
@@ -174,6 +198,70 @@ jobs:
             apps/user-application/release/*.blockmap
             apps/user-application/release/latest-mac.yml
           if-no-files-found: error
+
+  publish-testing-feed:
+    name: Publish testing update feed
+    needs:
+      - resolve-environment
+      - build-macos
+    if: github.event_name == 'push' && startsWith(github.ref_name, 'v') && needs.resolve-environment.outputs.environment == 'testing'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: desktop-testing-feed
+      cancel-in-progress: false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download arm64 artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: Stage-mac-arm64
+          path: release-assets-arm64
+
+      - name: Download x64 artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: Stage-mac-x64
+          path: release-assets-x64
+
+      - name: Merge macOS update manifest (arm64 + x64)
+        run: |
+          mkdir -p release-assets
+          node apps/user-application/scripts/merge-latest-mac-yml.mjs \
+            release-assets-arm64/latest-mac.yml \
+            release-assets-x64/latest-mac.yml \
+            release-assets/latest-mac.yml
+          cp release-assets-arm64/*.{dmg,zip,blockmap} release-assets/
+          cp release-assets-x64/*.{dmg,zip,blockmap} release-assets/
+          test "$(find release-assets -maxdepth 1 -name '*.zip' | wc -l | tr -d ' ')" -eq 2
+
+      - name: Publish versioned assets, then update manifest
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          FEED=desktop-testing-feed
+          gh release view "$FEED" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 \
+            || gh release create "$FEED" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
+              --prerelease --latest=false --title 'Stage Testing Updates' \
+              --notes 'Testing update feed. Production builds do not read this release.'
+          if gh release view "$FEED" --repo "$GITHUB_REPOSITORY" \
+            --json assets --jq '.assets[].name' | grep -qx latest-mac.yml; then
+            mkdir -p previous-feed
+            gh release download "$FEED" --repo "$GITHUB_REPOSITORY" \
+              --pattern latest-mac.yml --dir previous-feed
+          fi
+          if [ -f previous-feed/latest-mac.yml ]; then
+            CURRENT="$(awk '/^version: / {print $2; exit}' previous-feed/latest-mac.yml)"
+            NEXT="$(awk '/^version: / {print $2; exit}' release-assets/latest-mac.yml)"
+            if [ "$(printf '%s\n%s\n' "$CURRENT" "$NEXT" | sort -V | tail -1)" != "$NEXT" ] || [ "$CURRENT" = "$NEXT" ]; then
+              echo "::error::Refusing to replace testing feed $CURRENT with $NEXT"
+              exit 1
+            fi
+          fi
+          gh release upload "$FEED" --repo "$GITHUB_REPOSITORY" --clobber release-assets/*.{dmg,zip,blockmap}
+          # The manifest is the commit point: never advertise files before uploading them.
+          gh release upload "$FEED" --repo "$GITHUB_REPOSITORY" --clobber release-assets/latest-mac.yml
 
   publish-release:
     name: Publish GitHub Release

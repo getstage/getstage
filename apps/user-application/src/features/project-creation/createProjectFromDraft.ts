@@ -1,6 +1,8 @@
-import { createProjectInputSchema } from "@/data-ops/schema";
+import type { Id } from "@stage/data-ops/convex/data-model";
+import { createProjectInputSchema, projectCategorySchema } from "@/data-ops/schema";
 import { parseInputDate } from "@/lib/format";
 import { uploadFileToR2 } from "@/lib/r2Uploads";
+import { getActiveSpaceOwnerId } from "@/lib/workspace/activeSpace";
 import type { ProjectType } from "@/types";
 import { buildPreparedProjectPayload, type ProjectDraft } from "../../../shared/project-creation";
 
@@ -16,13 +18,21 @@ export async function createProjectFromDraft<TResult>({
 }: {
   draft: ProjectDraft;
   activePhases: typeof draft.phases;
-  createProject: MutationFn<ReturnType<typeof buildPreparedProjectPayload>, TResult>;
+  createProject: MutationFn<
+    ReturnType<typeof buildPreparedProjectPayload> & { spaceOwnerId?: Id<"users"> },
+    TResult
+  >;
   generateUploadUrl: Parameters<typeof uploadFileToR2>[0]["generateUploadUrl"];
   syncMetadata: Parameters<typeof uploadFileToR2>[0]["syncMetadata"];
   aiRoadmaps: Record<ProjectType, Array<{ name: string; tasks: string[] }>>;
 }) {
   if (!draft.projectType || !draft.method) {
     throw new Error("Project details are incomplete.");
+  }
+
+  const category = projectCategorySchema.safeParse(draft.projectType);
+  if (!category.success) {
+    throw new Error("Please choose a project category.");
   }
 
   let clientAvatarUrl: string | undefined;
@@ -56,8 +66,7 @@ export async function createProjectFromDraft<TResult>({
     clientName: draft.clientName.trim() || draft.projectName.trim(),
     clientEmail: draft.clientEmail.trim(),
     clientAvatarUrl,
-    projectType: draft.projectType,
-    typeOtherLabel: draft.typeOtherLabel,
+    projectType: category.data,
     method: draft.method,
     startDate: parseInputDate(draft.startDate),
     endDate: parseInputDate(draft.endDate),
@@ -70,5 +79,9 @@ export async function createProjectFromDraft<TResult>({
     throw new Error(parsedInput.error.issues[0]?.message ?? "Could not create the project.");
   }
 
-  return createProject(parsedInput.data);
+  const spaceOwnerId = getActiveSpaceOwnerId();
+  return createProject({
+    ...parsedInput.data,
+    ...(spaceOwnerId ? { spaceOwnerId: spaceOwnerId as Id<"users"> } : {}),
+  });
 }

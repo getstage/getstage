@@ -10,6 +10,15 @@ export const projectTypeValidator = v.union(
   v.literal("motion-design"),
   v.literal("illustration"),
   v.literal("other"),
+  v.literal("websites"),
+  v.literal("web-apps"),
+  v.literal("ios-apps"),
+);
+
+export const projectCategoryValidator = v.union(
+  v.literal("websites"),
+  v.literal("web-apps"),
+  v.literal("ios-apps"),
 );
 
 export const phaseInputValidator = v.object({
@@ -30,13 +39,26 @@ export const createProjectArgsValidator = {
   projectImageUrl: v.optional(v.string()),
   startMarkerImageUrl: v.optional(v.string()),
   endMarkerImageUrl: v.optional(v.string()),
-  type: projectTypeValidator,
-  typeOtherLabel: v.optional(v.string()),
+  type: projectCategoryValidator,
   method: v.union(v.literal("ai"), v.literal("manual")),
   startDate: v.number(),
   endDate: v.number(),
   phases: v.optional(v.array(phaseCreationInputValidator)),
+  spaceOwnerId: v.optional(v.id("users")),
 } as const;
+
+/** Keep in sync with `skillHubIdSchema` in user-application/shared/models/safeHttpsUrl.ts */
+const SKILL_HUB_ID_PATTERN = /^[a-z][a-z0-9-]{0,62}$/;
+
+export function normalizeCatalogIds(ids: string[]): string[] {
+  return Array.from(
+    new Set(
+      ids
+        .map((id) => id.trim())
+        .filter((id) => SKILL_HUB_ID_PATTERN.test(id)),
+    ),
+  ).slice(0, 32);
+}
 
 /** Convex `v.object` for `Infer<>` / desktop handlers. */
 export const createProjectArgsObject = v.object(createProjectArgsValidator);
