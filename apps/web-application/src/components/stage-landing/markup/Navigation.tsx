@@ -1,3 +1,35 @@
+import { useCases, type UseCaseGroup } from "@/marketing/useCases";
+
+const USE_CASE_GROUPS: UseCaseGroup[] = ["Who it's for", "What you do"];
+
+// Desktop-only panel; on mobile the hamburger menu links to /use-cases instead.
+function UseCaseMenu() {
+  return (
+    <div className="product-menu use-case-menu" id="use-case-menu" hidden>
+      {USE_CASE_GROUPS.map((group) => (
+        <div className="use-case-menu-group" key={group}>
+          <p className="use-case-menu-heading">{group}</p>
+          <ul role="list">
+            {useCases
+              .filter((useCase) => useCase.group === group)
+              .map((useCase) => (
+                <li key={useCase.slug}>
+                  <a href={`/use-cases/${useCase.slug}`}>
+                    <strong>{useCase.label}</strong>
+                    <span>{useCase.summary}</span>
+                  </a>
+                </li>
+              ))}
+          </ul>
+        </div>
+      ))}
+      <a className="use-case-menu-all" href="/use-cases">
+        Browse all use cases <span aria-hidden="true">→</span>
+      </a>
+    </div>
+  );
+}
+
 export function Navigation() {
   return (
     <>
@@ -41,6 +73,7 @@ export function Navigation() {
             aria-expanded="false"
             aria-controls="product-menu"
             aria-label="Open product menu"
+            data-menu-toggle="product"
           >
             <span className="product-toggle-label">Product</span>{" "}
             <svg
@@ -64,9 +97,19 @@ export function Navigation() {
             </svg>
             <span className="mobile-menu-icon" aria-hidden="true" />
           </button>
-          <a className="nav-link" href="/use-cases">
+          <button
+            type="button"
+            className="nav-link nav-menu-toggle"
+            aria-expanded="false"
+            aria-controls="use-case-menu"
+            aria-label="Open use cases menu"
+            data-menu-toggle="use cases"
+          >
             Use cases
-          </a>
+            <svg className="icon" aria-hidden="true" width={12} height={12} viewBox="0 0 16 16" fill="none">
+              <path d="m4 6 4 4 4-4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
           <a className="nav-link" href="/blog">
             Blog
           </a>
@@ -340,6 +383,7 @@ export function Navigation() {
             <button data-destination="login">Log in</button>
           </div>
         </div>
+        <UseCaseMenu />
       </header>
     </>
   );
