@@ -49,6 +49,12 @@ export function SiteFooter() {
             <a href="/#integrations">Integrations</a>
           </div>
           <div className="footer-column">
+            <span>Resources</span>
+            <a href="/use-cases">Use cases</a>
+            <a href="/blog">Blog</a>
+            <a href="/download">Download</a>
+          </div>
+          <div className="footer-column">
             <span>Stage</span>
             <a href="/#pricing">Pricing</a>
             <a href="/#faq">FAQ</a>

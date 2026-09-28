@@ -8,7 +8,11 @@ const PUBLIC_WEB_PATHS = new Set([
   "/open",
   "/terms",
   "/privacy",
+  "/use-cases",
+  "/blog",
 ]);
+
+const PUBLIC_WEB_PREFIXES = ["/portal/", "/invite/", "/use-cases/", "/blog/"];
 
 const PRODUCT_WORKSPACE_PREFIXES = ["/dashboard", "/new-project", "/settings", "/project/"];
 
@@ -17,7 +21,7 @@ export function isPublicWebPath(pathname: string) {
     return true;
   }
 
-  return pathname.startsWith("/portal/") || pathname.startsWith("/invite/");
+  return PUBLIC_WEB_PREFIXES.some((prefix) => pathname.startsWith(prefix));
 }
 
 export function isProductWorkspacePath(pathname: string) {

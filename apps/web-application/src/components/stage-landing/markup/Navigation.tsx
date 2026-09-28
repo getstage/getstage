@@ -64,11 +64,14 @@ export function Navigation() {
             </svg>
             <span className="mobile-menu-icon" aria-hidden="true" />
           </button>
-          <a className="nav-link" href="#pricing">
-            Pricing
+          <a className="nav-link" href="/use-cases">
+            Use cases
           </a>
-          <a className="nav-link" href="#faq">
-            FAQ
+          <a className="nav-link" href="/blog">
+            Blog
+          </a>
+          <a className="nav-link" href="/#pricing">
+            Pricing
           </a>
           <span className="nav-spacer" />
           <button className="nav-link login-link" data-destination="login">
@@ -92,7 +95,7 @@ export function Navigation() {
         </div>
         <div className="product-menu" id="product-menu" hidden>
           <p className="mobile-menu-heading">Features</p>
-          <a className="menu-card" href="#research">
+          <a className="menu-card" href="/#research">
             <span className="menu-icon">
               <svg
                 className="icon"
@@ -126,7 +129,7 @@ export function Navigation() {
               </span>
             </p>
           </a>
-          <a className="menu-card" href="#moodboard">
+          <a className="menu-card" href="/#moodboard">
             <span className="menu-icon">
               <svg
                 className="icon"
@@ -179,7 +182,7 @@ export function Navigation() {
               </span>
             </p>
           </a>
-          <a className="menu-card" href="#flows">
+          <a className="menu-card" href="/#flows">
             <span className="menu-icon">
               <svg
                 className="icon"
@@ -209,7 +212,7 @@ export function Navigation() {
               </span>
             </p>
           </a>
-          <a className="menu-card" href="#skills">
+          <a className="menu-card" href="/#skills">
             <span className="menu-icon">
               <svg
                 className="icon"
@@ -254,7 +257,7 @@ export function Navigation() {
               </span>
             </p>
           </a>
-          <a className="menu-card" href="#export">
+          <a className="menu-card" href="/#export">
             <span className="menu-icon">
               <svg
                 className="icon"
@@ -284,7 +287,7 @@ export function Navigation() {
               </span>
             </p>
           </a>
-          <a className="menu-card" href="#integrations">
+          <a className="menu-card" href="/#integrations">
             <span className="menu-icon">
               <svg
                 className="icon"
@@ -330,8 +333,10 @@ export function Navigation() {
             </p>
           </a>
           <div className="mobile-menu-links">
-            <a href="#pricing">Pricing</a>
-            <a href="#faq">FAQ</a>
+            <a href="/use-cases">Use cases</a>
+            <a href="/blog">Blog</a>
+            <a href="/#pricing">Pricing</a>
+            <a href="/#faq">FAQ</a>
             <button data-destination="login">Log in</button>
           </div>
         </div>

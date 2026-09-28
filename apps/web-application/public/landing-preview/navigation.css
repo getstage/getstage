@@ -5,7 +5,7 @@
   top: 24px;
   left: 50%;
   transform: translateX(-50%);
-  width: 512px;
+  width: 648px;
   max-width: calc(100% - 24px);
   padding: 6px;
   border-radius: 24px;
@@ -13,7 +13,7 @@
   box-shadow: 0 .45px 1px #0a0a0a40, 0 8px 24px #17171712;
   transition: width .36s cubic-bezier(.22, 1, .36, 1);
 }
-.navigation.hero-download-visible { width: 364px; }
+.navigation.hero-download-visible { width: 500px; }
 .nav-row {
   display: flex;
   align-items: center;

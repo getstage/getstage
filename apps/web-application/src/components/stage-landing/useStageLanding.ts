@@ -1,7 +1,6 @@
 import { useLayoutEffect } from "react";
 import landingCss from "virtual:stage-landing-css";
 import { resolveMacDownloadUrl } from "@/lib/macosDownload";
-import "@/styles/stage-landing-isolate.css";
 
 const LANDING_FONT_HREF = "/landing-preview/assets/fonts/InterVariable.woff2";
 

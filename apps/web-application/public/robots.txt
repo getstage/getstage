@@ -6,3 +6,5 @@ Disallow: /new-project
 Disallow: /project/
 Disallow: /settings
 Disallow: /portal/
+
+Sitemap: https://getstage.co/sitemap.xml
