@@ -1,23 +1,15 @@
-const PUBLIC_WEB_PATHS = new Set([
-  "/",
-  "/auth",
-  "/auth/desktop",
-  "/billing/return",
-  "/download",
-  "/download/mac",
-  "/open",
-  "/terms",
-  "/privacy",
-  "/use-cases",
-  "/blog",
-]);
+import { pagePath, pages } from "@/marketing/content";
+import { PUBLIC_WEB_PATHS } from "./publicWebPaths";
+
+// Content pages (content.json) live at the top level (getstage.co/<slug>).
+const CONTENT_PAGE_PATHS = new Set(pages.map((page) => pagePath(page.slug)));
 
 const PUBLIC_WEB_PREFIXES = ["/portal/", "/invite/", "/use-cases/", "/blog/"];
 
 const PRODUCT_WORKSPACE_PREFIXES = ["/dashboard", "/new-project", "/settings", "/project/"];
 
 export function isPublicWebPath(pathname: string) {
-  if (PUBLIC_WEB_PATHS.has(pathname)) {
+  if (PUBLIC_WEB_PATHS.has(pathname) || CONTENT_PAGE_PATHS.has(pathname)) {
     return true;
   }
 

@@ -1,4 +1,4 @@
-/* Use-case and blog pages. Built on the landing tokens in styles.css. */
+/* Use-case, blog and CMS pages. Built on the landing tokens in styles.css. */
 @media (min-width: 768px) {
   .footer-main { grid-template-columns: 2fr 1fr 1fr 1fr; }
 }
@@ -30,6 +30,20 @@
 .content-prose details:first-of-type { margin-top: 24px; border-top: 1px solid var(--line); }
 .content-prose summary { cursor: pointer; padding: 20px 0; font-size: 17px; font-weight: 500; letter-spacing: -.2px; }
 .content-prose details p { margin: 0; padding-bottom: 20px; font-size: 15px; color: var(--muted); }
+
+.content-hero .button { margin-top: 28px; }
+
+/* Rich text from the CMS. */
+.content-prose h3 { font-size: 22px; letter-spacing: -.6px; line-height: 1.25; }
+.content-prose ul:not(.content-checks), .content-prose ol { padding-left: 22px; font-size: 17px; line-height: 1.7; color: #404040; }
+.content-prose li + li { margin-top: 6px; }
+.content-prose a { color: var(--purple); text-decoration: underline; text-underline-offset: 3px; }
+.content-prose blockquote { padding-left: 20px; border-left: 3px solid var(--purple); font-size: 19px; line-height: 1.6; letter-spacing: -.3px; }
+.content-prose pre { overflow-x: auto; padding: 16px 20px; background: var(--paper); border: 1px solid var(--line); border-radius: 10px; font-size: 14px; line-height: 1.6; }
+.content-prose img, .content-figure img { width: 100%; height: auto; border: 1px solid var(--line); border-radius: 12px; }
+.content-figure { margin: 64px 0 0; }
+.content-figure figcaption { margin-top: 10px; font-size: 13px; color: var(--muted); text-align: center; }
+.content-section + .blog-video, .content-figure + .blog-video { margin-top: 64px; }
 
 .content-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; list-style: none; margin: 0; padding: 0; }
 .content-card { display: flex; flex-direction: column; gap: 8px; height: 100%; padding: 24px; background: var(--paper); border: 1px solid var(--line); border-radius: 12px; transition: border-color .18s, transform .18s var(--easing); }

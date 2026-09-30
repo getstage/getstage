@@ -1,12 +1,16 @@
+import {
+  USE_CASE_GROUP_LABELS,
+  findUseCase,
+  useCasePath,
+  useCases,
+  type UseCase,
+  type UseCaseGroup,
+} from "@/marketing/content";
 import { USE_CASES_META } from "@/marketing/pageMeta";
-import { findUseCase, useCases, type UseCaseGroup } from "@/marketing/useCases";
 import { Breadcrumbs, MarketingLayout, TrialCallout } from "./MarketingLayout";
 import { NotFoundContent } from "./NotFoundContent";
 
-const GROUPS: Array<{ id: string; label: UseCaseGroup }> = [
-  { id: "audiences", label: "Who it's for" },
-  { id: "workflows", label: "What you do" },
-];
+const GROUPS: UseCaseGroup[] = ["audience", "workflow"];
 
 export function UseCasesIndexPage() {
   return (
@@ -20,22 +24,11 @@ export function UseCasesIndexPage() {
         </p>
       </header>
       {GROUPS.map((group) => (
-        <section className="content-section" key={group.id} aria-labelledby={group.id}>
-          <h2 className="content-group-title" id={group.id}>
-            {group.label}
+        <section className="content-section" key={group} aria-labelledby={`use-cases-${group}`}>
+          <h2 className="content-group-title" id={`use-cases-${group}`}>
+            {USE_CASE_GROUP_LABELS[group]}
           </h2>
-          <ul className="content-grid" role="list">
-            {useCases
-              .filter((useCase) => useCase.group === group.label)
-              .map((useCase) => (
-                <li key={useCase.slug}>
-                  <a className="content-card" href={`/use-cases/${useCase.slug}`}>
-                    <strong>{useCase.label}</strong>
-                    <span>{useCase.summary}</span>
-                  </a>
-                </li>
-              ))}
-          </ul>
+          <UseCaseCards items={useCases.filter((useCase) => useCase.group === group)} />
         </section>
       ))}
       <TrialCallout heading="Start with the thinking behind your next product." />
@@ -52,7 +45,7 @@ export function UseCasePage({ slug }: { slug: string }) {
   const others = useCases.filter((other) => other.slug !== useCase.slug).slice(0, 3);
 
   return (
-    <MarketingLayout title={useCase.metaTitle} description={useCase.metaDescription}>
+    <MarketingLayout title={useCase.seo.metaTitle} description={useCase.seo.metaDescription}>
       <Breadcrumbs items={[{ label: "Use cases", href: "/use-cases" }, { label: useCase.label }]} />
       <header className="content-hero">
         <p className="eyebrow">{useCase.label}</p>
@@ -102,17 +95,23 @@ export function UseCasePage({ slug }: { slug: string }) {
         <h2 className="content-group-title" id="more-use-cases">
           More use cases
         </h2>
-        <ul className="content-grid" role="list">
-          {others.map((other) => (
-            <li key={other.slug}>
-              <a className="content-card" href={`/use-cases/${other.slug}`}>
-                <strong>{other.label}</strong>
-                <span>{other.summary}</span>
-              </a>
-            </li>
-          ))}
-        </ul>
+        <UseCaseCards items={others} />
       </section>
     </MarketingLayout>
+  );
+}
+
+export function UseCaseCards({ items }: { items: UseCase[] }) {
+  return (
+    <ul className="content-grid" role="list">
+      {items.map((useCase) => (
+        <li key={useCase.slug}>
+          <a className="content-card" href={useCasePath(useCase.slug)}>
+            <strong>{useCase.label}</strong>
+            <span>{useCase.summary}</span>
+          </a>
+        </li>
+      ))}
+    </ul>
   );
 }

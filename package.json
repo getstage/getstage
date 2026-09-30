@@ -19,6 +19,8 @@
     "web:dev": "pnpm --filter stage-app run dev",
     "web:build": "pnpm --filter stage-app run build",
     "web:build:testing": "pnpm --filter stage-app run build:testing",
+    "web:ship": "pnpm --filter stage-app run ship",
+    "web:test": "pnpm --filter stage-app run ship:testing",
     "web:typecheck": "pnpm --filter stage-app run typecheck",
     "engine:dev": "pnpm --dir apps/stage-engine run dev",
     "engine:fmt": "cargo fmt --manifest-path apps/stage-engine/Cargo.toml --check",

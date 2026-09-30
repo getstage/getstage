@@ -1,6 +1,6 @@
-import { useCases, type UseCaseGroup } from "@/marketing/useCases";
+import { USE_CASE_GROUP_LABELS, useCasePath, useCases, type UseCaseGroup } from "@/marketing/content";
 
-const USE_CASE_GROUPS: UseCaseGroup[] = ["Who it's for", "What you do"];
+const USE_CASE_GROUPS: UseCaseGroup[] = ["audience", "workflow"];
 
 // Desktop-only panel; on mobile the hamburger menu links to /use-cases instead.
 function UseCaseMenu() {
@@ -8,13 +8,13 @@ function UseCaseMenu() {
     <div className="product-menu use-case-menu" id="use-case-menu" hidden>
       {USE_CASE_GROUPS.map((group) => (
         <div className="use-case-menu-group" key={group}>
-          <p className="use-case-menu-heading">{group}</p>
+          <p className="use-case-menu-heading">{USE_CASE_GROUP_LABELS[group]}</p>
           <ul role="list">
             {useCases
               .filter((useCase) => useCase.group === group)
               .map((useCase) => (
                 <li key={useCase.slug}>
-                  <a href={`/use-cases/${useCase.slug}`}>
+                  <a href={useCasePath(useCase.slug)}>
                     <strong>{useCase.label}</strong>
                     <span>{useCase.summary}</span>
                   </a>

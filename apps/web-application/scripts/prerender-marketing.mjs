@@ -1,6 +1,6 @@
 // Post-build step: writes a static HTML file per marketing page into dist/, plus
-// sitemap.xml. Cloudflare serves dist/blog/<slug>.html at /blog/<slug>; the SPA
-// then mounts over the same markup. Run after `vite build`.
+// sitemap.xml and _redirects. Cloudflare serves dist/blog/<slug>.html at
+// /blog/<slug>; the SPA then mounts over the same markup. Run after `vite build`.
 import { build } from "vite";
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
@@ -35,6 +35,7 @@ function renderDocument(template, { meta, body, absoluteUrl }) {
   html = setTag(html, /<html lang="en">/, '<html lang="en" class="stage-landing-page">');
   html = setTag(html, /<title>[^<]*<\/title>/, `<title>${escapeHtml(meta.title)}</title>`);
   html = setMeta(html, "name", "description", meta.description);
+  if (meta.noIndex) html = setMeta(html, "name", "robots", "noindex, follow");
   html = setTag(html, /<link rel="canonical" href="[^"]*" \/>/, `<link rel="canonical" href="${url}" />`);
   html = setMeta(html, "property", "og:type", meta.type);
   html = setMeta(html, "property", "og:url", url);
@@ -94,11 +95,17 @@ async function main() {
       await writeFile(file, html);
     }
 
-    const sitemapUrls = ["/", "/download", ...entry.marketingPaths].map((pagePath) =>
-      entry.absoluteUrl(pagePath),
-    );
+    const indexedPaths = entry.marketingPaths.filter((pagePath) => !entry.metaForPath(pagePath).noIndex);
+    const sitemapUrls = ["/", "/download", ...indexedPaths].map((pagePath) => entry.absoluteUrl(pagePath));
     await writeFile(path.join(DIST, "sitemap.xml"), sitemap(sitemapUrls));
-    console.log(`Pre-rendered ${entry.marketingPaths.length} marketing pages and sitemap.xml`);
+
+    // Old URLs of renamed pages (Cloudflare static assets _redirects format).
+    const redirectLines = entry.redirects.map((redirect) => `${redirect.from} ${redirect.to} 301`);
+    await writeFile(path.join(DIST, "_redirects"), redirectLines.length ? `${redirectLines.join("\n")}\n` : "");
+
+    console.log(
+      `Pre-rendered ${entry.marketingPaths.length} marketing pages, sitemap.xml and ${redirectLines.length} redirects`,
+    );
   } finally {
     await rm(SSR_OUT, { recursive: true, force: true });
   }

@@ -21,6 +21,8 @@
     "testing:upload": "pnpm run build:testing && npx wrangler versions upload -e testing",
     "stage:deploy": "pnpm run build:stage && npx wrangler deploy -e stage",
     "stage:upload": "pnpm run build:stage && npx wrangler versions upload -e stage",
+    "ship": "node scripts/ship.mjs production",
+    "ship:testing": "node scripts/ship.mjs testing",
     "production:deploy": "pnpm run build:production && npx wrangler deploy -e production",
     "production:upload": "pnpm run build:production && npx wrangler versions upload -e production",
     "cf:typegen": "npx wrangler types --env-interface CloudflareEnv worker-env.d.ts",

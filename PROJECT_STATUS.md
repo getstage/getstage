@@ -1,7 +1,7 @@
 # Stage — Project Status
 
 > **Living document.** Update weekly (or before each release).  
-> **Last updated:** 2026-09-21
+> **Last updated:** 2026-09-30
 
 **Positioning:** Stage does the thinking. Your AI does the building.
 
@@ -14,6 +14,7 @@
 | **!!! P0 project creation** | Released client sends `websites` / `web-apps` / `ios-apps`, while the failing Convex deployment serves legacy validators. `workspaceMembers:listPending` also proves client/backend API drift. Restore contract and deployment parity before feature work. | [`docs/STA-43_USER_FEEDBACK_RECOVERY_PLAN.md`](docs/STA-43_USER_FEEDBACK_RECOVERY_PLAN.md); Linear `STA-43` |
 | **P0 STA-43** | Model-picker containment, real personal/team space selector, Figma Teams UI, multi-file PDF/MD briefs, multi-URL competitor entry, and Help & Feedback correction. Local + Testing only until Werner accepts. | [`docs/STA-43_USER_FEEDBACK_RECOVERY_PLAN.md`](docs/STA-43_USER_FEEDBACK_RECOVERY_PLAN.md); Figma `1844:2274` |
 | **P1 STA-44 SEO** | English use-case hub (6 pages), video blog (2 posts), getstage.co canonical fix, per-page pre-render + sitemap. Branch `feat/sta-44-seo-pages`; not deployed. | [`docs/STA-44_SEO_PAGES_PLAN.md`](docs/STA-44_SEO_PAGES_PLAN.md); Linear `STA-44` |
+| **P1 STA-31 / STA-47** | **STA-47 website content built** on `feat/sta-44-seo-pages`: no Strapi; all marketing content in `content.json` (pages from blocks, use cases, blog, redirects), validated at build; getstage.co ships from branch `website` via `pnpm web:test` (testing.getstage.co) then `pnpm web:ship` (up-to-date + folder guards → build → push → deploy); Adrien may only ship marketing folders. Open: create `website` branch, Adrien's access, homepage copy. **STA-31** (self-hosted Grafana for Agent runs) is still a plan. | [`docs/STA-31_STA-47_MONITORING_AND_CMS_PLAN.md`](docs/STA-31_STA-47_MONITORING_AND_CMS_PLAN.md); Linear `STA-31`, `STA-47` |
 | **!!! P0 release** | 2026-09-14 production cut: React landing/WebP, Solo–Agency pricing, Lo-Fi/export integration, bug containment, trusted login domain, deploy; Figma last | `docs/2026-09-14_SHIP_TODAY_CHECKLIST.md` |
 | **P0 STA-33 1–4** | **Lo-Fi done** (desktop smoke 2026-09-09). Export dialog destinations + skills step, GitHub Import. Wireframes UI is Lo-Fi only; the engine retains Hi-Fi. **Adrien commentary 10 Sep:** [`docs/NEW_10_SEPTEMBER.md`](docs/NEW_10_SEPTEMBER.md). **Next:** Werner picks rows; then testing Convex `importedSkillHubItems`; then sections 5–8. | [`docs/NEW_VERSION_START_SEPTEMBER_2026.md`](docs/NEW_VERSION_START_SEPTEMBER_2026.md); Linear `STA-33` |
 | **P0 STA-33 5–8** | After 1–4 ships: categories lock, Details.so during research testing, style guide, MCP. | Linear `STA-33`; same living plan |

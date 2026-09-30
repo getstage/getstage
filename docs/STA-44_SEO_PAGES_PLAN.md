@@ -74,11 +74,7 @@ Thumbnails are stored in `apps/web-application/public/blog/<youtubeId>.jpg` (128
 
 ### 5. Adding a new blog post
 
-1. Download the thumbnail: `curl -o apps/web-application/public/blog/<id>.jpg https://i.ytimg.com/vi/<id>/maxresdefault.jpg`
-2. Add an entry at the top of `apps/web-application/src/marketing/blogPosts.ts`: slug, title, description, date, video id, chapters (from the YouTube description), 2–5 sections of real text, related use cases.
-3. `pnpm --filter stage-app build`, then check `dist/blog/<slug>.html`. The sitemap updates automatically.
-
-Written text is what ranks; a post with only an embedded video will not.
+All marketing content now lives in `apps/web-application/src/marketing/content/content.json` and is published with `pnpm web:ship` (STA-47). Guide: `apps/web-application/src/marketing/content/README.md`.
 
 ## Separate Linear issue: Stripe plan switching and seat downgrades
 
