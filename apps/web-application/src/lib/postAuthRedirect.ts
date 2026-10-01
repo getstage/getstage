@@ -7,7 +7,7 @@ import {
 
 export const DEFAULT_POST_AUTH_PATH = "/download/mac";
 
-const ALLOWED_POST_AUTH_PATHS = new Set([DEFAULT_POST_AUTH_PATH, "/auth/desktop", "/profile"]);
+const ALLOWED_POST_AUTH_PATHS = new Set([DEFAULT_POST_AUTH_PATH, "/auth/desktop", "/profile", "/setup-profile"]);
 const INVITE_PATH_PATTERN = /^\/invite\/[A-Za-z0-9]+$/;
 
 function toAbsoluteRedirectTarget(value: string) {

@@ -8,7 +8,10 @@
     "icon": "/marketplace-assets/libraries/forge-ui.png",
     "banner": null,
     "url": "/component-libraries/forge-ui/",
-    "officialUrl": "https://forgeui.in/"
+    "officialUrl": "https://forgeui.in/",
+    "bannerTitle": null,
+    "bannerWidth": null,
+    "bannerHeight": null
   },
   {
     "id": "component-libraries/rewamp-ui",
@@ -19,7 +22,10 @@
     "icon": "/marketplace-assets/libraries/rewamp-ui.png",
     "banner": null,
     "url": "/component-libraries/rewamp-ui/",
-    "officialUrl": "https://rewampui.com/"
+    "officialUrl": "https://rewampui.com/",
+    "bannerTitle": null,
+    "bannerWidth": null,
+    "bannerHeight": null
   },
   {
     "id": "component-libraries/shadcn-ui",
@@ -30,7 +36,10 @@
     "icon": "/marketplace-assets/marketplace/shadcn.svg",
     "banner": null,
     "url": "/component-libraries/shadcn-ui/",
-    "officialUrl": "https://ui.shadcn.com/"
+    "officialUrl": "https://ui.shadcn.com/",
+    "bannerTitle": null,
+    "bannerWidth": null,
+    "bannerHeight": null
   },
   {
     "id": "component-libraries/base-ui",
@@ -41,7 +50,10 @@
     "icon": "/marketplace-assets/libraries/base-ui.png",
     "banner": null,
     "url": "/component-libraries/base-ui/",
-    "officialUrl": "https://base-ui.com/"
+    "officialUrl": "https://base-ui.com/",
+    "bannerTitle": null,
+    "bannerWidth": null,
+    "bannerHeight": null
   },
   {
     "id": "component-libraries/radix-ui",
@@ -52,7 +64,10 @@
     "icon": "/marketplace-assets/marketplace/radix.svg",
     "banner": null,
     "url": "/component-libraries/radix-ui/",
-    "officialUrl": "https://www.radix-ui.com/"
+    "officialUrl": "https://www.radix-ui.com/",
+    "bannerTitle": null,
+    "bannerWidth": null,
+    "bannerHeight": null
   },
   {
     "id": "component-libraries/21st-dev",
@@ -63,7 +78,10 @@
     "icon": "/marketplace-assets/libraries/21st-dev.png",
     "banner": null,
     "url": "/component-libraries/21st-dev/",
-    "officialUrl": "https://21st.dev/"
+    "officialUrl": "https://21st.dev/",
+    "bannerTitle": null,
+    "bannerWidth": null,
+    "bannerHeight": null
   },
   {
     "id": "component-libraries/motion-primitives",
@@ -74,7 +92,10 @@
     "icon": "/marketplace-assets/libraries/motion-primitives.png",
     "banner": null,
     "url": "/component-libraries/motion-primitives/",
-    "officialUrl": "https://motion-primitives.com/"
+    "officialUrl": "https://motion-primitives.com/",
+    "bannerTitle": null,
+    "bannerWidth": null,
+    "bannerHeight": null
   },
   {
     "id": "component-libraries/react-bits",
@@ -85,7 +106,10 @@
     "icon": "/marketplace-assets/libraries/react-bits.png",
     "banner": null,
     "url": "/component-libraries/react-bits/",
-    "officialUrl": "https://reactbits.dev/"
+    "officialUrl": "https://reactbits.dev/",
+    "bannerTitle": null,
+    "bannerWidth": null,
+    "bannerHeight": null
   },
   {
     "id": "component-libraries/component-gallery",
@@ -96,7 +120,10 @@
     "icon": "/marketplace-assets/libraries/component-gallery.png",
     "banner": null,
     "url": "/component-libraries/component-gallery/",
-    "officialUrl": "https://component.gallery/"
+    "officialUrl": "https://component.gallery/",
+    "bannerTitle": null,
+    "bannerWidth": null,
+    "bannerHeight": null
   },
   {
     "id": "component-libraries/number-flow",
@@ -107,7 +134,10 @@
     "icon": "/marketplace-assets/libraries/number-flow.png",
     "banner": null,
     "url": "/component-libraries/number-flow/",
-    "officialUrl": "https://number-flow.barvian.me/"
+    "officialUrl": "https://number-flow.barvian.me/",
+    "bannerTitle": null,
+    "bannerWidth": null,
+    "bannerHeight": null
   },
   {
     "id": "component-libraries/fancy-components",
@@ -118,7 +148,10 @@
     "icon": "/marketplace-assets/libraries/fancy-components.png",
     "banner": null,
     "url": "/component-libraries/fancy-components/",
-    "officialUrl": "https://fancycomponents.dev/"
+    "officialUrl": "https://fancycomponents.dev/",
+    "bannerTitle": null,
+    "bannerWidth": null,
+    "bannerHeight": null
   },
   {
     "id": "component-libraries/opensource-ui",
@@ -129,7 +162,10 @@
     "icon": "/marketplace-assets/libraries/opensource-ui.png",
     "banner": null,
     "url": "/component-libraries/opensource-ui/",
-    "officialUrl": "https://opensourceui.in/"
+    "officialUrl": "https://opensourceui.in/",
+    "bannerTitle": null,
+    "bannerWidth": null,
+    "bannerHeight": null
   },
   {
     "id": "component-libraries/spectrum-ui",
@@ -140,7 +176,10 @@
     "icon": "/marketplace-assets/libraries/spectrum-ui.png",
     "banner": null,
     "url": "/component-libraries/spectrum-ui/",
-    "officialUrl": "https://ui.spectrumhq.in/"
+    "officialUrl": "https://ui.spectrumhq.in/",
+    "bannerTitle": null,
+    "bannerWidth": null,
+    "bannerHeight": null
   },
   {
     "id": "component-libraries/amicro",
@@ -151,7 +190,10 @@
     "icon": "/marketplace-assets/libraries/amicro.png",
     "banner": null,
     "url": "/component-libraries/amicro/",
-    "officialUrl": "https://amicro.vercel.app/"
+    "officialUrl": "https://amicro.vercel.app/",
+    "bannerTitle": null,
+    "bannerWidth": null,
+    "bannerHeight": null
   },
   {
     "id": "component-libraries/painterly",
@@ -162,7 +204,10 @@
     "icon": "/marketplace-assets/marketplace/category.svg",
     "banner": null,
     "url": "/component-libraries/painterly/",
-    "officialUrl": "https://painterly.design-tools.workers.dev/"
+    "officialUrl": "https://painterly.design-tools.workers.dev/",
+    "bannerTitle": null,
+    "bannerWidth": null,
+    "bannerHeight": null
   },
   {
     "id": "component-libraries/bencho",
@@ -173,7 +218,10 @@
     "icon": "/marketplace-assets/libraries/bencho.png",
     "banner": null,
     "url": "/component-libraries/bencho/",
-    "officialUrl": "https://bencho.dev/"
+    "officialUrl": "https://bencho.dev/",
+    "bannerTitle": null,
+    "bannerWidth": null,
+    "bannerHeight": null
   },
   {
     "id": "component-libraries/shadcnblocks",
@@ -184,7 +232,10 @@
     "icon": "/marketplace-assets/libraries/shadcnblocks.png",
     "banner": null,
     "url": "/component-libraries/shadcnblocks/",
-    "officialUrl": "https://shadcnblocks.com/"
+    "officialUrl": "https://shadcnblocks.com/",
+    "bannerTitle": null,
+    "bannerWidth": null,
+    "bannerHeight": null
   },
   {
     "id": "component-libraries/blocks-so",
@@ -195,7 +246,10 @@
     "icon": "/marketplace-assets/libraries/blocks-so.png",
     "banner": null,
     "url": "/component-libraries/blocks-so/",
-    "officialUrl": "https://blocks.so/"
+    "officialUrl": "https://blocks.so/",
+    "bannerTitle": null,
+    "bannerWidth": null,
+    "bannerHeight": null
   },
   {
     "id": "component-libraries/8bitcn",
@@ -206,7 +260,10 @@
     "icon": "/marketplace-assets/libraries/8bitcn.png",
     "banner": null,
     "url": "/component-libraries/8bitcn/",
-    "officialUrl": "https://8bitcn.com/"
+    "officialUrl": "https://8bitcn.com/",
+    "bannerTitle": null,
+    "bannerWidth": null,
+    "bannerHeight": null
   },
   {
     "id": "component-libraries/evil-charts",
@@ -217,7 +274,10 @@
     "icon": "/marketplace-assets/libraries/evil-charts.png",
     "banner": null,
     "url": "/component-libraries/evil-charts/",
-    "officialUrl": "https://evilcharts.com/"
+    "officialUrl": "https://evilcharts.com/",
+    "bannerTitle": null,
+    "bannerWidth": null,
+    "bannerHeight": null
   },
   {
     "id": "component-libraries/magic-ui",
@@ -228,7 +288,10 @@
     "icon": "/marketplace-assets/marketplace/magic-ui.svg",
     "banner": null,
     "url": "/component-libraries/magic-ui/",
-    "officialUrl": "https://magicui.design/"
+    "officialUrl": "https://magicui.design/",
+    "bannerTitle": null,
+    "bannerWidth": null,
+    "bannerHeight": null
   },
   {
     "id": "component-libraries/aceternity-ui",
@@ -239,7 +302,10 @@
     "icon": "/marketplace-assets/marketplace/aceternity.svg",
     "banner": null,
     "url": "/component-libraries/aceternity-ui/",
-    "officialUrl": "https://ui.aceternity.com/"
+    "officialUrl": "https://ui.aceternity.com/",
+    "bannerTitle": null,
+    "bannerWidth": null,
+    "bannerHeight": null
   },
   {
     "id": "component-libraries/kokonut-ui",
@@ -250,7 +316,10 @@
     "icon": "/marketplace-assets/marketplace/kokonut.svg",
     "banner": null,
     "url": "/component-libraries/kokonut-ui/",
-    "officialUrl": "https://kokonutui.com/"
+    "officialUrl": "https://kokonutui.com/",
+    "bannerTitle": null,
+    "bannerWidth": null,
+    "bannerHeight": null
   },
   {
     "id": "component-libraries/origin-ui",
@@ -261,7 +330,10 @@
     "icon": "/marketplace-assets/marketplace/origin.svg",
     "banner": null,
     "url": "/component-libraries/origin-ui/",
-    "officialUrl": "https://originui.com/"
+    "officialUrl": "https://originui.com/",
+    "bannerTitle": null,
+    "bannerWidth": null,
+    "bannerHeight": null
   },
   {
     "id": "component-libraries/mantine",
@@ -272,7 +344,10 @@
     "icon": "/marketplace-assets/marketplace/mantine.svg",
     "banner": null,
     "url": "/component-libraries/mantine/",
-    "officialUrl": "https://mantine.dev/"
+    "officialUrl": "https://mantine.dev/",
+    "bannerTitle": null,
+    "bannerWidth": null,
+    "bannerHeight": null
   },
   {
     "id": "component-libraries/bklit-ui",
@@ -283,7 +358,10 @@
     "icon": "/marketplace-assets/libraries/bklit-ui.png",
     "banner": null,
     "url": "/component-libraries/bklit-ui/",
-    "officialUrl": "https://bklit.com/"
+    "officialUrl": "https://bklit.com/",
+    "bannerTitle": null,
+    "bannerWidth": null,
+    "bannerHeight": null
   },
   {
     "id": "skills/taste",
@@ -294,7 +372,10 @@
     "icon": "/marketplace-assets/resources/taste-avatar.png",
     "banner": "/marketplace-assets/skill-banners/banner-1.png",
     "url": "/skills/taste/",
-    "officialUrl": null
+    "officialUrl": null,
+    "bannerTitle": "Design Taste",
+    "bannerWidth": 1200,
+    "bannerHeight": 675
   },
   {
     "id": "skills/emil-design-eng",
@@ -305,7 +386,10 @@
     "icon": "/marketplace-assets/emil-kowalski.png",
     "banner": "/marketplace-assets/skill-banners/banner-2.png",
     "url": "/skills/emil-design-eng/",
-    "officialUrl": null
+    "officialUrl": null,
+    "bannerTitle": "Design Engineering",
+    "bannerWidth": 1200,
+    "bannerHeight": 675
   },
   {
     "id": "skills/ui-ux-pro-max",
@@ -316,7 +400,10 @@
     "icon": "/marketplace-assets/resources/ui-ux-pro-max-avatar.png",
     "banner": "/marketplace-assets/skill-banners/banner-3.png",
     "url": "/skills/ui-ux-pro-max/",
-    "officialUrl": null
+    "officialUrl": null,
+    "bannerTitle": "UI/UX Pro Max",
+    "bannerWidth": 1200,
+    "bannerHeight": 675
   },
   {
     "id": "skills/frontend-design",
@@ -327,7 +414,10 @@
     "icon": "/marketplace-assets/resources/frontend-design-avatar.png",
     "banner": "/marketplace-assets/skill-banners/banner-4.png",
     "url": "/skills/frontend-design/",
-    "officialUrl": null
+    "officialUrl": null,
+    "bannerTitle": "Frontend Design",
+    "bannerWidth": 1200,
+    "bannerHeight": 675
   },
   {
     "id": "skills/impeccable",
@@ -338,7 +428,10 @@
     "icon": "/marketplace-assets/resources/impeccable-avatar.png",
     "banner": "/marketplace-assets/skill-banners/banner-5.png",
     "url": "/skills/impeccable/",
-    "officialUrl": null
+    "officialUrl": null,
+    "bannerTitle": "Impeccable",
+    "bannerWidth": 1200,
+    "bannerHeight": 675
   },
   {
     "id": "skills/design-motion-principles",
@@ -349,7 +442,10 @@
     "icon": "/marketplace-assets/resources/design-motion-principles-avatar.png",
     "banner": "/marketplace-assets/skill-banners/banner-4.png",
     "url": "/skills/design-motion-principles/",
-    "officialUrl": null
+    "officialUrl": null,
+    "bannerTitle": "Motion Principles",
+    "bannerWidth": 1200,
+    "bannerHeight": 675
   },
   {
     "id": "skills/shadcn-ui",
@@ -360,7 +456,10 @@
     "icon": "/marketplace-assets/shadcn-avatar.jpg",
     "banner": "/marketplace-assets/skill-banners/banner-1.png",
     "url": "/skills/shadcn-ui/",
-    "officialUrl": null
+    "officialUrl": null,
+    "bannerTitle": "shadcn/ui",
+    "bannerWidth": 1200,
+    "bannerHeight": 675
   },
   {
     "id": "tools/limora-ai",
@@ -371,7 +470,10 @@
     "icon": "/marketplace-assets/tools/limora.png",
     "banner": null,
     "url": null,
-    "officialUrl": null
+    "officialUrl": null,
+    "bannerTitle": null,
+    "bannerWidth": null,
+    "bannerHeight": null
   },
   {
     "id": "tools/claude-code",
@@ -382,7 +484,10 @@
     "icon": "/marketplace-assets/tools/claude.png",
     "banner": null,
     "url": null,
-    "officialUrl": null
+    "officialUrl": null,
+    "bannerTitle": null,
+    "bannerWidth": null,
+    "bannerHeight": null
   },
   {
     "id": "tools/cursor",
@@ -393,7 +498,10 @@
     "icon": "/marketplace-assets/tools/cursor.png",
     "banner": null,
     "url": null,
-    "officialUrl": null
+    "officialUrl": null,
+    "bannerTitle": null,
+    "bannerWidth": null,
+    "bannerHeight": null
   },
   {
     "id": "tools/codex",
@@ -404,7 +512,10 @@
     "icon": "/marketplace-assets/icons/codex.svg",
     "banner": null,
     "url": null,
-    "officialUrl": null
+    "officialUrl": null,
+    "bannerTitle": null,
+    "bannerWidth": null,
+    "bannerHeight": null
   },
   {
     "id": "tools/bolt",
@@ -415,7 +526,10 @@
     "icon": "/marketplace-assets/tools/bolt.png",
     "banner": null,
     "url": null,
-    "officialUrl": null
+    "officialUrl": null,
+    "bannerTitle": null,
+    "bannerWidth": null,
+    "bannerHeight": null
   },
   {
     "id": "tools/replit",
@@ -426,7 +540,10 @@
     "icon": "/marketplace-assets/tools/replit.png",
     "banner": null,
     "url": null,
-    "officialUrl": null
+    "officialUrl": null,
+    "bannerTitle": null,
+    "bannerWidth": null,
+    "bannerHeight": null
   },
   {
     "id": "tools/figma",
@@ -437,7 +554,10 @@
     "icon": "/marketplace-assets/tools/figma.png",
     "banner": null,
     "url": null,
-    "officialUrl": null
+    "officialUrl": null,
+    "bannerTitle": null,
+    "bannerWidth": null,
+    "bannerHeight": null
   },
   {
     "id": "tools/paper",
@@ -448,7 +568,10 @@
     "icon": "/marketplace-assets/tools/paper.png",
     "banner": null,
     "url": null,
-    "officialUrl": null
+    "officialUrl": null,
+    "bannerTitle": null,
+    "bannerWidth": null,
+    "bannerHeight": null
   },
   {
     "id": "tools/magicpath",
@@ -459,7 +582,10 @@
     "icon": "/marketplace-assets/tools/magicpath.ico",
     "banner": null,
     "url": null,
-    "officialUrl": null
+    "officialUrl": null,
+    "bannerTitle": null,
+    "bannerWidth": null,
+    "bannerHeight": null
   },
   {
     "id": "tools/visual-studio-code",
@@ -470,7 +596,10 @@
     "icon": "/marketplace-assets/tools/vscode.png",
     "banner": null,
     "url": null,
-    "officialUrl": null
+    "officialUrl": null,
+    "bannerTitle": null,
+    "bannerWidth": null,
+    "bannerHeight": null
   },
   {
     "id": "tools/supabase",
@@ -481,7 +610,10 @@
     "icon": "/marketplace-assets/tools/supabase.png",
     "banner": null,
     "url": null,
-    "officialUrl": null
+    "officialUrl": null,
+    "bannerTitle": null,
+    "bannerWidth": null,
+    "bannerHeight": null
   },
   {
     "id": "tools/netlify",
@@ -492,7 +624,10 @@
     "icon": "/marketplace-assets/tools/netlify.png",
     "banner": null,
     "url": null,
-    "officialUrl": null
+    "officialUrl": null,
+    "bannerTitle": null,
+    "bannerWidth": null,
+    "bannerHeight": null
   },
   {
     "id": "tools/github",
@@ -503,7 +638,10 @@
     "icon": "/marketplace-assets/tools/github.png",
     "banner": null,
     "url": null,
-    "officialUrl": null
+    "officialUrl": null,
+    "bannerTitle": null,
+    "bannerWidth": null,
+    "bannerHeight": null
   },
   {
     "id": "tools/vercel",
@@ -514,7 +652,10 @@
     "icon": "/marketplace-assets/tools/vercel.png",
     "banner": null,
     "url": null,
-    "officialUrl": null
+    "officialUrl": null,
+    "bannerTitle": null,
+    "bannerWidth": null,
+    "bannerHeight": null
   },
   {
     "id": "tools/lovable",
@@ -525,7 +666,10 @@
     "icon": "/marketplace-assets/tools/lovable.ico",
     "banner": null,
     "url": null,
-    "officialUrl": null
+    "officialUrl": null,
+    "bannerTitle": null,
+    "bannerWidth": null,
+    "bannerHeight": null
   },
   {
     "id": "tools/v0",
@@ -536,7 +680,10 @@
     "icon": "/marketplace-assets/tools/v0.png",
     "banner": null,
     "url": null,
-    "officialUrl": null
+    "officialUrl": null,
+    "bannerTitle": null,
+    "bannerWidth": null,
+    "bannerHeight": null
   },
   {
     "id": "tools/framer",
@@ -547,6 +694,9 @@
     "icon": "/marketplace-assets/tools/framer.png",
     "banner": null,
     "url": null,
-    "officialUrl": null
+    "officialUrl": null,
+    "bannerTitle": null,
+    "bannerWidth": null,
+    "bannerHeight": null
   }
 ]

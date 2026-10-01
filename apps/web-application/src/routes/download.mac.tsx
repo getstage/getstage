@@ -1,3 +1,4 @@
+import { Globe } from "@phosphor-icons/react";
 import { Navigate, createFileRoute } from "@tanstack/react-router";
 import { Helmet } from "react-helmet-async";
 import { useAuth } from "@/lib/auth";
@@ -17,9 +18,10 @@ export const Route = createFileRoute("/download/mac")({
 
 function DownloadMacPage() {
   const { isLoading, isAuthenticated, user } = useAuth();
+  const preview = import.meta.env.DEV && new URLSearchParams(window.location.search).get("preview") === "1";
   const ctaEmail = user?.email ?? "your email";
 
-  if (isLoading) {
+  if (isLoading && !preview) {
     return (
       <div className="flex min-h-dvh items-center justify-center bg-white">
         <span className="inline-block h-6 w-6 animate-spin rounded-full border-2 border-accent border-t-transparent" />
@@ -27,7 +29,7 @@ function DownloadMacPage() {
     );
   }
 
-  if (!isAuthenticated) {
+  if (!isAuthenticated && !preview) {
     return <Navigate to="/auth" search={{ redirect: "/download/mac" }} replace />;
   }
 
@@ -82,6 +84,7 @@ function DownloadMacPage() {
                     Using an Intel Mac? Download the x64 build
                   </a>
                 </div>
+                <a href={profileHref()} className="mt-5 inline-flex items-center gap-1.5 text-[13px] font-medium text-[#525252]"><Globe size={16} weight="regular" aria-hidden="true" className="shrink-0"/><span className="underline underline-offset-4">Use Stage on web</span></a>
               </div>
             </section>
 
@@ -110,4 +113,10 @@ function AppleIcon() {
       />
     </svg>
   );
+}
+
+function profileHref() {
+ if(import.meta.env.DEV && new URLSearchParams(window.location.search).get("preview")==="1")return "/profile?preview=1";
+ const value=new URLSearchParams(window.location.search).get("profile");
+ return value?.startsWith("/profile?") ? value : "/profile";
 }

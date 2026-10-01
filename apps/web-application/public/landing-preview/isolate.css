@@ -86,9 +86,8 @@ html.stage-landing-page a:focus-visible,
 html.stage-landing-page summary:focus-visible,
 html.stage-landing-page [role="button"]:focus,
 html.stage-landing-page [role="button"]:focus-visible {
-  outline: 3px solid #8d87ff !important;
-  outline-offset: 5px !important;
-  box-shadow: none !important;
+  outline: none !important;
+  outline-offset: 0 !important;
 }
 
 html.stage-landing-page body.legal-page {
@@ -211,3 +210,6 @@ html.stage-landing-page .legal-section li {
     padding: 112px 22px 64px;
   }
 }
+
+/* Controls keep their normal surface when clicked or focused. */
+html.stage-landing-page :is(:focus,:focus-visible,:focus-within){outline:none!important;outline-offset:0!important;--tw-ring-shadow:0 0 #0000!important;--tw-ring-offset-shadow:0 0 #0000!important}

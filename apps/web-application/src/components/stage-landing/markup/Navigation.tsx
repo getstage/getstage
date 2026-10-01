@@ -28,7 +28,7 @@ function UseCaseMenu() {
         </div>
       ))}
       <a className="use-case-menu-all" href="/use-cases">
-        Browse all solutions <span aria-hidden="true">→</span>
+        Browse all solutions <ArrowUpRight size={14} aria-hidden="true" />
       </a>
     </div>
   );

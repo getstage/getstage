@@ -120,11 +120,34 @@
 .use-case-menu-heading { padding: 0 10px 8px; color: #a3a3a3; font-size: 11px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; }
 .use-case-menu ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
 .use-case-menu li a { display: grid; gap: 2px; padding: 10px; border-radius: 12px; transition: background .18s; }
-.use-case-menu li a:hover { background: #262626; }
-.use-case-menu li strong { color: #fafafa; font-size: 14px; font-weight: 500; letter-spacing: -.2px; }
+.use-case-menu li a:hover, .use-case-menu li a:focus-visible { background: #262626; }
+.use-case-menu li strong { color: #fafafa; font-size: 14px; font-weight: 500; line-height: 20px; letter-spacing: -.2px; }
 .use-case-menu li span { color: #a3a3a3; font-size: 12px; line-height: 1.4; }
-.use-case-menu-all { grid-column: 1 / -1; margin: 4px 0 6px; padding: 14px 10px 8px; border-top: 1px solid #262626; color: #fafafa; font-size: 14px; font-weight: 500; }
-.use-case-menu-all:hover { color: #b6b3fa; }
+/* Shared footer actions keep both dropdowns visually consistent. */
+.use-case-menu-group { display: flex; flex-direction: column; }
+.use-case-menu-all, .resources-all {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 4px 0 6px;
+  padding: 12px 10px;
+  border-top: 1px solid #262626;
+  border-radius: 0 0 12px 12px;
+  color: #fafafa;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  letter-spacing: -.2px;
+  transition: color .18s, background .18s;
+}
+.use-case-menu-all { grid-column: 1 / -1; }
+.resources-menu .use-case-menu-group > ul { margin-bottom: 14px; }
+.resources-all { margin-top: auto; }
+.use-case-menu-all:hover, .resources-all:hover,
+.use-case-menu-all:focus-visible, .resources-all:focus-visible { color: #fafafa; background: #262626; }
+.use-case-menu a:focus-visible { outline: 2px solid #b6b3fa; outline-offset: 2px; }
+.use-case-menu .solution-label svg { width: 18px; height: 18px; flex-shrink: 0; color: #fafafa; }
+.use-case-menu-all svg, .resources-all svg { width: 14px; height: 14px; flex-shrink: 0; }
 .nav-scrim { position: fixed; inset: 0; z-index: 20; background: transparent; }
 .nav-scrim[hidden] { display: none; }
 @media (max-width: 560px) {

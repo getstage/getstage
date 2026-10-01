@@ -29,13 +29,13 @@ function setMeta(html, attr, key, value) {
 }
 
 function renderDocument(template, { meta, body, absoluteUrl }) {
-  const url = absoluteUrl(meta.path);
+  const url = absoluteUrl(meta.path === "/marketplace" ? "/component-libraries" : meta.path);
   const image = absoluteUrl(meta.image);
   let html = template;
   html = setTag(html, /<html lang="en">/, '<html lang="en" class="stage-landing-page">');
   html = setTag(html, /<title>[^<]*<\/title>/, `<title>${escapeHtml(meta.title)}</title>`);
   html = setMeta(html, "name", "description", meta.description);
-  if (meta.noIndex) html = setMeta(html, "name", "robots", "noindex, follow");
+  html = setMeta(html, "name", "robots", meta.noIndex ? "noindex, follow" : "index, follow, max-image-preview:large");
   html = setTag(html, /<link rel="canonical" href="[^"]*" \/>/, `<link rel="canonical" href="${url}" />`);
   html = setMeta(html, "property", "og:type", meta.type);
   html = setMeta(html, "property", "og:url", url);
@@ -60,7 +60,7 @@ function renderDocument(template, { meta, body, absoluteUrl }) {
     (file) => `<link rel="stylesheet" href="/landing-preview/${file}" />`,
   ).join("\n  ");
   html = setTag(html, /<\/head>/, `  ${styles}\n</head>`);
-  html = setTag(html, /<body>/, '<body class="content-page">');
+  html = setTag(html, /<body>/, `<body class="${meta.path === '/' ? '' : meta.path === '/download' ? 'download-page' : 'content-page'}">`);
   html = setTag(html, /<div id="root"><\/div>/, `<div id="root">${body}</div>`);
   return html;
 }
@@ -90,13 +90,13 @@ async function main() {
         body: entry.renderPath(pagePath),
         absoluteUrl: entry.absoluteUrl,
       });
-      const file = path.join(DIST, `${pagePath}.html`);
+      const file = path.join(DIST, pagePath === "/" ? "index.html" : `${pagePath}.html`);
       await mkdir(path.dirname(file), { recursive: true });
       await writeFile(file, html);
     }
 
     const indexedPaths = entry.marketingPaths.filter((pagePath) => !entry.metaForPath(pagePath).noIndex);
-    const sitemapUrls = ["/", "/download", ...indexedPaths].map((pagePath) => entry.absoluteUrl(pagePath));
+    const sitemapUrls = indexedPaths.map((pagePath) => entry.absoluteUrl(pagePath));
     await writeFile(path.join(DIST, "sitemap.xml"), sitemap(sitemapUrls));
 
     // Old URLs of renamed pages (Cloudflare static assets _redirects format).

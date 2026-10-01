@@ -17,4 +17,5 @@ export const PUBLIC_WEB_PATHS: ReadonlySet<string> = new Set([
   "/skills",
   "/tools",
   "/profile",
+  "/setup-profile",
 ]);

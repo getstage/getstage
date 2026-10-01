@@ -82,6 +82,48 @@ describe("builder profiles", () => {
     await user.mutation(setSaved, { itemId, saved: false });
     expect((await user.query(mine, {})).items).toEqual([]);
   });
+  test("signed-in builders can save directly before setting up a profile", async () => {
+    const {t,user}=await setup();
+    await user.mutation(setSaved,{itemId:"skills/taste",saved:true});
+    await user.mutation(setSaved,{itemId:"skills/taste",saved:true});
+    const profile=await user.query(mine,{});
+    expect(profile.items).toEqual(["skills/taste"]);
+    expect(profile.published).toBe(false);
+    expect(await t.query(byHandle,{handle:profile.handle})).toBeNull();
+    const secondId=await t.run(ctx=>ctx.db.insert("users",{name:"Private name"}));
+    const second=t.withIdentity({subject:`${secondId}|session`});
+    await second.mutation(setSaved,{itemId:"skills/taste",saved:true});
+    expect((await second.query(mine,{})).handle).not.toBe(profile.handle);
+  });
+  test("round-trips every profile field across sessions and preserves collections", async () => {
+    const { t, id, user } = await setup();
+    const complete = {
+      ...input,
+      name: "Saved Builder",
+      bio: "Designing and building products",
+      location: "Paphos",
+      roles: ["Designer", "Founder"],
+      technologies: ["react", "typescript"],
+      banner: "banner-2",
+      customAvatar: "data:image/webp;base64,AAAA",
+      customBanner: "data:image/webp;base64,BBBB",
+      github: "https://github.com/example",
+      x: "https://x.com/example",
+      instagram: "https://instagram.com/example",
+      linkedin: "https://linkedin.com/in/example",
+      website: "https://example.com",
+      email: "public@example.com",
+    };
+    await user.mutation(save, complete);
+    await user.mutation(setSaved, { itemId: "skills/taste", saved: true });
+    const anotherSession = t.withIdentity({ subject: `${id}|second_session` });
+    expect(await anotherSession.query(mine, {})).toMatchObject({ ...complete, items: ["skills/taste"] });
+    await anotherSession.mutation(save, { ...complete, published: true });
+    expect(await t.query(byHandle, { handle: input.handle })).toMatchObject({ ...complete, published: true, items: ["skills/taste"] });
+    await anotherSession.mutation(save, { ...complete, customAvatar: "", customBanner: "" });
+    expect(await user.query(mine, {})).toMatchObject({ customAvatar: "", customBanner: "", items: ["skills/taste"] });
+    expect(await t.query(byHandle, { handle: input.handle })).toBeNull();
+  });
   test("rejects unsafe links, invalid handles and oversized fields", () => {
     expect(() =>
       validateProfile({ ...input, website: "javascript:alert(1)" }),
@@ -95,4 +137,34 @@ describe("builder profiles", () => {
       }),
     ).toThrow();
   });
+  test("setup persists each step, resumes in order and never regresses completion", async () => {
+    const { user } = await setup();
+    const saveStep = makeFunctionReference<"mutation">("builderProfiles:saveSetupStep");
+    await expect(user.mutation(saveStep, { profile: input, step: 2, items: [] })).rejects.toThrow(/previous step/);
+    await user.mutation(saveStep, { profile: input, step: 1, items: [] });
+    expect((await user.query(mine, {})).onboardingStep).toBe(1);
+    await user.mutation(saveStep, { profile: { ...input, roles: ["Founder"], bio: "Building" }, step: 2, items: [] });
+    expect((await user.query(mine, {})).roles).toEqual(["Founder"]);
+    await user.mutation(saveStep, { profile: { ...input, technologies: ["react"], github: "https://github.com/example" }, step: 3, items: ["skills/taste"] });
+    const finished = await user.query(mine, {});
+    expect(finished.onboardingStep).toBe(3);
+    expect(finished.items).toEqual(["skills/taste"]);
+    await user.mutation(save, { ...input, bio: "Edited later" });
+    expect((await user.query(mine, {})).onboardingStep).toBe(3);
+    expect((await user.query(mine, {})).items).toEqual(["skills/taste"]);
+    await user.mutation(saveStep, { profile: input, step: 1, items: ["skills/taste"] });
+    expect((await user.query(mine, {})).onboardingStep).toBe(3);
+  });
+  test("username availability includes private profiles and suggests a free suffix", async () => {
+    const { t, user } = await setup();
+    const username = makeFunctionReference<"query">("builderProfiles:username");
+    await user.mutation(save, input);
+    expect((await user.query(username, { handle: input.handle })).available).toBe(true);
+    const id = await t.run(ctx => ctx.db.insert("users", { name: "Another builder" }));
+    const other = t.withIdentity({ subject: `${id}|session` });
+    const result = await other.query(username, { handle: input.handle });
+    expect(result).toEqual({ available: false, suggestion: "test_builder1" });
+    await expect(t.query(username, { handle: input.handle })).rejects.toThrow(/authenticated/i);
+  });
+
 });

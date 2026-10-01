@@ -1,3 +1,4 @@
+import { readLocalProfile, writeLocalProfile } from "./localProfile";
 import {
   Component,
   createContext,
@@ -8,9 +9,12 @@ import {
 import { useMutation, useQuery } from "convex/react";
 import { makeFunctionReference } from "convex/server";
 import { useAuth } from "@/lib/auth";
+import { ResourceSaveDialog } from "./ResourceDialogs";
 import catalog from "@/marketing/marketplace/catalog.json";
 
 export type Profile = {
+  onboardingStep?: number;
+  customAvatar?: string;
   customBanner?: string;
   name: string;
   handle: string;
@@ -28,8 +32,10 @@ export type Profile = {
   published: boolean;
   items: string[];
 };
-export type ProfileInput = Omit<Profile, "items">;
+export type ProfileInput = Omit<Profile, "items" | "onboardingStep">;
 export const profileApi = {
+  username: makeFunctionReference<"query", { handle: string }, { available: boolean; suggestion: string }>("builderProfiles:username"),
+  saveSetupStep: makeFunctionReference<"mutation", { profile: ProfileInput; step: 1 | 2 | 3; items: string[] }, string>("builderProfiles:saveSetupStep"),
   mine: makeFunctionReference<"query", Record<string, never>, Profile | null>(
     "builderProfiles:mine",
   ),
@@ -92,9 +98,29 @@ export function SavedProvider({ children }: { children: ReactNode }) {
     );
   return (
     <SavedServiceBoundary>
-      <ConnectedSavedProvider>{children}</ConnectedSavedProvider>
+      <SavedMode>{children}</SavedMode>
     </SavedServiceBoundary>
   );
+}
+function SavedMode({children}:{children:ReactNode}) {
+ const {isAuthenticated}=useAuth();
+ return !isAuthenticated&&readLocalProfile()?<LocalSavedProvider>{children}</LocalSavedProvider>:<ConnectedSavedProvider>{children}</ConnectedSavedProvider>;
+}
+function SavedNotification({item,close}:{item:CatalogItem;close:()=>void}) {
+ const category=item.type==='Components'?'component libraries':item.type==='Skills'?'skills':'tools';
+ const collection=item.type==='Components'?'Components':item.type==='Skills'?'Skills':'Tools';
+ const href=`/profile?collection=${collection}#my-collection`;
+ return <aside className="saved-profile-notification" role="status" aria-live="polite"><div className="saved-profile-notification-row"><img src="/marketplace-assets/notifications/success.svg" width={16} height={16} alt=""/><span>{item.name} added successfully.</span><button type="button" aria-label="Dismiss notification" onClick={close}><img src="/marketplace-assets/notifications/close.svg" width={15} height={15} alt=""/></button></div><a href={href}>View all {category}</a></aside>;
+}
+function LocalSavedProvider({children}:{children:ReactNode}) {
+ const [profile,setProfile]=useState(readLocalProfile);
+ const [added,setAdded]=useState<CatalogItem|null>(null);
+ const [message,setMessage]=useState('');
+ async function save(item:CatalogItem){
+  const current=readLocalProfile();if(!current)return;
+  try{const next={...current,items:Array.from(new Set([...current.items,item.id]))};writeLocalProfile(next);setProfile(next);setMessage('');setAdded(item);}catch{setMessage("Couldn't save your change. Please try again.");}
+ }
+ return <SavedContext.Provider value={{profile,busy:null,message,save}}>{children}{added&&<SavedNotification item={added} close={()=>setAdded(null)}/ >}{message&&<p className="market-feedback" role="status">{message} <a href="/profile?preview=1">My Profile</a></p>}</SavedContext.Provider>;
 }
 class SavedServiceBoundary extends Component<
   { children: ReactNode },
@@ -141,30 +167,25 @@ function ConnectedSavedProvider({ children }: { children: ReactNode }) {
   const update = useMutation(profileApi.setSaved);
   const [busy, setBusy] = useState<string | null>(null);
   const [message, setMessage] = useState("");
+  const [pending, setPending] = useState<CatalogItem | null>(null);
+  const [added,setAdded]=useState<CatalogItem|null>(null);
   async function save(item: CatalogItem) {
     if (isLoading || busy) return;
     if (!isAuthenticated) {
-      window.location.assign(
-        profileLoginUrl(`/profile?save=${encodeURIComponent(item.id)}`),
-      );
+      setPending(item);
       return;
     }
     if (profile === undefined) {
       setMessage("Your profile is loading. Try again in a moment.");
       return;
     }
-    if (!profile) {
-      window.location.assign(`/profile?save=${encodeURIComponent(item.id)}`);
-      return;
-    }
+    setAdded(null);
     setBusy(item.id);
     setMessage("");
     try {
-      const saved = !profile.items.includes(item.id);
+      const saved = true;
       await update({ itemId: item.id, saved });
-      setMessage(
-        `${item.name} ${saved ? "saved to" : "removed from"} your profile.`,
-      );
+      setAdded(item);
     } catch {
       setMessage("Couldn't save your change. Please try again.");
     } finally {
@@ -174,6 +195,8 @@ function ConnectedSavedProvider({ children }: { children: ReactNode }) {
   return (
     <SavedContext.Provider value={{ profile, busy, save, message }}>
       {children}
+      {added && <SavedNotification item={added} close={()=>setAdded(null)} />}
+      {pending && <ResourceSaveDialog item={pending} href={profileLoginUrl(`/profile?save=${encodeURIComponent(pending.id)}`)} onClose={() => setPending(null)} />}
       {message && (
         <p className="market-feedback" role="status">
           {message} <a href="/profile">My profile</a>

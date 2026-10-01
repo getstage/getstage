@@ -492,7 +492,7 @@
 @media(prefers-reduced-motion:reduce){.profile-shell .profile-tool-remove{transition:none}}
 
 .profile-page .profile-delete-dialog{width:508px;padding:20px;border-radius:8px;background:#fff}
-.profile-delete-content>img{display:block;object-fit:contain;margin-bottom:20px}
+.profile-delete-content>img,.profile-delete-content>svg{display:block;object-fit:contain;margin-bottom:20px}
 .profile-page .profile-delete-dialog h2{font:500 15px/18px Inter,sans-serif;letter-spacing:0;margin:0 0 4px}
 .profile-page .profile-delete-dialog p{font:400 13px/18px Inter,sans-serif;color:#737373;max-width:381px;margin:0}
 .profile-delete-actions{display:flex;gap:8px;margin-top:44px;align-items:center}
@@ -548,8 +548,8 @@
 .profile-page .profile-shell .technology-search input{height:32px;margin-top:6px}
 @media(max-width:640px){.profile-page .profile-dialog .field-row{grid-template-columns:1fr;gap:14px}}
 
-.profile-page #remove-dialog{width:508px;max-width:calc(100vw - 32px);padding:20px;border-radius:8px;background:#fff}
-.profile-page #remove-dialog .profile-delete-actions .button{height:32px;min-height:32px;padding:8px 16px;border-radius:4px;line-height:16px}
+.profile-page .profile-delete-dialog.profile-dialog{width:508px;max-width:calc(100vw - 32px);padding:20px;border-radius:8px;background:#fff}
+.profile-page .profile-delete-dialog .profile-delete-actions .button{height:32px;min-height:32px;padding:8px 16px;border-radius:4px;line-height:16px}
 
 .profile-page #claim-dialog .claim-reward-icon{display:flex;align-items:center;justify-content:center;width:44px;height:44px;margin:0 auto 14px;border-radius:12px;background:#e9e6ff}
 .profile-page #claim-dialog .claim-reward-icon img{display:block;width:28px;height:28px}

@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TermsRouteImport } from './routes/terms'
+import { Route as SetupProfileRouteImport } from './routes/setup-profile'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as OpenclawRouteImport } from './routes/openclaw'
@@ -52,6 +53,11 @@ import { Route as AuthedProjectIdTaskTaskIdRouteImport } from './routes/_authed/
 const TermsRoute = TermsRouteImport.update({
   id: '/terms',
   path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SetupProfileRoute = SetupProfileRouteImport.update({
+  id: '/setup-profile',
+  path: '/setup-profile',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProfileRoute = ProfileRouteImport.update({
@@ -256,6 +262,7 @@ export interface FileRoutesByFullPath {
   '/openclaw': typeof OpenclawRoute
   '/privacy': typeof PrivacyRoute
   '/profile': typeof ProfileRoute
+  '/setup-profile': typeof SetupProfileRoute
   '/terms': typeof TermsRoute
   '/dashboard': typeof AuthedDashboardRoute
   '/new-project': typeof AuthedNewProjectRoute
@@ -295,6 +302,7 @@ export interface FileRoutesByTo {
   '/openclaw': typeof OpenclawRoute
   '/privacy': typeof PrivacyRoute
   '/profile': typeof ProfileRoute
+  '/setup-profile': typeof SetupProfileRoute
   '/terms': typeof TermsRoute
   '/dashboard': typeof AuthedDashboardRoute
   '/new-project': typeof AuthedNewProjectRoute
@@ -337,6 +345,7 @@ export interface FileRoutesById {
   '/openclaw': typeof OpenclawRoute
   '/privacy': typeof PrivacyRoute
   '/profile': typeof ProfileRoute
+  '/setup-profile': typeof SetupProfileRoute
   '/terms': typeof TermsRoute
   '/_authed/dashboard': typeof AuthedDashboardRoute
   '/_authed/new-project': typeof AuthedNewProjectRoute
@@ -379,6 +388,7 @@ export interface FileRouteTypes {
     | '/openclaw'
     | '/privacy'
     | '/profile'
+    | '/setup-profile'
     | '/terms'
     | '/dashboard'
     | '/new-project'
@@ -418,6 +428,7 @@ export interface FileRouteTypes {
     | '/openclaw'
     | '/privacy'
     | '/profile'
+    | '/setup-profile'
     | '/terms'
     | '/dashboard'
     | '/new-project'
@@ -459,6 +470,7 @@ export interface FileRouteTypes {
     | '/openclaw'
     | '/privacy'
     | '/profile'
+    | '/setup-profile'
     | '/terms'
     | '/_authed/dashboard'
     | '/_authed/new-project'
@@ -501,6 +513,7 @@ export interface RootRouteChildren {
   OpenclawRoute: typeof OpenclawRoute
   PrivacyRoute: typeof PrivacyRoute
   ProfileRoute: typeof ProfileRoute
+  SetupProfileRoute: typeof SetupProfileRoute
   TermsRoute: typeof TermsRoute
   BillingReturnRoute: typeof BillingReturnRoute
   BlogSlugRoute: typeof BlogSlugRoute
@@ -526,6 +539,13 @@ declare module '@tanstack/react-router' {
       path: '/terms'
       fullPath: '/terms'
       preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/setup-profile': {
+      id: '/setup-profile'
+      path: '/setup-profile'
+      fullPath: '/setup-profile'
+      preLoaderRoute: typeof SetupProfileRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/profile': {
@@ -890,6 +910,7 @@ const rootRouteChildren: RootRouteChildren = {
   OpenclawRoute: OpenclawRoute,
   PrivacyRoute: PrivacyRoute,
   ProfileRoute: ProfileRoute,
+  SetupProfileRoute: SetupProfileRoute,
   TermsRoute: TermsRoute,
   BillingReturnRoute: BillingReturnRoute,
   BlogSlugRoute: BlogSlugRoute,

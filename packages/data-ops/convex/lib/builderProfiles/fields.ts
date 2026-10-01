@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 
 export const profileFields = {
+  customAvatar: v.optional(v.string()),
   customBanner: v.optional(v.string()),
   name: v.string(),
   handle: v.string(),
@@ -18,6 +19,7 @@ export const profileFields = {
   published: v.boolean(),
 };
 export type ProfileFields = {
+  customAvatar?: string;
   customBanner?: string;
   name: string;
   handle: string;
@@ -93,5 +95,7 @@ export function validateProfile(input: ProfileFields): ProfileFields {
       ))
   )
     throw new Error("Choose a smaller PNG, JPG or WebP banner.");
+  if (result.customAvatar && (result.customAvatar.length > 200000 || !/^(data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/]+=*|https:\/\/[^\s]+)$/.test(result.customAvatar)))
+    throw new Error("Choose a smaller PNG, JPG or WebP profile photo.");
   return result;
 }

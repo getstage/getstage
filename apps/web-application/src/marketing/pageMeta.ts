@@ -25,19 +25,20 @@ export type PageMeta = {
 };
 
 export const USE_CASES_META = {
-  title: "Use cases | Stage",
+  title: "AI Product Design Solutions for Builders & Teams | Stage",
   description:
     "See how freelance designers, agencies, founders and vibe coders use Stage to research, set a direction and plan products before they build.",
 };
 
 export const BLOG_META = {
-  title: "Blog | Stage",
+  title: "AI Product Design Guides & Tutorials | Stage",
   description:
     "Tutorials, case studies and tools for designing products with AI: research, visual direction, flows and briefs your coding agent follows.",
 };
 
 // Every public marketing page that is pre-rendered.
 export const marketingPaths = [
+  "/", "/download",
   "/marketplace", "/component-libraries", "/skills", "/tools",
   ...marketplaceCatalog.filter(item => item.type !== "Tools").map(item => "/" + item.id),
   ...pages.map((page) => pagePath(page.slug)),
@@ -90,9 +91,25 @@ function isoDuration(length: string) {
 }
 
 export function metaForPath(path: string): PageMeta | null {
+  path=path.replace(/\/+$/, "") || "/";
   const resource = marketplaceCatalog.find(item => "/" + item.id === path && item.type !== "Tools");
   const category = ({"/marketplace":"Marketplace","/component-libraries":"Component libraries","/skills":"Skills","/tools":"Tools"} as Record<string,string>)[path];
-  if(resource || category) return {path,title: `${resource?.name ?? category} | Stage Marketplace`, description:resource?.description ?? "Discover tools, design skills and component libraries for your next project. Save your favorites to your personal Stage profile.",image:resource?.banner ?? DEFAULT_OG_IMAGE,type:"website",noIndex:path==="/marketplace",jsonLd:withContext([breadcrumb([{name:"Marketplace",path:"/component-libraries"},...(resource?[{name:resource.name,path}]:[])])])};
+  if(resource || category) {
+    const descriptions:Record<string,string>={
+      '/marketplace':'Explore component libraries, design skills and AI tools for building websites and apps. Compare resources and save your stack to a Stage profile.',
+      '/component-libraries':'Explore React component libraries, animated UI, website blocks and charts. Find reusable components and save your favorites to your Stage profile.',
+      '/skills':'Discover design and coding skills for AI agents, from interface design to motion and frontend workflows. Build your personal skill collection on Stage.',
+      '/tools':'Compare AI coding, design and development tools for your next project. Explore the Stage tools directory and save your builder toolkit.'
+    };
+    const categoryPath=resource?.type==='Skills'?'/skills':'/component-libraries';
+    const title=resource?`${resource.name} — ${resource.type==='Skills'?'AI Design Skill':'Component Library'} | Stage`:`${category === 'Skills'?'AI Design & Coding Skills':category === 'Tools'?'AI Design & Development Tools':category} | Stage`;
+    const description=resource?`${resource.description} Explore ${resource.name} on Stage and save it to your profile.`:descriptions[path]!;
+    const entries:Array<Record<string,unknown>>=[breadcrumb([{name:'Home',path:'/'},{name:resource?(resource.type==='Skills'?'Skills':'Component libraries'):category!,path:resource?categoryPath:path},...(resource?[{name:resource.name,path}]:[])])];
+    if(resource)entries.push({'@type':'WebPage','@id':absoluteUrl(path)+'#webpage',url:absoluteUrl(path),name:title,description,about:{'@type':'CreativeWork',name:resource.name,description:resource.description,url:resource.officialUrl||absoluteUrl(path)}});
+    else entries.push({'@type':'CollectionPage',url:absoluteUrl(path),name:title,description,mainEntity:{'@type':'ItemList',itemListElement:marketplaceCatalog.filter(item=>path==='/skills'?item.type==='Skills':path==='/tools'?item.type==='Tools':item.type==='Components').map((item,index)=>({'@type':'ListItem',position:index+1,name:item.name,url:absoluteUrl(item.url||item.officialUrl||path)}))}});
+    return {path,title,description,image:resource?.banner??DEFAULT_OG_IMAGE,type:'website',noIndex:path==='/marketplace',jsonLd:withContext(entries)};
+  }
+  if(path==='/'||path==='/download')return {path,title:path==='/'?'Stage | Think through your product before your AI builds it':'Download Stage for macOS | AI Product Design',description:path==='/'?'Work through research, strategy, visual direction, flows and wireframes in Stage for Mac. Export a Markdown brief for Cursor, Claude Code or Codex.':'Download Stage for macOS to research competitors, plan user flows and create design briefs for AI coding tools. Includes a 14-day free trial.',image:DEFAULT_OG_IMAGE,type:'website',noIndex:false,jsonLd:withContext([{'@type':'Organization','@id':absoluteUrl('/')+'#organization',name:SITE_NAME,url:absoluteUrl('/'),logo:absoluteUrl('/android-chrome-512x512.png')},{'@type':'WebSite','@id':absoluteUrl('/')+'#website',name:SITE_NAME,url:absoluteUrl('/')},{'@type':'WebPage',name:path==='/'?'Stage':'Download Stage for macOS',url:absoluteUrl(path)}])};
 
   if (path === "/use-cases") {
     return {
@@ -101,7 +118,7 @@ export function metaForPath(path: string): PageMeta | null {
       image: DEFAULT_OG_IMAGE,
       type: "website",
       noIndex: false,
-      jsonLd: withContext([breadcrumb([{ name: "Use cases", path }])]),
+      jsonLd: withContext([breadcrumb([{ name: "Solutions", path }])]),
     };
   }
 
@@ -128,7 +145,7 @@ export function metaForPath(path: string): PageMeta | null {
       type: "website",
       jsonLd: withContext([
         breadcrumb([
-          { name: "Use cases", path: "/use-cases" },
+          { name: "Solutions", path: "/use-cases" },
           { name: useCase.label, path },
         ]),
         faqPage(useCase.faq),
@@ -168,7 +185,6 @@ export function metaForPath(path: string): PageMeta | null {
           thumbnailUrl: absoluteUrl(post.video.thumbnail),
           uploadDate: post.date,
           embedUrl: `https://www.youtube.com/embed/${post.video.youtubeId}`,
-          contentUrl: `https://www.youtube.com/watch?v=${post.video.youtubeId}`,
           ...(post.video.length ? { duration: isoDuration(post.video.length) } : {}),
         },
         breadcrumb([

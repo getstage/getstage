@@ -74,10 +74,10 @@ h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-heading);
 }
 
-/* Focus ring — accessible but on-brand */
+/* Keep controls free of external focus rectangles. */
 :focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 2px;
+  outline: none;
+  outline-offset: 0;
 }
 
 .project-creation-page :focus-visible {
@@ -209,3 +209,6 @@ button:focus-visible,
   background: var(--color-accent-light);
   color: var(--color-text-primary);
 }
+
+@font-face{font-family:"Stage Auth Inter";src:url("/landing-preview/assets/fonts/InterVariable.woff2") format("woff2");font-style:normal;font-weight:100 900;font-display:swap}
+.auth-page{--font-body:"Stage Auth Inter",Arial,sans-serif;--font-heading:"Stage Auth Inter",Arial,sans-serif;--font-sans:"Stage Auth Inter",Arial,sans-serif;font-family:var(--font-body);font-synthesis:none;letter-spacing:0}.auth-page :is(h1,h2,h3,p,input,button,a,.font-sans){font-family:inherit}

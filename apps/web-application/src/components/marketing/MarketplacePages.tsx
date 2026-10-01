@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, type MouseEvent } from "react";
-import { BookmarkSimple, Check, MagnifyingGlass } from "@phosphor-icons/react";
+import { BookmarkSimple, Check } from "@phosphor-icons/react";
 import { MarketingLayout } from "./MarketingLayout";
 import { NotFoundContent } from "./NotFoundContent";
 import {
@@ -9,11 +9,13 @@ import {
   ProfileBoundary,
   useSaved,
 } from "./MarketplaceState";
+import { ResourceShareDialog } from "./ResourceDialogs";
 import details from "@/marketing/marketplace/details.json";
 
 export function SaveResource({ item }: { item: CatalogItem }) {
   const { profile, busy, save } = useSaved();
   const saved = profile?.items.includes(item.id);
+  if (saved) return <a className="market-add" href="/profile"><Check size={14} />View my profile ↗</a>;
   return (
     <button
       className="market-add"
@@ -34,27 +36,8 @@ export function ResourceCard({
   item: CatalogItem;
   action?: React.ReactNode;
 }) {
-  if (item.type === "Tools")
-    return (
-      <article className="market-card market-tool-row">
-        <img
-          className="market-tool-icon"
-          src={item.icon}
-          alt=""
-          width={24}
-          height={24}
-        />
-        <div className="market-tool-copy">
-          <div className="market-card-title">
-            <h3>{item.name}</h3>
-          </div>
-          <p className="market-description">{item.description}</p>
-        </div>
-        {action ?? <SaveResource item={item} />}
-      </article>
-    );
   return (
-    <article className="market-card">
+    <article className={`market-card ${item.type === "Components" ? "market-library-card" : ""}`}>
       {item.banner && (
         <a
           className="market-banner"
@@ -62,8 +45,8 @@ export function ResourceCard({
           tabIndex={-1}
           aria-hidden="true"
         >
-          <img src={item.banner} alt="" loading="lazy" />
-          <span className="market-banner-title">{item.name}</span>
+          <img src={item.banner} width={item.bannerWidth ?? undefined} height={item.bannerHeight ?? undefined} alt="" loading="lazy" />
+          <span className="market-banner-title">{`<${item.bannerTitle || item.name}>`}</span>
         </a>
       )}
       <div className="market-card-body">
@@ -72,16 +55,14 @@ export function ResourceCard({
             className="market-library-logo"
             src={item.icon}
             alt=""
-            width={28}
-            height={28}
+            width={24}
+            height={24}
             loading="lazy"
           />
         )}
-        <a className="market-card-title" href={item.url!}>
-          <h3>{item.name}</h3>
-        </a>
+        {item.url ? <a className="market-card-title" href={item.url}><h3>{item.name}</h3></a> : <div className="market-card-title"><h3>{item.name}</h3></div>}
         <p className="market-description">{item.description}</p>
-        <div className="market-card-meta">{item.category}</div>
+        <div className="market-card-meta"><img src="/marketplace-assets/marketplace/category.svg" width={13} height={13} alt="" aria-hidden="true" />{item.category}</div>
         {action ?? <SaveResource item={item} />}
       </div>
     </article>
@@ -193,6 +174,7 @@ export function MarketplacePage({
 }) {
   return (
     <MarketingLayout
+      bodyClass="marketplace-page resource-page"
       title={`${category} — Stage Marketplace`}
       description="Discover tools, skills and component libraries for your next project."
     >
@@ -235,12 +217,12 @@ function MarketplaceContent({ category }: { category: string }) {
               href={path}
               aria-current={category === name ? "page" : undefined}
             >
-              {name}
+              {name === "Components" ? "Component Libraries" : name}
             </a>
           ))}
         </nav>
         <label className="market-search">
-          <MagnifyingGlass size={16} />
+          <img src="/marketplace-assets/marketplace/search.svg" width={15} height={15} alt="" aria-hidden="true" />
           <input
             type="search"
             value={query}
@@ -252,12 +234,10 @@ function MarketplaceContent({ category }: { category: string }) {
         <CategoryFilter items={items} value={filter} onChange={setFilter} />
       </div>
       <section className="market-panel">
-        <h2>{category === "Components" ? "Component libraries" : category}</h2>
+        <h2>{category === "Components" ? "Discover Components" : category === "Skills" ? "Discover Skills" : "Available tools"}</h2>
         <div
           className={
-            category === "Tools"
-              ? "market-tools-list"
-              : `market-grid ${category === "Components" ? "market-libraries" : ""}`
+            `market-grid ${category !== "Skills" ? "market-libraries" : ""}`
           }
         >
           {shown.map((item) => (
@@ -283,6 +263,7 @@ export function ResourceDetailPage({ id }: { id: string }) {
     return <NotFoundContent backHref="/marketplace" backLabel="Marketplace" />;
   return (
     <MarketingLayout
+      bodyClass="resource-page"
       title={`${item.name} — Stage`}
       description={item.description}
     >
@@ -297,25 +278,23 @@ export function ResourceDetailPage({ id }: { id: string }) {
 function DetailContent({ item, html }: { item: CatalogItem; html: string }) {
   const { save, profile, busy } = useSaved();
   const [message, setMessage] = useState("");
+  const [sharing, setSharing] = useState(false);
   const saved = profile?.items.includes(item.id);
   const markup = html.replace(
     "Save to profile</span>",
-    `${busy === item.id ? "Saving…" : saved ? "Remove from profile" : "Save to profile"}</span>`,
+    `${busy === item.id ? "Saving…" : saved ? "View my profile ↗" : "Save to profile"}</span>`,
   );
   async function action(event: MouseEvent<HTMLDivElement>) {
     const target = event.target as HTMLElement;
     if (target.closest(".profile-save")) {
       event.preventDefault();
-      await save(item);
+      if (saved) window.location.assign("/profile");
+      else if (!busy) await save(item);
     }
     if (target.closest(".resource-use")) window.location.assign("/download");
     if (target.closest(".resource-share")) {
-      try {
-        await navigator.clipboard.writeText(window.location.href);
-        setMessage("Link copied.");
-      } catch {
-        setMessage(`Copy this link: ${window.location.href}`);
-      }
+      event.preventDefault();
+      setSharing(true);
     }
     if (target.closest(".resource-copy-code")) {
       const code = target.closest("pre")?.textContent;
@@ -336,6 +315,7 @@ function DetailContent({ item, html }: { item: CatalogItem; html: string }) {
         onClick={(event) => void action(event)}
         dangerouslySetInnerHTML={{ __html: markup }}
       />
+      {sharing && <ResourceShareDialog item={item} onClose={() => setSharing(false)} />}
       {message && (
         <p className="market-feedback" role="status">
           {message}
