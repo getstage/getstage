@@ -1,3 +1,4 @@
+import marketplaceCatalog from "./marketplace/catalog.json";
 import {
   blogPostPath,
   blogPosts,
@@ -37,6 +38,8 @@ export const BLOG_META = {
 
 // Every public marketing page that is pre-rendered.
 export const marketingPaths = [
+  "/marketplace", "/component-libraries", "/skills", "/tools",
+  ...marketplaceCatalog.filter(item => item.type !== "Tools").map(item => "/" + item.id),
   ...pages.map((page) => pagePath(page.slug)),
   "/use-cases",
   ...useCases.map((useCase) => useCasePath(useCase.slug)),
@@ -87,6 +90,10 @@ function isoDuration(length: string) {
 }
 
 export function metaForPath(path: string): PageMeta | null {
+  const resource = marketplaceCatalog.find(item => "/" + item.id === path && item.type !== "Tools");
+  const category = ({"/marketplace":"Marketplace","/component-libraries":"Component libraries","/skills":"Skills","/tools":"Tools"} as Record<string,string>)[path];
+  if(resource || category) return {path,title: `${resource?.name ?? category} | Stage Marketplace`, description:resource?.description ?? "Discover tools, design skills and component libraries for your next project. Save your favorites to your personal Stage profile.",image:resource?.banner ?? DEFAULT_OG_IMAGE,type:"website",noIndex:path==="/marketplace",jsonLd:withContext([breadcrumb([{name:"Marketplace",path:"/component-libraries"},...(resource?[{name:resource.name,path}]:[])])])};
+
   if (path === "/use-cases") {
     return {
       path,

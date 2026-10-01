@@ -1,0 +1,52 @@
+[
+  {
+    "id": "banner-1",
+    "name": "Banner 1",
+    "src": "/marketplace-assets/profile-banners/banner-1@2x.png",
+    "figmaNode": "53:6324",
+    "bytes": 235927,
+    "scale": 2,
+    "width": 2400,
+    "height": 1350
+  },
+  {
+    "id": "banner-2",
+    "name": "Banner 2",
+    "src": "/marketplace-assets/profile-banners/banner-2@2x.png",
+    "figmaNode": "53:6326",
+    "bytes": 168734,
+    "scale": 2,
+    "width": 2400,
+    "height": 1350
+  },
+  {
+    "id": "banner-3",
+    "name": "Banner 3",
+    "src": "/marketplace-assets/profile-banners/banner-3@2x.png",
+    "figmaNode": "53:6328",
+    "bytes": 145865,
+    "scale": 2,
+    "width": 2400,
+    "height": 1350
+  },
+  {
+    "id": "banner-4",
+    "name": "Banner 4",
+    "src": "/marketplace-assets/profile-banners/banner-4@2x.png",
+    "figmaNode": "53:6330",
+    "bytes": 221564,
+    "scale": 2,
+    "width": 2400,
+    "height": 1350
+  },
+  {
+    "id": "banner-5",
+    "name": "Banner 5",
+    "src": "/marketplace-assets/profile-banners/banner-5@2x.png",
+    "figmaNode": "53:6332",
+    "bytes": 177140,
+    "scale": 2,
+    "width": 2400,
+    "height": 1350
+  }
+]

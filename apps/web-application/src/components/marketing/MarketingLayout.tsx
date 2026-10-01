@@ -11,12 +11,14 @@ export function MarketingLayout({
   title,
   description,
   children,
+  bodyClass = "",
 }: {
   title: string;
   description: string;
   children: ReactNode;
+  bodyClass?: string;
 }) {
-  useStageLanding({ title, description, bodyClass: "content-page" });
+  useStageLanding({ title, description, bodyClass: `content-page ${bodyClass}` });
 
   return (
     <>

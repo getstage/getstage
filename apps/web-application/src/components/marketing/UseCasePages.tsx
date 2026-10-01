@@ -1,3 +1,4 @@
+import { SolutionIcon } from "./SolutionIcon";
 import {
   USE_CASE_GROUP_LABELS,
   findUseCase,
@@ -107,7 +108,7 @@ export function UseCaseCards({ items }: { items: UseCase[] }) {
       {items.map((useCase) => (
         <li key={useCase.slug}>
           <a className="content-card" href={useCasePath(useCase.slug)}>
-            <strong>{useCase.label}</strong>
+            <strong className="solution-label"><SolutionIcon slug={useCase.slug} size={20} />{useCase.label}</strong>
             <span>{useCase.summary}</span>
           </a>
         </li>

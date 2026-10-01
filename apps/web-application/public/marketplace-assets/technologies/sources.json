@@ -1,0 +1,651 @@
+[
+  {
+    "name": "TypeScript",
+    "file": "typescript.svg",
+    "collection": "simple-icons",
+    "icon": "typescript",
+    "license": "CC0-1.0",
+    "source": "https://github.com/iconify/icon-sets/blob/master/json/simple-icons.json"
+  },
+  {
+    "name": "JavaScript",
+    "file": "javascript.svg",
+    "collection": "simple-icons",
+    "icon": "javascript",
+    "license": "CC0-1.0",
+    "source": "https://github.com/iconify/icon-sets/blob/master/json/simple-icons.json"
+  },
+  {
+    "name": "Python",
+    "file": "python.svg",
+    "collection": "simple-icons",
+    "icon": "python",
+    "license": "CC0-1.0",
+    "source": "https://github.com/iconify/icon-sets/blob/master/json/simple-icons.json"
+  },
+  {
+    "name": "HTML",
+    "file": "html.svg",
+    "collection": "simple-icons",
+    "icon": "html5",
+    "license": "CC0-1.0",
+    "source": "https://github.com/iconify/icon-sets/blob/master/json/simple-icons.json"
+  },
+  {
+    "name": "CSS",
+    "file": "css.svg",
+    "collection": "simple-icons",
+    "icon": "css",
+    "license": "CC0-1.0",
+    "source": "https://github.com/iconify/icon-sets/blob/master/json/simple-icons.json"
+  },
+  {
+    "name": "SQL",
+    "file": "sql.svg",
+    "collection": "Tabler Icons",
+    "icon": "database",
+    "license": "MIT",
+    "source": "https://raw.githubusercontent.com/tabler/tabler-icons/main/icons/outline/database.svg",
+    "note": "Generic database symbol: SQL is a language, not a single brand."
+  },
+  {
+    "name": "Java",
+    "file": "java.svg",
+    "collection": "devicon-plain",
+    "icon": "java",
+    "license": "MIT",
+    "source": "https://github.com/iconify/icon-sets/blob/master/json/devicon-plain.json"
+  },
+  {
+    "name": "C#",
+    "file": "csharp.svg",
+    "collection": "simple-icons",
+    "icon": "csharp",
+    "license": "CC0-1.0",
+    "source": "https://github.com/iconify/icon-sets/blob/master/json/simple-icons.json"
+  },
+  {
+    "name": "C++",
+    "file": "cplusplus.svg",
+    "collection": "simple-icons",
+    "icon": "cplusplus",
+    "license": "CC0-1.0",
+    "source": "https://github.com/iconify/icon-sets/blob/master/json/simple-icons.json"
+  },
+  {
+    "name": "C",
+    "file": "c.svg",
+    "collection": "simple-icons",
+    "icon": "c",
+    "license": "CC0-1.0",
+    "source": "https://github.com/iconify/icon-sets/blob/master/json/simple-icons.json"
+  },
+  {
+    "name": "Go",
+    "file": "go.svg",
+    "collection": "simple-icons",
+    "icon": "go",
+    "license": "CC0-1.0",
+    "source": "https://github.com/iconify/icon-sets/blob/master/json/simple-icons.json"
+  },
+  {
+    "name": "Rust",
+    "file": "rust.svg",
+    "collection": "simple-icons",
+    "icon": "rust",
+    "license": "CC0-1.0",
+    "source": "https://github.com/iconify/icon-sets/blob/master/json/simple-icons.json"
+  },
+  {
+    "name": "PHP",
+    "file": "php.svg",
+    "collection": "simple-icons",
+    "icon": "php",
+    "license": "CC0-1.0",
+    "source": "https://github.com/iconify/icon-sets/blob/master/json/simple-icons.json"
+  },
+  {
+    "name": "Ruby",
+    "file": "ruby.svg",
+    "collection": "simple-icons",
+    "icon": "ruby",
+    "license": "CC0-1.0",
+    "source": "https://github.com/iconify/icon-sets/blob/master/json/simple-icons.json"
+  },
+  {
+    "name": "Swift",
+    "file": "swift.svg",
+    "collection": "simple-icons",
+    "icon": "swift",
+    "license": "CC0-1.0",
+    "source": "https://github.com/iconify/icon-sets/blob/master/json/simple-icons.json"
+  },
+  {
+    "name": "Kotlin",
+    "file": "kotlin.svg",
+    "collection": "simple-icons",
+    "icon": "kotlin",
+    "license": "CC0-1.0",
+    "source": "https://github.com/iconify/icon-sets/blob/master/json/simple-icons.json"
+  },
+  {
+    "name": "Dart",
+    "file": "dart.svg",
+    "collection": "simple-icons",
+    "icon": "dart",
+    "license": "CC0-1.0",
+    "source": "https://github.com/iconify/icon-sets/blob/master/json/simple-icons.json"
+  },
+  {
+    "name": "Scala",
+    "file": "scala.svg",
+    "collection": "simple-icons",
+    "icon": "scala",
+    "license": "CC0-1.0",
+    "source": "https://github.com/iconify/icon-sets/blob/master/json/simple-icons.json"
+  },
+  {
+    "name": "Elixir",
+    "file": "elixir.svg",
+    "collection": "simple-icons",
+    "icon": "elixir",
+    "license": "CC0-1.0",
+    "source": "https://github.com/iconify/icon-sets/blob/master/json/simple-icons.json"
+  },
+  {
+    "name": "R",
+    "file": "r.svg",
+    "collection": "simple-icons",
+    "icon": "r",
+    "license": "CC0-1.0",
+    "source": "https://github.com/iconify/icon-sets/blob/master/json/simple-icons.json"
+  },
+  {
+    "name": "React",
+    "file": "react.svg",
+    "collection": "simple-icons",
+    "icon": "react",
+    "license": "CC0-1.0",
+    "source": "https://github.com/iconify/icon-sets/blob/master/json/simple-icons.json"
+  },
+  {
+    "name": "Next.js",
+    "file": "next-js.svg",
+    "collection": "simple-icons",
+    "icon": "nextdotjs",
+    "license": "CC0-1.0",
+    "source": "https://github.com/iconify/icon-sets/blob/master/json/simple-icons.json"
+  },
+  {
+    "name": "Vue",
+    "file": "vue.svg",
+    "collection": "simple-icons",
+    "icon": "vuedotjs",
+    "license": "CC0-1.0",
+    "source": "https://github.com/iconify/icon-sets/blob/master/json/simple-icons.json"
+  },
+  {
+    "name": "Nuxt",
+    "file": "nuxt.svg",
+    "collection": "simple-icons",
+    "icon": "nuxt",
+    "license": "CC0-1.0",
+    "source": "https://github.com/iconify/icon-sets/blob/master/json/simple-icons.json"
+  },
+  {
+    "name": "Svelte",
+    "file": "svelte.svg",
+    "collection": "simple-icons",
+    "icon": "svelte",
+    "license": "CC0-1.0",
+    "source": "https://github.com/iconify/icon-sets/blob/master/json/simple-icons.json"
+  },
+  {
+    "name": "SvelteKit",
+    "file": "sveltekit.svg",
+    "collection": "simple-icons",
+    "icon": "svelte",
+    "license": "CC0-1.0",
+    "source": "https://github.com/iconify/icon-sets/blob/master/json/simple-icons.json"
+  },
+  {
+    "name": "Angular",
+    "file": "angular.svg",
+    "collection": "simple-icons",
+    "icon": "angular",
+    "license": "CC0-1.0",
+    "source": "https://github.com/iconify/icon-sets/blob/master/json/simple-icons.json"
+  },
+  {
+    "name": "Astro",
+    "file": "astro.svg",
+    "collection": "simple-icons",
+    "icon": "astro",
+    "license": "CC0-1.0",
+    "source": "https://github.com/iconify/icon-sets/blob/master/json/simple-icons.json"
+  },
+  {
+    "name": "Remix",
+    "file": "remix.svg",
+    "collection": "simple-icons",
+    "icon": "remix",
+    "license": "CC0-1.0",
+    "source": "https://github.com/iconify/icon-sets/blob/master/json/simple-icons.json"
+  },
+  {
+    "name": "SolidJS",
+    "file": "solidjs.svg",
+    "collection": "simple-icons",
+    "icon": "solid",
+    "license": "CC0-1.0",
+    "source": "https://github.com/iconify/icon-sets/blob/master/json/simple-icons.json"
+  },
+  {
+    "name": "Tailwind CSS",
+    "file": "tailwind-css.svg",
+    "collection": "simple-icons",
+    "icon": "tailwindcss",
+    "license": "CC0-1.0",
+    "source": "https://github.com/iconify/icon-sets/blob/master/json/simple-icons.json"
+  },
+  {
+    "name": "Sass",
+    "file": "sass.svg",
+    "collection": "simple-icons",
+    "icon": "sass",
+    "license": "CC0-1.0",
+    "source": "https://github.com/iconify/icon-sets/blob/master/json/simple-icons.json"
+  },
+  {
+    "name": "Bootstrap",
+    "file": "bootstrap.svg",
+    "collection": "simple-icons",
+    "icon": "bootstrap",
+    "license": "CC0-1.0",
+    "source": "https://github.com/iconify/icon-sets/blob/master/json/simple-icons.json"
+  },
+  {
+    "name": "Vite",
+    "file": "vite.svg",
+    "collection": "simple-icons",
+    "icon": "vite",
+    "license": "CC0-1.0",
+    "source": "https://github.com/iconify/icon-sets/blob/master/json/simple-icons.json"
+  },
+  {
+    "name": "Node.js",
+    "file": "node-js.svg",
+    "collection": "simple-icons",
+    "icon": "nodedotjs",
+    "license": "CC0-1.0",
+    "source": "https://github.com/iconify/icon-sets/blob/master/json/simple-icons.json"
+  },
+  {
+    "name": "Express",
+    "file": "express.svg",
+    "collection": "simple-icons",
+    "icon": "express",
+    "license": "CC0-1.0",
+    "source": "https://github.com/iconify/icon-sets/blob/master/json/simple-icons.json"
+  },
+  {
+    "name": "NestJS",
+    "file": "nestjs.svg",
+    "collection": "simple-icons",
+    "icon": "nestjs",
+    "license": "CC0-1.0",
+    "source": "https://github.com/iconify/icon-sets/blob/master/json/simple-icons.json"
+  },
+  {
+    "name": "FastAPI",
+    "file": "fastapi.svg",
+    "collection": "simple-icons",
+    "icon": "fastapi",
+    "license": "CC0-1.0",
+    "source": "https://github.com/iconify/icon-sets/blob/master/json/simple-icons.json"
+  },
+  {
+    "name": "Django",
+    "file": "django.svg",
+    "collection": "simple-icons",
+    "icon": "django",
+    "license": "CC0-1.0",
+    "source": "https://github.com/iconify/icon-sets/blob/master/json/simple-icons.json"
+  },
+  {
+    "name": "Flask",
+    "file": "flask.svg",
+    "collection": "simple-icons",
+    "icon": "flask",
+    "license": "CC0-1.0",
+    "source": "https://github.com/iconify/icon-sets/blob/master/json/simple-icons.json"
+  },
+  {
+    "name": "Ruby on Rails",
+    "file": "ruby-on-rails.svg",
+    "collection": "simple-icons",
+    "icon": "rubyonrails",
+    "license": "CC0-1.0",
+    "source": "https://github.com/iconify/icon-sets/blob/master/json/simple-icons.json"
+  },
+  {
+    "name": "Laravel",
+    "file": "laravel.svg",
+    "collection": "simple-icons",
+    "icon": "laravel",
+    "license": "CC0-1.0",
+    "source": "https://github.com/iconify/icon-sets/blob/master/json/simple-icons.json"
+  },
+  {
+    "name": "Spring Boot",
+    "file": "spring-boot.svg",
+    "collection": "simple-icons",
+    "icon": "springboot",
+    "license": "CC0-1.0",
+    "source": "https://github.com/iconify/icon-sets/blob/master/json/simple-icons.json"
+  },
+  {
+    "name": "ASP.NET Core",
+    "file": "asp-net-core.svg",
+    "collection": "simple-icons",
+    "icon": "dotnet",
+    "license": "CC0-1.0",
+    "source": "https://github.com/iconify/icon-sets/blob/master/json/simple-icons.json"
+  },
+  {
+    "name": "Phoenix",
+    "file": "phoenix.svg",
+    "collection": "simple-icons",
+    "icon": "phoenixframework",
+    "license": "CC0-1.0",
+    "source": "https://github.com/iconify/icon-sets/blob/master/json/simple-icons.json"
+  },
+  {
+    "name": "Bun",
+    "file": "bun.svg",
+    "collection": "simple-icons",
+    "icon": "bun",
+    "license": "CC0-1.0",
+    "source": "https://github.com/iconify/icon-sets/blob/master/json/simple-icons.json"
+  },
+  {
+    "name": "Deno",
+    "file": "deno.svg",
+    "collection": "simple-icons",
+    "icon": "deno",
+    "license": "CC0-1.0",
+    "source": "https://github.com/iconify/icon-sets/blob/master/json/simple-icons.json"
+  },
+  {
+    "name": "PostgreSQL",
+    "file": "postgresql.svg",
+    "collection": "simple-icons",
+    "icon": "postgresql",
+    "license": "CC0-1.0",
+    "source": "https://github.com/iconify/icon-sets/blob/master/json/simple-icons.json"
+  },
+  {
+    "name": "MySQL",
+    "file": "mysql.svg",
+    "collection": "simple-icons",
+    "icon": "mysql",
+    "license": "CC0-1.0",
+    "source": "https://github.com/iconify/icon-sets/blob/master/json/simple-icons.json"
+  },
+  {
+    "name": "SQLite",
+    "file": "sqlite.svg",
+    "collection": "simple-icons",
+    "icon": "sqlite",
+    "license": "CC0-1.0",
+    "source": "https://github.com/iconify/icon-sets/blob/master/json/simple-icons.json"
+  },
+  {
+    "name": "MongoDB",
+    "file": "mongodb.svg",
+    "collection": "simple-icons",
+    "icon": "mongodb",
+    "license": "CC0-1.0",
+    "source": "https://github.com/iconify/icon-sets/blob/master/json/simple-icons.json"
+  },
+  {
+    "name": "Redis",
+    "file": "redis.svg",
+    "collection": "simple-icons",
+    "icon": "redis",
+    "license": "CC0-1.0",
+    "source": "https://github.com/iconify/icon-sets/blob/master/json/simple-icons.json"
+  },
+  {
+    "name": "Supabase",
+    "file": "supabase.svg",
+    "collection": "simple-icons",
+    "icon": "supabase",
+    "license": "CC0-1.0",
+    "source": "https://github.com/iconify/icon-sets/blob/master/json/simple-icons.json"
+  },
+  {
+    "name": "Firebase",
+    "file": "firebase.svg",
+    "collection": "simple-icons",
+    "icon": "firebase",
+    "license": "CC0-1.0",
+    "source": "https://github.com/iconify/icon-sets/blob/master/json/simple-icons.json"
+  },
+  {
+    "name": "Prisma",
+    "file": "prisma.svg",
+    "collection": "simple-icons",
+    "icon": "prisma",
+    "license": "CC0-1.0",
+    "source": "https://github.com/iconify/icon-sets/blob/master/json/simple-icons.json"
+  },
+  {
+    "name": "Drizzle",
+    "file": "drizzle.svg",
+    "collection": "simple-icons",
+    "icon": "drizzle",
+    "license": "CC0-1.0",
+    "source": "https://github.com/iconify/icon-sets/blob/master/json/simple-icons.json"
+  },
+  {
+    "name": "GraphQL",
+    "file": "graphql.svg",
+    "collection": "simple-icons",
+    "icon": "graphql",
+    "license": "CC0-1.0",
+    "source": "https://github.com/iconify/icon-sets/blob/master/json/simple-icons.json"
+  },
+  {
+    "name": "tRPC",
+    "file": "trpc.svg",
+    "collection": "simple-icons",
+    "icon": "trpc",
+    "license": "CC0-1.0",
+    "source": "https://github.com/iconify/icon-sets/blob/master/json/simple-icons.json"
+  },
+  {
+    "name": "React Native",
+    "file": "react-native.svg",
+    "collection": "simple-icons",
+    "icon": "react",
+    "license": "CC0-1.0",
+    "source": "https://github.com/iconify/icon-sets/blob/master/json/simple-icons.json"
+  },
+  {
+    "name": "Expo",
+    "file": "expo.svg",
+    "collection": "simple-icons",
+    "icon": "expo",
+    "license": "CC0-1.0",
+    "source": "https://github.com/iconify/icon-sets/blob/master/json/simple-icons.json"
+  },
+  {
+    "name": "Flutter",
+    "file": "flutter.svg",
+    "collection": "simple-icons",
+    "icon": "flutter",
+    "license": "CC0-1.0",
+    "source": "https://github.com/iconify/icon-sets/blob/master/json/simple-icons.json"
+  },
+  {
+    "name": "SwiftUI",
+    "file": "swiftui.svg",
+    "collection": "simple-icons",
+    "icon": "swift",
+    "license": "CC0-1.0",
+    "source": "https://github.com/iconify/icon-sets/blob/master/json/simple-icons.json"
+  },
+  {
+    "name": "Jetpack Compose",
+    "file": "jetpack-compose.svg",
+    "collection": "simple-icons",
+    "icon": "jetpackcompose",
+    "license": "CC0-1.0",
+    "source": "https://github.com/iconify/icon-sets/blob/master/json/simple-icons.json"
+  },
+  {
+    "name": "Electron",
+    "file": "electron.svg",
+    "collection": "simple-icons",
+    "icon": "electron",
+    "license": "CC0-1.0",
+    "source": "https://github.com/iconify/icon-sets/blob/master/json/simple-icons.json"
+  },
+  {
+    "name": "Tauri",
+    "file": "tauri.svg",
+    "collection": "simple-icons",
+    "icon": "tauri",
+    "license": "CC0-1.0",
+    "source": "https://github.com/iconify/icon-sets/blob/master/json/simple-icons.json"
+  },
+  {
+    "name": "Docker",
+    "file": "docker.svg",
+    "collection": "simple-icons",
+    "icon": "docker",
+    "license": "CC0-1.0",
+    "source": "https://github.com/iconify/icon-sets/blob/master/json/simple-icons.json"
+  },
+  {
+    "name": "Kubernetes",
+    "file": "kubernetes.svg",
+    "collection": "simple-icons",
+    "icon": "kubernetes",
+    "license": "CC0-1.0",
+    "source": "https://github.com/iconify/icon-sets/blob/master/json/simple-icons.json"
+  },
+  {
+    "name": "AWS",
+    "file": "aws.svg",
+    "collection": "simple-icons",
+    "icon": "amazonwebservices",
+    "license": "CC0-1.0",
+    "source": "https://github.com/iconify/icon-sets/blob/master/json/simple-icons.json"
+  },
+  {
+    "name": "Google Cloud",
+    "file": "google-cloud.svg",
+    "collection": "simple-icons",
+    "icon": "googlecloud",
+    "license": "CC0-1.0",
+    "source": "https://github.com/iconify/icon-sets/blob/master/json/simple-icons.json"
+  },
+  {
+    "name": "Azure",
+    "file": "azure.svg",
+    "collection": "devicon-plain",
+    "icon": "azure",
+    "license": "MIT",
+    "source": "https://github.com/iconify/icon-sets/blob/master/json/devicon-plain.json"
+  },
+  {
+    "name": "Vercel",
+    "file": "vercel.svg",
+    "collection": "simple-icons",
+    "icon": "vercel",
+    "license": "CC0-1.0",
+    "source": "https://github.com/iconify/icon-sets/blob/master/json/simple-icons.json"
+  },
+  {
+    "name": "Netlify",
+    "file": "netlify.svg",
+    "collection": "simple-icons",
+    "icon": "netlify",
+    "license": "CC0-1.0",
+    "source": "https://github.com/iconify/icon-sets/blob/master/json/simple-icons.json"
+  },
+  {
+    "name": "Cloudflare",
+    "file": "cloudflare.svg",
+    "collection": "simple-icons",
+    "icon": "cloudflare",
+    "license": "CC0-1.0",
+    "source": "https://github.com/iconify/icon-sets/blob/master/json/simple-icons.json"
+  },
+  {
+    "name": "Git",
+    "file": "git.svg",
+    "collection": "simple-icons",
+    "icon": "git",
+    "license": "CC0-1.0",
+    "source": "https://github.com/iconify/icon-sets/blob/master/json/simple-icons.json"
+  },
+  {
+    "name": "GitHub Actions",
+    "file": "github-actions.svg",
+    "collection": "simple-icons",
+    "icon": "githubactions",
+    "license": "CC0-1.0",
+    "source": "https://github.com/iconify/icon-sets/blob/master/json/simple-icons.json"
+  },
+  {
+    "name": "Terraform",
+    "file": "terraform.svg",
+    "collection": "simple-icons",
+    "icon": "terraform",
+    "license": "CC0-1.0",
+    "source": "https://github.com/iconify/icon-sets/blob/master/json/simple-icons.json"
+  },
+  {
+    "name": "Linux",
+    "file": "linux.svg",
+    "collection": "simple-icons",
+    "icon": "linux",
+    "license": "CC0-1.0",
+    "source": "https://github.com/iconify/icon-sets/blob/master/json/simple-icons.json"
+  },
+  {
+    "name": "Playwright",
+    "file": "playwright.svg",
+    "collection": "simple-icons",
+    "icon": "playwright",
+    "license": "CC0-1.0",
+    "source": "https://github.com/iconify/icon-sets/blob/master/json/simple-icons.json"
+  },
+  {
+    "name": "Cypress",
+    "file": "cypress.svg",
+    "collection": "simple-icons",
+    "icon": "cypress",
+    "license": "CC0-1.0",
+    "source": "https://github.com/iconify/icon-sets/blob/master/json/simple-icons.json"
+  },
+  {
+    "name": "Vitest",
+    "file": "vitest.svg",
+    "collection": "simple-icons",
+    "icon": "vitest",
+    "license": "CC0-1.0",
+    "source": "https://github.com/iconify/icon-sets/blob/master/json/simple-icons.json"
+  },
+  {
+    "name": "Jest",
+    "file": "jest.svg",
+    "collection": "simple-icons",
+    "icon": "jest",
+    "license": "CC0-1.0",
+    "source": "https://github.com/iconify/icon-sets/blob/master/json/simple-icons.json"
+  }
+]

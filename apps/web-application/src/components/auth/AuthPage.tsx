@@ -26,6 +26,7 @@ function continueAfterAuth(
 ) {
   const pendingDesktopRedirect = getStoredDesktopRedirect();
   const target =
+    redirectTo.split("?")[0] === "/profile" ? redirectTo :
     isDesktopAuthRedirect(redirectTo)
       ? redirectTo
       : isDesktopAuthRedirect(pendingDesktopRedirect)

@@ -53,6 +53,12 @@
 
 ## Current local review changes
 
+- Website marketplace/profile integration is local on `codex/sync-stage-marketplace`, based on `website` at `6b65ad74`. Resources groups marketplace + blog; Solutions uses Phosphor icons (white in navigation). Imports 50 resources / 33 detail pages without modifying the original static prototype.
+- New additive `builderProfiles` Convex table/functions support authenticated collections, unique usernames, private-by-default profiles, explicit publication at `/builders/<handle>`, preset/uploaded banners, and technology tags. Deploy and smoke-test these functions on testing **before** deploying the web bundle. No deployments or pushes have been made; Adrien explicitly requires a green flag before going live.
+- Verification: production web build/prerender, Convex typecheck, `pnpm --filter @stage/data-ops test:profiles`, asset-reference checks, and desktop/mobile browsing. Signed-in production/cross-device smoke remains pending. Profile layout was checked with a temporary local fixture; no real accounts or profiles were changed.
+- Developer review is required by the existing shipping gate because this integration adds routes, auth return handling and backend code. The gate is unchanged. The prototype's simulated free-month promotion is not presented as a real reward; old prototype files remain intact.
+
+
 - The Wireframes results grid shows every generated Lo-Fi screen instead of truncating the project at six; Assets and Wireframes now expose the same complete set.
 - Stage Engine is warning-free under strict Clippy; the production desktop workflow now blocks releases on Rust warnings.
 - Flows generation distinguishes marketing websites from apps/platforms, and Wireframes now take their initial screen list from the project's latest Flows artifact instead of a generic marketing fixture.

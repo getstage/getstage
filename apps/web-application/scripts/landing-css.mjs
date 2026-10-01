@@ -9,4 +9,6 @@ export const LANDING_CSS_FILES = [
   "experience.css",
   "mobile.css",
   "content.css",
+  "marketplace.css",
+  "marketplace-integration.css",
 ];

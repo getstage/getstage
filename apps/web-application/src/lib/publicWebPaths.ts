@@ -12,4 +12,9 @@ export const PUBLIC_WEB_PATHS: ReadonlySet<string> = new Set([
   "/privacy",
   "/use-cases",
   "/blog",
+  "/marketplace",
+  "/component-libraries",
+  "/skills",
+  "/tools",
+  "/profile",
 ]);

@@ -1,3 +1,7 @@
+import { AccountMenu } from "@/components/marketing/AccountMenu";
+import { blogPosts, blogPostPath } from "@/marketing/content";
+import { SquaresFour, Scroll, Wrench, ArrowUpRight } from "@phosphor-icons/react";
+import { SolutionIcon } from "@/components/marketing/SolutionIcon";
 import { USE_CASE_GROUP_LABELS, useCasePath, useCases, type UseCaseGroup } from "@/marketing/content";
 
 const USE_CASE_GROUPS: UseCaseGroup[] = ["audience", "workflow"];
@@ -15,7 +19,7 @@ function UseCaseMenu() {
               .map((useCase) => (
                 <li key={useCase.slug}>
                   <a href={useCasePath(useCase.slug)}>
-                    <strong>{useCase.label}</strong>
+                    <strong className="solution-label"><SolutionIcon slug={useCase.slug} />{useCase.label}</strong>
                     <span>{useCase.summary}</span>
                   </a>
                 </li>
@@ -24,10 +28,19 @@ function UseCaseMenu() {
         </div>
       ))}
       <a className="use-case-menu-all" href="/use-cases">
-        Browse all use cases <span aria-hidden="true">→</span>
+        Browse all solutions <span aria-hidden="true">→</span>
       </a>
     </div>
   );
+}
+
+function ResourcesMenu() {
+  return <div className="product-menu use-case-menu resources-menu" id="resources-menu" hidden>
+    <div className="use-case-menu-group"><p className="use-case-menu-heading">Marketplace</p><ul role="list">
+      {[{name:"Components",href:"/component-libraries",text:"Find the building blocks for your next project.",Icon:SquaresFour},{name:"Skills",href:"/skills",text:"Give your AI the right design guidance.",Icon:Scroll},{name:"Tools",href:"/tools",text:"Explore tools for your workflow.",Icon:Wrench}].map(({name,href,text,Icon})=><li key={name}><a href={href}><strong className="solution-label"><Icon size={18} weight="duotone" aria-hidden="true" />{name}</strong><span>{text}</span></a></li>)}
+    </ul><a className="resources-all" href="/marketplace">Browse marketplace <ArrowUpRight size={14} aria-hidden="true" /></a></div>
+    <div className="use-case-menu-group"><p className="use-case-menu-heading">From the blog</p><ul role="list">{blogPosts.slice(0,2).map(post=><li key={post.slug}><a href={blogPostPath(post.slug)}><strong>{post.title}</strong></a></li>)}</ul><a className="resources-all" href="/blog">View all posts <ArrowUpRight size={14} aria-hidden="true" /></a></div>
+  </div>;
 }
 
 export function Navigation() {
@@ -102,24 +115,20 @@ export function Navigation() {
             className="nav-link nav-menu-toggle"
             aria-expanded="false"
             aria-controls="use-case-menu"
-            aria-label="Open use cases menu"
-            data-menu-toggle="use cases"
+            aria-label="Open solutions menu"
+            data-menu-toggle="solutions"
           >
-            Use cases
+            Solutions
             <svg className="icon" aria-hidden="true" width={12} height={12} viewBox="0 0 16 16" fill="none">
               <path d="m4 6 4 4 4-4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </button>
-          <a className="nav-link" href="/blog">
-            Blog
-          </a>
+          <button type="button" className="nav-link nav-menu-toggle" aria-expanded="false" aria-controls="resources-menu" aria-label="Open resources menu" data-menu-toggle="resources">Resources<svg className="icon" width={12} height={12} viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="m4 6 4 4 4-4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg></button>
           <a className="nav-link" href="/#pricing">
             Pricing
           </a>
           <span className="nav-spacer" />
-          <button className="nav-link login-link" data-destination="login">
-            Log in
-          </button>
+          <AccountMenu />
           <a className="nav-download" href="/download">
             <svg
               className="icon"
@@ -376,14 +385,16 @@ export function Navigation() {
             </p>
           </a>
           <div className="mobile-menu-links">
-            <a href="/use-cases">Use cases</a>
+            <a href="/use-cases">Solutions</a>
+            <a href="/marketplace">Marketplace</a>
             <a href="/blog">Blog</a>
             <a href="/#pricing">Pricing</a>
             <a href="/#faq">FAQ</a>
-            <button data-destination="login">Log in</button>
+            <AccountMenu mobile />
           </div>
         </div>
         <UseCaseMenu />
+        <ResourcesMenu />
       </header>
     </>
   );

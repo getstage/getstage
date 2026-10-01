@@ -50,7 +50,8 @@ export function SiteFooter() {
           </div>
           <div className="footer-column">
             <span>Resources</span>
-            <a href="/use-cases">Use cases</a>
+            <a href="/use-cases">Solutions</a>
+            <a href="/marketplace">Marketplace</a>
             <a href="/blog">Blog</a>
             <a href="/download">Download</a>
           </div>

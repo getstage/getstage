@@ -394,6 +394,10 @@ const figmaExportStatus = v.union(
 
 export default defineSchema({
   ...authTables,
+  builderProfiles: defineTable({ customBanner: v.optional(v.string()), name: v.string(), handle: v.string(), bio: v.string(), location: v.string(),
+    roles: v.array(v.string()), technologies: v.array(v.string()), banner: v.string(),
+    github: v.string(), x: v.string(), instagram: v.string(), linkedin: v.string(),
+    website: v.string(), email: v.string(), published: v.boolean(), userId: v.id("users"), items: v.array(v.string()), updatedAt: v.number() }).index("by_user", ["userId"]).index("by_handle", ["handle"]),
 
   // Override the auth users table with our custom fields merged in.
   // Auth fields (name, image, email, emailVerificationTime, phone, phoneVerificationTime, isAnonymous)
