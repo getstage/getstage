@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+import { isCountryCode } from "../../../src/shared/countries";
 
 export const profileFields = {
   customAvatar: v.optional(v.string()),
@@ -51,8 +52,9 @@ export function validateProfile(input: ProfileFields): ProfileFields {
     throw new Error(
       "Use 2–24 letters, numbers or underscores for your username.",
     );
-  if (result.bio.length > 220 || result.location.length > 60)
-    throw new Error("Your bio or location is too long.");
+  if (result.bio.length > 220) throw new Error("Your bio is too long.");
+  if (result.location && !isCountryCode(result.location))
+    throw new Error("Choose your country from the list.");
   if (result.roles.length > 12 || result.roles.some((x) => x.length > 40))
     throw new Error("Too many or invalid roles.");
   if (

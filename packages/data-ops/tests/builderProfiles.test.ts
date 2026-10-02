@@ -101,7 +101,7 @@ describe("builder profiles", () => {
       ...input,
       name: "Saved Builder",
       bio: "Designing and building products",
-      location: "Paphos",
+      location: "CY",
       roles: ["Designer", "Founder"],
       technologies: ["react", "typescript"],
       banner: "banner-2",
@@ -136,6 +136,14 @@ describe("builder profiles", () => {
         website: "https://user:password@example.com",
       }),
     ).toThrow();
+  });
+  test("accepts only a country from the list as location", () => {
+    expect(validateProfile({ ...input, location: "NL" }).location).toBe("NL");
+    expect(validateProfile({ ...input, location: " CY " }).location).toBe("CY");
+    expect(validateProfile({ ...input, location: "" }).location).toBe("");
+    expect(() => validateProfile({ ...input, location: "Hokuspokusland" })).toThrow("Choose your country");
+    expect(() => validateProfile({ ...input, location: "Netherlands" })).toThrow("Choose your country");
+    expect(() => validateProfile({ ...input, location: "ZZ" })).toThrow("Choose your country");
   });
   test("setup persists each step, resumes in order and never regresses completion", async () => {
     const { user } = await setup();

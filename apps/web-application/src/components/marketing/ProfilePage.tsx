@@ -1,7 +1,7 @@
 import { readLocalProfile } from "./localProfile";
 import { technologyGroups } from "@/marketing/marketplace/technologies";
 import { ProfileShareDialog } from "./ProfileShareDialogs";
-import { blank, fields, contacts, suggestedHandle, techId } from "./profileModel";
+import { blank, countryName, countryOptions, fields, contacts, suggestedHandle, techId } from "./profileModel";
 import { RolePicker, ContactFields, TechnologyLabel, PhotoField } from "./ProfileFields";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useMutation, useQuery } from "convex/react";
@@ -422,10 +422,10 @@ export function ProfileView({
           {profile.handle && <p className="handle">@{profile.handle}</p>}
           <p className="bio">{profile.bio}</p>
           <div className="details">
-            {profile.location && (
+            {countryName(profile.location) && (
               <span className="profile-location">
                 <MapPin size={18} weight="duotone" />
-                {profile.location}
+                {countryName(profile.location)}
               </span>
             )}
             <nav id="social-links" aria-label="Contact links">
@@ -607,7 +607,7 @@ export function ProfileView({
                         name: "Display name",
                         handle: "Username",
                         bio: "Bio",
-                        location: "Location",
+                        location: "Country",
                       }[key]
                     }
                   </label>
@@ -621,6 +621,19 @@ export function ProfileView({
                         setDraft({ ...draft, [key]: e.target.value })
                       }
                     />
+                  ) : key === "location" ? (
+                    <select
+                      id="profile-location"
+                      value={draft.location}
+                      onChange={(e) => setDraft({ ...draft, location: e.target.value })}
+                    >
+                      <option value="">Not shown</option>
+                      {countryOptions.map((country) => (
+                        <option key={country.code} value={country.code}>
+                          {country.name}
+                        </option>
+                      ))}
+                    </select>
                   ) : (
                     <input
                       id={`profile-${key}`}

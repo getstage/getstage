@@ -1,5 +1,17 @@
 import { GithubLogo, XLogo, InstagramLogo, LinkedinLogo, Globe, Envelope } from "@phosphor-icons/react";
+import { COUNTRY_CODES, isCountryCode } from "@stage/data-ops/shared/countries";
 import type { Profile, ProfileInput } from "./MarketplaceState";
+
+const regionNames = new Intl.DisplayNames(["en"], { type: "region" });
+
+// Location is stored as a country code; anything else (older free-text values) is not shown.
+export function countryName(code: string) {
+  return isCountryCode(code) ? (regionNames.of(code) ?? code) : "";
+}
+
+export const countryOptions = COUNTRY_CODES.map((code) => ({ code, name: countryName(code) })).sort((a, b) =>
+  a.name.localeCompare(b.name, "en"),
+);
 export const roleOptions = [
   "Vibe coder",
   "Coder",
@@ -71,7 +83,7 @@ export function fields(profile: Profile): ProfileInput {
     name,
     handle,
     bio,
-    location,
+    location: isCountryCode(location) ? location : "",
     roles,
     technologies,
     banner,
