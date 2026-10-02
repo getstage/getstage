@@ -50,7 +50,9 @@ export default {
     const production=['getstage.co','www.getstage.co'].includes(requestUrl.hostname);
     const privatePage=/^\/(auth|profile|builders|setup-profile|billing|invite|dashboard|settings|project|new-project|portal)(\/|$)/.test(pathname)||pathname.startsWith('/download/mac');
     if(!production||privatePage)headers.set('X-Robots-Tag','noindex, nofollow');
-    const missingPublicPage=/^\/(blog|use-cases|skills|component-libraries)(\/|$)/.test(pathname)&&!publicMeta;
+    // Unknown page URLs fall back to the SPA's index.html; real files (e.g. /blog/<id>.jpg) are served as-is.
+    const isHtml=(assetResponse.headers.get('Content-Type')??'').startsWith('text/html');
+    const missingPublicPage=isHtml&&/^\/(blog|use-cases|skills|component-libraries)(\/|$)/.test(pathname)&&!publicMeta;
     if(missingPublicPage&&assetResponse.status===200){
       headers.set('X-Robots-Tag','noindex, follow');
       headers.set('Content-Type','text/html; charset=utf-8');
