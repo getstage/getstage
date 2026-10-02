@@ -42,6 +42,8 @@ export function validateProfile(input: ProfileFields): ProfileFields {
     ...input,
     name: input.name.trim(),
     handle: input.handle.trim().toLowerCase(),
+    bio: input.bio.trim(),
+    location: input.location.trim(),
   };
   if (!result.name || result.name.length > 60)
     throw new Error("Enter a name of 1–60 characters.");
