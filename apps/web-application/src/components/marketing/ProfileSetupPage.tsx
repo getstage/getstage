@@ -6,14 +6,13 @@ import { useAuth } from "@/lib/auth";
 import { useStageLanding } from "@/components/stage-landing/useStageLanding";
 import { ProfileView } from "./ProfilePage";
 import { ProfileBoundary, profileApi, catalog, type Profile, type ProfileInput } from "./MarketplaceState";
-import { blank, fields, contacts } from "./profileModel";
+import { blank, fields, contacts, suggestedHandle } from "./profileModel";
 import { RolePicker, ContactFields, TechnologyPicker, TechnologyLabel, PhotoField, contactError } from "./ProfileFields";
 
 
 type Step = 1 | 2 | 3;
 const headings = ['Set up your profile', 'What do you do?', "What's in your stack?"];
 const subtitles = ['This is how other builders will see you.', 'Pick anything that fits. You can change it later.', 'It shows up on your profile under My collection.'];
-function suggested(name:string){const value=name.toLowerCase().trim().replace(/\s+/g,'_').replace(/[^a-z0-9_]/g,'').slice(0,24);return value.length>=2?value:value?`${value}_`:'builder';}
 function params(){return new URLSearchParams(window.location.search);}
 function nextPath(){const next=params().get('next')||'/download/mac';return next==='/profile'||next.startsWith('/profile?')?next:'/download/mac';}
 function finishPath(){const next=nextPath();return next.startsWith('/profile?')?`/download/mac?profile=${encodeURIComponent(next)}`:'/download/mac';}
@@ -39,7 +38,7 @@ function ConnectedSetup(){
 }
 function SetupEditor({initial,accountKey,preview=false}:{initial:Profile;accountKey:string;preview?:boolean}){
  const storageKey=`stage-profile-setup-v1:${accountKey}`;
- const [draft,setDraft]=useState<Profile>(()=>{try{const stored=JSON.parse(localStorage.getItem(storageKey)||'null');if(stored?.version===1&&stored.profile&&typeof stored.profile.name==='string')return {...initial,...stored.profile};}catch{}return {...initial,handle:initial.handle||(initial.name?suggested(initial.name):'')};});
+ const [draft,setDraft]=useState<Profile>(()=>{try{const stored=JSON.parse(localStorage.getItem(storageKey)||'null');if(stored?.version===1&&stored.profile&&typeof stored.profile.name==='string')return {...initial,...stored.profile};}catch{}return {...initial,handle:initial.handle||(initial.name?suggestedHandle(initial.name):'')};});
  const [step,setStep]=useState<Step>(()=>Math.min(3,(draft.onboardingStep??0)+1) as Step);
  const [busy,setBusy]=useState(false);const [error,setError]=useState('');const [handleTouched,setHandleTouched]=useState(!!initial.handle);const [handle,setHandle]=useState(draft.handle);const [toolQuery,setToolQuery]=useState('');
  const save=useMutation(profileApi.saveSetupStep);const heading=useRef<HTMLHeadingElement>(null);
@@ -73,7 +72,7 @@ function SetupEditor({initial,accountKey,preview=false}:{initial:Profile;account
     <div className="resource-modal-body">
      {step===1&&<>
       <PhotoField compact value={draft.customAvatar} onChange={customAvatar=>setDraft(p=>({...p,customAvatar}))}/>
-      <div className="form-field"><label htmlFor="setup-name">Display name</label><input id="setup-name" autoComplete="name" required maxLength={60} value={draft.name} onChange={e=>{const name=e.target.value;setDraft(p=>({...p,name,...(!handleTouched?{handle:suggested(name)}:{})}));}}/></div>
+      <div className="form-field"><label htmlFor="setup-name">Display name</label><input id="setup-name" autoComplete="name" required maxLength={60} value={draft.name} onChange={e=>{const name=e.target.value;setDraft(p=>({...p,name,...(!handleTouched?{handle:suggestedHandle(name)}:{})}));}}/></div>
       <div className="form-field"><label htmlFor="setup-handle">Username</label><input id="setup-handle" required minLength={2} maxLength={24} pattern="[a-z0-9_]{2,24}" autoComplete="username" value={draft.handle} aria-describedby="handle-status" aria-invalid={!validHandle||(!preview&&handle===draft.handle&&availability?.available===false)} onChange={e=>{setHandleTouched(true);setDraft(p=>({...p,handle:e.target.value.toLowerCase()}));}}/><p id="handle-status" role="status" className="form-note">{!validHandle?'Use 2–24 letters, numbers or underscores.':available?<span className="username-available"><Check size={12} weight="bold" aria-hidden="true"/>Username available</span>:availability?.available===false&&handle===draft.handle?'This username is already taken.':'Checking availability…'}</p>{availability?.suggestion&&!availability.available&&handleTouched&&<button type="button" className="text-button" onClick={()=>setDraft(p=>({...p,handle:availability.suggestion}))}>Use {availability.suggestion}</button>}</div>
      </>}
      {step===2&&<><RolePicker value={draft.roles} onChange={roles=>setDraft(p=>({...p,roles}))}/><div className="form-field"><label htmlFor="setup-bio">Short bio <span>(optional)</span></label><textarea id="setup-bio" maxLength={220} placeholder="One line about what you build." value={draft.bio} onChange={e=>setDraft(p=>({...p,bio:e.target.value}))}/><p className="form-note">{draft.bio.length}/220</p></div></>}

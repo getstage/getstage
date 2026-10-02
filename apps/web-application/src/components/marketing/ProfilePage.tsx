@@ -1,7 +1,7 @@
 import { readLocalProfile } from "./localProfile";
 import { technologyGroups } from "@/marketing/marketplace/technologies";
 import { ProfileShareDialog } from "./ProfileShareDialogs";
-import { blank, fields, contacts, techId } from "./profileModel";
+import { blank, fields, contacts, suggestedHandle, techId } from "./profileModel";
 import { RolePicker, ContactFields, TechnologyLabel, PhotoField } from "./ProfileFields";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useMutation, useQuery } from "convex/react";
@@ -151,9 +151,10 @@ function OwnProfile() {
     return <ProfileStatus text="Loading your profile…" />;
   return (
     <ProfileView
-      profile={profile ?? blank(user.name)}
+      profile={profile ?? { ...blank(user.name), handle: suggestedHandle(user.name) }}
       owner
       avatar={user.avatarUrl}
+      accountEmail={user.email}
       setup={!profile}
     />
   );
@@ -162,12 +163,14 @@ export function ProfileView({
   profile,
   owner,
   avatar,
+  accountEmail,
   setup = false,
   localUpdate,
 }: {
   profile: Profile;
   owner: boolean;
   avatar?: string;
+  accountEmail?: string;
   setup?: boolean;
   localUpdate?: (profile:Profile)=>void;
 }) {
@@ -207,6 +210,22 @@ export function ProfileView({
   const [technologyQuery,setTechnologyQuery]=useState("");
   const [rewardOpen,setRewardOpen]=useState(false);
   const [draft, setDraft] = useState<ProfileInput>(fields(profile));
+  // First-time setup: check the suggested username and switch to a free one
+  // until the user types their own (same behaviour as /setup-profile).
+  const [handleTouched, setHandleTouched] = useState(false);
+  const [checkedHandle, setCheckedHandle] = useState(draft.handle);
+  useEffect(() => {
+    const timer = setTimeout(() => setCheckedHandle(draft.handle), 250);
+    return () => clearTimeout(timer);
+  }, [draft.handle]);
+  const availability = useQuery(
+    profileApi.username,
+    setup && !localUpdate && /^[a-z0-9_]{2,24}$/.test(checkedHandle) ? { handle: checkedHandle } : "skip",
+  );
+  useEffect(() => {
+    if (!handleTouched && availability && !availability.available && availability.suggestion && checkedHandle === draft.handle)
+      setDraft((current) => ({ ...current, handle: availability.suggestion }));
+  }, [availability, handleTouched, checkedHandle, draft.handle]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
@@ -563,7 +582,7 @@ export function ProfileView({
       {rewardOpen && <ProfileShareDialog reward url={shareUrl} local={Boolean(localUpdate)} published={profile.published} close={() => setRewardOpen(false)} edit={edit} />}
       {editor && (
         <Modal
-          title={setup ? "Create your profile" : "Edit your profile"}
+          title={setup ? "Set up your public profile" : "Edit your profile"}
           close={() => !busy && setEditor(false)}
         >
           <form
@@ -573,6 +592,11 @@ export function ProfileView({
             }}
           >
             <div className="resource-modal-body">
+              {setup && accountEmail && (
+                <p className="form-note">
+                  This is the public profile for your Stage account ({accountEmail}). It stays private until you publish it.
+                </p>
+              )}
               <PhotoField compact value={draft.customAvatar || avatar} onChange={customAvatar => setDraft({ ...draft, customAvatar })} />
               {(["name", "handle", "bio", "location"] as const).map((key) => (
                 <div key={key}>
@@ -606,12 +630,18 @@ export function ProfileView({
                       pattern={
                         key === "handle" ? "[a-zA-Z0-9_]{2,24}" : undefined
                       }
-                      onChange={(e) =>
-                        setDraft({ ...draft, [key]: e.target.value })
-                      }
+                      onChange={(e) => {
+                        if (key === "handle") setHandleTouched(true);
+                        setDraft({ ...draft, [key]: e.target.value });
+                      }}
                     />
                   )}
                   {key === "handle" && <small className="field-help">2–24 letters, numbers or underscores.</small>}
+                  {key === "handle" && setup && availability && checkedHandle === draft.handle && (
+                    <small className="field-help" role="status">
+                      {availability.available ? "Username available." : "This username is already taken."}
+                    </small>
+                  )}
                 </div>
                 {key === "name" && <RolePicker profileStyle initiallyOpen={false} value={draft.roles} onChange={roles => setDraft({ ...draft, roles })} />}
                 </div>

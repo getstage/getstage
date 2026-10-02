@@ -22,6 +22,11 @@ export const contacts = [
   { key: "website", label: "Website", Icon: Globe },
   { key: "email", label: "Email", Icon: Envelope },
 ] as const;
+// Default username from a display name: "Wessel Dieben" → "wessel_dieben".
+export function suggestedHandle(name: string) {
+  const value = name.toLowerCase().trim().replace(/\s+/g, "_").replace(/[^a-z0-9_]/g, "").slice(0, 24);
+  return value.length >= 2 ? value : value ? `${value}_` : "builder";
+}
 export function blank(name: string): Profile {
   return {
     name,
