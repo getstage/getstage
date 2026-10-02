@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate, useSearch } from "@tanstack/react-router";
+import { useSearch } from "@tanstack/react-router";
 import { Helmet } from "react-helmet-async";
 import { motion, AnimatePresence } from "motion/react";
 import { useAuth, useSignIn } from "@/lib/auth";
@@ -22,10 +22,10 @@ type AuthMode = "signup" | "login";
 
 function continueAfterAuth(
   redirectTo: string,
-  navigate: ReturnType<typeof useNavigate>,
 ) {
   const pendingDesktopRedirect = getStoredDesktopRedirect();
   const target =
+    redirectTo.split("?")[0] === "/profile" ? redirectTo :
     isDesktopAuthRedirect(redirectTo)
       ? redirectTo
       : isDesktopAuthRedirect(pendingDesktopRedirect)
@@ -39,8 +39,8 @@ function continueAfterAuth(
     return;
   }
 
-  if (redirectTo === DEFAULT_POST_AUTH_PATH) {
-    navigate({ to: "/download/mac", replace: true });
+  if (redirectTo === DEFAULT_POST_AUTH_PATH || redirectTo.split("?")[0] === "/profile") {
+    window.location.assign(`/setup-profile?next=${encodeURIComponent(redirectTo)}`);
     return;
   }
 
@@ -48,8 +48,7 @@ function continueAfterAuth(
 }
 
 export function AuthPage() {
-  const navigate = useNavigate();
-  const { desktop_redirect_uri, desktop_state, redirect } = useSearch({ from: "/auth" });
+  const { desktop_redirect_uri, desktop_state, redirect, mode } = useSearch({ from: "/auth" });
   const redirectTo = resolvePostAuthRedirect({
     desktopRedirectUri: desktop_redirect_uri,
     desktopState: desktop_state,
@@ -65,7 +64,7 @@ export function AuthPage() {
   const { isAuthenticated } = useAuth();
   const signIn = useSignIn();
   const [step, setStep] = useState<Step>("email");
-  const [authMode, setAuthMode] = useState<AuthMode>("signup");
+  const [authMode, setAuthMode] = useState<AuthMode>(mode ?? "signup");
   const [email, setEmail] = useState("");
   const [code, setCode] = useState(["", "", "", "", "", ""]);
   const [loading, setLoading] = useState(false);
@@ -79,9 +78,9 @@ export function AuthPage() {
     if (isAuthenticated) {
       activeAuthFlowRef.current = null;
       setLoading(false);
-      continueAfterAuth(redirectTo, navigate);
+      continueAfterAuth(redirectTo);
     }
-  }, [isAuthenticated, navigate, redirectTo]);
+  }, [isAuthenticated, redirectTo]);
 
   if (isAuthenticated) {
     return null;
@@ -208,7 +207,7 @@ export function AuthPage() {
       formData.set("email", email);
       formData.set("code", parsed.data.code);
       await signIn("loops-otp", formData);
-      continueAfterAuth(redirectTo, navigate);
+      continueAfterAuth(redirectTo);
     } catch (error) {
       setError(
         toUserFacingErrorMessage(
@@ -225,7 +224,6 @@ export function AuthPage() {
     }
   }
 
-  const isLoginOtp = step === "code" && authMode === "login";
   const codeComplete = code.every((digit) => digit);
   const activeCodeIndex = code.findIndex((digit) => !digit);
   const otpActionLabel = authMode === "login" ? "Login" : "Sign up";
@@ -275,7 +273,7 @@ export function AuthPage() {
     setLoading(true);
     try {
       await signIn("demo");
-      continueAfterAuth(redirectTo, navigate);
+      continueAfterAuth(redirectTo);
     } catch (error) {
       setError(
         toUserFacingErrorMessage(
@@ -347,24 +345,24 @@ export function AuthPage() {
       </Helmet>
 
       <div className="auth-page min-h-dvh bg-white p-2 lg:h-dvh lg:overflow-hidden lg:bg-[#F5F5F5] lg:p-1">
-        <div className="min-h-[calc(100dvh-16px)] bg-white lg:h-[calc(100dvh-8px)] lg:min-h-0 lg:overflow-hidden lg:rounded-[8px] lg:border lg:border-[#F5F5F5] lg:p-2">
+        <div className="min-h-[calc(100dvh-16px)] bg-white lg:h-[calc(100dvh-8px)] lg:min-h-0 lg:overflow-hidden lg:rounded-[8px] lg:p-2">
           <div className="grid min-h-[calc(100dvh-16px)] rounded-[12px] lg:flex lg:h-full lg:min-h-0 lg:overflow-hidden">
             <section
               className={cn(
                 "flex min-h-0 flex-col items-center px-3 pt-3 lg:flex-1 lg:flex-row lg:justify-center lg:overflow-hidden lg:px-[74px] lg:py-0",
-                isLoginOtp && "lg:px-0",
+
               )}
             >
               <AuthTestimonialCarousel variant="mobile" className="lg:hidden" />
 
               <div
                 className={cn(
-                  "flex min-h-0 w-full max-w-[508px] flex-1 flex-col justify-between py-[44px] lg:h-full lg:flex-none lg:py-[100px]",
+                  "flex min-h-0 w-full max-w-[508px] flex-1 flex-col justify-between py-[44px] lg:h-full lg:flex-none lg:py-[clamp(64px,19.53125vh,200px)]",
                   step === "code" && "flex-none justify-start lg:h-full lg:justify-between",
                 )}
               >
                 <div>
-                  <img src={stageLogo} alt="Stage" className="mb-8 h-[23px] w-auto" />
+                  <img src="/auth/signup-logo.svg" alt="Stage" className="mb-8 h-[23px] w-auto" />
 
                   <AnimatePresence mode="wait">
                     {step === "email" ? (
@@ -390,7 +388,7 @@ export function AuthPage() {
                               <div className="flex flex-col gap-2">
                                 <label
                                   htmlFor="auth-email"
-                                  className="block text-[14px] leading-none font-medium text-[#171717] lg:text-[13px]"
+                                  className="block text-[14px] leading-[1.21] font-medium text-[#171717] lg:text-[13px]"
                                 >
                                   Email Address
                                 </label>
@@ -400,10 +398,10 @@ export function AuthPage() {
                                   type="email"
                                   value={email}
                                   onChange={(event) => setEmail(event.target.value)}
-                                  placeholder="heypratik@baseframe.design"
+                                  placeholder="Enter your email address"
                                   autoFocus
                                   className={cn(
-                                    "h-[38px] w-full rounded-[6px] border border-transparent bg-[#F5F5F5] px-3 text-[13px] font-normal text-[#171717] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] outline-none ring-0 transition-colors placeholder:text-[#737373] focus:border-[#D4D4D4] focus:bg-white focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 lg:text-[12px] lg:font-medium",
+                                    "h-[35px] w-full rounded-[6px] border border-transparent bg-[#F5F5F5] px-3 text-[13px] font-normal text-[#171717] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] outline-none ring-0 transition-colors placeholder:text-[#737373] focus:border-[#D4D4D4] focus:bg-white focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 lg:text-[12px] lg:font-medium",
                                     error && step === "email" && "border-destructive/50",
                                   )}
                                 />
@@ -575,8 +573,8 @@ export function AuthPage() {
 
             <section
               className={cn(
-                "hidden min-h-0 py-1 pr-1 lg:flex lg:w-[calc((100dvh-32px)*0.76+4px)] lg:flex-none lg:items-center lg:justify-end",
-                isLoginOtp && "lg:hidden",
+                "hidden min-h-0 p-2 lg:flex lg:w-[53.672316%] lg:flex-none lg:items-center lg:justify-end",
+
               )}
             >
               <AuthTestimonialCarousel variant="desktop" className="h-full w-full" />

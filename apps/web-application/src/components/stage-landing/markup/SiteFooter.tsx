@@ -50,7 +50,8 @@ export function SiteFooter() {
           </div>
           <div className="footer-column">
             <span>Resources</span>
-            <a href="/use-cases">Use cases</a>
+            <a href="/use-cases">Solutions</a>
+            <a href="/marketplace">Marketplace</a>
             <a href="/blog">Blog</a>
             <a href="/download">Download</a>
           </div>
@@ -58,7 +59,7 @@ export function SiteFooter() {
             <span>Stage</span>
             <a href="/#pricing">Pricing</a>
             <a href="/#faq">FAQ</a>
-            <button data-destination="login">Log in</button>
+            <a href="/auth?mode=login&redirect=%2Fprofile">Log in</a>
             <button data-destination="legal">Legal</button>
             <a href="mailto:hello@getstage.co">Contact</a>
             <a

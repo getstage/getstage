@@ -1,11 +1,35 @@
 # Stage — Project Status
 
 > **Living document.** Update weekly (or before each release).  
-> **Last updated:** 2026-09-30
+> **Last updated:** 2026-10-01
 
 **Positioning:** Stage does the thinking. Your AI does the building.
 
 ---
+
+## Local website review — 2026-10-01
+
+- Active checkout: `/Users/adrien.ninet/Developer/stage-local-recovery`, branch `codex/profile-setup`. The Documents/iCloud checkout returned empty reads for offloaded files, including Git metadata. Recovered integration commit `fe370213` and available local edits into this checkout; original files retained.
+- Local Vite preview: `http://127.0.0.1:4190`. Review onboarding without account writes at `/setup-profile?preview=1` (development only).
+- Added three-step profile setup with live rendering of the existing ProfileView, shared role/contact/technology/photo fields, local draft recovery, authenticated step persistence, username availability, analytics, and download-to-profile link. Auth preserves desktop callbacks and pending profile saves.
+- Verified production build (47 marketing pages), profile backend tests, Convex TypeScript, desktop live updates, draft refresh, and 375px layout. The authenticated browser flow remains unverified because the new Convex functions/schema have not been deployed.
+- Profile follow-up: restored compact tool rows, profile resource cards, inline technology selection and marketplace picker from the original `stage-site` prototype. Local setup now saves `stage-profile-preview`; download's web link preserves preview mode and opens the full editable profile. The original reward sidebar is preview-only; no subscription credit is applied. Live authenticated profile persistence still requires backend deployment and verification.
+- **Do not deploy or push without Adrien's explicit green flag.** Frontend and backend changes are local only. Test-deployment/account validation is required before release.
+
+## Website persistence readiness audit — 2026-10-01
+
+- Local `/profile?preview=1` uses browser localStorage, not a backend account. Production excludes the development-only preview path. Authenticated profile edits, onboarding and collection saves call Convex `builderProfiles` functions; uploaded avatar/banner images are stored as bounded data URLs in the profile document. Onboarding drafts also use account-scoped localStorage until completion.
+- Verification passed: production web build and 47 pre-rendered marketing pages, Convex typecheck, 10 profile/routing tests. Added a complete-field persistence test across simulated sessions, including contacts, images, collections and publish/unpublish. These are local backend tests, not deployed end-to-end verification.
+- Read-only HTTP checks against configured testing Convex returned `Could not find public function` for `builderProfiles:mine` and `builderProfiles:username`. Production returned generic server errors for both; their cause is not exposed. Deployed profile persistence is not verified and is a release blocker.
+- Release sequence: developer review of backend/auth/routes, commit and integrate into `website`, deploy matching Convex schema/functions to testing, deploy testing web bundle, verify authenticated save/reload/logout/login and a second session plus public/private behavior. Then deploy matching production backend before the web bundle and repeat smoke checks. No deployment, push, or real-account mutation performed in this audit.
+
+## Website SEO and AI-search readiness — 2026-10-01
+
+- Local-only audit: 49 prerendered public marketing URLs, 48 indexable canonical pages (the marketplace alias points to component libraries). Homepage and download now include readable initial HTML, alongside the six solutions, blog, marketplace categories, and resource details.
+- Added unique category/resource metadata, route-aware canonical/Open Graph/Twitter/JSON-LD updates, collection ItemLists, large image previews, and visible article attribution below the summary. Preserved the requested clean headline layout. Existing detailed descriptions, features, FAQs, related links, and official resource links remain crawlable.
+- Worker now runs before static responses to send noindex headers on nonproduction domains and account/onboarding/builder pages, and real 404 responses for unknown blog/solution/resource URLs. API proxy behavior is unchanged. This changes static-request routing and must be smoke-tested on testing hosting before release.
+- Production build and `pnpm --filter stage-app check:seo` pass: unique titles/descriptions, canonical URLs, one H1, valid JSON-LD, image files, and sitemap indexing consistency across all 48 indexable pages. Nine local Worker response checks also pass for public/private/staging routes, missing-page statuses, asset caching, and the unconfigured API response. No push or deployment performed.
+- GEO follows standard crawlability/content-quality guidance; no fabricated citations, reviews, freshness dates, or special AI markup. Existing Datafast tracking remains. Search Console/Bing sitemap submission, indexing checks, live Core Web Vitals, and organic/AI-referral monitoring require the approved deployment and account access. No search rankings or AI citations can be guaranteed.
 
 ## NOW (this week)
 
@@ -52,6 +76,12 @@
 ---
 
 ## Current local review changes
+
+- Website marketplace/profile integration is local on `codex/sync-stage-marketplace`, based on `website` at `6b65ad74`. Resources groups marketplace + blog; Solutions uses Phosphor icons (white in navigation). Imports 50 resources / 33 detail pages without modifying the original static prototype.
+- New additive `builderProfiles` Convex table/functions support authenticated collections, unique usernames, private-by-default profiles, explicit publication at `/builders/<handle>`, preset/uploaded banners, and technology tags. Deploy and smoke-test these functions on testing **before** deploying the web bundle. No deployments or pushes have been made; Adrien explicitly requires a green flag before going live.
+- Verification: production web build/prerender, Convex typecheck, `pnpm --filter @stage/data-ops test:profiles`, asset-reference checks, and desktop/mobile browsing. Signed-in production/cross-device smoke remains pending. Profile layout was checked with a temporary local fixture; no real accounts or profiles were changed.
+- Developer review is required by the existing shipping gate because this integration adds routes, auth return handling and backend code. The gate is unchanged. The prototype's simulated free-month promotion is not presented as a real reward; old prototype files remain intact.
+
 
 - The Wireframes results grid shows every generated Lo-Fi screen instead of truncating the project at six; Assets and Wireframes now expose the same complete set.
 - Stage Engine is warning-free under strict Clippy; the production desktop workflow now blocks releases on Rust warnings.
@@ -117,3 +147,5 @@ Smoke included one chat session → engine stayed up (no idle shutdown in 0.1.56
 - Architecture: `ARCHITECTURE.md`
 - Desktop index: `apps/user-application/docs/AI/desktop/README.md`
 - AI start: `AGENTS.md`
+
+- Profile visual audit: white page surface with gray footer, original compact collection markup and marketplace picker rows, 154px desktop profile offset, banner thumbnails and dialog styles restored. Removed stale 612px navbar override; desktop is 668px with Download fully contained. Browser verified at desktop and 375px. Original profile HTML and JavaScript recovered from stage-site; original standalone CSS files remain iCloud dataless, so styles were compared against the integrated copy.

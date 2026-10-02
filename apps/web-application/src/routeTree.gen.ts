@@ -10,6 +10,8 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TermsRouteImport } from './routes/terms'
+import { Route as SetupProfileRouteImport } from './routes/setup-profile'
+import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as OpenclawRouteImport } from './routes/openclaw'
 import { Route as DownloadRouteImport } from './routes/download'
@@ -20,13 +22,20 @@ import { Route as AuthedRouteImport } from './routes/_authed'
 import { Route as SlugRouteImport } from './routes/$slug'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as UseCasesIndexRouteImport } from './routes/use-cases/index'
+import { Route as ToolsIndexRouteImport } from './routes/tools.index'
+import { Route as SkillsIndexRouteImport } from './routes/skills.index'
+import { Route as MarketplaceIndexRouteImport } from './routes/marketplace.index'
+import { Route as ComponentLibrariesIndexRouteImport } from './routes/component-libraries.index'
 import { Route as BlogIndexRouteImport } from './routes/blog/index'
 import { Route as AgentsIndexRouteImport } from './routes/agents/index'
 import { Route as UseCasesSlugRouteImport } from './routes/use-cases/$slug'
+import { Route as SkillsSlugRouteImport } from './routes/skills.$slug'
 import { Route as PortalTokenRouteImport } from './routes/portal.$token'
 import { Route as InviteTokenRouteImport } from './routes/invite.$token'
 import { Route as HelpImportTransactionsViaGoogleSheetsRouteImport } from './routes/help/import-transactions-via-google-sheets'
 import { Route as DownloadMacRouteImport } from './routes/download.mac'
+import { Route as ComponentLibrariesSlugRouteImport } from './routes/component-libraries.$slug'
+import { Route as BuildersHandleRouteImport } from './routes/builders.$handle'
 import { Route as BlogSlugRouteImport } from './routes/blog/$slug'
 import { Route as BillingReturnRouteImport } from './routes/billing.return'
 import { Route as AuthDesktopRouteImport } from './routes/auth.desktop'
@@ -44,6 +53,16 @@ import { Route as AuthedProjectIdTaskTaskIdRouteImport } from './routes/_authed/
 const TermsRoute = TermsRouteImport.update({
   id: '/terms',
   path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SetupProfileRoute = SetupProfileRouteImport.update({
+  id: '/setup-profile',
+  path: '/setup-profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfileRoute = ProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PrivacyRoute = PrivacyRouteImport.update({
@@ -95,6 +114,26 @@ const UseCasesIndexRoute = UseCasesIndexRouteImport.update({
   path: '/use-cases/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ToolsIndexRoute = ToolsIndexRouteImport.update({
+  id: '/tools/',
+  path: '/tools/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SkillsIndexRoute = SkillsIndexRouteImport.update({
+  id: '/skills/',
+  path: '/skills/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MarketplaceIndexRoute = MarketplaceIndexRouteImport.update({
+  id: '/marketplace/',
+  path: '/marketplace/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ComponentLibrariesIndexRoute = ComponentLibrariesIndexRouteImport.update({
+  id: '/component-libraries/',
+  path: '/component-libraries/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const BlogIndexRoute = BlogIndexRouteImport.update({
   id: '/blog/',
   path: '/blog/',
@@ -108,6 +147,11 @@ const AgentsIndexRoute = AgentsIndexRouteImport.update({
 const UseCasesSlugRoute = UseCasesSlugRouteImport.update({
   id: '/use-cases/$slug',
   path: '/use-cases/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SkillsSlugRoute = SkillsSlugRouteImport.update({
+  id: '/skills/$slug',
+  path: '/skills/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PortalTokenRoute = PortalTokenRouteImport.update({
@@ -130,6 +174,16 @@ const DownloadMacRoute = DownloadMacRouteImport.update({
   id: '/mac',
   path: '/mac',
   getParentRoute: () => DownloadRoute,
+} as any)
+const ComponentLibrariesSlugRoute = ComponentLibrariesSlugRouteImport.update({
+  id: '/component-libraries/$slug',
+  path: '/component-libraries/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BuildersHandleRoute = BuildersHandleRouteImport.update({
+  id: '/builders/$handle',
+  path: '/builders/$handle',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const BlogSlugRoute = BlogSlugRouteImport.update({
   id: '/blog/$slug',
@@ -207,6 +261,8 @@ export interface FileRoutesByFullPath {
   '/download': typeof DownloadRouteWithChildren
   '/openclaw': typeof OpenclawRoute
   '/privacy': typeof PrivacyRoute
+  '/profile': typeof ProfileRoute
+  '/setup-profile': typeof SetupProfileRoute
   '/terms': typeof TermsRoute
   '/dashboard': typeof AuthedDashboardRoute
   '/new-project': typeof AuthedNewProjectRoute
@@ -217,13 +273,20 @@ export interface FileRoutesByFullPath {
   '/auth/desktop': typeof AuthDesktopRoute
   '/billing/return': typeof BillingReturnRoute
   '/blog/$slug': typeof BlogSlugRoute
+  '/builders/$handle': typeof BuildersHandleRoute
+  '/component-libraries/$slug': typeof ComponentLibrariesSlugRoute
   '/download/mac': typeof DownloadMacRoute
   '/help/import-transactions-via-google-sheets': typeof HelpImportTransactionsViaGoogleSheetsRoute
   '/invite/$token': typeof InviteTokenRoute
   '/portal/$token': typeof PortalTokenRouteWithChildren
+  '/skills/$slug': typeof SkillsSlugRoute
   '/use-cases/$slug': typeof UseCasesSlugRoute
   '/agents/': typeof AgentsIndexRoute
   '/blog/': typeof BlogIndexRoute
+  '/component-libraries/': typeof ComponentLibrariesIndexRoute
+  '/marketplace/': typeof MarketplaceIndexRoute
+  '/skills/': typeof SkillsIndexRoute
+  '/tools/': typeof ToolsIndexRoute
   '/use-cases/': typeof UseCasesIndexRoute
   '/project/$id': typeof AuthedProjectIdRouteWithChildren
   '/project/$id/stitch': typeof AuthedProjectIdStitchRoute
@@ -238,6 +301,8 @@ export interface FileRoutesByTo {
   '/download': typeof DownloadRouteWithChildren
   '/openclaw': typeof OpenclawRoute
   '/privacy': typeof PrivacyRoute
+  '/profile': typeof ProfileRoute
+  '/setup-profile': typeof SetupProfileRoute
   '/terms': typeof TermsRoute
   '/dashboard': typeof AuthedDashboardRoute
   '/new-project': typeof AuthedNewProjectRoute
@@ -248,13 +313,20 @@ export interface FileRoutesByTo {
   '/auth/desktop': typeof AuthDesktopRoute
   '/billing/return': typeof BillingReturnRoute
   '/blog/$slug': typeof BlogSlugRoute
+  '/builders/$handle': typeof BuildersHandleRoute
+  '/component-libraries/$slug': typeof ComponentLibrariesSlugRoute
   '/download/mac': typeof DownloadMacRoute
   '/help/import-transactions-via-google-sheets': typeof HelpImportTransactionsViaGoogleSheetsRoute
   '/invite/$token': typeof InviteTokenRoute
   '/portal/$token': typeof PortalTokenRouteWithChildren
+  '/skills/$slug': typeof SkillsSlugRoute
   '/use-cases/$slug': typeof UseCasesSlugRoute
   '/agents': typeof AgentsIndexRoute
   '/blog': typeof BlogIndexRoute
+  '/component-libraries': typeof ComponentLibrariesIndexRoute
+  '/marketplace': typeof MarketplaceIndexRoute
+  '/skills': typeof SkillsIndexRoute
+  '/tools': typeof ToolsIndexRoute
   '/use-cases': typeof UseCasesIndexRoute
   '/project/$id': typeof AuthedProjectIdRouteWithChildren
   '/project/$id/stitch': typeof AuthedProjectIdStitchRoute
@@ -272,6 +344,8 @@ export interface FileRoutesById {
   '/download': typeof DownloadRouteWithChildren
   '/openclaw': typeof OpenclawRoute
   '/privacy': typeof PrivacyRoute
+  '/profile': typeof ProfileRoute
+  '/setup-profile': typeof SetupProfileRoute
   '/terms': typeof TermsRoute
   '/_authed/dashboard': typeof AuthedDashboardRoute
   '/_authed/new-project': typeof AuthedNewProjectRoute
@@ -282,13 +356,20 @@ export interface FileRoutesById {
   '/auth/desktop': typeof AuthDesktopRoute
   '/billing/return': typeof BillingReturnRoute
   '/blog/$slug': typeof BlogSlugRoute
+  '/builders/$handle': typeof BuildersHandleRoute
+  '/component-libraries/$slug': typeof ComponentLibrariesSlugRoute
   '/download/mac': typeof DownloadMacRoute
   '/help/import-transactions-via-google-sheets': typeof HelpImportTransactionsViaGoogleSheetsRoute
   '/invite/$token': typeof InviteTokenRoute
   '/portal/$token': typeof PortalTokenRouteWithChildren
+  '/skills/$slug': typeof SkillsSlugRoute
   '/use-cases/$slug': typeof UseCasesSlugRoute
   '/agents/': typeof AgentsIndexRoute
   '/blog/': typeof BlogIndexRoute
+  '/component-libraries/': typeof ComponentLibrariesIndexRoute
+  '/marketplace/': typeof MarketplaceIndexRoute
+  '/skills/': typeof SkillsIndexRoute
+  '/tools/': typeof ToolsIndexRoute
   '/use-cases/': typeof UseCasesIndexRoute
   '/_authed/project/$id': typeof AuthedProjectIdRouteWithChildren
   '/_authed/project/$id/stitch': typeof AuthedProjectIdStitchRoute
@@ -306,6 +387,8 @@ export interface FileRouteTypes {
     | '/download'
     | '/openclaw'
     | '/privacy'
+    | '/profile'
+    | '/setup-profile'
     | '/terms'
     | '/dashboard'
     | '/new-project'
@@ -316,13 +399,20 @@ export interface FileRouteTypes {
     | '/auth/desktop'
     | '/billing/return'
     | '/blog/$slug'
+    | '/builders/$handle'
+    | '/component-libraries/$slug'
     | '/download/mac'
     | '/help/import-transactions-via-google-sheets'
     | '/invite/$token'
     | '/portal/$token'
+    | '/skills/$slug'
     | '/use-cases/$slug'
     | '/agents/'
     | '/blog/'
+    | '/component-libraries/'
+    | '/marketplace/'
+    | '/skills/'
+    | '/tools/'
     | '/use-cases/'
     | '/project/$id'
     | '/project/$id/stitch'
@@ -337,6 +427,8 @@ export interface FileRouteTypes {
     | '/download'
     | '/openclaw'
     | '/privacy'
+    | '/profile'
+    | '/setup-profile'
     | '/terms'
     | '/dashboard'
     | '/new-project'
@@ -347,13 +439,20 @@ export interface FileRouteTypes {
     | '/auth/desktop'
     | '/billing/return'
     | '/blog/$slug'
+    | '/builders/$handle'
+    | '/component-libraries/$slug'
     | '/download/mac'
     | '/help/import-transactions-via-google-sheets'
     | '/invite/$token'
     | '/portal/$token'
+    | '/skills/$slug'
     | '/use-cases/$slug'
     | '/agents'
     | '/blog'
+    | '/component-libraries'
+    | '/marketplace'
+    | '/skills'
+    | '/tools'
     | '/use-cases'
     | '/project/$id'
     | '/project/$id/stitch'
@@ -370,6 +469,8 @@ export interface FileRouteTypes {
     | '/download'
     | '/openclaw'
     | '/privacy'
+    | '/profile'
+    | '/setup-profile'
     | '/terms'
     | '/_authed/dashboard'
     | '/_authed/new-project'
@@ -380,13 +481,20 @@ export interface FileRouteTypes {
     | '/auth/desktop'
     | '/billing/return'
     | '/blog/$slug'
+    | '/builders/$handle'
+    | '/component-libraries/$slug'
     | '/download/mac'
     | '/help/import-transactions-via-google-sheets'
     | '/invite/$token'
     | '/portal/$token'
+    | '/skills/$slug'
     | '/use-cases/$slug'
     | '/agents/'
     | '/blog/'
+    | '/component-libraries/'
+    | '/marketplace/'
+    | '/skills/'
+    | '/tools/'
     | '/use-cases/'
     | '/_authed/project/$id'
     | '/_authed/project/$id/stitch'
@@ -404,14 +512,23 @@ export interface RootRouteChildren {
   DownloadRoute: typeof DownloadRouteWithChildren
   OpenclawRoute: typeof OpenclawRoute
   PrivacyRoute: typeof PrivacyRoute
+  ProfileRoute: typeof ProfileRoute
+  SetupProfileRoute: typeof SetupProfileRoute
   TermsRoute: typeof TermsRoute
   BillingReturnRoute: typeof BillingReturnRoute
   BlogSlugRoute: typeof BlogSlugRoute
+  BuildersHandleRoute: typeof BuildersHandleRoute
+  ComponentLibrariesSlugRoute: typeof ComponentLibrariesSlugRoute
   HelpImportTransactionsViaGoogleSheetsRoute: typeof HelpImportTransactionsViaGoogleSheetsRoute
   InviteTokenRoute: typeof InviteTokenRoute
   PortalTokenRoute: typeof PortalTokenRouteWithChildren
+  SkillsSlugRoute: typeof SkillsSlugRoute
   UseCasesSlugRoute: typeof UseCasesSlugRoute
   BlogIndexRoute: typeof BlogIndexRoute
+  ComponentLibrariesIndexRoute: typeof ComponentLibrariesIndexRoute
+  MarketplaceIndexRoute: typeof MarketplaceIndexRoute
+  SkillsIndexRoute: typeof SkillsIndexRoute
+  ToolsIndexRoute: typeof ToolsIndexRoute
   UseCasesIndexRoute: typeof UseCasesIndexRoute
 }
 
@@ -422,6 +539,20 @@ declare module '@tanstack/react-router' {
       path: '/terms'
       fullPath: '/terms'
       preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/setup-profile': {
+      id: '/setup-profile'
+      path: '/setup-profile'
+      fullPath: '/setup-profile'
+      preLoaderRoute: typeof SetupProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/profile': {
+      id: '/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof ProfileRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/privacy': {
@@ -494,6 +625,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof UseCasesIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/tools/': {
+      id: '/tools/'
+      path: '/tools'
+      fullPath: '/tools/'
+      preLoaderRoute: typeof ToolsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/skills/': {
+      id: '/skills/'
+      path: '/skills'
+      fullPath: '/skills/'
+      preLoaderRoute: typeof SkillsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/marketplace/': {
+      id: '/marketplace/'
+      path: '/marketplace'
+      fullPath: '/marketplace/'
+      preLoaderRoute: typeof MarketplaceIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/component-libraries/': {
+      id: '/component-libraries/'
+      path: '/component-libraries'
+      fullPath: '/component-libraries/'
+      preLoaderRoute: typeof ComponentLibrariesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/blog/': {
       id: '/blog/'
       path: '/blog'
@@ -513,6 +672,13 @@ declare module '@tanstack/react-router' {
       path: '/use-cases/$slug'
       fullPath: '/use-cases/$slug'
       preLoaderRoute: typeof UseCasesSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/skills/$slug': {
+      id: '/skills/$slug'
+      path: '/skills/$slug'
+      fullPath: '/skills/$slug'
+      preLoaderRoute: typeof SkillsSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/portal/$token': {
@@ -542,6 +708,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/download/mac'
       preLoaderRoute: typeof DownloadMacRouteImport
       parentRoute: typeof DownloadRoute
+    }
+    '/component-libraries/$slug': {
+      id: '/component-libraries/$slug'
+      path: '/component-libraries/$slug'
+      fullPath: '/component-libraries/$slug'
+      preLoaderRoute: typeof ComponentLibrariesSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/builders/$handle': {
+      id: '/builders/$handle'
+      path: '/builders/$handle'
+      fullPath: '/builders/$handle'
+      preLoaderRoute: typeof BuildersHandleRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/blog/$slug': {
       id: '/blog/$slug'
@@ -729,15 +909,24 @@ const rootRouteChildren: RootRouteChildren = {
   DownloadRoute: DownloadRouteWithChildren,
   OpenclawRoute: OpenclawRoute,
   PrivacyRoute: PrivacyRoute,
+  ProfileRoute: ProfileRoute,
+  SetupProfileRoute: SetupProfileRoute,
   TermsRoute: TermsRoute,
   BillingReturnRoute: BillingReturnRoute,
   BlogSlugRoute: BlogSlugRoute,
+  BuildersHandleRoute: BuildersHandleRoute,
+  ComponentLibrariesSlugRoute: ComponentLibrariesSlugRoute,
   HelpImportTransactionsViaGoogleSheetsRoute:
     HelpImportTransactionsViaGoogleSheetsRoute,
   InviteTokenRoute: InviteTokenRoute,
   PortalTokenRoute: PortalTokenRouteWithChildren,
+  SkillsSlugRoute: SkillsSlugRoute,
   UseCasesSlugRoute: UseCasesSlugRoute,
   BlogIndexRoute: BlogIndexRoute,
+  ComponentLibrariesIndexRoute: ComponentLibrariesIndexRoute,
+  MarketplaceIndexRoute: MarketplaceIndexRoute,
+  SkillsIndexRoute: SkillsIndexRoute,
+  ToolsIndexRoute: ToolsIndexRoute,
   UseCasesIndexRoute: UseCasesIndexRoute,
 }
 export const routeTree = rootRouteImport

@@ -1,3 +1,4 @@
+import { RouteSeo } from "@/marketing/RouteSeo";
 import {
   createRootRouteWithContext,
   Outlet,
@@ -37,7 +38,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 });
 
 function RootLayout() {
-  return <Outlet />;
+  return <><RouteSeo/><Outlet /></>;
 }
 
 function RootErrorBoundary({ error, reset }: ErrorComponentProps) {

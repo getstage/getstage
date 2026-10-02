@@ -1,3 +1,4 @@
+import { SolutionIcon } from "./SolutionIcon";
 import {
   USE_CASE_GROUP_LABELS,
   findUseCase,
@@ -7,7 +8,7 @@ import {
   type UseCaseGroup,
 } from "@/marketing/content";
 import { USE_CASES_META } from "@/marketing/pageMeta";
-import { Breadcrumbs, MarketingLayout, TrialCallout } from "./MarketingLayout";
+import { MarketingLayout, TrialCallout } from "./MarketingLayout";
 import { NotFoundContent } from "./NotFoundContent";
 
 const GROUPS: UseCaseGroup[] = ["audience", "workflow"];
@@ -16,7 +17,6 @@ export function UseCasesIndexPage() {
   return (
     <MarketingLayout {...USE_CASES_META}>
       <header className="content-hero">
-        <p className="eyebrow">Use cases</p>
         <h1>How people use Stage before they build.</h1>
         <p className="content-lede">
           Research, direction and structure for websites, web apps and iOS apps, whether you design
@@ -46,9 +46,7 @@ export function UseCasePage({ slug }: { slug: string }) {
 
   return (
     <MarketingLayout title={useCase.seo.metaTitle} description={useCase.seo.metaDescription}>
-      <Breadcrumbs items={[{ label: "Use cases", href: "/use-cases" }, { label: useCase.label }]} />
       <header className="content-hero">
-        <p className="eyebrow">{useCase.label}</p>
         <h1>{useCase.title}</h1>
         <p className="content-lede">{useCase.intro}</p>
       </header>
@@ -107,7 +105,7 @@ export function UseCaseCards({ items }: { items: UseCase[] }) {
       {items.map((useCase) => (
         <li key={useCase.slug}>
           <a className="content-card" href={useCasePath(useCase.slug)}>
-            <strong>{useCase.label}</strong>
+            <strong className="solution-label"><SolutionIcon slug={useCase.slug} size={20} />{useCase.label}</strong>
             <span>{useCase.summary}</span>
           </a>
         </li>

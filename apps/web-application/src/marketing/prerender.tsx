@@ -1,3 +1,6 @@
+import { StageLandingPage } from "@/components/stage-landing/StageLandingPage";
+import { StageDownloadPage } from "@/components/stage-landing/StageDownloadPage";
+import { MarketplacePage, ResourceDetailPage } from "@/components/marketing/MarketplacePages";
 import { renderToStaticMarkup } from "react-dom/server";
 import { BlogIndexPage, BlogPostPage } from "@/components/marketing/BlogPages";
 import { ContentPage } from "@/components/marketing/ContentPage";
@@ -10,6 +13,12 @@ export { marketingPaths, metaForPath } from "./pageMeta";
 export { SITE_URL, absoluteUrl } from "./site";
 
 function pageForPath(path: string) {
+  if(path === "/")return <StageLandingPage/>;
+  if(path === "/download")return <StageDownloadPage/>;
+  if(path === "/marketplace" || path === "/component-libraries") return <MarketplacePage />;
+  if(path === "/skills") return <MarketplacePage category="Skills" />;
+  if(path === "/tools") return <MarketplacePage category="Tools" />;
+  if(path.startsWith("/skills/") || path.startsWith("/component-libraries/")) return <ResourceDetailPage id={path.slice(1)} />;
   if (path === "/use-cases") return <UseCasesIndexPage />;
   if (path === "/blog") return <BlogIndexPage />;
   const [, section, slug] = path.split("/");

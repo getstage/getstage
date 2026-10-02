@@ -8,7 +8,7 @@ import {
   type BlogPost,
 } from "@/marketing/content";
 import { BLOG_META } from "@/marketing/pageMeta";
-import { Breadcrumbs, MarketingLayout, TrialCallout } from "./MarketingLayout";
+import { MarketingLayout, TrialCallout } from "./MarketingLayout";
 import { NotFoundContent } from "./NotFoundContent";
 import { RichText } from "./RichText";
 import { UseCaseCards } from "./UseCasePages";
@@ -32,7 +32,6 @@ export function BlogIndexPage() {
   return (
     <MarketingLayout {...BLOG_META}>
       <header className="content-hero">
-        <p className="eyebrow">Blog</p>
         <h1>Designing products with AI, step by step.</h1>
         <p className="content-lede">
           Case studies, tools and walkthroughs from the Stage team, with the full video for every
@@ -54,13 +53,10 @@ export function BlogPostPage({ slug }: { slug: string }) {
   return (
     <MarketingLayout title={post.seo.metaTitle} description={post.seo.metaDescription}>
       <article className="blog-post">
-        <Breadcrumbs items={[{ label: "Blog", href: "/blog" }, { label: post.title }]} />
         <header className="content-hero blog-post-hero">
-          <p className="eyebrow">
-            <BlogPostMeta post={post} /> · {post.author}
-          </p>
           <h1>{post.title}</h1>
           <p className="content-lede">{post.summary}</p>
+          <p className="blog-post-attribution">By {post.author} · <time dateTime={post.date}>{formatDate(post.date)}</time></p>
         </header>
         <YouTubeVideo
           youtubeId={post.video.youtubeId}

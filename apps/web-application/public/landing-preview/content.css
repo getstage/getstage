@@ -103,3 +103,8 @@
   .blog-grid { grid-template-columns: 1fr; }
   .blog-chapters ol { grid-template-columns: 1fr; }
 }
+
+.solution-label{display:flex;align-items:center;gap:8px}.solution-icon{flex-shrink:0;color:var(--purple,#6757d9)}
+.navigation .solution-icon{color:#fff}
+
+.account-menu{position:relative;flex-shrink:0}.account-menu summary{list-style:none;display:flex;align-items:center;gap:8px;cursor:pointer;color:white;padding:6px}.account-menu summary::-webkit-details-marker{display:none}.account-menu summary img{height:24px;width:24px;border-radius:50%;object-fit:cover}.account-panel{position:absolute;right:0;top:38px;min-width:180px;background:#222;border:1px solid #444;border-radius:10px;box-shadow:0 8px 24px #0003;padding:8px;display:flex;flex-direction:column;gap:2px;z-index:5}.account-panel strong{font-size:12px;color:#aaa;padding:8px;max-width:220px;overflow-wrap:anywhere}.account-panel a,.account-panel button{font:inherit;text-align:left;border:0;background:transparent;color:#fff;padding:9px 10px;border-radius:5px;font-size:13px}.account-panel a:hover,.account-panel button:hover{background:#383838}.account-panel p{font-size:12px;color:#ffc4c4}.account-menu-mobile .account-panel{position:static;margin-top:8px}.resources-menu .solution-label svg{color:#fff}
