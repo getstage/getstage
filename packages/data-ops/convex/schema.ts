@@ -394,6 +394,23 @@ const figmaExportStatus = v.union(
 
 export default defineSchema({
   ...authTables,
+  builderProfiles: defineTable({ onboardingStep: v.optional(v.number()), customAvatar: v.optional(v.string()), customBanner: v.optional(v.string()), name: v.string(), handle: v.string(), bio: v.string(), location: v.string(),
+    roles: v.array(v.string()), technologies: v.array(v.string()), banner: v.string(),
+    github: v.string(), x: v.string(), instagram: v.string(), linkedin: v.string(),
+    website: v.string(), email: v.string(), published: v.boolean(), userId: v.id("users"), items: v.array(v.string()), updatedAt: v.number() }).index("by_user", ["userId"]).index("by_handle", ["handle"]),
+
+  // "Share on X, get a month free": one reward per user and per X post. Reserved
+  // without a code while the post is verified; code is set once Stripe minted it.
+  rewardClaims: defineTable({
+    userId: v.id("users"),
+    postId: v.string(),
+    postUrl: v.string(),
+    code: v.optional(v.string()),
+    promotionCodeId: v.optional(v.string()),
+    createdAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_post", ["postId"]),
 
   // Override the auth users table with our custom fields merged in.
   // Auth fields (name, image, email, emailVerificationTime, phone, phoneVerificationTime, isAnonymous)

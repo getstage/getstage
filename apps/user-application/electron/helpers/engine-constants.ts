@@ -1,4 +1,6 @@
-export const ENGINE_DEFAULT_PORT = 48_221;
+import { IS_TESTING_BUILD } from "./build-channel";
+
+export const ENGINE_DEFAULT_PORT = IS_TESTING_BUILD ? 48_231 : 48_221;
 
 // First `cargo run` can take minutes while dependencies compile in development.
 export const ENGINE_READINESS_ATTEMPTS = 240;

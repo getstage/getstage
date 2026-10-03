@@ -20,6 +20,7 @@ export const authOtpSchema = z.object({
 });
 
 export const authSearchSchema = z.object({
+  mode: z.enum(["login", "signup"]).optional(),
   desktop_redirect_uri: z
     .string()
     .optional()

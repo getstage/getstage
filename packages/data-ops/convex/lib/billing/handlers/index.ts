@@ -38,17 +38,13 @@ const ACTIVE_SUBSCRIPTION_STATUSES = new Set([
   "incomplete",
 ]);
 
-// Total purchased seats for a Team subscription. We bake the requested seat count
-// into subscription metadata at checkout (createCheckoutSession), and the Stripe
-// component syncs metadata, so this is readable from a query/mutation ctx. Falls
-// back to the tier's included seats when metadata is absent (legacy subs).
+// Seats come from the current price only. Checkout also writes `metadata.seats`,
+// but a portal plan change does not rewrite it, so it goes stale on downgrade.
 function resolveSeats(subscription: StripeSubscriptionSummary): number {
-  const included = configForPriceId(subscription.priceId)?.includedSeats ?? 1;
-  const raw = Number((subscription.metadata as { seats?: unknown } | null | undefined)?.seats);
-  return Number.isFinite(raw) && raw > included ? Math.round(raw) : included;
+  return configForPriceId(subscription.priceId)?.includedSeats ?? 1;
 }
 
-type ViewerContext = {
+export type ViewerContext = {
   userId: Id<"users">;
   userIdString: string;
   email: string;
@@ -254,6 +250,50 @@ async function resolveUsableCustomerId(
   return fresh.customerId;
 }
 
+// The viewer's Stripe customer, created on first use. Checkout and reward promotion
+// codes share it, so a code locked to this customer is redeemable at checkout.
+export async function resolveCustomerId(ctx: ActionCtx, sdk: Stripe, viewer: ViewerContext) {
+  const customer = await stripe.getOrCreateCustomer(ctx, {
+    userId: viewer.userIdString,
+    email: viewer.email || undefined,
+    name: viewer.name || undefined,
+  });
+  return resolveUsableCustomerId(ctx, sdk, viewer, customer.customerId);
+}
+
+// A subscriber picking another plan changes their subscription instead of
+// starting a second one. Stripe's confirm page shows the prorated amount, and the
+// portal settings decide timing (upgrades now, downgrades at period end).
+// The upgrade invoice's invoice.paid resets credits to the new tier.
+async function createPlanChangeSession(
+  sdk: Stripe,
+  subscription: NonNullable<SubscriptionSnapshot>,
+  priceId: string,
+  returnUrl: string,
+): Promise<CheckoutSessionResponse> {
+  if (subscription.stripePriceId === priceId) {
+    throw new Error("You are already on this plan.");
+  }
+  const current = await sdk.subscriptions.retrieve(subscription.stripeSubscriptionId);
+  const item = current.items.data[0];
+  if (!item) {
+    throw new Error("Subscription has no plan to change.");
+  }
+  const session = await sdk.billingPortal.sessions.create({
+    customer: subscription.stripeCustomerId,
+    return_url: returnUrl,
+    flow_data: {
+      type: "subscription_update_confirm",
+      subscription_update_confirm: {
+        subscription: subscription.stripeSubscriptionId,
+        items: [{ id: item.id, price: priceId, quantity: 1 }],
+      },
+      after_completion: { type: "redirect", redirect: { return_url: returnUrl } },
+    },
+  });
+  return { sessionId: session.id, url: session.url };
+}
+
 export async function createCheckoutSessionHandler(
   ctx: ActionCtx,
   args: {
@@ -274,12 +314,7 @@ export async function createCheckoutSessionHandler(
   const urls = getBillingUrls(args.platform);
   const sdk = new Stripe(requireEnv("STRIPE_SECRET_KEY"));
 
-  const customer = await stripe.getOrCreateCustomer(ctx, {
-    userId: viewer.userIdString,
-    email: viewer.email || undefined,
-    name: viewer.name || undefined,
-  });
-  const customerId = await resolveUsableCustomerId(ctx, sdk, viewer, customer.customerId);
+  const customerId = await resolveCustomerId(ctx, sdk, viewer);
 
   const baseMetadata: Record<string, string> = {
     scope: "stage_billing",
@@ -322,19 +357,17 @@ export async function createCheckoutSessionHandler(
     return { sessionId: session.id, url: session.url };
   }
 
-  const existingSubscription = await getCurrentSubscriptionSnapshot(ctx, viewer.userIdString);
-  const isTrial = args.isTrial ?? false;
-  if (existingSubscription && isTrial) {
-    throw new Error(
-      "You already have an active Stage subscription. Pick a different plan or manage billing in Settings.",
-    );
-  }
-
   // Subscription checkout (start / pro / team), optionally with a 14-day trial.
   const tier = args.tier ?? "pro";
   const billingCycle = args.billingCycle ?? "yearly";
   const priceId = priceIdForTier(tier, billingCycle);
-  const grantTrial = isTrial && !existingSubscription;
+
+  const existingSubscription = await getCurrentSubscriptionSnapshot(ctx, viewer.userIdString);
+  if (existingSubscription) {
+    return createPlanChangeSession(sdk, existingSubscription, priceId, urls.returnUrl);
+  }
+
+  const grantTrial = args.isTrial ?? false;
   const config = configForPriceId(priceId);
   const includedSeats = config?.includedSeats ?? 1;
   const requestedSeats = Math.round(args.seats ?? includedSeats);
@@ -355,6 +388,8 @@ export async function createCheckoutSessionHandler(
     mode: "subscription",
     customer: customerId,
     line_items: [{ price: priceId, quantity: 1 }],
+    // Reward codes ("Share on X, get a month free") are entered here.
+    allow_promotion_codes: true,
     success_url: urls.successUrl,
     cancel_url: urls.cancelUrl,
     metadata: {

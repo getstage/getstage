@@ -34,17 +34,18 @@ import {
 import { registerVoiceShortcuts } from "./voice/shortcuts";
 import { IPC_CHANNELS } from "@shared/ipc/channels";
 import { isStageBillingUrl, parseStageBillingReturnStatus } from "./helpers/billing";
+import { IS_TESTING_BUILD } from "./helpers/build-channel";
 
 loadLocalEnv();
 registerRendererProtocolSchemes();
 
-app.setName("Stage");
+app.setName(IS_TESTING_BUILD ? "Stage Testing" : "Stage");
 installSafeDesktopLogging();
 if (process.platform === "darwin") {
   app.dock?.show();
   const archLabel = process.arch === "arm64" ? "Apple Silicon" : "Intel";
   app.setAboutPanelOptions({
-    applicationName: "Stage",
+    applicationName: app.getName(),
     applicationVersion: `${app.getVersion()} · ${archLabel}`,
     version: "",
   });

@@ -5,15 +5,10 @@ import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import { TanStackRouterVite } from "@tanstack/router-plugin/vite";
 import tsconfigPaths from "vite-tsconfig-paths";
+import { LANDING_CSS_DIR, LANDING_CSS_FILES } from "./scripts/landing-css.mjs";
 
 function stageLandingCss(): Plugin {
-  const cssFiles = [
-    "styles.css",
-    "sections.css",
-    "navigation.css",
-    "experience.css",
-    "mobile.css",
-  ].map((file) => path.resolve("public/landing-preview", file));
+  const cssFiles = LANDING_CSS_FILES.map((file) => path.resolve(LANDING_CSS_DIR, file));
 
   return {
     name: "stage-landing-css",
@@ -34,7 +29,7 @@ function stageLandingCss(): Plugin {
   };
 }
 
-export default defineConfig(({ mode }) => ({
+export default defineConfig(({ mode, isSsrBuild }) => ({
   plugins: [
     stageLandingCss(),
     tsconfigPaths(),
@@ -57,15 +52,19 @@ export default defineConfig(({ mode }) => ({
       : undefined,
   build: {
     target: "esnext",
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          "react-vendor": ["react", "react-dom"],
-          "router": ["@tanstack/react-router"],
-          "query": ["@tanstack/react-query"],
-          "motion": ["motion"],
+    // The SSR build only pre-renders marketing pages (scripts/prerender-marketing.mjs);
+    // vendor chunking applies to the browser bundle.
+    rollupOptions: isSsrBuild
+      ? {}
+      : {
+          output: {
+            manualChunks: {
+              "react-vendor": ["react", "react-dom"],
+              "router": ["@tanstack/react-router"],
+              "query": ["@tanstack/react-query"],
+              "motion": ["motion"],
+            },
+          },
         },
-      },
-    },
   },
 }));

@@ -11,6 +11,7 @@ const workspaceMemberSchema = z.object({
   name: z.string().nullable(),
   email: z.string().nullable(),
   avatarUrl: z.string().nullable().optional(),
+  overLimit: z.boolean(),
 });
 
 const workspaceMembersSchema = z.array(workspaceMemberSchema);

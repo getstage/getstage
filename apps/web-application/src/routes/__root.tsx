@@ -1,3 +1,5 @@
+import { useLayoutEffect } from "react";
+import { RouteSeo } from "@/marketing/RouteSeo";
 import {
   createRootRouteWithContext,
   Outlet,
@@ -37,7 +39,16 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 });
 
 function RootLayout() {
-  return <Outlet />;
+  useLayoutEffect(() => {
+    // Route layout effects have installed their own CSS before this runs.
+    // Remove server-only links so they cannot leak into subsequent app routes.
+    document.querySelectorAll('link[rel="stylesheet"][href^="/landing-preview/"]').forEach((link) => link.remove());
+    if (!document.querySelector('style[data-stage-landing="css"]')) {
+      document.documentElement.classList.remove("stage-landing-page", "js");
+      document.body.classList.remove("content-page", "download-page");
+    }
+  }, []);
+  return <><RouteSeo/><Outlet /></>;
 }
 
 function RootErrorBoundary({ error, reset }: ErrorComponentProps) {

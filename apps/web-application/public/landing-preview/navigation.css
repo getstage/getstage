@@ -5,7 +5,7 @@
   top: 24px;
   left: 50%;
   transform: translateX(-50%);
-  width: 512px;
+  width: 668px;
   max-width: calc(100% - 24px);
   padding: 6px;
   border-radius: 24px;
@@ -13,7 +13,7 @@
   box-shadow: 0 .45px 1px #0a0a0a40, 0 8px 24px #17171712;
   transition: width .36s cubic-bezier(.22, 1, .36, 1);
 }
-.navigation.hero-download-visible { width: 364px; }
+.navigation.hero-download-visible { width: 520px; }
 .nav-row {
   display: flex;
   align-items: center;
@@ -111,6 +111,43 @@
 .menu-card strong { color: #fafafa; font-size: 16px; font-weight: 500; line-height: 1.25; letter-spacing: -.3px; }
 .menu-card p { margin-top: 6px; color: #d4d4d4; font-size: 13px; line-height: 1.45; letter-spacing: -.2px; }
 .mobile-menu-links { display: none; }
+.nav-menu-toggle { display: flex; align-items: center; gap: 6px; }
+.nav-menu-toggle .icon { width: 12px; height: 12px; transition: transform .2s; }
+.nav-menu-toggle[aria-expanded=true] { color: #fafafa; }
+.nav-menu-toggle[aria-expanded=true] .icon { transform: rotate(180deg); }
+.use-case-menu { gap: 6px 24px; padding-inline: 10px; }
+.use-case-menu-group { padding: 14px 0 4px; }
+.use-case-menu-heading { padding: 0 10px 8px; color: #a3a3a3; font-size: 11px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; }
+.use-case-menu ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.use-case-menu li a { display: grid; gap: 2px; padding: 10px; border-radius: 12px; transition: background .18s; }
+.use-case-menu li a:hover, .use-case-menu li a:focus-visible { background: #262626; }
+.use-case-menu li strong { color: #fafafa; font-size: 14px; font-weight: 500; line-height: 20px; letter-spacing: -.2px; }
+.use-case-menu li span { color: #a3a3a3; font-size: 12px; line-height: 1.4; }
+/* Shared footer actions keep both dropdowns visually consistent. */
+.use-case-menu-group { display: flex; flex-direction: column; }
+.use-case-menu-all, .resources-all {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 4px 0 6px;
+  padding: 12px 10px;
+  border-top: 1px solid #262626;
+  border-radius: 0 0 12px 12px;
+  color: #fafafa;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  letter-spacing: -.2px;
+  transition: color .18s, background .18s;
+}
+.use-case-menu-all { grid-column: 1 / -1; }
+.resources-menu .use-case-menu-group > ul { margin-bottom: 14px; }
+.resources-all { margin-top: auto; }
+.use-case-menu-all:hover, .resources-all:hover,
+.use-case-menu-all:focus-visible, .resources-all:focus-visible { color: #fafafa; background: #262626; }
+.use-case-menu a:focus-visible { outline: 2px solid #b6b3fa; outline-offset: 2px; }
+.use-case-menu .solution-label svg { width: 18px; height: 18px; flex-shrink: 0; color: #fafafa; }
+.use-case-menu-all svg, .resources-all svg { width: 14px; height: 14px; flex-shrink: 0; }
 .nav-scrim { position: fixed; inset: 0; z-index: 20; background: transparent; }
 .nav-scrim[hidden] { display: none; }
 @media (max-width: 560px) {
@@ -136,3 +173,27 @@
 .menu-copy-compact { display: none; }
 .navigation.hero-download-visible .menu-copy-compact { display: inline; }
 .navigation.hero-download-visible .menu-copy-expanded { display: none; }
+
+/* The shell follows the CTA’s interpolated width, including while it collapses.
+   Keep the CTA in flex layout: display:none would skip its transition. */
+@media (min-width: 768px) {
+  .navigation, .navigation.hero-download-visible, .navigation.navigation-without-download { width: max-content; }
+  .nav-row > :not(.nav-spacer) { flex-shrink: 0; }
+  .navigation-without-download .nav-row { padding-right: 16px; }
+  /* Dropdown content must follow the row width, never determine it. */
+  .navigation .product-menu { width: 100%; min-width: 0; contain: inline-size; }
+}
+
+/* The identity icon follows its link in default, hover and focus states. */
+.profile-nav-icon { width: 20px; height: 20px; flex: 0 0 20px; color: inherit; }
+.profile-nav-link { align-items: center; gap: 8px; }
+@media (min-width: 768px) {
+  .profile-nav-link { display: inline-flex; }
+}
+.mobile-menu-links .profile-nav-link { display: inline-flex; }
+
+.profile-nav-link:focus-visible { color: #fafafa; }
+
+/* Photos occupy the same fixed slot as the fallback, so loading cannot shift links. */
+.profile-nav-avatar { position: relative; display: inline-flex; width: 20px; height: 20px; flex: 0 0 20px; }
+.profile-nav-avatar img { position: absolute; inset: 0; display: block; width: 20px; height: 20px; border-radius: 50%; object-fit: cover; background: #171717; }

@@ -20,6 +20,7 @@ const desktopBuildEnv = {
   "process.env.STAGE_DESKTOP_UPDATES_URL": JSON.stringify(
     process.env.STAGE_DESKTOP_UPDATES_URL ?? "",
   ),
+  "process.env.STAGE_DESKTOP_CHANNEL": JSON.stringify(process.env.STAGE_DESKTOP_CHANNEL ?? ""),
 };
 
 export default defineConfig({

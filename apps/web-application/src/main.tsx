@@ -1,3 +1,4 @@
+import { PageLoading } from "@/components/shared/PageLoading";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { ConvexAuthProvider } from "@convex-dev/auth/react";
@@ -21,6 +22,9 @@ const queryClient = new QueryClient({
 const router = createRouter({
   routeTree,
   context: { queryClient },
+  defaultPendingComponent: PageLoading,
+  defaultPendingMs: 150,
+  defaultPendingMinMs: 200,
   defaultPreload: "intent",
   defaultPreloadStaleTime: 0,
 });

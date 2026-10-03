@@ -1,0 +1,628 @@
+{
+  "pages": [],
+  "useCases": [
+    {
+      "slug": "freelance-designers",
+      "group": "audience",
+      "label": "Freelance designers",
+      "summary": "Go from client brief to research, direction and wireframes in one place.",
+      "seo": {
+        "metaTitle": "Stage for freelance designers | From brief to wireframes",
+        "metaDescription": "Run research, strategy, moodboards, user flows and wireframes for every client project in Stage for Mac, then hand off to Figma or your coding agent.",
+        "noIndex": false
+      },
+      "title": "From client brief to a clear direction, without the busywork.",
+      "intro": "Stage gives freelance designers one workspace for the thinking behind a project: research, strategy, visual direction, flows and wireframes. You keep the taste. Stage does the legwork.",
+      "problem": {
+        "heading": "The hours before the design are the ones nobody pays for",
+        "body": "Competitor research, collecting references, writing a strategy and mapping flows eat days of every project. They are also the parts clients rarely see, so they get rushed, and the design suffers for it."
+      },
+      "steps": [
+        {
+          "title": "Start from the brief",
+          "body": "Create a project for a website, web app or iOS app and upload the client brief as PDF or Markdown. Stage uses it as context for everything that follows."
+        },
+        {
+          "title": "Research the market",
+          "body": "Add competitor links and let Stage analyse positioning, patterns and the best designs in the industry, then turn it into a strategy you can approve."
+        },
+        {
+          "title": "Lock the visual direction",
+          "body": "Explore moodboards from pulled references, Figma imports or your own uploads, and carry the chosen direction into a generated style guide."
+        },
+        {
+          "title": "Structure the product",
+          "body": "Work out how every screen connects in user flows and Lo-Fi wireframes, then export to Figma and FigJam or share progress in the client portal."
+        }
+      ],
+      "outcomes": [
+        "A research-backed strategy you can show the client",
+        "A visual direction and style guide the whole project follows",
+        "User flows and wireframes ready for Figma",
+        "A Markdown brief your coding agent can build from"
+      ],
+      "faq": [
+        {
+          "question": "Does Stage replace Figma?",
+          "answer": "No. Stage covers the thinking before high-fidelity design: research, direction, flows and wireframes. You export to Figma and FigJam to continue there."
+        },
+        {
+          "question": "Can my client follow along?",
+          "answer": "Yes. Share the project through the client portal so clients see progress without needing a Stage account."
+        }
+      ]
+    },
+    {
+      "slug": "agencies",
+      "group": "audience",
+      "label": "Agencies",
+      "summary": "One shared process for research, direction and hand-off across your team.",
+      "seo": {
+        "metaTitle": "Stage for agencies | A shared product process for your team",
+        "metaDescription": "Give your agency one repeatable process for client research, visual direction, flows and hand-off. Studio includes 5 seats, Agency includes 15.",
+        "noIndex": false
+      },
+      "title": "One repeatable process for every client, across your whole team.",
+      "intro": "Stage gives your team a shared workspace for client research, strategy, visual direction and structure, so every project starts from the same standard instead of whoever had time that week.",
+      "problem": {
+        "heading": "Every designer runs discovery differently",
+        "body": "When research and direction live in personal files and chat threads, quality depends on who picked up the project. Hand-offs lose context and clients see inconsistent work."
+      },
+      "steps": [
+        {
+          "title": "Bring the team into one workspace",
+          "body": "Invite your team to a shared workspace. Studio includes up to 5 seats and Agency up to 15, with pooled AI credits for everyone."
+        },
+        {
+          "title": "Run the same research on every project",
+          "body": "Competitor analysis, positioning and strategy follow the same structure for every client, so reviews are faster and nothing gets skipped."
+        },
+        {
+          "title": "Agree on direction before production",
+          "body": "Moodboards and a generated style guide make the visual direction explicit, so the whole team designs and builds toward the same target."
+        },
+        {
+          "title": "Present and hand off",
+          "body": "Share progress in a branded client portal, export flows and wireframes to Figma, and hand developers a Markdown brief their coding agent can follow."
+        }
+      ],
+      "outcomes": [
+        "A consistent discovery standard across the team",
+        "Branded client portals for every project",
+        "Pooled AI credits instead of separate tool bills",
+        "Clean hand-offs to design and development"
+      ],
+      "faq": [
+        {
+          "question": "How many people can join?",
+          "answer": "Studio includes up to five seats and Agency up to 15, including the owner. You can upgrade from the app when the team grows."
+        },
+        {
+          "question": "Do team members need their own subscription?",
+          "answer": "No. Members work in the owner's workspace and use the workspace's pooled credits."
+        }
+      ]
+    },
+    {
+      "slug": "vibe-coders",
+      "group": "audience",
+      "label": "Vibe coders & AI builders",
+      "summary": "Give Cursor, Claude Code and Codex a plan instead of a vague prompt.",
+      "seo": {
+        "metaTitle": "Stage for vibe coders | The plan your AI agent builds from",
+        "metaDescription": "Stop getting generic output from your AI. Stage does the research, strategy and direction, then exports a Markdown brief Cursor, Claude Code and Codex follow.",
+        "noIndex": false
+      },
+      "title": "Stage does the thinking. Your AI does the building.",
+      "intro": "Your coding agent builds exactly what you ask for, which is why vague prompts produce generic products. Stage works out the research, direction and structure first, then exports it as a brief your agent actually follows.",
+      "problem": {
+        "heading": "Another prompt will not fix a missing direction",
+        "body": "When the result feels generic, the problem is rarely the model. What is missing is a clear answer to what the product should do, how it should feel and which references to learn from."
+      },
+      "steps": [
+        {
+          "title": "Research before you build",
+          "body": "Stage analyses competitors and the best designs in your category and turns them into a strategy for your product."
+        },
+        {
+          "title": "Choose a real visual direction",
+          "body": "Pick references, build a moodboard and generate a style guide, so your agent has a specific look to aim for instead of defaults."
+        },
+        {
+          "title": "Pick the tools your agent uses",
+          "body": "Install skills and component libraries from the Stage marketplace, or import your own from GitHub, and add them to the brief for the first build."
+        },
+        {
+          "title": "Export the brief",
+          "body": "Choose the pages to export as Markdown, with an AGENTS.md that explains the reading order. Open them in your AI workspace and ask your agent to build."
+        }
+      ],
+      "outcomes": [
+        "A product that looks designed, not generated",
+        "Fewer prompt-and-retry loops",
+        "Component libraries chosen up front",
+        "One brief that works in Cursor, Claude Code and Codex"
+      ],
+      "faq": [
+        {
+          "question": "Which AI tools does the export work with?",
+          "answer": "Stage exports plain Markdown for Cursor, Claude Code, Codex or any coding agent that can read it. AGENTS.md explains the folder and the reading order."
+        },
+        {
+          "question": "Can I use my own component library?",
+          "answer": "Yes. Import your own library from GitHub or install skills and libraries from the Stage marketplace, then add your selections to the brief."
+        }
+      ]
+    },
+    {
+      "slug": "founders",
+      "group": "audience",
+      "label": "Founders & startups",
+      "summary": "Think your MVP through before you spend weeks building it.",
+      "seo": {
+        "metaTitle": "Stage for founders | Plan your MVP before you build it",
+        "metaDescription": "Research your market, choose a direction and map every screen of your MVP in Stage for Mac, then export a brief your developers or AI agent can build from.",
+        "noIndex": false
+      },
+      "title": "Think your product through before you build it.",
+      "intro": "Building is fast now. Building the wrong thing is still expensive. Stage helps founders work through the market, positioning, direction and structure of an MVP before a single screen is coded.",
+      "problem": {
+        "heading": "Speed without direction just ships the wrong product faster",
+        "body": "AI tools make it easy to start building on day one. Without research and a clear structure, you end up rebuilding flows and redesigning screens once real users arrive."
+      },
+      "steps": [
+        {
+          "title": "Understand the market",
+          "body": "Drop in competitor links and get an analysis of positioning, patterns and gaps you can use to sharpen your own product."
+        },
+        {
+          "title": "Decide how it should feel",
+          "body": "Turn references into a moodboard and style guide so your product has a deliberate identity from the first version."
+        },
+        {
+          "title": "Map the MVP",
+          "body": "Lay out user flows and Lo-Fi wireframes for websites, web apps or iOS apps, so scope is clear before development starts."
+        },
+        {
+          "title": "Hand it to whoever builds",
+          "body": "Export a Markdown brief for your coding agent, or flows and wireframes to Figma for a designer or developer."
+        }
+      ],
+      "outcomes": [
+        "A clear view of competitors and positioning",
+        "A defined MVP scope with every screen mapped",
+        "A visual identity from day one",
+        "A brief any developer or AI agent can pick up"
+      ],
+      "faq": [
+        {
+          "question": "I am not a designer. Is Stage for me?",
+          "answer": "Yes. You can read and use the research, strategy and specifications yourself. A coding agent or designer is where you continue when you want to build."
+        },
+        {
+          "question": "Can I try it first?",
+          "answer": "Yes. Every plan starts with a 14-day free trial."
+        }
+      ]
+    },
+    {
+      "slug": "competitor-research",
+      "group": "workflow",
+      "label": "Competitor research",
+      "summary": "Turn competitor links into a strategy you can approve.",
+      "seo": {
+        "metaTitle": "AI competitor research for designers | Stage",
+        "metaDescription": "Add competitor links and let Stage analyse positioning, patterns and the best designs in your industry, then turn the findings into a product strategy.",
+        "noIndex": false
+      },
+      "title": "Turn competitive analysis into a clear strategy.",
+      "intro": "Stage researches your market for you. Add the competitors that matter and get an analysis of their positioning and design patterns, turned into a strategy for your own product.",
+      "problem": {
+        "heading": "Manual competitor research does not scale",
+        "body": "Opening dozens of tabs, taking screenshots and summarising what you see takes hours per project, and the findings rarely make it into the actual design decisions."
+      },
+      "steps": [
+        {
+          "title": "Add your competitors",
+          "body": "Add the competitor links you want to compare. Stage analyses up to four competitors per run."
+        },
+        {
+          "title": "Add your own context",
+          "body": "Upload briefs as PDF or Markdown so the research is grounded in what you are actually building."
+        },
+        {
+          "title": "Review the analysis",
+          "body": "Read how competitors position themselves, which patterns repeat and what the best designs in the industry do well."
+        },
+        {
+          "title": "Approve a strategy",
+          "body": "Stage turns the research into a strategy you can edit and approve. It then feeds the visual direction, flows and the exported brief."
+        }
+      ],
+      "outcomes": [
+        "Hours of tab-hopping replaced by one research run",
+        "Positioning and patterns in one readable page",
+        "A strategy connected to your design decisions"
+      ],
+      "faq": [
+        {
+          "question": "How many competitors can I analyse?",
+          "answer": "Up to four per research run today."
+        },
+        {
+          "question": "Which files can I upload as context?",
+          "answer": "PDF and Markdown briefs. You can add several files and remove any of them."
+        }
+      ]
+    },
+    {
+      "slug": "moodboards-and-style-guides",
+      "group": "workflow",
+      "label": "Moodboards & style guides",
+      "summary": "Set a visual direction and carry it into a generated style guide.",
+      "seo": {
+        "metaTitle": "Moodboards and style guides for AI builds | Stage",
+        "metaDescription": "Build a moodboard from references, Figma imports or uploads, and carry the direction into a generated style guide your coding agent can follow.",
+        "noIndex": false
+      },
+      "title": "Set a direction your whole build follows.",
+      "intro": "Stage turns references into a visual direction and a generated style guide with atmosphere, colour palette, typography and components, so every screen and every AI build aims at the same look.",
+      "problem": {
+        "heading": "Without a direction, AI defaults win",
+        "body": "When the only input is a prompt, you get the same fonts, colours and layouts as everyone else. A moodboard is only useful if its decisions survive into the build."
+      },
+      "steps": [
+        {
+          "title": "Collect references",
+          "body": "Pull references into Stage, import frames from Figma or upload images from your device."
+        },
+        {
+          "title": "Choose the direction",
+          "body": "Compare options on the moodboard and lock the direction that fits the product and the strategy."
+        },
+        {
+          "title": "Generate the style guide",
+          "body": "Stage carries the direction into a style guide covering atmosphere, colour palette, typography and components."
+        },
+        {
+          "title": "Build from it",
+          "body": "Export the style guide with the brief, so your coding agent has a specific direction to follow from the first build."
+        }
+      ],
+      "outcomes": [
+        "A deliberate look instead of AI defaults",
+        "One style guide shared by designers and agents",
+        "Direction that survives from moodboard to code"
+      ],
+      "faq": [
+        {
+          "question": "Can I bring references from Figma?",
+          "answer": "Yes. Import from Figma, pull references into Stage or upload images from your device."
+        },
+        {
+          "question": "Does Stage generate final screens?",
+          "answer": "No. Stage produces the direction and style guide. Your designer or coding agent turns them into finished screens."
+        }
+      ]
+    }
+  ],
+  "blogPosts": [
+    {
+      "slug": "8-underrated-websites-every-vibe-coder-needs",
+      "category": "tools",
+      "title": "8 underrated websites every vibe coder needs",
+      "date": "2026-09-26",
+      "author": "Adrien Ninet",
+      "summary": "Eight tools built for your AI agent instead of for you: agent-ready components, thinking states for AI apps, 508 accessible primitives, MCP installs and the planning layer that tells your agent what to build.",
+      "seo": {
+        "metaTitle": "8 underrated websites every vibe coder needs (2026) | Stage",
+        "metaDescription": "Eight tools built for your AI agent: agent-ready components, thinking states, accessible primitives, MCP installs and the planning layer behind the build.",
+        "noIndex": false
+      },
+      "video": {
+        "youtubeId": "8GfWKFyAaW4",
+        "thumbnail": "/blog/8GfWKFyAaW4.jpg",
+        "length": "10:11"
+      },
+      "chapters": [
+        {
+          "time": "0:00",
+          "label": "Introduction"
+        },
+        {
+          "time": "0:43",
+          "label": "ObsidianUI: components with built-in instructions for agents"
+        },
+        {
+          "time": "1:29",
+          "label": "BeautifulUI: 20+ thinking states for AI apps"
+        },
+        {
+          "time": "2:18",
+          "label": "OriginKit: free animated components for landing pages"
+        },
+        {
+          "time": "3:08",
+          "label": "Stage: the plan your AI agent builds from"
+        },
+        {
+          "time": "6:40",
+          "label": "coss/ui: 508 accessible components on Base UI"
+        },
+        {
+          "time": "7:37",
+          "label": "Bencho: live micro-interactions you can drag"
+        },
+        {
+          "time": "8:20",
+          "label": "AICSS: UI blocks for agents in React, Vue and Svelte"
+        },
+        {
+          "time": "8:50",
+          "label": "Componentry: components installed via MCP"
+        },
+        {
+          "time": "9:56",
+          "label": "Conclusion"
+        }
+      ],
+      "body": [
+        {
+          "type": "heading",
+          "level": 2,
+          "children": [
+            {
+              "type": "text",
+              "text": "Anyone can vibe code. Not everyone ships something that looks designed."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "children": [
+            {
+              "type": "text",
+              "text": "Everyone can build an app with an AI agent now. What nobody can copy is a product that looks like a real team designed it. The difference is rarely the model. It is what you give the model to work with."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "children": [
+            {
+              "type": "text",
+              "text": "The eight websites in this video are among the first built for your AI agent rather than for you. Seven of them are written to be read by Claude Code or Cursor, one installs straight into your agent over MCP, and one is not a component library at all."
+            }
+          ]
+        },
+        {
+          "type": "heading",
+          "level": 2,
+          "children": [
+            {
+              "type": "text",
+              "text": "Component libraries your agent can read"
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "children": [
+            {
+              "type": "text",
+              "text": "ObsidianUI ships components with instructions built in, so your agent knows how to use them instead of guessing. BeautifulUI focuses on a problem every AI app has: more than 20 thinking and loading states that make waiting feel designed. OriginKit gives you free animated components for landing pages."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "children": [
+            {
+              "type": "text",
+              "text": "coss/ui offers 508 accessible components built on Base UI. Bencho is a collection of live micro-interactions you can drag and try before you install them. AICSS provides UI blocks for agents in React, Vue and Svelte, and Componentry installs its components directly through MCP."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "children": [
+            {
+              "type": "text",
+              "text": "Unless noted in the video, they are free, and every effect can be installed with copy and paste, npm install or one of the prompts shown."
+            }
+          ]
+        },
+        {
+          "type": "heading",
+          "level": 2,
+          "children": [
+            {
+              "type": "text",
+              "text": "The one that is not a component library: Stage"
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "children": [
+            {
+              "type": "text",
+              "text": "Great components do not help if your agent does not know which ones to use or what the product should feel like. Stage is the thinking layer in front of the build: it researches your market, sets a visual direction and maps the flows, then tells your agent which components to use and why."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "children": [
+            {
+              "type": "text",
+              "text": "Everything is exported as a Markdown brief that Cursor, Claude Code and Codex follow, including the skills and component libraries you selected, so the first build already uses the right building blocks."
+            }
+          ]
+        }
+      ],
+      "relatedUseCases": [
+        "vibe-coders",
+        "moodboards-and-style-guides"
+      ]
+    },
+    {
+      "slug": "is-this-the-new-way-to-design",
+      "category": "case-study",
+      "title": "Is this the new way to design? A real client project in Stage",
+      "date": "2026-07-07",
+      "author": "Adrien Ninet",
+      "summary": "A full, unedited run of a real coffee-brand project in Stage: AI research and strategy, visual direction, user flows, wireframes and a one-click Figma hand-off, including where it still falls short.",
+      "seo": {
+        "metaTitle": "Is this the new way to design? A real client project in Stage",
+        "metaDescription": "A real coffee-brand project in Stage, unedited: AI research and strategy, visual direction, flows, wireframes and a one-click Figma hand-off.",
+        "noIndex": false
+      },
+      "video": {
+        "youtubeId": "KM8HA2pc6Rg",
+        "thumbnail": "/blog/KM8HA2pc6Rg.jpg"
+      },
+      "chapters": [
+        {
+          "time": "0:00",
+          "label": "Stage trailer"
+        },
+        {
+          "time": "0:34",
+          "label": "Why AI design became generic (and the fix)"
+        },
+        {
+          "time": "0:58",
+          "label": "Setting up Stage and connecting your own tools"
+        },
+        {
+          "time": "1:41",
+          "label": "AI research and strategy in 6 minutes"
+        },
+        {
+          "time": "3:13",
+          "label": "Visual direction and moodboards (you keep the taste)"
+        },
+        {
+          "time": "8:12",
+          "label": "Flows, wireframes and a one-click Figma hand-off"
+        },
+        {
+          "time": "10:09",
+          "label": "The honest verdict: what it does well and what it cannot"
+        }
+      ],
+      "body": [
+        {
+          "type": "heading",
+          "level": 2,
+          "children": [
+            {
+              "type": "text",
+              "text": "Why AI design became generic"
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "children": [
+            {
+              "type": "text",
+              "text": "Most AI tools skip the design process. You type \"build me an app\" and get something that looks like every other generated product. The research, strategy and direction that make a design specific never happen."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "children": [
+            {
+              "type": "text",
+              "text": "Stage brings that process back and runs it on your Mac, from research to wireframes, using your own tools such as Claude, Codex and Figma. To test it properly, this video follows a real client project for a coffee brand from start to finish, unedited."
+            }
+          ]
+        },
+        {
+          "type": "heading",
+          "level": 2,
+          "children": [
+            {
+              "type": "text",
+              "text": "Research and strategy in minutes"
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "children": [
+            {
+              "type": "text",
+              "text": "After connecting your own AI tools, the project starts with research. Stage analyses the market and competitors and turns the findings into a strategy in about six minutes."
+            }
+          ]
+        },
+        {
+          "type": "heading",
+          "level": 2,
+          "children": [
+            {
+              "type": "text",
+              "text": "Visual direction: you keep the taste"
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "children": [
+            {
+              "type": "text",
+              "text": "The longest part of the video is the visual direction, and that is deliberate. Stage builds moodboards from references, but the choices stay with the designer. The chosen direction is then carried into the style guide the rest of the project follows."
+            }
+          ]
+        },
+        {
+          "type": "heading",
+          "level": 2,
+          "children": [
+            {
+              "type": "text",
+              "text": "Flows, wireframes and the Figma hand-off"
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "children": [
+            {
+              "type": "text",
+              "text": "With a direction in place, Stage maps the user flows and wireframes for the product and hands them off to Figma in one click, ready for the high-fidelity design."
+            }
+          ]
+        },
+        {
+          "type": "heading",
+          "level": 2,
+          "children": [
+            {
+              "type": "text",
+              "text": "The honest verdict"
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "children": [
+            {
+              "type": "text",
+              "text": "The video ends with what Stage does well and what it cannot do yet. Stage does not produce finished high-fidelity screens. It does the thinking that makes those screens specific instead of generic, and hands it to your design tools and coding agent."
+            }
+          ]
+        }
+      ],
+      "relatedUseCases": [
+        "freelance-designers",
+        "competitor-research"
+      ]
+    }
+  ],
+  "redirects": []
+}

@@ -454,7 +454,8 @@ html.lenis, html.lenis body { height:auto; }
 .export-scroll-track:not([data-export-enhanced]) .export-tabs { display:none; }
 .export-scroll-track .export-stage { position:relative; display:block; align-self:center; height:auto; padding:0; min-width:0; overflow:hidden; background:#171717; border:1px solid #404040; border-radius:16px; }
 .export-stage video { display:block; width:100%; height:auto; aspect-ratio:16 / 9; object-fit:contain; background:#171717; }
-.export-video-error { padding:14px 18px; font-size:14px; color:#fafafa; }
+.export-video-loading,.export-video-error { margin:0; padding:14px 18px; font:400 14px/20px Inter,sans-serif; color:#fafafa; }
+.export-video-error button { font:inherit; padding:0; border:0; background:none; color:inherit; text-decoration:underline; text-underline-offset:3px; cursor:pointer; }
 .export-video-error a { text-decoration:underline; }
 .export-scroll-track[data-export-pinned] { height:calc(var(--export-demo-height) + var(--export-travel)); }
 [data-export-pinned] .export-demo { position:sticky; top:var(--export-sticky-top); }

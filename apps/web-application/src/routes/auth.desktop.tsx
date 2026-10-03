@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Navigate, createFileRoute } from "@tanstack/react-router";
 import { useAuthToken } from "@convex-dev/auth/react";
-import { Helmet } from "react-helmet-async";
 import { useAuth, useSignOut } from "@/lib/auth";
 import { desktopAuthWebHandoffSchema } from "@/lib/desktopAuthHandoff";
 import {
@@ -12,7 +11,7 @@ import {
   isValidDesktopCallbackUrl,
   storePendingDesktopAuthRedirect,
 } from "@/lib/desktopAuthRedirect";
-import stageLogo from "@/assets/logos/stage-logo-light.png";
+import { DesktopAuthStatus } from "@/components/auth/DesktopAuthStatus";
 
 type DesktopAuthSearch = {
   redirect_uri?: string;
@@ -128,7 +127,7 @@ function DesktopAuthPage() {
   const didStartRef = useRef(false);
   const didSignOutRef = useRef(false);
   const redirectUri = useMemo(() => getValidatedRedirectUri(redirect_uri), [redirect_uri]);
-  const usesStageProtocol = redirectUri?.protocol === "stage:";
+  const usesStageProtocol = redirectUri?.protocol === "stage:" || redirectUri?.protocol === "stage-testing:";
 
   useEffect(() => {
     if (prompt !== "login" || isLoading || didSignOutRef.current) {
@@ -270,72 +269,5 @@ function DesktopAuthPage() {
       label={statusLabel}
       onOpenStageDesktop={openStageDesktop}
     />
-  );
-}
-
-function DesktopAuthStatus({
-  error,
-  isAwaitingOpen = false,
-  isComplete = false,
-  label,
-  onOpenStageDesktop,
-}: {
-  error?: string | null;
-  isAwaitingOpen?: boolean;
-  isComplete?: boolean;
-  label: string;
-  onOpenStageDesktop?: () => void;
-}) {
-  return (
-    <>
-      <Helmet>
-        <title>Connect Stage Desktop - Stage</title>
-        <meta name="robots" content="noindex, nofollow" />
-      </Helmet>
-
-      <main className="flex min-h-screen items-center justify-center bg-bg px-6">
-        <section className="w-full max-w-[420px] text-center">
-          <img src={stageLogo} alt="Stage" className="mx-auto h-6 w-auto" />
-          <h1 className="mt-8 font-heading text-[28px] font-semibold text-text-primary">
-            {label}
-          </h1>
-          {error ? (
-            <p className="mt-3 text-[15px] leading-[1.6] text-text-secondary">
-              {error}
-            </p>
-          ) : isAwaitingOpen ? (
-            <>
-              <p className="mt-3 text-[15px] leading-[1.6] text-text-secondary">
-                Click below to return to Stage Desktop. macOS may ask you to confirm
-                opening Stage — choose <strong>Open</strong>.
-              </p>
-              <button
-                type="button"
-                className="mt-6 rounded-full bg-accent px-5 py-2.5 text-[14px] font-medium text-white transition hover:opacity-90"
-                onClick={onOpenStageDesktop}
-              >
-                Open Stage Desktop
-              </button>
-            </>
-          ) : isComplete ? (
-            <>
-              <p className="mt-3 text-[15px] leading-[1.6] text-text-secondary">
-                Return to Stage Desktop. You can close this browser tab once you are
-                signed in.
-              </p>
-              <button
-                type="button"
-                className="mt-6 rounded-full bg-accent px-5 py-2.5 text-[14px] font-medium text-white transition hover:opacity-90"
-                onClick={() => window.close()}
-              >
-                Close tab
-              </button>
-            </>
-          ) : (
-            <span className="mx-auto mt-6 inline-block h-6 w-6 animate-spin rounded-full border-2 border-accent border-t-transparent" />
-          )}
-        </section>
-      </main>
-    </>
   );
 }
