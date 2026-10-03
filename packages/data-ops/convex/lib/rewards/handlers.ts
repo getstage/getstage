@@ -24,7 +24,7 @@ export type RewardClaimResult =
 type Reservation =
   | { kind: "existing"; code: string }
   | { kind: "claimed" | "unpublished" | "busy" }
-  | { kind: "reserved"; claimId: Id<"rewardClaims">; profilePath: string };
+  | { kind: "reserved"; claimId: Id<"rewardClaims">; handle: string };
 
 export function xPostId(postUrl: string) {
   return X_POST_URL.exec(postUrl.trim())?.[1] ?? null;
@@ -36,17 +36,30 @@ function newCode() {
   return `STG-${symbols.slice(0, 4)}-${symbols.slice(4, 8)}-${symbols.slice(8)}`;
 }
 
-// X wraps links in t.co and truncates their visible text, so short links are expanded.
-async function postLinksToProfile(postUrl: string, profilePath: string): Promise<"ok" | "unrelated" | "unavailable"> {
+// The post must link to exactly this profile: /builders/bob must not match /builders/bobby.
+// X wraps links in t.co and shortens their visible text, so short links are expanded.
+export function linksToProfile(url: string, handle: string) {
+  try {
+    const parsed = new URL(url);
+    return (
+      (parsed.hostname === "getstage.co" || parsed.hostname.endsWith(".getstage.co")) &&
+      parsed.pathname.replace(/\/$/, "").toLowerCase() === `/builders/${handle}`
+    );
+  } catch {
+    return false;
+  }
+}
+
+async function postLinksToProfile(postUrl: string, handle: string): Promise<"ok" | "unrelated" | "unavailable"> {
   const response = await fetch(`https://publish.twitter.com/oembed?omit_script=1&url=${encodeURIComponent(postUrl)}`);
   if (!response.ok) return "unavailable";
-  const html = ((await response.json()) as { html?: string }).html?.toLowerCase();
+  const html = ((await response.json()) as { html?: string }).html;
   if (!html) return "unavailable";
-  if (html.includes(profilePath)) return "ok";
-  const shortLinks = [...new Set(html.match(/https:\/\/t\.co\/[a-z0-9]+/g) ?? [])].slice(0, 5);
-  for (const link of shortLinks) {
+  const links = [...new Set(html.match(/https?:\/\/[^\s"'<>]+/g) ?? [])];
+  if (links.some((link) => linksToProfile(link, handle))) return "ok";
+  for (const link of links.filter((link) => link.startsWith("https://t.co/")).slice(0, 5)) {
     const expanded = await fetch(link, { method: "HEAD" }).catch(() => null);
-    if (expanded?.url.toLowerCase().includes(profilePath)) return "ok";
+    if (expanded && linksToProfile(expanded.url, handle)) return "ok";
   }
   return "unrelated";
 }
@@ -61,14 +74,14 @@ export async function reserveClaimHandler(
   const own = await ctx.db.query("rewardClaims").withIndex("by_user", (q) => q.eq("userId", user._id)).unique();
   if (own?.code) return { kind: "existing", code: own.code };
   if (own && now() - own.createdAt < STALE_RESERVATION_MS) return { kind: "busy" };
+  if (own) await ctx.db.delete(own._id);
   if (await ctx.db.query("rewardClaims").withIndex("by_post", (q) => q.eq("postId", postId)).first()) {
     return { kind: "claimed" };
   }
   const profile = await ctx.db.query("builderProfiles").withIndex("by_user", (q) => q.eq("userId", user._id)).unique();
   if (!profile?.published) return { kind: "unpublished" };
-  if (own) await ctx.db.delete(own._id);
   const claimId = await ctx.db.insert("rewardClaims", { userId: user._id, postId, postUrl, createdAt: now() });
-  return { kind: "reserved", claimId, profilePath: `getstage.co/builders/${profile.handle}` };
+  return { kind: "reserved", claimId, handle: profile.handle };
 }
 
 export const completeClaimArgs = { claimId: v.id("rewardClaims"), code: v.string(), promotionCodeId: v.string() };
@@ -106,9 +119,9 @@ export async function claimXShareRewardHandler(
   if (reservation.kind === "busy") return { status: "unavailable" };
   if (reservation.kind !== "reserved") return { status: reservation.kind };
 
-  const { claimId, profilePath } = reservation;
+  const { claimId, handle } = reservation;
   try {
-    const verdict = await postLinksToProfile(postUrl.trim(), profilePath);
+    const verdict = await postLinksToProfile(postUrl.trim(), handle);
     if (verdict !== "ok") {
       await ctx.runMutation(internal.rewards.releaseClaim, { claimId });
       return { status: verdict };

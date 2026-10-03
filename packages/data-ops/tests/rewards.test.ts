@@ -2,7 +2,7 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 import { convexTest } from "convex-test";
 import { makeFunctionReference } from "convex/server";
 import schema from "../convex/schema";
-import { xPostId } from "../convex/lib/rewards/handlers";
+import { linksToProfile, xPostId } from "../convex/lib/rewards/handlers";
 
 const modules = import.meta.glob("../convex/**/*.ts");
 const claim = makeFunctionReference<"action">("rewards:claimXShareReward");
@@ -34,6 +34,23 @@ describe("share on X reward", () => {
     expect(xPostId("https://x.com/builder")).toBeNull();
     expect(xPostId("https://instagram.com/p/abc")).toBeNull();
     expect(xPostId("http://x.com/builder/status/42")).toBeNull();
+  });
+
+  test("only an exact link to the claimant's profile counts", () => {
+    expect(linksToProfile("https://getstage.co/builders/bob", "bob")).toBe(true);
+    expect(linksToProfile("https://www.getstage.co/builders/bob/", "bob")).toBe(true);
+    expect(linksToProfile("https://testing.getstage.co/builders/bob", "bob")).toBe(true);
+    expect(linksToProfile("https://getstage.co/builders/bobby", "bob")).toBe(false);
+    expect(linksToProfile("https://getstage.co/builders/bob/extra", "bob")).toBe(false);
+    expect(linksToProfile("https://getstage.co.evil.com/builders/bob", "bob")).toBe(false);
+    expect(linksToProfile("https://evil.com/builders/bob", "bob")).toBe(false);
+  });
+
+  test("a stale reservation does not block retrying the same post", async () => {
+    const { t, user } = await setup();
+    const first = await user.mutation(reserve, { postId: "1", postUrl: post });
+    await t.run((ctx) => ctx.db.patch(first.claimId, { createdAt: 0 }));
+    expect((await user.mutation(reserve, { postId: "1", postUrl: post })).kind).toBe("reserved");
   });
 
   test("requires sign-in and a published profile", async () => {

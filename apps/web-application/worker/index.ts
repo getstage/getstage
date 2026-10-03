@@ -1,4 +1,5 @@
 import { metaForPath } from "../src/marketing/pageMeta";
+import { getWebRouteLockRedirect } from "../src/lib/webRoutePolicy";
 interface Env {
   ASSETS: { fetch: (request: Request) => Promise<Response> };
   CONVEX_HTTP_ORIGIN?: string;
@@ -53,8 +54,9 @@ export default {
     const production=['getstage.co','www.getstage.co'].includes(requestUrl.hostname);
     if(!production||privatePage)headers.set('X-Robots-Tag','noindex, nofollow');
     // Unknown page URLs fall back to the SPA's index.html; real files (e.g. /blog/<id>.jpg) are served as-is.
+    // A URL the app would send back to "/" (getWebRouteLockRedirect) is a missing page, so answer 404.
     const isHtml=(assetResponse.headers.get('Content-Type')??'').startsWith('text/html');
-    const missingPublicPage=isHtml&&/^\/(blog|use-cases|skills|component-libraries)(\/|$)/.test(pathname)&&!publicMeta;
+    const missingPublicPage=isHtml&&(getWebRouteLockRedirect(pathname)==="/"||(/^\/(blog|use-cases|skills|component-libraries)(\/|$)/.test(pathname)&&!publicMeta));
     if(missingPublicPage&&assetResponse.status===200){
       headers.set('X-Robots-Tag','noindex, follow');
       headers.set('Content-Type','text/html; charset=utf-8');

@@ -28,7 +28,9 @@ if (!target) {
   process.exit(1);
 }
 
-// Git author emails that may ship any change to the web app.
+// Git author emails that may ship any change to the web app. This guards against
+// mistakes, not people: git emails are self-declared, and anyone with Cloudflare
+// deploy access can deploy directly. Access control is who holds those credentials.
 const DEVELOPERS = new Set([
   "wdieben@users.noreply.github.com",
   "76756330+WDieben@users.noreply.github.com",
