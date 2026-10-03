@@ -379,7 +379,7 @@
   },
   {
     "id": "skills/emil-design-eng",
-    "name": "Emil Kowalski \u2014 Design Eng",
+    "name": "Emil Kowalski — Design Eng",
     "type": "Skills",
     "category": "Design engineering",
     "description": "Thoughtful motion and the details that make interfaces feel right",
@@ -460,6 +460,20 @@
     "bannerTitle": "shadcn/ui",
     "bannerWidth": 1200,
     "bannerHeight": 675
+  },
+  {
+    "id": "tools/stage",
+    "name": "Stage",
+    "type": "Tools",
+    "category": "Product design",
+    "description": "Research, plan and design your product before your AI builds it.",
+    "icon": "/landing-preview/assets/stage-macos-icon.webp",
+    "banner": null,
+    "url": null,
+    "officialUrl": "https://getstage.co",
+    "bannerTitle": null,
+    "bannerWidth": null,
+    "bannerHeight": null
   },
   {
     "id": "tools/limora-ai",
