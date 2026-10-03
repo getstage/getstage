@@ -2,8 +2,9 @@ import { app } from "electron";
 import { logDesktopInfo } from "./desktop-log";
 import { join } from "node:path";
 import type { DesktopSession, DesktopStoredSession } from "@shared/models/desktop";
+import { IS_TESTING_BUILD } from "./build-channel";
 
-export const STAGE_PROTOCOL = "stage";
+export const STAGE_PROTOCOL = IS_TESTING_BUILD ? "stage-testing" : "stage";
 export const DESKTOP_AUTH_PATH = "auth";
 export const DEV_DESKTOP_AUTH_CALLBACK_HOST = "127.0.0.1";
 export const DEV_DESKTOP_AUTH_CALLBACK_PORT = 48224;

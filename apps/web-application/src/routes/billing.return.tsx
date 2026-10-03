@@ -46,7 +46,8 @@ function triggerStageDeepLink(url: string) {
 function BillingReturnPage() {
   const { status } = Route.useSearch();
   const copy = COPY[status];
-  const deepLink = `stage://billing/${status}`;
+  // testing.getstage.co (testing mode build) returns to the separate "Stage Testing" app.
+  const deepLink = `${import.meta.env.MODE === "testing" ? "stage-testing" : "stage"}://billing/${status}`;
 
   return (
     <>

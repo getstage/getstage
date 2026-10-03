@@ -167,7 +167,7 @@ export function isAllowedDesktopOAuthReturnUrl(returnUrl: string, provider: Nati
 
   const expectedPath = `/integrations/${provider}`;
 
-  if (parsed.protocol === "stage:" && parsed.hostname === "integrations") {
+  if ((parsed.protocol === "stage:" || parsed.protocol === "stage-testing:") && parsed.hostname === "integrations") {
     return parsed.pathname === `/${provider}`;
   }
 

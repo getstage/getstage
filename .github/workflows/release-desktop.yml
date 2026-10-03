@@ -86,6 +86,8 @@ jobs:
       STAGE_DESKTOP_UPDATES_URL: ${{ needs.resolve-environment.outputs.environment == 'testing' && 'https://github.com/getstage/getstage/releases/download/desktop-testing-feed' || vars.STAGE_DESKTOP_UPDATES_URL }}
       # Testing release: login via testing.getstage.co (override with repo variable for prod later)
       STAGE_DESKTOP_AUTH_URL: ${{ vars.STAGE_DESKTOP_AUTH_URL != '' && vars.STAGE_DESKTOP_AUTH_URL || 'https://testing.getstage.co/auth/desktop' }}
+      # Testing builds become "Stage Testing" (own scheme, data folder, engine port).
+      STAGE_DESKTOP_CHANNEL: ${{ needs.resolve-environment.outputs.environment }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -183,8 +185,7 @@ jobs:
             echo "Building unsigned DMG (add APPLE_* and CSC_LINK secrets to sign)"
           fi
           if [ "${{ needs.resolve-environment.outputs.environment }}" = "testing" ]; then
-            # Versioned names keep older downloads valid while the shared manifest is replaced.
-            MAC_BUILD_ARGS+=('-c.mac.artifactName=${productName}-${version}-${arch}.${ext}')
+            MAC_BUILD_ARGS+=(--config electron-builder.testing.yml)
           fi
           pnpm exec electron-builder --mac --${{ matrix.arch }} "${MAC_BUILD_ARGS[@]}" --publish never
 

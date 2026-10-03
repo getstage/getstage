@@ -127,7 +127,7 @@ function DesktopAuthPage() {
   const didStartRef = useRef(false);
   const didSignOutRef = useRef(false);
   const redirectUri = useMemo(() => getValidatedRedirectUri(redirect_uri), [redirect_uri]);
-  const usesStageProtocol = redirectUri?.protocol === "stage:";
+  const usesStageProtocol = redirectUri?.protocol === "stage:" || redirectUri?.protocol === "stage-testing:";
 
   useEffect(() => {
     if (prompt !== "login" || isLoading || didSignOutRef.current) {

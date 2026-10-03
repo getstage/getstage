@@ -1,0 +1,12 @@
+# Testing DMGs (release-desktop.yml, environment "testing"). A separate app identity
+# keeps Stage Testing from receiving production's stage:// sign-in callbacks.
+extends: ./electron-builder.yml
+appId: co.getstage.desktop.testing
+productName: Stage Testing
+protocols:
+  - name: Stage Testing
+    schemes:
+      - stage-testing
+mac:
+  # Versioned names without spaces keep older downloads and feed URLs valid.
+  artifactName: Stage-Testing-${version}-${arch}.${ext}

@@ -44,7 +44,7 @@ export function isValidDesktopCallbackUrl(value: string | null | undefined) {
   try {
     const url = new URL(value);
     return (
-      (url.protocol === "stage:" && url.hostname === "auth") ||
+      ((url.protocol === "stage:" || url.protocol === "stage-testing:") && url.hostname === "auth") ||
       (
         url.protocol === "http:" &&
         url.hostname === "127.0.0.1" &&
