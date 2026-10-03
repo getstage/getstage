@@ -261,6 +261,39 @@ export async function resolveCustomerId(ctx: ActionCtx, sdk: Stripe, viewer: Vie
   return resolveUsableCustomerId(ctx, sdk, viewer, customer.customerId);
 }
 
+// A subscriber picking another plan changes their subscription instead of
+// starting a second one. Stripe's confirm page shows the prorated amount, and the
+// portal settings decide timing (upgrades now, downgrades at period end).
+// The upgrade invoice's invoice.paid resets credits to the new tier.
+async function createPlanChangeSession(
+  sdk: Stripe,
+  subscription: NonNullable<SubscriptionSnapshot>,
+  priceId: string,
+  returnUrl: string,
+): Promise<CheckoutSessionResponse> {
+  if (subscription.stripePriceId === priceId) {
+    throw new Error("You are already on this plan.");
+  }
+  const current = await sdk.subscriptions.retrieve(subscription.stripeSubscriptionId);
+  const item = current.items.data[0];
+  if (!item) {
+    throw new Error("Subscription has no plan to change.");
+  }
+  const session = await sdk.billingPortal.sessions.create({
+    customer: subscription.stripeCustomerId,
+    return_url: returnUrl,
+    flow_data: {
+      type: "subscription_update_confirm",
+      subscription_update_confirm: {
+        subscription: subscription.stripeSubscriptionId,
+        items: [{ id: item.id, price: priceId, quantity: 1 }],
+      },
+      after_completion: { type: "redirect", redirect: { return_url: returnUrl } },
+    },
+  });
+  return { sessionId: session.id, url: session.url };
+}
+
 export async function createCheckoutSessionHandler(
   ctx: ActionCtx,
   args: {
@@ -324,19 +357,17 @@ export async function createCheckoutSessionHandler(
     return { sessionId: session.id, url: session.url };
   }
 
-  const existingSubscription = await getCurrentSubscriptionSnapshot(ctx, viewer.userIdString);
-  const isTrial = args.isTrial ?? false;
-  if (existingSubscription && isTrial) {
-    throw new Error(
-      "You already have an active Stage subscription. Pick a different plan or manage billing in Settings.",
-    );
-  }
-
   // Subscription checkout (start / pro / team), optionally with a 14-day trial.
   const tier = args.tier ?? "pro";
   const billingCycle = args.billingCycle ?? "yearly";
   const priceId = priceIdForTier(tier, billingCycle);
-  const grantTrial = isTrial && !existingSubscription;
+
+  const existingSubscription = await getCurrentSubscriptionSnapshot(ctx, viewer.userIdString);
+  if (existingSubscription) {
+    return createPlanChangeSession(sdk, existingSubscription, priceId, urls.returnUrl);
+  }
+
+  const grantTrial = args.isTrial ?? false;
   const config = configForPriceId(priceId);
   const includedSeats = config?.includedSeats ?? 1;
   const requestedSeats = Math.round(args.seats ?? includedSeats);
