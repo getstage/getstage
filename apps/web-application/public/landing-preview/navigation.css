@@ -174,13 +174,14 @@
 .navigation.hero-download-visible .menu-copy-compact { display: inline; }
 .navigation.hero-download-visible .menu-copy-expanded { display: none; }
 
-/* Size the desktop shell from its actual links in every route and account state. */
+/* The shell follows the CTA’s interpolated width, including while it collapses.
+   Keep the CTA in flex layout: display:none would skip its transition. */
 @media (min-width: 768px) {
   .navigation, .navigation.hero-download-visible, .navigation.navigation-without-download { width: max-content; }
   .nav-row > :not(.nav-spacer) { flex-shrink: 0; }
-  .navigation.hero-download-visible .nav-download { display: none; }
-  .navigation.hero-download-visible .nav-row, .navigation-without-download .nav-row { padding-right: 16px; }
-  .navigation .product-menu { width: min(656px, calc(100vw - 36px)); }
+  .navigation-without-download .nav-row { padding-right: 16px; }
+  /* Dropdown content must follow the row width, never determine it. */
+  .navigation .product-menu { width: 100%; min-width: 0; contain: inline-size; }
 }
 
 /* The identity icon follows its link in default, hover and focus states. */
@@ -192,3 +193,7 @@
 .mobile-menu-links .profile-nav-link { display: inline-flex; }
 
 .profile-nav-link:focus-visible { color: #fafafa; }
+
+/* Photos occupy the same fixed slot as the fallback, so loading cannot shift links. */
+.profile-nav-avatar { position: relative; display: inline-flex; width: 20px; height: 20px; flex: 0 0 20px; }
+.profile-nav-avatar img { position: absolute; inset: 0; display: block; width: 20px; height: 20px; border-radius: 50%; object-fit: cover; background: #171717; }
