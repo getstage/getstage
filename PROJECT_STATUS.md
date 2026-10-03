@@ -16,6 +16,13 @@
 - Profile follow-up: restored compact tool rows, profile resource cards, inline technology selection and marketplace picker from the original `stage-site` prototype. Local setup now saves `stage-profile-preview`; download's web link preserves preview mode and opens the full editable profile. The original reward sidebar is preview-only; no subscription credit is applied. Live authenticated profile persistence still requires backend deployment and verification.
 - **Do not deploy or push without Adrien's explicit green flag.** Frontend and backend changes are local only. Test-deployment/account validation is required before release.
 
+## Reward design preview — 2026-10-03
+
+- Added the compact reward submission, checking, approved/copy-code, unrelated post, unavailable post, and already-claimed states. Local preview selector switches the simulated outcome; no X post lookup, model call, subscription mutation or real promo-code issuance occurs.
+- Reuses existing Stage profile dialog styling. The reward entry remains preview-only pending server verification and single-use reward implementation. Adrien authorized pushing this update for Wessel’s review on 2026-10-03; deployment remains unauthorized.
+
+- Developer handoff: `RewardClaimDialog.tsx` currently validates URL format only and simulates the selected result after 2.2 seconds. Production logic must fetch the public post server-side, verify the expected profile link and claimant eligibility, enforce single-use claims, and issue/store the actual promo code. Never trust the client-selected result. `STAGE-DEMO-MONTH` is intentionally non-redeemable. Review locally via `/profile?preview=1` → Get a free month.
+
 ## Website persistence readiness audit — 2026-10-01
 
 - Local `/profile?preview=1` uses browser localStorage, not a backend account. Production excludes the development-only preview path. Authenticated profile edits, onboarding and collection saves call Convex `builderProfiles` functions; uploaded avatar/banner images are stored as bounded data URLs in the profile document. Onboarding drafts also use account-scoped localStorage until completion.
