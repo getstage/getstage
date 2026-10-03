@@ -14,20 +14,6 @@
     "bannerHeight": null
   },
   {
-    "id": "component-libraries/rewamp-ui",
-    "name": "RewampUI",
-    "type": "Components",
-    "category": "UI collections",
-    "description": "Browse ready-made interface components in a showcase dashboard.",
-    "icon": "/marketplace-assets/libraries/rewamp-ui.png",
-    "banner": null,
-    "url": "/component-libraries/rewamp-ui/",
-    "officialUrl": "https://rewampui.com/",
-    "bannerTitle": null,
-    "bannerWidth": null,
-    "bannerHeight": null
-  },
-  {
     "id": "component-libraries/shadcn-ui",
     "name": "shadcn/ui",
     "type": "Components",
