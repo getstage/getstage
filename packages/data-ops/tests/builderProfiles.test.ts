@@ -2,6 +2,8 @@ import { describe, expect, test } from "vitest";
 import { convexTest } from "convex-test";
 import { makeFunctionReference } from "convex/server";
 import schema from "../convex/schema";
+import { marketplaceIds } from "../convex/lib/builderProfiles/catalog";
+import websiteCatalog from "../../../apps/web-application/src/marketing/marketplace/catalog.json";
 import { validateProfile } from "../convex/lib/builderProfiles/fields";
 const modules = import.meta.glob("../convex/**/*.ts");
 const mine = makeFunctionReference<"query">("builderProfiles:mine");
@@ -175,4 +177,16 @@ describe("builder profiles", () => {
     await expect(t.query(username, { handle: input.handle })).rejects.toThrow(/authenticated/i);
   });
 
+});
+
+
+test("website catalog and profile save validation stay aligned", () => {
+  expect([...marketplaceIds].sort()).toEqual(websiteCatalog.map(item => item.id).sort());
+});
+
+test("all nine new component libraries can be saved and reloaded", async () => {
+  const { user } = await setup();
+  const ids = ["skiper-ui", "thinking-orbs", "liveline", "obsidian-ui", "originkit", "beautiful-ui", "aicss", "coss-ui", "componentry"].map(slug => `component-libraries/${slug}`);
+  for (const itemId of ids) await user.mutation(setSaved, { itemId, saved: true });
+  expect((await user.query(mine, {})).items).toEqual(ids);
 });

@@ -163,3 +163,11 @@ Smoke included one chat session → engine stayed up (no idle shutdown in 0.1.56
 - User approved publishing the larger directory headings after reviewing local previews. Marketplace, Components, Skills and Tools now use concise, distinct headings and supporting copy, with shared responsive typography. Catalogs, navigation, filtering and save behavior are unchanged.
 - One content source supplies headings and page metadata. Marketplace now has its own canonical and indexing directive; all four directories are included in the sitemap. Prerendered and client metadata agree; existing CollectionPage, ItemList and breadcrumb structured data describe the rendered resources without added claims.
 - Validation: production build, SEO checks for 49 indexable pages, page-shell checks for 12 routes, Worker dry run, structured-list/card parity, and desktop/mobile browser inspection. Release is prepared on `codex/marketplace-headlines` from `website` at `1406777`.
+
+
+## Nine component-library additions — 2026-10-03
+
+- Added Skiper UI, Thinking Orbs, Liveline, ObsidianUI, OriginKit, BeautifulUI, AICSS, coss/ui and Componentry using the existing catalog, dynamic resource route and detail markup template. The catalog now contains 35 libraries. Existing entries and layout styles remain unchanged.
+- Reviewed official source information and cached original logos/social images; BeautifulUI uses a capture of its official gallery. Source provenance and the requested V2/V3 grouping are in `public/marketplace-assets/library-sources-october-2026.json`. Thinking Orbs links to its current Libraries.dev home and retains the original URL in the sidebar.
+- Synchronized backend profile resource IDs. Tests cover catalog parity and saving/reloading all nine additions; 13 profile/route tests pass. Production build and SEO checks cover 58 pages. Extended structure audit verifies canonical/Open Graph parity, one H1, JSON-LD/breadcrumbs, 292 internal library links and 690 image references. Desktop/mobile detail-page checks pass. Convex dry run passes type checking and reports no index deletion.
+- User confirmed the additional audit request means SEO/GEO and authorized publication. All nine pages passed deployed testing checks, including canonical metadata and HTTP responses.
