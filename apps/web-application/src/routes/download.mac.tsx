@@ -1,5 +1,5 @@
 import { PageLoading } from "@/components/shared/PageLoading";
-import { Globe } from "@phosphor-icons/react";
+import { UserCircle } from "@phosphor-icons/react";
 import { Navigate, createFileRoute } from "@tanstack/react-router";
 import { Helmet } from "react-helmet-async";
 import { useAuth } from "@/lib/auth";
@@ -78,7 +78,7 @@ function DownloadMacPage() {
                     Using an Intel Mac? Download the x64 build
                   </a>
                 </div>
-                <a href={profileHref()} className="mt-5 inline-flex items-center gap-1.5 text-[13px] font-medium text-[#525252]"><Globe size={16} weight="regular" aria-hidden="true" className="shrink-0"/><span className="underline underline-offset-4">Use Stage on web</span></a>
+                <a href={profileHref()} className="mt-5 inline-flex items-center gap-1.5 text-[13px] font-medium text-[#525252]"><UserCircle size={16} weight="regular" aria-hidden="true" className="shrink-0"/><span className="underline underline-offset-4">View your profile</span></a>
               </div>
             </section>
 
