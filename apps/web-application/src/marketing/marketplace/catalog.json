@@ -824,5 +824,19 @@
     "bannerTitle": null,
     "bannerWidth": null,
     "bannerHeight": null
+  },
+  {
+    "id": "component-libraries/arc",
+    "name": "Arc",
+    "type": "Components",
+    "category": "Animated UI",
+    "description": "Animated React components and blocks with shadcn CLI and AI tooling.",
+    "icon": "/marketplace-assets/libraries/arc.svg",
+    "banner": null,
+    "url": "/component-libraries/arc/",
+    "officialUrl": "https://uiarc.dev/",
+    "bannerTitle": null,
+    "bannerWidth": null,
+    "bannerHeight": null
   }
 ]

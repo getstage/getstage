@@ -1,0 +1,16 @@
+{
+  "officialUrl": "https://uiarc.dev/",
+  "documentation": "https://uiarc.dev/llms.txt",
+  "reviewedOn": "2026-10-03",
+  "assets": {
+    "/marketplace-assets/libraries/arc.svg": {
+      "source": "https://uiarc.dev/icon.svg",
+      "adjustment": "Retain dark stroke for white Stage cards."
+    },
+    "/marketplace-assets/library-previews/arc.png": {
+      "source": "https://uiarc.dev/opengraph-image.png",
+      "width": 1200,
+      "height": 630
+    }
+  }
+}
