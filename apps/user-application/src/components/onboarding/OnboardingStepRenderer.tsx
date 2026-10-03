@@ -38,7 +38,7 @@ type OnboardingStepRendererProps = {
   claudeConnectionId: string | null;
   onContinue: () => void;
   onCreationDone: () => void;
-  onStartTrial: (tier: "start" | "pro" | "team") => void;
+  onStartTrial: (billingCycle: "monthly" | "yearly", tier: "start" | "pro" | "team") => void;
   onClaudeActivated: () => void;
 };
 
@@ -344,7 +344,7 @@ export function OnboardingStepRenderer({
     case "paywall":
       return (
         <OnboardingStepMotion motionKey="paywall">
-          <FigmaOnboardingFrame>
+          <FigmaOnboardingFrame className="w-[min(1098px,calc(100vw-40px))]">
 	          <OnboardingPaywall
 	            onStartTrial={onStartTrial}
 	            isUpgradeLoading={isCheckoutLoading}

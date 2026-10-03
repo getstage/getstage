@@ -174,7 +174,7 @@ export function OnboardingModal({
                     onClaudeActivated={controller.handleContinue}
                     onContinue={controller.handleContinue}
                     onCreationDone={() => controller.setStep("paywall")}
-                    onStartTrial={(tier) => controller.handlePaywallUpgrade("monthly", tier)}
+                    onStartTrial={controller.handlePaywallUpgrade}
                   />
                 </AnimatePresence>
               </div>
