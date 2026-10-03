@@ -90,7 +90,11 @@ export async function completeClaimHandler(
   ctx: MutationCtx,
   { claimId, code, promotionCodeId }: { claimId: Id<"rewardClaims">; code: string; promotionCodeId: string },
 ) {
+  // A retry may have replaced this reservation meanwhile; then this attempt's code is not saved.
+  const claim = await ctx.db.get(claimId);
+  if (!claim || claim.code) return false;
   await ctx.db.patch(claimId, { code, promotionCodeId });
+  return true;
 }
 
 export const releaseClaimArgs = { claimId: v.id("rewardClaims") };
@@ -136,11 +140,15 @@ export async function claimXShareRewardHandler(
       customer: await resolveCustomerId(ctx, sdk, viewer),
       metadata: { x_post: postUrl.trim(), userId: viewer.userIdString },
     });
-    await ctx.runMutation(internal.rewards.completeClaim, {
+    const saved: boolean = await ctx.runMutation(internal.rewards.completeClaim, {
       claimId,
       code: promotionCode.code,
       promotionCodeId: promotionCode.id,
     });
+    if (!saved) {
+      await sdk.promotionCodes.update(promotionCode.id, { active: false });
+      return { status: "unavailable" };
+    }
     return { status: "approved", code: promotionCode.code };
   } catch (error) {
     await ctx.runMutation(internal.rewards.releaseClaim, { claimId });

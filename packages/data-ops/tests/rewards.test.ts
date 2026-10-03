@@ -51,6 +51,9 @@ describe("share on X reward", () => {
     const first = await user.mutation(reserve, { postId: "1", postUrl: post });
     await t.run((ctx) => ctx.db.patch(first.claimId, { createdAt: 0 }));
     expect((await user.mutation(reserve, { postId: "1", postUrl: post })).kind).toBe("reserved");
+    // The first attempt's late code is not saved over the replaced reservation.
+    expect(await user.mutation(complete, { claimId: first.claimId, code: "STG-LATE-LATE-LATE", promotionCodeId: "promo_late" })).toBe(false);
+    expect(await user.query(myClaim, {})).toBeNull();
   });
 
   test("requires sign-in and a published profile", async () => {
