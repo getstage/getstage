@@ -1,8 +1,10 @@
 User-agent: *
 Allow: /
-Disallow: /auth
 Disallow: /dashboard
 Disallow: /new-project
 Disallow: /project/
 Disallow: /settings
 Disallow: /portal/
+
+# Account pages send X-Robots-Tag: noindex; allow crawlers to read that directive.
+Sitemap: https://getstage.co/sitemap.xml

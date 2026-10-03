@@ -22,14 +22,14 @@ export function StageDownloadPage() {
       <a className="skip-link" href="#main">
         Skip to content
       </a>
-      <Navigation />
+      <Navigation hideDownload />
       <main className="download-main" id="main">
         <div className="download-content">
           <header className="download-intro">
-            <h1>You’re almost there!</h1>
-            <p>Your download will begin automatically.</p>
+            <h1>You’re almost there.</h1>
+            <p>Once the download finishes, install Stage and open the app.</p>
             <p id="download-status" role="status">
-              Did not work? <span>Download Stage manually.</span>
+              Download didn’t start? <span>Try downloading again.</span>
             </p>
           </header>
           <ol className="onboarding-grid">

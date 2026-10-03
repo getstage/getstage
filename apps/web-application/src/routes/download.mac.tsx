@@ -1,3 +1,5 @@
+import { PageLoading } from "@/components/shared/PageLoading";
+import { UserCircle } from "@phosphor-icons/react";
 import { Navigate, createFileRoute } from "@tanstack/react-router";
 import { Helmet } from "react-helmet-async";
 import { useAuth } from "@/lib/auth";
@@ -17,17 +19,14 @@ export const Route = createFileRoute("/download/mac")({
 
 function DownloadMacPage() {
   const { isLoading, isAuthenticated, user } = useAuth();
+  const preview = import.meta.env.DEV && new URLSearchParams(window.location.search).get("preview") === "1";
   const ctaEmail = user?.email ?? "your email";
 
-  if (isLoading) {
-    return (
-      <div className="flex min-h-dvh items-center justify-center bg-white">
-        <span className="inline-block h-6 w-6 animate-spin rounded-full border-2 border-accent border-t-transparent" />
-      </div>
-    );
+  if (isLoading && !preview) {
+    return <PageLoading />;
   }
 
-  if (!isAuthenticated) {
+  if (!isAuthenticated && !preview) {
     return <Navigate to="/auth" search={{ redirect: "/download/mac" }} replace />;
   }
 
@@ -57,31 +56,29 @@ function DownloadMacPage() {
                   <span className="hidden lg:inline">Download Stage for Mac</span>
                 </h1>
                 <div className="mt-1.5 w-full max-w-[320px] text-[15px] font-medium leading-[1.5] text-[#525252] lg:hidden">
-                  <p>We sent the download link to {ctaEmail}</p>
-                  <p className="mt-6">Open it on your Mac and you&apos;re in.</p>
+                  <p>On your Mac, download Stage and sign in with {ctaEmail}</p>
+                  <p className="mt-6">Your account is ready when you are.</p>
                 </div>
                 <p className="mt-2.5 hidden w-full text-[13px] font-medium leading-[1.5] text-[#525252] lg:block">
-                  Your account is ready. Download the app to start your first project - faster
-                  performance, native controls, and your entire design workflow in one place.
+                  Your account is ready. Download Stage, then sign in with the same account
+                  to start your first project.
                 </p>
                 <div className="mt-8 hidden w-full flex-col items-start gap-2 lg:flex">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      window.location.assign(resolveMacDownloadUrl());
-                    }}
+                  <a
+                    href={resolveMacDownloadUrl()}
                     className="inline-flex h-[38px] w-full cursor-pointer items-center justify-center rounded-[6px] border border-[#525252] bg-gradient-to-b from-[#404040] to-[#0A0A0A] px-3 text-[12px] font-semibold text-[#FAFAFA] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] transition-opacity hover:opacity-95"
                   >
                     <AppleIcon />
                     <span className="ml-2.5">Download for macOS</span>
-                  </button>
+                  </a>
                   <a
                     href={macOsDmgDownloadUrl("x64")}
                     className="text-[11px] font-medium text-[#737373] underline-offset-2 hover:text-[#525252] hover:underline"
                   >
-                    Using an Intel Mac? Download the x64 build
+                    Using an Intel Mac? Download the Intel version
                   </a>
                 </div>
+                <a href={profileHref()} className="mt-5 inline-flex items-center gap-1.5 text-[13px] font-medium text-[#525252]"><UserCircle size={16} weight="regular" aria-hidden="true" className="shrink-0"/><span className="underline underline-offset-4">View your profile</span></a>
               </div>
             </section>
 
@@ -110,4 +107,10 @@ function AppleIcon() {
       />
     </svg>
   );
+}
+
+function profileHref() {
+ if(import.meta.env.DEV && new URLSearchParams(window.location.search).get("preview")==="1")return "/profile?preview=1";
+ const value=new URLSearchParams(window.location.search).get("profile");
+ return value?.startsWith("/profile?") ? value : "/profile";
 }

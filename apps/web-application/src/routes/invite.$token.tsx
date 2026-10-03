@@ -1,3 +1,4 @@
+import { PageLoading } from "@/components/shared/PageLoading";
 import { useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useAction } from "convex/react";
@@ -63,6 +64,8 @@ function WorkspaceInvitePage() {
   const pendingPreview = preview.status === "pending" ? preview : null;
   const invitePath = `/invite/${token}`;
 
+  if (terminalStatus === "loading" || isAuthLoading) return <PageLoading />;
+
   return (
     <>
       <Helmet>
@@ -74,11 +77,7 @@ function WorkspaceInvitePage() {
         <section className="w-full max-w-[440px] rounded-[8px] bg-white p-8 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
           <img src={stageLogo} alt="Stage" className="h-[23px] w-auto" />
 
-          {terminalStatus === "loading" || isAuthLoading ? (
-            <div className="flex min-h-[220px] items-center justify-center">
-              <span className="h-6 w-6 animate-spin rounded-full border-2 border-[#8782F5] border-t-transparent" />
-            </div>
-          ) : terminalStatus === "pending" && pendingPreview ? (
+          {terminalStatus === "pending" && pendingPreview ? (
             <div className="mt-8">
               <h1 className="text-[24px] font-semibold leading-[1.2] text-[#0A0A0A]">
                 Join {pendingPreview.inviterName}&apos;s workspace

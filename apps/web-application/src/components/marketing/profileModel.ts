@@ -1,0 +1,100 @@
+import { GithubLogo, XLogo, InstagramLogo, LinkedinLogo, Globe, Envelope } from "@phosphor-icons/react";
+import { COUNTRY_CODES, isCountryCode } from "@stage/data-ops/shared/countries";
+import type { Profile, ProfileInput } from "./MarketplaceState";
+
+const regionNames = new Intl.DisplayNames(["en"], { type: "region" });
+
+// Location is stored as a country code; anything else (older free-text values) is not shown.
+export function countryName(code: string) {
+  return isCountryCode(code) ? (regionNames.of(code) ?? code) : "";
+}
+
+export const countryOptions = COUNTRY_CODES.map((code) => ({ code, name: countryName(code) })).sort((a, b) =>
+  a.name.localeCompare(b.name, "en"),
+);
+export const roleOptions = [
+  "Vibe coder",
+  "Coder",
+  "Web designer",
+  "Figma designer",
+  "UI designer",
+  "UX designer",
+  "Product designer",
+  "Frontend developer",
+  "Backend developer",
+  "Full-stack developer",
+  "AI builder",
+  "Founder",
+];
+export const contacts = [
+  { key: "github", label: "GitHub", Icon: GithubLogo },
+  { key: "x", label: "X", Icon: XLogo },
+  { key: "instagram", label: "Instagram", Icon: InstagramLogo },
+  { key: "linkedin", label: "LinkedIn", Icon: LinkedinLogo },
+  { key: "website", label: "Website", Icon: Globe },
+  { key: "email", label: "Email", Icon: Envelope },
+] as const;
+// Default username from a display name: "Wessel Dieben" → "wessel_dieben".
+export function suggestedHandle(name: string) {
+  const value = name.toLowerCase().trim().replace(/\s+/g, "_").replace(/[^a-z0-9_]/g, "").slice(0, 24);
+  return value.length >= 2 ? value : value ? `${value}_` : "builder";
+}
+export function blank(name: string): Profile {
+  return {
+    name,
+    handle: "",
+    bio: "",
+    location: "",
+    roles: [],
+    technologies: [],
+    banner: "banner-4",
+    github: "",
+    x: "",
+    instagram: "",
+    linkedin: "",
+    website: "",
+    email: "",
+    published: false,
+    items: [],
+  };
+}
+export function fields(profile: Profile): ProfileInput {
+  const {
+    customAvatar,
+    customBanner,
+    name,
+    handle,
+    bio,
+    location,
+    roles,
+    technologies,
+    banner,
+    github,
+    x,
+    instagram,
+    linkedin,
+    website,
+    email,
+    published,
+  } = profile;
+  return {
+    ...(customAvatar !== undefined ? { customAvatar } : {}),
+    ...(customBanner !== undefined ? { customBanner } : {}),
+    name,
+    handle,
+    bio,
+    location: isCountryCode(location) ? location : "",
+    roles,
+    technologies,
+    banner,
+    github,
+    x,
+    instagram,
+    linkedin,
+    website,
+    email,
+    published,
+  };
+}
+
+export function techId(name: string) { return name.toLowerCase().replace(/\+/g,"plus").replace(/#/g,"sharp").replace(/[^a-z0-9]+/g,"-"); }

@@ -82,7 +82,7 @@ export async function getPortalData(
       projectId: project.id,
       isEnabled: true,
       shareToken,
-      shareUrl: `https://app.usestage.com/portal/${shareToken}`,
+      shareUrl: `https://getstage.co/portal/${shareToken}`,
       accentColor: "#E8734A",
     },
   };

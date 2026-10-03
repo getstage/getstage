@@ -243,7 +243,7 @@
       lenis = new window.Lenis({
         lerp: 0.1, smoothWheel: true, syncTouch: false, autoRaf: true,
         anchors: { offset: -100 },
-        prevent: node => Boolean(node.closest('#product-menu, dialog'))
+        prevent: node => Boolean(node.closest('#product-menu, #use-case-menu, dialog'))
       });
     }
     for (const layer of layers) layer.style.transform = '';

@@ -1,7 +1,52 @@
-export function Navigation() {
+import { AccountMenu } from "@/components/marketing/AccountMenu";
+import { blogPosts, blogPostPath } from "@/marketing/content";
+import { SquaresFour, Scroll, Wrench, ArrowUpRight } from "@phosphor-icons/react";
+import { SolutionIcon } from "@/components/marketing/SolutionIcon";
+import { USE_CASE_GROUP_LABELS, useCasePath, useCases, type UseCaseGroup } from "@/marketing/content";
+
+const USE_CASE_GROUPS: UseCaseGroup[] = ["audience", "workflow"];
+
+// Desktop-only panel; on mobile the hamburger menu links to /use-cases instead.
+function UseCaseMenu() {
+  return (
+    <div className="product-menu use-case-menu" id="use-case-menu" hidden>
+      {USE_CASE_GROUPS.map((group) => (
+        <div className="use-case-menu-group" key={group}>
+          <p className="use-case-menu-heading">{USE_CASE_GROUP_LABELS[group]}</p>
+          <ul role="list">
+            {useCases
+              .filter((useCase) => useCase.group === group)
+              .map((useCase) => (
+                <li key={useCase.slug}>
+                  <a href={useCasePath(useCase.slug)}>
+                    <strong className="solution-label"><SolutionIcon slug={useCase.slug} />{useCase.label}</strong>
+                    <span>{useCase.summary}</span>
+                  </a>
+                </li>
+              ))}
+          </ul>
+        </div>
+      ))}
+      <a className="use-case-menu-all" href="/use-cases">
+        Browse all solutions <ArrowUpRight size={14} aria-hidden="true" />
+      </a>
+    </div>
+  );
+}
+
+function ResourcesMenu() {
+  return <div className="product-menu use-case-menu resources-menu" id="resources-menu" hidden>
+    <div className="use-case-menu-group"><p className="use-case-menu-heading">Marketplace</p><ul role="list">
+      {[{name:"Components",href:"/component-libraries",text:"Find the building blocks for your next project.",Icon:SquaresFour},{name:"Skills",href:"/skills",text:"Give your AI the right design guidance.",Icon:Scroll},{name:"Tools",href:"/tools",text:"Explore tools for your workflow.",Icon:Wrench}].map(({name,href,text,Icon})=><li key={name}><a href={href}><strong className="solution-label"><Icon size={18} weight="duotone" aria-hidden="true" />{name}</strong><span>{text}</span></a></li>)}
+    </ul><a className="resources-all" href="/marketplace">Browse marketplace <ArrowUpRight size={14} aria-hidden="true" /></a></div>
+    <div className="use-case-menu-group"><p className="use-case-menu-heading">From the blog</p><ul role="list">{blogPosts.slice(0,2).map(post=><li key={post.slug}><a href={blogPostPath(post.slug)}><strong>{post.title}</strong></a></li>)}</ul><a className="resources-all" href="/blog">View all posts <ArrowUpRight size={14} aria-hidden="true" /></a></div>
+  </div>;
+}
+
+export function Navigation({ hideDownload = false }: { hideDownload?: boolean }) {
   return (
     <>
-      <header className="navigation" id="navigation">
+      <header className={hideDownload ? "navigation navigation-without-download" : "navigation"} id="navigation">
         <div className="nav-row">
           <a className="nav-brand" href="/#top" aria-label="Stage home">
             <svg
@@ -41,6 +86,7 @@ export function Navigation() {
             aria-expanded="false"
             aria-controls="product-menu"
             aria-label="Open product menu"
+            data-menu-toggle="product"
           >
             <span className="product-toggle-label">Product</span>{" "}
             <svg
@@ -64,17 +110,26 @@ export function Navigation() {
             </svg>
             <span className="mobile-menu-icon" aria-hidden="true" />
           </button>
-          <a className="nav-link" href="#pricing">
+          <button
+            type="button"
+            className="nav-link nav-menu-toggle"
+            aria-expanded="false"
+            aria-controls="use-case-menu"
+            aria-label="Open solutions menu"
+            data-menu-toggle="solutions"
+          >
+            Solutions
+            <svg className="icon" aria-hidden="true" width={12} height={12} viewBox="0 0 16 16" fill="none">
+              <path d="m4 6 4 4 4-4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+          <button type="button" className="nav-link nav-menu-toggle" aria-expanded="false" aria-controls="resources-menu" aria-label="Open resources menu" data-menu-toggle="resources">Resources<svg className="icon" width={12} height={12} viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="m4 6 4 4 4-4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg></button>
+          <a className="nav-link" href="/#pricing">
             Pricing
           </a>
-          <a className="nav-link" href="#faq">
-            FAQ
-          </a>
           <span className="nav-spacer" />
-          <button className="nav-link login-link" data-destination="login">
-            Log in
-          </button>
-          <a className="nav-download" href="/download">
+          <AccountMenu />
+          {!hideDownload && <a className="nav-download" href="/download">
             <svg
               className="icon"
               aria-hidden="true"
@@ -88,11 +143,11 @@ export function Navigation() {
               <path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z" />
             </svg>
             <span>Download</span>
-          </a>
+          </a>}
         </div>
         <div className="product-menu" id="product-menu" hidden>
           <p className="mobile-menu-heading">Features</p>
-          <a className="menu-card" href="#research">
+          <a className="menu-card" href="/#research">
             <span className="menu-icon">
               <svg
                 className="icon"
@@ -126,7 +181,7 @@ export function Navigation() {
               </span>
             </p>
           </a>
-          <a className="menu-card" href="#moodboard">
+          <a className="menu-card" href="/#moodboard">
             <span className="menu-icon">
               <svg
                 className="icon"
@@ -179,7 +234,7 @@ export function Navigation() {
               </span>
             </p>
           </a>
-          <a className="menu-card" href="#flows">
+          <a className="menu-card" href="/#flows">
             <span className="menu-icon">
               <svg
                 className="icon"
@@ -209,7 +264,7 @@ export function Navigation() {
               </span>
             </p>
           </a>
-          <a className="menu-card" href="#skills">
+          <a className="menu-card" href="/#skills">
             <span className="menu-icon">
               <svg
                 className="icon"
@@ -254,7 +309,7 @@ export function Navigation() {
               </span>
             </p>
           </a>
-          <a className="menu-card" href="#export">
+          <a className="menu-card" href="/#export">
             <span className="menu-icon">
               <svg
                 className="icon"
@@ -284,7 +339,7 @@ export function Navigation() {
               </span>
             </p>
           </a>
-          <a className="menu-card" href="#integrations">
+          <a className="menu-card" href="/#integrations">
             <span className="menu-icon">
               <svg
                 className="icon"
@@ -330,11 +385,16 @@ export function Navigation() {
             </p>
           </a>
           <div className="mobile-menu-links">
-            <a href="#pricing">Pricing</a>
-            <a href="#faq">FAQ</a>
-            <button data-destination="login">Log in</button>
+            <a href="/use-cases">Solutions</a>
+            <a href="/marketplace">Marketplace</a>
+            <a href="/blog">Blog</a>
+            <a href="/#pricing">Pricing</a>
+            <a href="/#faq">FAQ</a>
+            <AccountMenu mobile />
           </div>
         </div>
+        <UseCaseMenu />
+        <ResourcesMenu />
       </header>
     </>
   );

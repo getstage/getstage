@@ -1,6 +1,4 @@
 const config = window.STAGE_CONFIG || {};
-const productToggle = document.querySelector('#product-toggle');
-const productMenu = document.querySelector('#product-menu');
 const navigation = document.querySelector('.navigation');
 const navScrim = document.querySelector('#nav-scrim');
 const heroDownload = document.querySelector('.hero-cta');
@@ -23,57 +21,90 @@ if (heroDownload && navDownload) {
 
 const hoverNavigation = window.matchMedia('(hover: hover) and (pointer: fine)');
 const reducedMenuMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
-let menuAnimation = null;
+// Every [data-menu-toggle] opens the panel named by its aria-controls. Only one
+// panel is open at a time; the navigation grows around whichever is open.
+const navMenus = [...document.querySelectorAll('[data-menu-toggle]')]
+  .map(toggle => ({toggle, menu: document.getElementById(toggle.getAttribute('aria-controls')),
+    label: toggle.dataset.menuToggle, animation: null, openedByHover: false}))
+  .filter(entry => entry.menu);
 let menuCloseTimer = null;
-let menuOpenedByHover = false;
 
 function cancelMenuClose() {
   window.clearTimeout(menuCloseTimer);
 }
 
-function setMenuOpen(open, fromHover = false) {
-  if (!productToggle || !productMenu) return;
+function isOpen(entry) {
+  return entry.toggle.getAttribute('aria-expanded') === 'true';
+}
+
+function setMenuOpen(entry, open, fromHover = false) {
   cancelMenuClose();
-  const wasOpen = productToggle.getAttribute('aria-expanded') === 'true';
-  if (wasOpen === open) return;
-  const startHeight = productMenu.hidden ? 0 : productMenu.getBoundingClientRect().height;
-  const startPadding = productMenu.hidden ? '0px' : getComputedStyle(productMenu).paddingTop;
-  const startOpacity = productMenu.hidden ? 0 : getComputedStyle(productMenu).opacity;
-  const startTransform = productMenu.hidden ? 'translateY(-8px)' : getComputedStyle(productMenu).transform;
-  menuAnimation?.cancel();
-  menuAnimation = null;
-  productToggle.setAttribute('aria-expanded', String(open));
-  productToggle.setAttribute('aria-label', open ? 'Close product menu' : 'Open product menu');
+  if (isOpen(entry) === open) return;
+  const {toggle, menu} = entry;
+  if (open) {
+    // Swap panels instantly so the navigation never animates two heights at once.
+    navMenus.filter(other => other !== entry && isOpen(other)).forEach(other => {
+      other.animation?.cancel();
+      other.animation = null;
+      other.toggle.setAttribute('aria-expanded', 'false');
+      other.toggle.setAttribute('aria-label', `Open ${other.label} menu`);
+      other.menu.hidden = true;
+      other.menu.inert = true;
+      other.menu.style.overflowY = '';
+      other.openedByHover = false;
+    });
+  }
+  const startHeight = menu.hidden ? 0 : menu.getBoundingClientRect().height;
+  const startPadding = menu.hidden ? '0px' : getComputedStyle(menu).paddingTop;
+  const startOpacity = menu.hidden ? 0 : getComputedStyle(menu).opacity;
+  const startTransform = menu.hidden ? 'translateY(-8px)' : getComputedStyle(menu).transform;
+  entry.animation?.cancel();
+  entry.animation = null;
+  toggle.setAttribute('aria-expanded', String(open));
+  toggle.setAttribute('aria-label', `${open ? 'Close' : 'Open'} ${entry.label} menu`);
   navigation?.classList.toggle('product-menu-open', open);
-  menuOpenedByHover = open && fromHover;
-  productMenu.inert = !open;
+  entry.openedByHover = open && fromHover;
+  menu.inert = !open;
   if (navScrim) navScrim.hidden = !open;
   if (reducedMenuMotion.matches) {
-    productMenu.hidden = !open;
-    productMenu.style.overflowY = '';
+    menu.hidden = !open;
+    menu.style.overflowY = '';
     return;
   }
-  productMenu.hidden = false;
-  const endHeight = open ? productMenu.getBoundingClientRect().height : 0;
-  const endPadding = open ? getComputedStyle(productMenu).paddingTop : '0px';
-  productMenu.style.overflowY = 'hidden';
-  const animation = productMenu.animate([
+  menu.hidden = false;
+  const endHeight = open ? menu.getBoundingClientRect().height : 0;
+  const endPadding = open ? getComputedStyle(menu).paddingTop : '0px';
+  menu.style.overflowY = 'hidden';
+  const animation = menu.animate([
     {height: `${startHeight}px`, paddingTop: startPadding, opacity: startOpacity, transform: startTransform},
     {height: `${endHeight}px`, paddingTop: endPadding, opacity: open ? 1 : 0, transform: open ? 'translateY(0)' : 'translateY(-8px)'}
   ], {duration: 280, easing: 'cubic-bezier(.22, 1, .36, 1)', fill: 'both'});
-  menuAnimation = animation;
+  entry.animation = animation;
   animation.onfinish = () => {
-    if (menuAnimation !== animation) return;
-    productMenu.hidden = !open;
-    productMenu.style.overflowY = '';
+    if (entry.animation !== animation) return;
+    menu.hidden = !open;
+    menu.style.overflowY = '';
     animation.cancel();
-    menuAnimation = null;
+    entry.animation = null;
   };
 }
 
-function closeMenu() { setMenuOpen(false); }
-productToggle?.addEventListener('pointerenter', event => {
-  if (event.pointerType === 'mouse' && hoverNavigation.matches) setMenuOpen(true, true);
+function openMenu() { return navMenus.find(isOpen); }
+function closeMenu() { const entry = openMenu(); if (entry) setMenuOpen(entry, false); }
+navMenus.forEach(entry => {
+  entry.toggle.addEventListener('pointerenter', event => {
+    if (event.pointerType === 'mouse' && hoverNavigation.matches) setMenuOpen(entry, true, true);
+  });
+  entry.toggle.addEventListener('click', () => {
+    // A click following hover keeps the menu open; a second click closes it.
+    if (entry.openedByHover) {
+      entry.openedByHover = false;
+      cancelMenuClose();
+      return;
+    }
+    setMenuOpen(entry, !isOpen(entry));
+  });
+  entry.menu.querySelectorAll('a').forEach(a => a.addEventListener('click', closeMenu));
 });
 navigation?.addEventListener('pointerenter', cancelMenuClose);
 navigation?.addEventListener('pointerleave', event => {
@@ -82,25 +113,16 @@ navigation?.addEventListener('pointerleave', event => {
     if (!navigation.contains(document.activeElement)) closeMenu();
   }, 180);
 });
-productToggle?.addEventListener('click', () => {
-  // A click following hover keeps the menu open; a second click closes it.
-  if (menuOpenedByHover) {
-    menuOpenedByHover = false;
-    cancelMenuClose();
-    return;
-  }
-  setMenuOpen(productToggle.getAttribute('aria-expanded') !== 'true');
-});
 navScrim?.addEventListener('click', closeMenu);
-productMenu?.querySelectorAll('a').forEach(a => a.addEventListener('click', closeMenu));
-document.querySelectorAll('.navigation .nav-link').forEach(a => a.addEventListener('click', closeMenu));
+document.querySelectorAll('.navigation a.nav-link').forEach(a => a.addEventListener('click', closeMenu));
 document.addEventListener('keydown', event => {
-  if (event.key === 'Escape' && productToggle?.getAttribute('aria-expanded') === 'true') {
-    closeMenu(); productToggle.focus();
+  const entry = openMenu();
+  if (event.key === 'Escape' && entry) {
+    closeMenu(); entry.toggle.focus();
   }
 });
 document.addEventListener('focusin', event => {
-  if (productToggle?.getAttribute('aria-expanded') === 'true' && !event.target.closest('.navigation')) closeMenu();
+  if (openMenu() && !event.target.closest('.navigation')) closeMenu();
 });
 const destinationDialog = document.querySelector('#destination-dialog');
 const destinationLabels = {login:'Log in to Stage',contact:'Contact Stage',legal:'Legal',socials:'Stage on social media'};
@@ -130,7 +152,7 @@ if (downloadStatus && config.installerUrl) {
     const downloadLink = document.createElement('a');
     downloadLink.href = installer.href;
     downloadLink.download = config.installerFilename || 'Stage.dmg';
-    downloadLink.textContent = 'Download it again.';
+    downloadLink.textContent = 'Download again.';
     downloadLink.rel = 'noopener';
     // Cross-origin servers must send Content-Disposition: attachment.
     downloadStatus.replaceChildren('Your download should start automatically. ', downloadLink);
@@ -148,6 +170,9 @@ if (downloadStatus && config.installerUrl) {
   const video = track.querySelector('[data-export-film]');
   const steps = [...track.querySelectorAll('[data-export-step]')];
   const error = track.querySelector('[data-export-error]');
+  const loading = track.querySelector('[data-export-loading]');
+  const retry = track.querySelector('[data-export-retry]');
+  let mediaUrl = null;
   const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
   const mobile = window.matchMedia('(max-width: 767px)');
   const manualPlayback = () => reduced.matches;
@@ -160,7 +185,6 @@ if (downloadStatus && config.installerUrl) {
   let target = 0;
   let loaded = false;
   let failed = false;
-  let blobUrl = null;
   let manualSeek = false;
   let pendingChapter = null;
   let primed = false;
@@ -176,11 +200,48 @@ if (downloadStatus && config.installerUrl) {
   async function loadVideo() {
     if (loaded || failed) return;
     loaded = true;
-    video.preload = 'metadata';
-    video.load();
+    error.hidden = true;
+    loading.hidden = false;
+    video.setAttribute('aria-busy', 'true');
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 45000);
+    try {
+      // This small scrub clip must be completely local: the static host does
+      // not honor byte-range requests, which stalls uncached Safari seeks.
+      const response = await fetch(video.dataset.exportSrc, {signal: controller.signal});
+      if (!response.ok) throw new Error('Export video request failed');
+      const blob = await response.blob();
+      if (!blob.size || !blob.type.startsWith('video/')) throw new Error('Invalid export video');
+      if (mediaUrl) URL.revokeObjectURL(mediaUrl);
+      mediaUrl = URL.createObjectURL(blob);
+      video.muted = true;
+      video.defaultMuted = true;
+      video.preload = 'auto';
+      video.src = mediaUrl;
+      video.load();
+    } catch {
+      showVideoError();
+    } finally {
+      clearTimeout(timeout);
+    }
   }
+  function showVideoError() {
+    failed = true;
+    loading.hidden = true;
+    error.hidden = false;
+    video.setAttribute('aria-busy', 'false');
+    measure();
+  }
+  retry.addEventListener('click', () => {
+    failed = false;
+    loaded = false;
+    primed = false;
+    priming = null;
+    measure();
+    loadVideo();
+  });
   function primeVideo() {
-    if (primed || priming || failed || manualPlayback() || video.readyState < 2) return;
+    if (primed || priming || failed || manualPlayback() || video.readyState < 1) return;
     // A muted play/pause removes the poster and initializes the media decoder.
     // Some browsers otherwise ignore seeks until playback has started once.
     priming = video.play()
@@ -193,7 +254,7 @@ if (downloadStatus && config.installerUrl) {
       });
   }
   function seek() {
-    if (failed || document.hidden || (!primed && !manualPlayback()) || (manualPlayback() && !manualSeek) || video.readyState < 2 || video.seeking || !Number.isFinite(video.duration)) return;
+    if (failed || document.hidden || (manualPlayback() && !manualSeek) || video.readyState < 1 || video.seeking || !Number.isFinite(video.duration)) return;
     // Ask only for real encoded frames so tiny scroll changes do not trigger
     // redundant decoder work between frames.
     const time = Math.min(Math.round(target * frameRate) / frameRate, endTime());
@@ -244,7 +305,7 @@ if (downloadStatus && config.installerUrl) {
     track.style.setProperty('--export-demo-height', `${height}px`);
     track.style.setProperty('--export-travel', `${travel}px`);
     track.toggleAttribute('data-export-pinned', pinned);
-    video.controls = manualPlayback() || failed;
+    video.controls = manualPlayback() && !failed;
     if (reduced.matches) video.pause();
     scheduleScroll();
   }
@@ -289,20 +350,23 @@ if (downloadStatus && config.installerUrl) {
   });
   video.addEventListener('loadedmetadata', () => {
     if (pendingChapter !== null) selectStep(pendingChapter);
+    primeVideo();
+    if (manualSeek) seek(); else scheduleScroll();
   });
   video.addEventListener('loadeddata', () => {
+    loading.hidden = true;
+    video.setAttribute('aria-busy', 'false');
     primeVideo();
     if (manualSeek) seek(); else scheduleScroll();
   });
   video.addEventListener('seeked', seek);
   video.addEventListener('canplay', () => { primeVideo(); seek(); });
-  video.addEventListener('error', () => { failed = true; error.hidden = false; measure(); });
+  video.addEventListener('error', showVideoError);
   video.addEventListener('timeupdate', () => { if (manualPlayback()) showStep(video.currentTime); });
   window.addEventListener('scroll', scheduleScroll, {passive: true});
   window.addEventListener('resize', measure, {passive: true});
   window.addEventListener('pageshow', measure);
   document.addEventListener('visibilitychange', () => { if (document.hidden) video.pause(); else scheduleScroll(); });
-  window.addEventListener('pagehide', () => { if (blobUrl) URL.revokeObjectURL(blobUrl); }, {once:true});
   reduced.addEventListener('change', measure);
   mobile.addEventListener('change', measure);
   if ('ResizeObserver' in window) new ResizeObserver(measure).observe(demo);
@@ -314,6 +378,7 @@ if (downloadStatus && config.installerUrl) {
   }
   if (document.fonts) document.fonts.ready.then(measure);
   track.setAttribute('data-export-enhanced', '');
+  loadVideo();
   measure();
 })();
 

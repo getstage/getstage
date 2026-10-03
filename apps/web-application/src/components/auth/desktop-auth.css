@@ -1,0 +1,19 @@
+.desktop-connect { min-height: 100dvh; padding: 8px; background: #f5f5f5; color: #171717; }
+.desktop-connect-surface { min-height: calc(100dvh - 16px); border-radius: 12px; background: #fff; display: flex; flex-direction: column; align-items: center; padding: 40px 24px 24px; }
+.desktop-connect-logo { height: 24px; width: auto; }
+.desktop-connect-content { width: 100%; max-width: 360px; margin: auto 0; padding: 56px 0; text-align: center; }
+.desktop-connect-symbol { width: 56px; height: 56px; display: grid; place-items: center; margin: 0 auto 24px; border: 1px solid #e7e5f5; border-radius: 16px; background: #f6f5fc; color: #625bca; }
+.desktop-connect-symbol svg { width: 28px; height: 28px; }
+.desktop-connect-content h1 { margin: 0; color: #171717; font-size: 24px; font-weight: 600; line-height: 1.25; letter-spacing: -.65px; }
+.desktop-connect-description { margin: 12px 0 28px; color: #525252; font-size: 14px; line-height: 1.6; }
+.desktop-connect-button { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 40px; padding: 10px 16px; border: 1px solid rgba(158,153,248,.75); border-radius: 6px; background: linear-gradient(180deg,#7b76df,#463fba); box-shadow: 0 .45px .5px #0a0a0a40; color: #fafafa; font: inherit; font-size: 13px; font-weight: 500; cursor: pointer; transition: opacity .18s; }
+.desktop-connect-button:hover { opacity: .92; }
+.desktop-connect-button:focus-visible, .desktop-connect-details summary:focus-visible { outline: 2px solid #625bca; outline-offset: 4px; }
+.desktop-connect-hint { margin: 14px 0 0; color: #737373; font-size: 12px; line-height: 1.6; }
+.desktop-connect-hint strong { color: #525252; font-weight: 500; }
+.desktop-connect-footer { margin: 0; color: #737373; font-size: 12px; line-height: 18px; }
+.desktop-connect-details { border: 1px solid #e5e5e5; border-radius: 8px; padding: 12px; text-align: left; color: #525252; font-size: 13px; overflow-wrap: anywhere; }
+.desktop-connect-details summary { cursor: pointer; font-weight: 500; }
+.desktop-connect-details p { margin: 12px 0 0; line-height: 1.6; }
+@media (max-width: 480px) { .desktop-connect-surface { padding: 32px 20px 24px; } }
+@media (prefers-reduced-motion: reduce) { .desktop-connect-button { transition: none; } }
