@@ -227,7 +227,7 @@ export function AuthPage() {
 
   const codeComplete = code.every((digit) => digit);
   const activeCodeIndex = code.findIndex((digit) => !digit);
-  const otpActionLabel = authMode === "login" ? "Login" : "Sign up";
+  const otpActionLabel = "Verify and continue";
 
   async function handleGoogleSignIn() {
     if (activeAuthFlowRef.current && activeAuthFlowRef.current !== "google") {
@@ -310,7 +310,7 @@ export function AuthPage() {
                         Redirecting to Google
                       </h1>
                       <p className="w-[236px] text-center text-[13px] font-medium leading-[1.5] text-[#525252]">
-                        You&apos;re being redirected to Google OAuth to login securely with Google
+                        You&apos;re being redirected to Google to sign in securely.
                       </p>
                     </div>
                   </div>
@@ -376,10 +376,10 @@ export function AuthPage() {
                       >
                         <div className="mb-6">
                           <h1 className="text-[21px] leading-[1.2] font-semibold text-[#0A0A0A]">
-                            {authMode === "login" ? "Login with Stage" : "Sign up with Stage"}
+                            {authMode === "login" ? "Welcome back to Stage" : "Create your Stage account"}
                           </h1>
                           <p className="mt-1.5 text-[14px] leading-[1.5] font-medium text-[#525252] lg:mt-2.5 lg:text-[13px]">
-                            Enter your email to get a sign-in code
+                            Enter your email. We’ll send you a sign-in code.
                           </p>
                         </div>
 
@@ -422,7 +422,7 @@ export function AuthPage() {
                             {loading && activeAuthFlowRef.current === "email" ? (
                               <span className="mr-2 inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
                             ) : null}
-                            {authMode === "login" ? "Login" : "Sign up"}
+                            Send sign-in code
                           </button>
                         </form>
 
@@ -468,7 +468,7 @@ export function AuthPage() {
                             Check your email
                           </h1>
                           <p className="mt-1.5 text-[14px] leading-[1.5] font-medium text-[#525252] lg:mt-2.5 lg:text-[13px]">
-                            Please enter the code we sent you on{" "}
+                            Enter the six-digit code sent to{" "}
                             <span className="font-semibold text-[#0A0A0A]">{email}</span>
                           </p>
                         </div>
@@ -552,7 +552,7 @@ export function AuthPage() {
                       disabled={loading}
                       className="cursor-pointer text-[#0A0A0A] underline underline-offset-2 disabled:cursor-default disabled:opacity-50"
                     >
-                      {authMode === "login" ? "Sign up" : "Login"}
+                      {authMode === "login" ? "Sign up" : "Log in"}
                     </button>
                   </div>
                 ) : (

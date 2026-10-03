@@ -152,7 +152,7 @@ if (downloadStatus && config.installerUrl) {
     const downloadLink = document.createElement('a');
     downloadLink.href = installer.href;
     downloadLink.download = config.installerFilename || 'Stage.dmg';
-    downloadLink.textContent = 'Download it again.';
+    downloadLink.textContent = 'Download again.';
     downloadLink.rel = 'noopener';
     // Cross-origin servers must send Content-Disposition: attachment.
     downloadStatus.replaceChildren('Your download should start automatically. ', downloadLink);

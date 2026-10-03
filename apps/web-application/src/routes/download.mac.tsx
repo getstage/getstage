@@ -56,12 +56,12 @@ function DownloadMacPage() {
                   <span className="hidden lg:inline">Download Stage for Mac</span>
                 </h1>
                 <div className="mt-1.5 w-full max-w-[320px] text-[15px] font-medium leading-[1.5] text-[#525252] lg:hidden">
-                  <p>We sent the download link to {ctaEmail}</p>
-                  <p className="mt-6">Open it on your Mac and you&apos;re in.</p>
+                  <p>On your Mac, download Stage and sign in with {ctaEmail}</p>
+                  <p className="mt-6">Your account is ready when you are.</p>
                 </div>
                 <p className="mt-2.5 hidden w-full text-[13px] font-medium leading-[1.5] text-[#525252] lg:block">
-                  Your account is ready. Download the app to start your first project - faster
-                  performance, native controls, and your entire design workflow in one place.
+                  Your account is ready. Download Stage, then sign in with the same account
+                  to start your first project.
                 </p>
                 <div className="mt-8 hidden w-full flex-col items-start gap-2 lg:flex">
                   <a
@@ -75,7 +75,7 @@ function DownloadMacPage() {
                     href={macOsDmgDownloadUrl("x64")}
                     className="text-[11px] font-medium text-[#737373] underline-offset-2 hover:text-[#525252] hover:underline"
                   >
-                    Using an Intel Mac? Download the x64 build
+                    Using an Intel Mac? Download the Intel version
                   </a>
                 </div>
                 <a href={profileHref()} className="mt-5 inline-flex items-center gap-1.5 text-[13px] font-medium text-[#525252]"><UserCircle size={16} weight="regular" aria-hidden="true" className="shrink-0"/><span className="underline underline-offset-4">View your profile</span></a>
