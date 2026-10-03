@@ -403,7 +403,7 @@
 .profile-shell .cover:hover .change-banner,.profile-shell .cover:focus-within .change-banner{opacity:1;pointer-events:auto}
 @media(hover:none),(pointer:coarse){.profile-shell .change-banner{opacity:1;pointer-events:auto;min-height:32px;padding:7px 10px}}
 @media(prefers-reduced-motion:reduce){.profile-shell .change-banner{transition:none}}
-@media(min-width:768px){.profile-page .navigation:not(.product-menu-open){width:612px}}
+
 .profile-page .profile-nav-link[aria-current=page]{color:#fafafa}
 /* Editable technology collection, using the marketplace panel vocabulary. */
 .profile-shell .technology-body{padding:20px;display:block;overflow:visible}

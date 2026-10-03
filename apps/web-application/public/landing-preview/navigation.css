@@ -174,24 +174,21 @@
 .navigation.hero-download-visible .menu-copy-compact { display: inline; }
 .navigation.hero-download-visible .menu-copy-expanded { display: none; }
 
-/* The signed-in label needs more room in the compact homepage navigation. */
+/* Size the desktop shell from its actual links in every route and account state. */
 @media (min-width: 768px) {
-  .navigation.hero-download-visible:has(.nav-row > .profile-nav-link) { width: 588px; }
-  .nav-row > .profile-nav-link { flex-shrink: 0; }
+  .navigation, .navigation.hero-download-visible, .navigation.navigation-without-download { width: max-content; }
+  .nav-row > :not(.nav-spacer) { flex-shrink: 0; }
+  .navigation.hero-download-visible .nav-download { display: none; }
+  .navigation.hero-download-visible .nav-row, .navigation-without-download .nav-row { padding-right: 16px; }
+  .navigation .product-menu { width: min(656px, calc(100vw - 36px)); }
 }
 
-/* The download page already provides its installer retry link. */
-@media (min-width: 768px) {
-  .navigation.navigation-without-download { width: 520px; }
-  .navigation.navigation-without-download:has(.nav-row > .profile-nav-link) { width: 588px; }
-  .navigation-without-download .nav-row { padding-right: 8px; }
-  .navigation-without-download .nav-row:has(> .profile-nav-link) { padding-right: 20px; }
-}
-
-/* A single white identity icon keeps the account link easy to recognize. */
-.profile-nav-icon { width: 20px; height: 20px; flex: 0 0 20px; color: #fafafa; }
+/* The identity icon follows its link in default, hover and focus states. */
+.profile-nav-icon { width: 20px; height: 20px; flex: 0 0 20px; color: inherit; }
 .profile-nav-link { align-items: center; gap: 8px; }
-@media (min-width: 561px) {
+@media (min-width: 768px) {
   .profile-nav-link { display: inline-flex; }
 }
 .mobile-menu-links .profile-nav-link { display: inline-flex; }
+
+.profile-nav-link:focus-visible { color: #fafafa; }

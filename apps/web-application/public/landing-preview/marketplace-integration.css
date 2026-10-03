@@ -116,7 +116,7 @@ html.stage-landing-page:has(.integrated-profile),html.stage-landing-page body.pr
 .profile-page:not(.profile-setup-page) .site-footer{border-top:0;background:#f5f5f5;box-shadow:0 0 0 100vmax #f5f5f5;clip-path:inset(0 -100vmax)}
 .profile-shell .profile-toolbar{justify-content:flex-end}.profile-shell .profile-visibility{margin-left:0}
 .profile-shell .item .market-card-meta img{width:13px;height:13px;flex:none}
-@media(min-width:768px){.profile-page .navigation:not(.product-menu-open){width:668px}.profile-page .nav-row{gap:20px}.profile-page .nav-download{flex-shrink:0}}
+
 @media(max-width:767px){.integrated-profile{padding-top:110px}}
 .profile-page #remove-dialog .resource-modal-heading{padding:0;background:none;text-align:left}.profile-page #remove-dialog .resource-modal-body{padding:0;background:none;box-shadow:none}.profile-page #remove-dialog .resource-modal-actions{display:flex;gap:8px;padding:0;margin-top:44px}.profile-page #remove-dialog .resource-modal-actions button{width:auto;padding:8px 16px}.profile-page #remove-dialog .resource-modal-primary{order:2;background:linear-gradient(#f94b50,#ed2027);border:1px solid #f6797d;color:white}.profile-page #remove-dialog .resource-modal-secondary{order:1}
 .profile-collection-empty{padding:24px 16px;background:white;border-radius:8px}.profile-collection-empty p{margin:0 0 14px;font-size:13px;color:#737373}.profile-collection-empty .button{width:max-content}
