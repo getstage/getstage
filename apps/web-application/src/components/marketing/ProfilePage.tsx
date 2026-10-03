@@ -8,6 +8,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useMutation, useQuery } from "convex/react";
 import {
   MapPin,
+  LockSimple,
   UserCircle,
   BookmarkSimple,
   Gift,
@@ -346,12 +347,12 @@ export function ProfileView({
     <div className="profile-shell integrated-profile">
       {owner && (
         <div className="profile-toolbar">
-          <button className="text-button" onClick={() => setPreview(!preview)}>
+          {!profile.published && (
+            <span className="profile-visibility"><LockSimple size={14} weight="regular" aria-hidden="true" />Private profile</span>
+          )}
+          <button type="button" className="text-button" onClick={() => preview ? setPreview(false) : setShareOpen(true)} aria-haspopup={preview ? undefined : "dialog"}>
             {preview ? "Back to editor" : "Public preview ↗"}
           </button>
-          {!profile.published && !localUpdate && (
-            <span className="profile-visibility">Private profile</span>
-          )}
         </div>
       )}
       {pendingItem && owner && !setup && !publicMode && (

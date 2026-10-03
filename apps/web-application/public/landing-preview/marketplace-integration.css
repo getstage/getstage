@@ -251,3 +251,6 @@ html.stage-landing-page:has(.integrated-profile),html.stage-landing-page body.pr
 .profile-page .profile-dialog .profile-publish-toggle span { color:#262626; font-size:13px; line-height:20px; font-weight:500; }
 .profile-page .profile-dialog .profile-publish-toggle:has(input:checked) { border-color:#b8b2ef; background:#f3f1fd; }
 .profile-page .profile-dialog .profile-publish-toggle input { margin:0; }
+
+.profile-shell .profile-toolbar .profile-visibility { display:inline-flex; align-items:center; gap:6px; margin-left:0; color:#525252; white-space:nowrap; }
+.profile-shell .profile-toolbar .profile-visibility svg { flex-shrink:0; }
