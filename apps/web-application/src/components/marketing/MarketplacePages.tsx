@@ -10,7 +10,8 @@ import {
   ProfileBoundary,
   useSaved,
 } from "./MarketplaceState";
-import { ResourceShareDialog } from "./ResourceDialogs";
+import { useAuth } from "@/lib/auth";
+import { ResourceShareDialog, ResourceUseDialog } from "./ResourceDialogs";
 import details from "@/marketing/marketplace/details.json";
 
 export function SaveResource({ item }: { item: CatalogItem }) {
@@ -284,6 +285,12 @@ function DetailContent({ item, html }: { item: CatalogItem; html: string }) {
   const { save, profile, busy } = useSaved();
   const [message, setMessage] = useState("");
   const [sharing, setSharing] = useState(false);
+  const [using, setUsing] = useState(false);
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const preview = import.meta.env.DEV && ["signed-in", "signed-out"].includes(params.get("usePreview") || "");
+    if (item.type === "Components" && (preview || params.get("use") === "1")) setUsing(true);
+  }, [item.type]);
   const saved = profile?.items.includes(item.id);
   const markup = html.replace(
     "Save to profile</span>",
@@ -296,7 +303,11 @@ function DetailContent({ item, html }: { item: CatalogItem; html: string }) {
       if (saved) window.location.assign("/profile");
       else if (!busy) await save(item);
     }
-    if (target.closest(".resource-use")) window.location.assign("/download");
+    if (target.closest(".resource-use")) {
+      event.preventDefault();
+      if (item.type === "Components") setUsing(true);
+      else window.location.assign("/download");
+    }
     if (target.closest(".resource-share")) {
       event.preventDefault();
       setSharing(true);
@@ -320,6 +331,7 @@ function DetailContent({ item, html }: { item: CatalogItem; html: string }) {
         onClick={(event) => void action(event)}
         dangerouslySetInnerHTML={{ __html: markup }}
       />
+      {using && <ResourceUseFlow item={item} onClose={() => setUsing(false)} />}
       {sharing && <ResourceShareDialog item={item} onClose={() => setSharing(false)} />}
       {message && (
         <p className="market-feedback" role="status">
@@ -328,4 +340,12 @@ function DetailContent({ item, html }: { item: CatalogItem; html: string }) {
       )}
     </>
   );
+}
+
+function ResourceUseFlow({ item, onClose }: { item: CatalogItem; onClose: () => void }) {
+  const { isAuthenticated, isLoading } = useAuth();
+  const preview = import.meta.env.DEV ? new URLSearchParams(window.location.search).get("usePreview") : null;
+  if (isLoading && preview !== "signed-in" && preview !== "signed-out") return null;
+  const authenticated = preview === "signed-in" || (preview !== "signed-out" && isAuthenticated);
+  return <ResourceUseDialog item={item} authenticated={authenticated} onClose={onClose} />;
 }

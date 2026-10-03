@@ -269,3 +269,7 @@ html.stage-landing-page:has(.integrated-profile),html.stage-landing-page body.pr
 }
 .profile-page .profile-dialog.profile-edit-dialog :is(.role-summary-tag, .role-option) { font-family: inherit; font-weight: 500; }
 .profile-page .profile-dialog.profile-edit-dialog .setup-photo-field > label > span { font-weight: 400; color: #737373; }
+
+.resource-use-hint{margin:7px 0 5px;text-align:center;font:12px/18px Inter,sans-serif;color:#737373}
+
+.resource-modal-body.resource-use-panel{padding:12px;gap:8px}
