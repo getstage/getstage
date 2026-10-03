@@ -11,6 +11,6 @@ function ConnectedAccount() {
  const {isAuthenticated,isLoading}=useAuth();
  const preview=!!readLocalProfile();
  if(isAuthenticated||preview)return <a className="nav-link profile-nav-link" href={preview&&!isAuthenticated?'/profile?preview=1':'/profile'}>My Profile</a>;
- if(isLoading)return <span className="nav-link" aria-label="Loading account">…</span>;
+ if(isLoading)return <span className="nav-link" aria-label="Loading account" role="status" style={{width: 62, height: 14, borderRadius: 4, background: "rgba(255,255,255,.12)"}} />;
  return <a className="nav-link login-link" href="/auth?mode=login&redirect=%2Fprofile">Log in</a>;
 }

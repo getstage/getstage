@@ -1,3 +1,4 @@
+import { PageLoading } from "@/components/shared/PageLoading";
 import { X, Check } from "@phosphor-icons/react";
 import { trackDatafastGoal } from "@/lib/datafast";
 import { useEffect, useRef, useState } from "react";
@@ -33,7 +34,7 @@ function ConnectedSetup(){
  const initial=entry.current?.profile;
  useEffect(()=>{if(!isLoading&&!isAuthenticated)window.location.replace(`/auth?redirect=${encodeURIComponent('/setup-profile'+window.location.search)}`);},[isLoading,isAuthenticated]);
  useEffect(()=>{if(initial?.onboardingStep===3)window.location.replace(nextPath());},[initial]);
- if(isLoading||!user||!initial||initial.onboardingStep===3)return <p className="profile-service-error" role="status">Loading your profile…</p>;
+ if(isLoading||!user||!initial||initial.onboardingStep===3)return <PageLoading />;
  return <SetupEditor key={user.id} initial={initial} accountKey={user.id}/>;
 }
 function SetupEditor({initial,accountKey,preview=false}:{initial:Profile;accountKey:string;preview?:boolean}){

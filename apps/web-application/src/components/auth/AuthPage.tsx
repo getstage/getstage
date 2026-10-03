@@ -1,3 +1,4 @@
+import { PageLoading } from "@/components/shared/PageLoading";
 import { useEffect, useRef, useState } from "react";
 import { useSearch } from "@tanstack/react-router";
 import { Helmet } from "react-helmet-async";
@@ -61,7 +62,7 @@ export function AuthPage() {
       rememberDesktopRedirect(redirectTo);
     }
   }, [desktop_redirect_uri, desktop_state, redirectTo]);
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
   const signIn = useSignIn();
   const [step, setStep] = useState<Step>("email");
   const [authMode, setAuthMode] = useState<AuthMode>(mode ?? "signup");
@@ -82,8 +83,8 @@ export function AuthPage() {
     }
   }, [isAuthenticated, redirectTo]);
 
-  if (isAuthenticated) {
-    return null;
+  if (isLoading || isAuthenticated) {
+    return <PageLoading />;
   }
 
   function focusCodeInput(index: number) {

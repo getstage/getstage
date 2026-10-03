@@ -227,3 +227,30 @@ html.stage-landing-page:has(.integrated-profile),html.stage-landing-page body.pr
 .profile-page .profile-setup-card.profile-dialog #setup-bio::placeholder { color:#737373; opacity:1; }
 
 .blog-post-attribution{margin-top:16px;color:#737373;font:400 12px/18px Inter,sans-serif}
+
+/* Share and publication states use the same legible dialog hierarchy. */
+.profile-page .profile-dialog.profile-share-dialog { width:400px; padding:6px; overflow:auto; }
+.profile-page .profile-share-dialog .resource-modal-heading { padding:24px 24px 20px; }
+.profile-page .profile-share-dialog .resource-modal-heading h2 { font-size:18px; line-height:26px; font-weight:600; color:#171717; }
+.profile-page .profile-share-dialog .resource-modal-heading p { max-width:300px; margin:8px auto 0; color:#525252; font-size:13px; line-height:20px; text-wrap:pretty; }
+.profile-share-private-icon { display:grid; place-items:center; width:40px; height:40px; margin:0 auto 14px; border-radius:10px; background:#e7e6fd; color:#5147b3; }
+.profile-page .profile-share-dialog .resource-modal-body { padding:20px; }
+.profile-share-private-state { text-align:left; }
+.profile-share-status { display:flex; align-items:center; gap:7px; color:#525252; font-size:12px; line-height:18px; font-weight:500; }
+.profile-share-status > span { width:6px; height:6px; flex-shrink:0; border-radius:50%; background:#737373; }
+.profile-page .profile-share-private-state h3 { margin:14px 0 6px; color:#171717; font-size:14px; line-height:21px; font-weight:600; }
+.profile-page .profile-share-private-state p { margin:0; color:#404040; font-size:13px; line-height:20px; text-wrap:pretty; }
+.profile-share-private-state strong { font-weight:600; }
+.profile-page .profile-share-private-state .profile-share-privacy { margin-top:14px; padding-top:14px; border-top:1px solid #e5e5e5; color:#525252; font-size:12px; line-height:18px; }
+.profile-page .profile-share-dialog .resource-modal-actions { padding:10px 4px 4px; gap:8px; }
+.profile-page .profile-share-dialog .resource-modal-actions :is(button,a) { min-height:40px; font-size:13px; line-height:20px; }
+.profile-page .profile-share-dialog .resource-modal-primary { color:#fff; background:linear-gradient(#6b63d9,#463fba); }
+.profile-page .profile-share-dialog .resource-modal-secondary { color:#404040; }
+.profile-page .profile-share-dialog .form-note { color:#525252; font-size:12px; line-height:18px; }
+.profile-page .profile-dialog .profile-publish-toggle { padding:12px; border:1px solid #d4d4d4; border-radius:6px; background:#fafafa; gap:10px; cursor:pointer; }
+.profile-page .profile-dialog .profile-publish-toggle span { color:#262626; font-size:13px; line-height:20px; font-weight:500; }
+.profile-page .profile-dialog .profile-publish-toggle:has(input:checked) { border-color:#b8b2ef; background:#f3f1fd; }
+.profile-page .profile-dialog .profile-publish-toggle input { margin:0; }
+
+.profile-shell .profile-toolbar .profile-visibility { display:inline-flex; align-items:center; gap:6px; margin-left:0; color:#525252; white-space:nowrap; }
+.profile-shell .profile-toolbar .profile-visibility svg { flex-shrink:0; }

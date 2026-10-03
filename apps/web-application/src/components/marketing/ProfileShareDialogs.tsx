@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Gift } from "@phosphor-icons/react";
+import { Gift, LockSimple } from "@phosphor-icons/react";
 
 export function ProfileShareDialog({ reward = false, url, local, published, close, edit }: {
   reward?: boolean; url: string; local: boolean; published: boolean; close: () => void; edit: () => void;
@@ -18,12 +18,12 @@ export function ProfileShareDialog({ reward = false, url, local, published, clos
     try { await navigator.clipboard.writeText(url); setCopy("done"); }
     catch { setCopy("idle"); input.current?.focus(); input.current?.select(); setStatus("Copy the selected link manually."); }
   }
-  return <dialog ref={dialog} id={reward ? "claim-dialog" : "share-dialog"} className="resource-modal profile-dialog" onCancel={close} aria-labelledby="profile-dialog-title">
+  return <dialog ref={dialog} id={reward ? "claim-dialog" : "share-dialog"} className={`resource-modal profile-dialog ${reward ? "" : "profile-share-dialog"}`} onCancel={close} aria-labelledby="profile-dialog-title" aria-describedby="profile-dialog-description">
     <button className="resource-modal-close" onClick={close} aria-label="Close">×</button>
     <header className="resource-modal-heading">
-      {reward ? <span className="claim-reward-icon" aria-hidden="true"><Gift size={28} weight="duotone" /></span> : <span className="modal-glyph"><img src="/marketplace-assets/resources/share.svg" width="14" height="14" alt="" /></span>}
-      <h2 id="profile-dialog-title">{reward ? "Share your stack. Get a month free." : "Share profile"}</h2>
-      <p>{reward ? <>Share your profile on X,<br />then add your post link below.</> : <>Share your tools, skills and components<br />with friends and fellow builders.</>}</p>
+      {reward ? <span className="claim-reward-icon" aria-hidden="true"><Gift size={28} weight="duotone" /></span> : !canShare ? <span className="profile-share-private-icon" aria-hidden="true"><LockSimple size={22} weight="regular" /></span> : <span className="modal-glyph"><img src="/marketplace-assets/resources/share.svg" width="14" height="14" alt="" /></span>}
+      <h2 id="profile-dialog-title">{reward ? "Share your stack. Get a month free." : canShare ? "Share profile" : "Publish your profile"}</h2>
+      <p id="profile-dialog-description">{reward ? <>Share your profile on X,<br />then add your post link below.</> : canShare ? <>Share your tools, skills and components with friends and fellow builders.</> : "Make your profile public to share your collection."}</p>
     </header>
     {reward ? <form noValidate onSubmit={event => {
       event.preventDefault(); let parsed: URL | undefined;
@@ -42,12 +42,12 @@ export function ProfileShareDialog({ reward = false, url, local, published, clos
       </div>
       <div className="resource-modal-actions"><button className="resource-modal-primary" type="submit">Preview reward claim</button><button className="resource-modal-secondary" type="button" onClick={close}>Cancel</button></div>
     </form> : <>
-      <div className="resource-modal-body">{canShare ? <><label htmlFor="share-url">URL Link</label><input ref={input} id="share-url" type="url" value={url} readOnly onClick={event => event.currentTarget.select()} /><p className="form-note">{local ? "Prototype link · uses this browser’s saved profile." : "Anyone with this link can see your published profile."}</p></> : <p className="form-note">Publish your profile in Edit profile before sharing it.</p>}</div>
+      <div className="resource-modal-body">{canShare ? <><label htmlFor="share-url">URL Link</label><input ref={input} id="share-url" type="url" value={url} readOnly onClick={event => event.currentTarget.select()} /><p className="form-note">{local ? "Prototype link · uses this browser’s saved profile." : "Anyone with this link can see your published profile."}</p></> : <div className="profile-share-private-state"><span className="profile-share-status"><span aria-hidden="true" />Only you can see this profile</span><h3>Ready to share your stack?</h3><p>Review your details, enable <strong>Publish my profile and collection</strong>, then save your changes.</p><p className="profile-share-privacy">Your profile and selected contact links will be visible to anyone with the link.</p></div>}</div>
       <div className="resource-modal-actions">{canShare ? <>
         <button className={`resource-modal-primary ${copy === "done" ? "is-copied" : ""}`} type="button" disabled={copy === "busy"} aria-busy={copy === "busy"} onClick={() => void copyLink()}>
           <img src="/landing-preview/assets/icons/documents.svg" width="15" height="15" alt="" /><span className="copy-check" aria-hidden="true" hidden={copy !== "done"}><svg width="15" height="15" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="9" fill="white" /><path d="m6 10 2.5 2.5L14 7" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg></span><span>{copy === "done" ? "Copied" : copy === "busy" ? "Copying…" : "Copy Link"}</span>
         </button><a className="resource-modal-secondary" href={x} target="_blank" rel="noopener noreferrer">Share on X ↗</a>
-      </> : <button className="resource-modal-primary" onClick={edit}>Edit profile</button>}<button className="resource-modal-secondary" type="button" onClick={close}>Cancel</button></div>
+      </> : <button className="resource-modal-primary" type="button" onClick={edit}>Edit profile to publish</button>}<button className="resource-modal-secondary" type="button" onClick={close}>Cancel</button></div>
     </>}
     <p className="modal-status" role="status">{status}</p>
   </dialog>;

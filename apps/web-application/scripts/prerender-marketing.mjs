@@ -82,6 +82,12 @@ async function main() {
     const entry = await import(pathToFileURL(path.join(SSR_OUT, "prerender.js")).href);
     const template = await readFile(path.join(DIST, "index.html"), "utf8");
 
+    const loading = '<div class="stage-page-loading" role="status" aria-live="polite" aria-label="Loading Stage" aria-busy="true"><div class="stage-page-loading-content"><img src="/auth/signup-logo.svg" alt="" width="72" height="24" /><span class="stage-page-loading-ring" aria-hidden="true"></span><span class="stage-page-loading-label">Loading Stage…</span></div></div>';
+    const appShell = template.replace('<div id="root"></div>', `<div id="root">${loading}</div>`)
+      .replace(/<title>[^<]*<\/title>/, '<title>Stage</title>')
+      .replace(/<meta name="robots" content="[^"]*" \/>/, '<meta name="robots" content="noindex, nofollow" />');
+    await writeFile(path.join(DIST, "app-shell.html"), appShell);
+
     for (const pagePath of entry.marketingPaths) {
       const meta = entry.metaForPath(pagePath);
       if (!meta) throw new Error(`No metadata for ${pagePath}`);

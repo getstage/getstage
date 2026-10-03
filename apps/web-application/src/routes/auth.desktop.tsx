@@ -1,3 +1,4 @@
+import { PageLoading } from "@/components/shared/PageLoading";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Navigate, createFileRoute } from "@tanstack/react-router";
 import { useAuthToken } from "@convex-dev/auth/react";
@@ -286,6 +287,7 @@ function DesktopAuthStatus({
   label: string;
   onOpenStageDesktop?: () => void;
 }) {
+  if (!error && !isAwaitingOpen && !isComplete) return <PageLoading />;
   return (
     <>
       <Helmet>
