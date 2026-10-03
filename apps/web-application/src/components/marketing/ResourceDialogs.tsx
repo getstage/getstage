@@ -1,3 +1,4 @@
+import { closeOnDialogBackdrop } from "./dialogBackdrop";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { ShareNetwork, Copy, Check, BookmarkSimple } from "@phosphor-icons/react";
 import type { CatalogItem } from "./MarketplaceState";
@@ -9,11 +10,7 @@ export function ResourceDialog({ children, onClose, titleId }: { children: React
     dialog.showModal();
     return () => dialog.close();
   }, []);
-  return <dialog ref={ref} className="resource-modal" aria-labelledby={titleId} onCancel={onClose} onClick={event => {
-    if (event.target !== event.currentTarget) return;
-    const bounds = event.currentTarget.getBoundingClientRect();
-    if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) onClose();
-  }}>{children}</dialog>;
+  return <dialog ref={ref} className="resource-modal" aria-labelledby={titleId} onCancel={onClose} onClick={event => closeOnDialogBackdrop(event, onClose)}>{children}</dialog>;
 }
 
 export function ResourceShareDialog({ item, onClose }: { item: CatalogItem; onClose: () => void }) {

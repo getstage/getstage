@@ -244,7 +244,7 @@ html.stage-landing-page:has(.integrated-profile),html.stage-landing-page body.pr
 .profile-page .profile-share-private-state .profile-share-privacy { margin-top:14px; padding-top:14px; border-top:1px solid #e5e5e5; color:#525252; font-size:12px; line-height:18px; }
 .profile-page .profile-share-dialog .resource-modal-actions { padding:10px 4px 4px; gap:8px; }
 .profile-page .profile-share-dialog .resource-modal-actions :is(button,a) { min-height:40px; font-size:13px; line-height:20px; }
-.profile-page .profile-share-dialog .resource-modal-primary { color:#fff; background:linear-gradient(#6b63d9,#463fba); }
+.profile-page .profile-share-dialog .resource-modal-primary:not(.is-copied) { color:#fff; background:linear-gradient(#6b63d9,#463fba); }
 .profile-page .profile-share-dialog .resource-modal-secondary { color:#404040; }
 .profile-page .profile-share-dialog .form-note { color:#525252; font-size:12px; line-height:18px; }
 .profile-page .profile-dialog .profile-publish-toggle { padding:12px; border:1px solid #d4d4d4; border-radius:6px; background:#fafafa; gap:10px; cursor:pointer; }
@@ -254,3 +254,18 @@ html.stage-landing-page:has(.integrated-profile),html.stage-landing-page body.pr
 
 .profile-shell .profile-toolbar .profile-visibility { display:inline-flex; align-items:center; gap:6px; margin-left:0; color:#525252; white-space:nowrap; }
 .profile-shell .profile-toolbar .profile-visibility svg { flex-shrink:0; }
+
+/* One typography hierarchy for profile-editor labels, including fieldsets. */
+.profile-page .profile-dialog.profile-edit-dialog { font-family: Inter, Arial, sans-serif; }
+.profile-page .profile-dialog.profile-edit-dialog :is(h2, input, textarea, select, button) { font-family: inherit; }
+.profile-page .profile-dialog.profile-edit-dialog :is(.form-field > label, .profile-role-fields > legend, .profile-contact-fields > legend) {
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 20px;
+  color: #171717;
+  letter-spacing: 0;
+  margin: 0 0 8px;
+}
+.profile-page .profile-dialog.profile-edit-dialog :is(.role-summary-tag, .role-option) { font-family: inherit; font-weight: 500; }
+.profile-page .profile-dialog.profile-edit-dialog .setup-photo-field > label > span { font-weight: 400; color: #737373; }

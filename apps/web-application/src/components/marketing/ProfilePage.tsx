@@ -1,3 +1,4 @@
+import { closeOnDialogBackdrop } from "./dialogBackdrop";
 import { PageLoading } from "@/components/shared/PageLoading";
 import { readLocalProfile } from "./localProfile";
 import { technologyGroups } from "@/marketing/marketplace/technologies";
@@ -56,6 +57,7 @@ function Modal({
       id={title==="Remove from your profile?"?"remove-dialog":undefined}
       ref={ref}
       onCancel={close}
+      onClick={event => closeOnDialogBackdrop(event, close)}
       aria-label={title}
     >
       <button
@@ -76,7 +78,7 @@ function Modal({
 function ProfileConfirmationDialog({id,icon,title,description,label,busyLabel,busy,error,close,confirm}:{id:string;icon:ReactNode;title:string;description:string;label:string;busyLabel:string;busy:boolean;error?:string;close:()=>void;confirm:()=>void}) {
   const ref=useRef<HTMLDialogElement>(null);
   useEffect(()=>{const dialog=ref.current;dialog?.showModal();return ()=>dialog?.close()},[]);
-  return <dialog ref={ref} id={id} className="resource-modal profile-dialog profile-delete-dialog" aria-labelledby={`${id}-title`} aria-describedby={`${id}-description`} aria-busy={busy} onCancel={event=>{if(busy)event.preventDefault();else close()}}>
+  return <dialog ref={ref} id={id} className="resource-modal profile-dialog profile-delete-dialog" aria-labelledby={`${id}-title`} aria-describedby={`${id}-description`} aria-busy={busy} onClick={event=>{if(!busy)closeOnDialogBackdrop(event,close)}} onCancel={event=>{if(busy)event.preventDefault();else close()}}>
     <div className="profile-delete-content">
       {icon}
       <h2 id={`${id}-title`}>{title}</h2>

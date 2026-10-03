@@ -1,3 +1,4 @@
+import { closeOnDialogBackdrop } from "./dialogBackdrop";
 import { useEffect, useRef, useState } from "react";
 import { Gift, LockSimple } from "@phosphor-icons/react";
 
@@ -18,7 +19,7 @@ export function ProfileShareDialog({ reward = false, url, local, published, clos
     try { await navigator.clipboard.writeText(url); setCopy("done"); }
     catch { setCopy("idle"); input.current?.focus(); input.current?.select(); setStatus("Copy the selected link manually."); }
   }
-  return <dialog ref={dialog} id={reward ? "claim-dialog" : "share-dialog"} className={`resource-modal profile-dialog ${reward ? "" : "profile-share-dialog"}`} onCancel={close} aria-labelledby="profile-dialog-title" aria-describedby="profile-dialog-description">
+  return <dialog ref={dialog} id={reward ? "claim-dialog" : "share-dialog"} className={`resource-modal profile-dialog ${reward ? "" : "profile-share-dialog"}`} onCancel={close} onClick={event => closeOnDialogBackdrop(event, close)} aria-labelledby="profile-dialog-title" aria-describedby="profile-dialog-description">
     <button className="resource-modal-close" onClick={close} aria-label="Close">×</button>
     <header className="resource-modal-heading">
       {reward ? <span className="claim-reward-icon" aria-hidden="true"><Gift size={28} weight="duotone" /></span> : !canShare ? <span className="profile-share-private-icon" aria-hidden="true"><LockSimple size={22} weight="regular" /></span> : <span className="modal-glyph"><img src="/marketplace-assets/resources/share.svg" width="14" height="14" alt="" /></span>}
