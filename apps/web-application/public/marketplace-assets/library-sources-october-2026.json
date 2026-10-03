@@ -1,0 +1,155 @@
+{
+  "skiper-ui": {
+    "reviewed": "2026-10-03",
+    "officialUrl": "https://skiper-ui.com/",
+    "originalUrl": "https://skiper-ui.com/",
+    "icon": {
+      "path": "/marketplace-assets/libraries/skiper-ui.png",
+      "source": "https://skiper-ui.com/favicon.ico"
+    },
+    "preview": {
+      "path": "/marketplace-assets/library-previews/skiper-ui.webp",
+      "source": "https://skiper-ui.com/og-main.png",
+      "width": 1600,
+      "height": 889,
+      "kind": "official-social-image"
+    },
+    "toolkit": "V2"
+  },
+  "thinking-orbs": {
+    "reviewed": "2026-10-03",
+    "officialUrl": "https://libraries.dev/orbs",
+    "originalUrl": "https://orbs.jakubantalik.com/",
+    "icon": {
+      "path": "/marketplace-assets/libraries/thinking-orbs.svg",
+      "source": "https://libraries.dev/assets/favicon.svg"
+    },
+    "preview": {
+      "path": "/marketplace-assets/library-previews/thinking-orbs.webp",
+      "source": "https://libraries.dev/assets/og-image.jpg",
+      "width": 1200,
+      "height": 630,
+      "kind": "official-social-image"
+    },
+    "toolkit": "V2"
+  },
+  "liveline": {
+    "reviewed": "2026-10-03",
+    "officialUrl": "https://benji.org/liveline",
+    "originalUrl": "https://benji.org/liveline",
+    "icon": {
+      "path": "/marketplace-assets/libraries/liveline.png",
+      "source": "https://benji.org/icon.png?d947e0f888b5f2d2"
+    },
+    "preview": {
+      "path": "/marketplace-assets/library-previews/liveline.webp",
+      "source": "https://benji.org/liveline/opengraph-image-1pwbjb.png?4b54ed14c968bb60",
+      "width": 1600,
+      "height": 840,
+      "kind": "official-social-image"
+    },
+    "toolkit": "V2"
+  },
+  "obsidian-ui": {
+    "reviewed": "2026-10-03",
+    "officialUrl": "https://www.obsidianui.dev/",
+    "originalUrl": "https://www.obsidianui.dev/",
+    "icon": {
+      "path": "/marketplace-assets/libraries/obsidian-ui.png",
+      "source": "https://www.obsidianui.dev/icon.png?icon.21r691yu6nvep.png"
+    },
+    "preview": {
+      "path": "/marketplace-assets/library-previews/obsidian-ui.webp",
+      "source": "https://cdn-new.obsidianui.dev/og-image.png?v=3",
+      "width": 1600,
+      "height": 900,
+      "kind": "official-social-image"
+    },
+    "toolkit": "V3"
+  },
+  "originkit": {
+    "reviewed": "2026-10-03",
+    "officialUrl": "https://www.originkit.dev/",
+    "originalUrl": "https://www.originkit.dev/",
+    "icon": {
+      "path": "/marketplace-assets/libraries/originkit.png",
+      "source": "https://www.originkit.dev/icon-48.png?v=4"
+    },
+    "preview": {
+      "path": "/marketplace-assets/library-previews/originkit.webp",
+      "source": "https://www.originkit.dev/og-image.png?v=3",
+      "width": 1200,
+      "height": 630,
+      "kind": "official-social-image"
+    },
+    "toolkit": "V3"
+  },
+  "beautiful-ui": {
+    "reviewed": "2026-10-03",
+    "officialUrl": "https://www.beautifului.dev/",
+    "originalUrl": "https://www.beautifului.dev/",
+    "icon": {
+      "path": "/marketplace-assets/libraries/beautiful-ui.png",
+      "source": "https://www.beautifului.dev/icon.png?e85518666265c44d"
+    },
+    "preview": {
+      "path": "/marketplace-assets/library-previews/beautiful-ui.webp",
+      "source": "https://www.beautifului.dev/",
+      "width": 1265,
+      "height": 712,
+      "kind": "official-website-screenshot"
+    },
+    "toolkit": "V3"
+  },
+  "aicss": {
+    "reviewed": "2026-10-03",
+    "officialUrl": "https://www.aicss.dev/",
+    "originalUrl": "https://www.aicss.dev/",
+    "icon": {
+      "path": "/marketplace-assets/libraries/aicss.png",
+      "source": "https://www.aicss.dev/icon.png?icon.0s_ahcr4tnwbf.png?dpl=dpl_2i4AvWj1KnijAifxH98eoYXmKotC"
+    },
+    "preview": {
+      "path": "/marketplace-assets/library-previews/aicss.webp",
+      "source": "https://www.aicss.dev/opengraph-image.png?opengraph-image.2g73pb_oo_2he.png?dpl=dpl_2i4AvWj1KnijAifxH98eoYXmKotC",
+      "width": 1024,
+      "height": 537,
+      "kind": "official-social-image"
+    },
+    "toolkit": "V3"
+  },
+  "coss-ui": {
+    "reviewed": "2026-10-03",
+    "officialUrl": "https://coss.com/ui",
+    "originalUrl": "https://coss.com/ui",
+    "icon": {
+      "path": "/marketplace-assets/libraries/coss-ui.png",
+      "source": "https://coss.com/ui/favicon.ico?favicon.0o7l7iug-qg2i.ico"
+    },
+    "preview": {
+      "path": "/marketplace-assets/library-previews/coss-ui.webp",
+      "source": "https://coss.com/ui/opengraph-image.png?opengraph-image.0xa1qes_4_px0.png",
+      "width": 1600,
+      "height": 840,
+      "kind": "official-social-image"
+    },
+    "toolkit": "V3"
+  },
+  "componentry": {
+    "reviewed": "2026-10-03",
+    "officialUrl": "https://componentry.dev/",
+    "originalUrl": "https://componentry.dev/",
+    "icon": {
+      "path": "/marketplace-assets/libraries/componentry.svg",
+      "source": "https://componentry.dev/logo-new.svg"
+    },
+    "preview": {
+      "path": "/marketplace-assets/library-previews/componentry.webp",
+      "source": "https://componentry.dev/opengraph-image.png",
+      "width": 1200,
+      "height": 630,
+      "kind": "official-social-image"
+    },
+    "toolkit": "V3"
+  }
+}
