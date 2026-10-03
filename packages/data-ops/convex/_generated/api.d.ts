@@ -133,6 +133,7 @@ import type * as lib_projects_handlers_queries from "../lib/projects/handlers/qu
 import type * as lib_projects_handlers_ui from "../lib/projects/handlers/ui.js";
 import type * as lib_r2_domain from "../lib/r2/domain.js";
 import type * as lib_r2_handlers from "../lib/r2/handlers.js";
+import type * as lib_rewards_handlers from "../lib/rewards/handlers.js";
 import type * as lib_settings_githubImport from "../lib/settings/githubImport.js";
 import type * as lib_settings_handlers_index from "../lib/settings/handlers/index.js";
 import type * as lib_tasks_handlers_index from "../lib/tasks/handlers/index.js";
@@ -151,6 +152,7 @@ import type * as projectAi from "../projectAi.js";
 import type * as projects from "../projects.js";
 import type * as r2 from "../r2.js";
 import type * as readmodels_dashboardOverview from "../readmodels/dashboardOverview.js";
+import type * as rewards from "../rewards.js";
 import type * as settings from "../settings.js";
 import type * as tasks from "../tasks.js";
 import type * as userEmails from "../userEmails.js";
@@ -291,6 +293,7 @@ declare const fullApi: ApiFromModules<{
   "lib/projects/handlers/ui": typeof lib_projects_handlers_ui;
   "lib/r2/domain": typeof lib_r2_domain;
   "lib/r2/handlers": typeof lib_r2_handlers;
+  "lib/rewards/handlers": typeof lib_rewards_handlers;
   "lib/settings/githubImport": typeof lib_settings_githubImport;
   "lib/settings/handlers/index": typeof lib_settings_handlers_index;
   "lib/tasks/handlers/index": typeof lib_tasks_handlers_index;
@@ -309,6 +312,7 @@ declare const fullApi: ApiFromModules<{
   projects: typeof projects;
   r2: typeof r2;
   "readmodels/dashboardOverview": typeof readmodels_dashboardOverview;
+  rewards: typeof rewards;
   settings: typeof settings;
   tasks: typeof tasks;
   userEmails: typeof userEmails;

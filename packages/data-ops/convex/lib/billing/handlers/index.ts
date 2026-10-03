@@ -44,7 +44,7 @@ function resolveSeats(subscription: StripeSubscriptionSummary): number {
   return configForPriceId(subscription.priceId)?.includedSeats ?? 1;
 }
 
-type ViewerContext = {
+export type ViewerContext = {
   userId: Id<"users">;
   userIdString: string;
   email: string;
@@ -250,6 +250,17 @@ async function resolveUsableCustomerId(
   return fresh.customerId;
 }
 
+// The viewer's Stripe customer, created on first use. Checkout and reward promotion
+// codes share it, so a code locked to this customer is redeemable at checkout.
+export async function resolveCustomerId(ctx: ActionCtx, sdk: Stripe, viewer: ViewerContext) {
+  const customer = await stripe.getOrCreateCustomer(ctx, {
+    userId: viewer.userIdString,
+    email: viewer.email || undefined,
+    name: viewer.name || undefined,
+  });
+  return resolveUsableCustomerId(ctx, sdk, viewer, customer.customerId);
+}
+
 export async function createCheckoutSessionHandler(
   ctx: ActionCtx,
   args: {
@@ -270,12 +281,7 @@ export async function createCheckoutSessionHandler(
   const urls = getBillingUrls(args.platform);
   const sdk = new Stripe(requireEnv("STRIPE_SECRET_KEY"));
 
-  const customer = await stripe.getOrCreateCustomer(ctx, {
-    userId: viewer.userIdString,
-    email: viewer.email || undefined,
-    name: viewer.name || undefined,
-  });
-  const customerId = await resolveUsableCustomerId(ctx, sdk, viewer, customer.customerId);
+  const customerId = await resolveCustomerId(ctx, sdk, viewer);
 
   const baseMetadata: Record<string, string> = {
     scope: "stage_billing",
@@ -351,6 +357,8 @@ export async function createCheckoutSessionHandler(
     mode: "subscription",
     customer: customerId,
     line_items: [{ price: priceId, quantity: 1 }],
+    // Reward codes ("Share on X, get a month free") are entered here.
+    allow_promotion_codes: true,
     success_url: urls.successUrl,
     cancel_url: urls.cancelUrl,
     metadata: {

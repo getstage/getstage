@@ -273,3 +273,13 @@ html.stage-landing-page:has(.integrated-profile),html.stage-landing-page body.pr
 .resource-use-hint{margin:7px 0 5px;text-align:center;font:12px/18px Inter,sans-serif;color:#737373}
 
 .resource-modal-body.resource-use-panel{padding:12px;gap:8px}
+/* Reward claim prototype: reuses the compact profile modal and Stage controls. */
+.profile-page #claim-dialog .reward-icon-approved{background:#e7f4ec;color:#288653}
+.profile-page #claim-dialog .reward-icon-unrelated,.profile-page #claim-dialog .reward-icon-unavailable,.profile-page #claim-dialog .reward-icon-claimed,.profile-page #claim-dialog .reward-icon-unpublished{background:#fff1df;color:#a46b21}
+.profile-page .reward-checking{display:flex;align-items:center;gap:12px;min-height:86px;font-size:12px;color:#737373}
+.reward-progress{width:18px;height:18px;border:2px solid #e7e6fd;border-top-color:#6555cf;border-radius:50%;animation:reward-spin .8s linear infinite;flex-shrink:0}
+@keyframes reward-spin{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){.reward-progress{animation:none}}
+.profile-page .reward-code{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px;background:#f5f5f5;border-radius:6px}
+.reward-code code{font-size:14px;letter-spacing:.5px;color:#5147b3;user-select:all}
+.reward-code button{border:0;background:transparent;display:flex;padding:4px;color:#525252;cursor:pointer}
