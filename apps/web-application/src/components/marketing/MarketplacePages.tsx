@@ -1,3 +1,4 @@
+import { marketplaceIntroductions } from "@/marketing/marketplace/introductions";
 import { useState, useEffect, useRef, type MouseEvent } from "react";
 import { BookmarkSimple, Check } from "@phosphor-icons/react";
 import { MarketingLayout } from "./MarketingLayout";
@@ -169,24 +170,28 @@ function CategoryFilter({
 
 export function MarketplacePage({
   category = "Components",
+  overview = false,
 }: {
   category?: string;
+  overview?: boolean;
 }) {
+  const path = overview ? "/marketplace" : category === "Skills" ? "/skills" : category === "Tools" ? "/tools" : "/component-libraries";
+  const introduction = marketplaceIntroductions[path];
   return (
     <MarketingLayout
       bodyClass="marketplace-page resource-page"
-      title={`${category} — Stage Marketplace`}
-      description="Discover tools, skills and component libraries for your next project."
+      title={introduction.title}
+      description={introduction.description}
     >
       <ProfileBoundary>
         <SavedProvider>
-          <MarketplaceContent category={category} />
+          <MarketplaceContent category={category} introduction={introduction} />
         </SavedProvider>
       </ProfileBoundary>
     </MarketingLayout>
   );
 }
-function MarketplaceContent({ category }: { category: string }) {
+function MarketplaceContent({ category, introduction }: { category: string; introduction: { heading: string; subheading: string } }) {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("");
   const items = catalog.filter((item) => item.type === category);
@@ -200,9 +205,9 @@ function MarketplaceContent({ category }: { category: string }) {
   return (
     <div className="marketplace integrated-marketplace">
       <header className="market-heading">
-        <h1>Marketplace</h1>
+        <h1>{introduction.heading}</h1>
         <p>
-          Discover tools, skills and component libraries for your next project.
+          {introduction.subheading}
         </p>
       </header>
       <div className="market-toolbar">

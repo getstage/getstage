@@ -29,7 +29,7 @@ function setMeta(html, attr, key, value) {
 }
 
 function renderDocument(template, { meta, body, absoluteUrl }) {
-  const url = absoluteUrl(meta.path === "/marketplace" ? "/component-libraries" : meta.path);
+  const url = absoluteUrl(meta.path);
   const image = absoluteUrl(meta.image);
   let html = template;
   html = setTag(html, /<html lang="en">/, '<html lang="en" class="stage-landing-page">');

@@ -1,3 +1,4 @@
+import { marketplaceIntroductions, type MarketplacePath } from "./marketplace/introductions";
 import marketplaceCatalog from "./marketplace/catalog.json";
 import {
   blogPostPath,
@@ -95,19 +96,14 @@ export function metaForPath(path: string): PageMeta | null {
   const resource = marketplaceCatalog.find(item => "/" + item.id === path && item.type !== "Tools");
   const category = ({"/marketplace":"Marketplace","/component-libraries":"Component libraries","/skills":"Skills","/tools":"Tools"} as Record<string,string>)[path];
   if(resource || category) {
-    const descriptions:Record<string,string>={
-      '/marketplace':'Explore component libraries, design skills and AI tools for building websites and apps. Compare resources and save your stack to a Stage profile.',
-      '/component-libraries':'Explore React component libraries, animated UI, website blocks and charts. Find reusable components and save your favorites to your Stage profile.',
-      '/skills':'Discover design and coding skills for AI agents, from interface design to motion and frontend workflows. Build your personal skill collection on Stage.',
-      '/tools':'Compare AI coding, design and development tools for your next project. Explore the Stage tools directory and save your builder toolkit.'
-    };
+    const introduction = marketplaceIntroductions[path as MarketplacePath];
     const categoryPath=resource?.type==='Skills'?'/skills':'/component-libraries';
-    const title=resource?`${resource.name} — ${resource.type==='Skills'?'AI Design Skill':'Component Library'} | Stage`:`${category === 'Skills'?'AI Design & Coding Skills':category === 'Tools'?'AI Design & Development Tools':category} | Stage`;
-    const description=resource?`${resource.description} Explore ${resource.name} on Stage and save it to your profile.`:descriptions[path]!;
+    const title=resource?`${resource.name} — ${resource.type==='Skills'?'AI Design Skill':'Component Library'} | Stage`:introduction.title;
+    const description=resource?`${resource.description} Explore ${resource.name} on Stage and save it to your profile.`:introduction.description;
     const entries:Array<Record<string,unknown>>=[breadcrumb([{name:'Home',path:'/'},{name:resource?(resource.type==='Skills'?'Skills':'Component libraries'):category!,path:resource?categoryPath:path},...(resource?[{name:resource.name,path}]:[])])];
     if(resource)entries.push({'@type':'WebPage','@id':absoluteUrl(path)+'#webpage',url:absoluteUrl(path),name:title,description,about:{'@type':'CreativeWork',name:resource.name,description:resource.description,url:resource.officialUrl||absoluteUrl(path)}});
     else entries.push({'@type':'CollectionPage',url:absoluteUrl(path),name:title,description,mainEntity:{'@type':'ItemList',itemListElement:marketplaceCatalog.filter(item=>path==='/skills'?item.type==='Skills':path==='/tools'?item.type==='Tools':item.type==='Components').map((item,index)=>({'@type':'ListItem',position:index+1,name:item.name,url:absoluteUrl(item.url||item.officialUrl||path)}))}});
-    return {path,title,description,image:resource?.banner??DEFAULT_OG_IMAGE,type:'website',noIndex:path==='/marketplace',jsonLd:withContext(entries)};
+    return {path,title,description,image:resource?.banner??DEFAULT_OG_IMAGE,type:'website',noIndex:false,jsonLd:withContext(entries)};
   }
   if(path==='/'||path==='/download')return {path,title:path==='/'?'Stage | Think through your product before your AI builds it':'Download Stage for macOS | AI Product Design',description:path==='/'?'Work through research, strategy, visual direction, flows and wireframes in Stage for Mac. Export a Markdown brief for Cursor, Claude Code or Codex.':'Download Stage for macOS to research competitors, plan user flows and create design briefs for AI coding tools. Includes a 14-day free trial.',image:DEFAULT_OG_IMAGE,type:'website',noIndex:false,jsonLd:withContext([{'@type':'Organization','@id':absoluteUrl('/')+'#organization',name:SITE_NAME,url:absoluteUrl('/'),logo:absoluteUrl('/android-chrome-512x512.png')},{'@type':'WebSite','@id':absoluteUrl('/')+'#website',name:SITE_NAME,url:absoluteUrl('/')},{'@type':'WebPage',name:path==='/'?'Stage':'Download Stage for macOS',url:absoluteUrl(path)}])};
 
