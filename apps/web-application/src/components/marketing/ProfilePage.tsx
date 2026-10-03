@@ -670,7 +670,7 @@ export function ProfileView({
                     setDraft({ ...draft, published: e.target.checked })
                   }
                 />
-                Publish my profile and collection
+                <span>Publish my profile and collection</span>
               </label>
               <p className="form-note">
                 Published profiles show these details and contact links to
