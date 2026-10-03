@@ -173,3 +173,9 @@
 .menu-copy-compact { display: none; }
 .navigation.hero-download-visible .menu-copy-compact { display: inline; }
 .navigation.hero-download-visible .menu-copy-expanded { display: none; }
+
+/* The signed-in label needs more room in the compact homepage navigation. */
+@media (min-width: 768px) {
+  .navigation.hero-download-visible:has(.nav-row > .profile-nav-link) { width: 560px; }
+  .nav-row > .profile-nav-link { flex-shrink: 0; }
+}
