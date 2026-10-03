@@ -176,7 +176,7 @@
 
 /* The signed-in label needs more room in the compact homepage navigation. */
 @media (min-width: 768px) {
-  .navigation.hero-download-visible:has(.nav-row > .profile-nav-link) { width: 560px; }
+  .navigation.hero-download-visible:has(.nav-row > .profile-nav-link) { width: 588px; }
   .nav-row > .profile-nav-link { flex-shrink: 0; }
 }
 
@@ -187,3 +187,11 @@
   .navigation-without-download .nav-row { padding-right: 8px; }
   .navigation-without-download .nav-row:has(> .profile-nav-link) { padding-right: 20px; }
 }
+
+/* A single white identity icon keeps the account link easy to recognize. */
+.profile-nav-icon { width: 20px; height: 20px; flex: 0 0 20px; color: #fafafa; }
+.profile-nav-link { align-items: center; gap: 8px; }
+@media (min-width: 561px) {
+  .profile-nav-link { display: inline-flex; }
+}
+.mobile-menu-links .profile-nav-link { display: inline-flex; }

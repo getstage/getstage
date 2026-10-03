@@ -182,7 +182,6 @@ if (downloadStatus && config.installerUrl) {
   let target = 0;
   let loaded = false;
   let failed = false;
-  let blobUrl = null;
   let manualSeek = false;
   let pendingChapter = null;
   let primed = false;
@@ -198,11 +197,14 @@ if (downloadStatus && config.installerUrl) {
   async function loadVideo() {
     if (loaded || failed) return;
     loaded = true;
-    video.preload = 'metadata';
+    // Cold-cache visits need frame data, not just duration metadata.
+    video.preload = 'auto';
+    video.muted = true;
+    video.defaultMuted = true;
     video.load();
   }
   function primeVideo() {
-    if (primed || priming || failed || manualPlayback() || video.readyState < 2) return;
+    if (primed || priming || failed || manualPlayback() || video.readyState < 1) return;
     // A muted play/pause removes the poster and initializes the media decoder.
     // Some browsers otherwise ignore seeks until playback has started once.
     priming = video.play()
@@ -215,7 +217,7 @@ if (downloadStatus && config.installerUrl) {
       });
   }
   function seek() {
-    if (failed || document.hidden || (!primed && !manualPlayback()) || (manualPlayback() && !manualSeek) || video.readyState < 2 || video.seeking || !Number.isFinite(video.duration)) return;
+    if (failed || document.hidden || (manualPlayback() && !manualSeek) || video.readyState < 1 || video.seeking || !Number.isFinite(video.duration)) return;
     // Ask only for real encoded frames so tiny scroll changes do not trigger
     // redundant decoder work between frames.
     const time = Math.min(Math.round(target * frameRate) / frameRate, endTime());
@@ -311,6 +313,8 @@ if (downloadStatus && config.installerUrl) {
   });
   video.addEventListener('loadedmetadata', () => {
     if (pendingChapter !== null) selectStep(pendingChapter);
+    primeVideo();
+    if (manualSeek) seek(); else scheduleScroll();
   });
   video.addEventListener('loadeddata', () => {
     primeVideo();
@@ -324,7 +328,6 @@ if (downloadStatus && config.installerUrl) {
   window.addEventListener('resize', measure, {passive: true});
   window.addEventListener('pageshow', measure);
   document.addEventListener('visibilitychange', () => { if (document.hidden) video.pause(); else scheduleScroll(); });
-  window.addEventListener('pagehide', () => { if (blobUrl) URL.revokeObjectURL(blobUrl); }, {once:true});
   reduced.addEventListener('change', measure);
   mobile.addEventListener('change', measure);
   if ('ResizeObserver' in window) new ResizeObserver(measure).observe(demo);
