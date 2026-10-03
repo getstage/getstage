@@ -170,6 +170,9 @@ if (downloadStatus && config.installerUrl) {
   const video = track.querySelector('[data-export-film]');
   const steps = [...track.querySelectorAll('[data-export-step]')];
   const error = track.querySelector('[data-export-error]');
+  const loading = track.querySelector('[data-export-loading]');
+  const retry = track.querySelector('[data-export-retry]');
+  let mediaUrl = null;
   const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
   const mobile = window.matchMedia('(max-width: 767px)');
   const manualPlayback = () => reduced.matches;
@@ -197,12 +200,46 @@ if (downloadStatus && config.installerUrl) {
   async function loadVideo() {
     if (loaded || failed) return;
     loaded = true;
-    // Cold-cache visits need frame data, not just duration metadata.
-    video.preload = 'auto';
-    video.muted = true;
-    video.defaultMuted = true;
-    video.load();
+    error.hidden = true;
+    loading.hidden = false;
+    video.setAttribute('aria-busy', 'true');
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 45000);
+    try {
+      // This small scrub clip must be completely local: the static host does
+      // not honor byte-range requests, which stalls uncached Safari seeks.
+      const response = await fetch(video.dataset.exportSrc, {signal: controller.signal});
+      if (!response.ok) throw new Error('Export video request failed');
+      const blob = await response.blob();
+      if (!blob.size || !blob.type.startsWith('video/')) throw new Error('Invalid export video');
+      if (mediaUrl) URL.revokeObjectURL(mediaUrl);
+      mediaUrl = URL.createObjectURL(blob);
+      video.muted = true;
+      video.defaultMuted = true;
+      video.preload = 'auto';
+      video.src = mediaUrl;
+      video.load();
+    } catch {
+      showVideoError();
+    } finally {
+      clearTimeout(timeout);
+    }
   }
+  function showVideoError() {
+    failed = true;
+    loading.hidden = true;
+    error.hidden = false;
+    video.setAttribute('aria-busy', 'false');
+    measure();
+  }
+  retry.addEventListener('click', () => {
+    failed = false;
+    loaded = false;
+    primed = false;
+    priming = null;
+    measure();
+    loadVideo();
+  });
   function primeVideo() {
     if (primed || priming || failed || manualPlayback() || video.readyState < 1) return;
     // A muted play/pause removes the poster and initializes the media decoder.
@@ -268,7 +305,7 @@ if (downloadStatus && config.installerUrl) {
     track.style.setProperty('--export-demo-height', `${height}px`);
     track.style.setProperty('--export-travel', `${travel}px`);
     track.toggleAttribute('data-export-pinned', pinned);
-    video.controls = manualPlayback() || failed;
+    video.controls = manualPlayback() && !failed;
     if (reduced.matches) video.pause();
     scheduleScroll();
   }
@@ -317,12 +354,14 @@ if (downloadStatus && config.installerUrl) {
     if (manualSeek) seek(); else scheduleScroll();
   });
   video.addEventListener('loadeddata', () => {
+    loading.hidden = true;
+    video.setAttribute('aria-busy', 'false');
     primeVideo();
     if (manualSeek) seek(); else scheduleScroll();
   });
   video.addEventListener('seeked', seek);
   video.addEventListener('canplay', () => { primeVideo(); seek(); });
-  video.addEventListener('error', () => { failed = true; error.hidden = false; measure(); });
+  video.addEventListener('error', showVideoError);
   video.addEventListener('timeupdate', () => { if (manualPlayback()) showStep(video.currentTime); });
   window.addEventListener('scroll', scheduleScroll, {passive: true});
   window.addEventListener('resize', measure, {passive: true});
@@ -339,6 +378,7 @@ if (downloadStatus && config.installerUrl) {
   }
   if (document.fonts) document.fonts.ready.then(measure);
   track.setAttribute('data-export-enhanced', '');
+  loadVideo();
   measure();
 })();
 

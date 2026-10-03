@@ -344,7 +344,7 @@ export function ExportSection() {
                   controls
                   poster="/landing-preview/assets/stage-export-poster.jpg"
                   aria-label="Stage export demonstration: select Research, Strategy, Moodboard and Flows, export the Markdown files, open them in the AI workspace, and ask the agent to read AGENTS.md and build the product."
-                  src="/landing-preview/assets/stage-export-scroll.mp4"
+                  data-export-src="/landing-preview/assets/stage-export-scroll.mp4"
                 >
                   Watch the{" "}
                   <a href="/landing-preview/assets/stage-export-scroll.mp4">
@@ -352,8 +352,10 @@ export function ExportSection() {
                   </a>
                   .
                 </video>
-                <p className="export-video-error" data-export-error hidden>
+                <p className="export-video-loading" data-export-loading hidden role="status">Loading demonstration…</p>
+                <p className="export-video-error" data-export-error hidden role="status">
                   The video could not load.{" "}
+                  <button type="button" data-export-retry>Try again</button>{" · "}
                   <a href="/landing-preview/assets/stage-export-scroll.mp4">
                     Open the demonstration
                   </a>
