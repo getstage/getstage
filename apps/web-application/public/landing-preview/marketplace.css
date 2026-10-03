@@ -553,3 +553,9 @@
 
 .profile-page #claim-dialog .claim-reward-icon{display:flex;align-items:center;justify-content:center;width:44px;height:44px;margin:0 auto 14px;border-radius:12px;background:#e9e6ff}
 .profile-page #claim-dialog .claim-reward-icon img{display:block;width:28px;height:28px}
+
+/* Readable, category-specific introductions shared by marketplace directories. */
+.market-heading{margin-bottom:36px}
+.market-heading h1{max-width:900px;margin:0 0 14px;font-size:clamp(32px,3.4vw,44px);line-height:1.14;font-weight:500;letter-spacing:-.035em;text-wrap:balance}
+.market-heading p{max-width:720px;margin:0;font-size:17px;line-height:1.55;font-weight:400;color:#626262;text-wrap:pretty}
+@media(max-width:560px){.market-heading{margin-bottom:28px}.market-heading h1{margin-bottom:12px}.market-heading p{font-size:16px}}

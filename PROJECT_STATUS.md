@@ -156,3 +156,10 @@ Smoke included one chat session → engine stayed up (no idle shutdown in 0.1.56
 - The Mac download CTA is a native installer link. Route pending, account/profile/setup, auth session, invitation and desktop-connection loading use the shared Stage logo/spinner with reduced-motion support.
 - Verification: production build, SEO checks, page-shell routing regression checks, desktop browser inspection of auth/download, homepage-to-login navigation, and HTTP 200 responses for both installer architectures. Download layout inspected using its existing development-only preview; no account data changed.
 - Stage-specific Cloudflare API access is configured outside the repository. Testing deployment `c0289cd0-20ee-4673-9aba-02f99dd679b1` passed browser verification of the clean app shell, auth typography/contrast and artwork. Production release follows integration into `website`; deployment versions are recorded in Cloudflare.
+
+
+## Marketplace introductions and search visibility — 2026-10-03
+
+- User approved publishing the larger directory headings after reviewing local previews. Marketplace, Components, Skills and Tools now use concise, distinct headings and supporting copy, with shared responsive typography. Catalogs, navigation, filtering and save behavior are unchanged.
+- One content source supplies headings and page metadata. Marketplace now has its own canonical and indexing directive; all four directories are included in the sitemap. Prerendered and client metadata agree; existing CollectionPage, ItemList and breadcrumb structured data describe the rendered resources without added claims.
+- Validation: production build, SEO checks for 49 indexable pages, page-shell checks for 12 routes, Worker dry run, structured-list/card parity, and desktop/mobile browser inspection. Release is prepared on `codex/marketplace-headlines` from `website` at `1406777`.

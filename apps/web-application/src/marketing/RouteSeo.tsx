@@ -14,7 +14,7 @@ export function RouteSeo() {
    Object.entries(attributes).forEach(([key,value])=>element!.setAttribute(key,value));
   };
   set('meta[name="robots"]',{name:'robots',content:meta&&!meta.noIndex?'index, follow, max-image-preview:large':'noindex, follow'});
-  const canonical=absoluteUrl(pathname.replace(/\/+$/,'')==='/marketplace'?'/component-libraries':pathname.replace(/\/+$/,'')||'/');
+  const canonical=absoluteUrl(pathname.replace(/\/+$/,'')||'/');
   set('link[rel="canonical"]',{rel:'canonical',href:canonical});
   document.head.querySelectorAll('script[type="application/ld+json"]').forEach(el=>el.remove());
   if(!meta)return;
