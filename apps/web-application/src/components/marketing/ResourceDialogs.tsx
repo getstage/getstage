@@ -1,6 +1,6 @@
 import { closeOnDialogBackdrop } from "./dialogBackdrop";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { ShareNetwork, Copy, Check, BookmarkSimple } from "@phosphor-icons/react";
+import { ShareNetwork, Copy, Check, BookmarkSimple, SquaresFour, SignIn } from "@phosphor-icons/react";
 import type { CatalogItem } from "./MarketplaceState";
 
 export function ResourceDialog({ children, onClose, titleId }: { children: ReactNode; onClose: () => void; titleId: string }) {
@@ -30,4 +30,25 @@ export function ResourceShareDialog({ item, onClose }: { item: CatalogItem; onCl
 }
 export function ResourceSaveDialog({ item, href, onClose }: { item: CatalogItem; href: string; onClose: () => void }) {
   return <ResourceDialog titleId="save-title" onClose={onClose}><header className="resource-modal-heading"><span className="modal-glyph"><BookmarkSimple size={18}/></span><h2 id="save-title">Save {item.name} to your profile</h2><p>Log in to keep your favorite tools, skills<br/>and component libraries in one place.</p></header><div className="resource-modal-actions"><a className="resource-modal-primary" href={href}>Log in or create an account</a><button className="resource-modal-secondary" onClick={onClose}>Cancel</button></div></ResourceDialog>;
+}
+
+export function ResourceUseDialog({ item, authenticated, onClose }: { item: CatalogItem; authenticated: boolean; onClose: () => void }) {
+  const returnTo = `${item.url || "/component-libraries"}?use=1`;
+  return <ResourceDialog titleId="use-title" onClose={onClose}>
+    <button className="resource-modal-close" aria-label="Close" onClick={onClose}>×</button>
+    <header className="resource-modal-heading">
+      <span className="modal-glyph"><SquaresFour size={18}/></span>
+      <h2 id="use-title">Use {item.name} in Stage</h2>
+      <p>{authenticated ? "Bring this library into your next project with the Stage desktop app." : "Log in to use this component library inside Stage and start your next project."}</p>
+    </header>
+    <div className="resource-modal-body resource-modal-actions resource-use-panel">
+      {authenticated ? <>
+        <a className="resource-modal-primary" href="/download"><img src="/landing-preview/assets/icons/apple.svg" width={12} height={12} alt="" aria-hidden="true"/>Download Stage for free</a>
+        <p className="resource-use-hint">Already have Stage?<br/>Use this library in your next Stage project.</p>
+      </> : <>
+        <a className="resource-modal-primary" href={`/auth?mode=login&redirect=${encodeURIComponent(returnTo)}`}><SignIn size={15}/>Log in to Stage</a>
+        <button className="resource-modal-secondary" onClick={onClose}>Cancel</button>
+      </>}
+    </div>
+  </ResourceDialog>;
 }
