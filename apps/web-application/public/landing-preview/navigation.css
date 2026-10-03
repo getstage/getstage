@@ -179,3 +179,9 @@
   .navigation.hero-download-visible:has(.nav-row > .profile-nav-link) { width: 560px; }
   .nav-row > .profile-nav-link { flex-shrink: 0; }
 }
+
+/* The download page already provides its installer retry link. */
+@media (min-width: 768px) {
+  .navigation.navigation-without-download { width: 520px; }
+  .navigation-without-download .nav-row { padding-right: 8px; }
+}

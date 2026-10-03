@@ -50,3 +50,10 @@
 .download-page .footer-column>span{color:#262626}
 .download-page .footer-column a:hover,.download-page .footer-column button:hover{color:var(--purple)}
 .download-page dialog{color:#262626}
+
+#download-status a:hover,
+#download-status a:focus-visible {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+}
