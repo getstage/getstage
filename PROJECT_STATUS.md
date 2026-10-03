@@ -149,3 +149,10 @@ Smoke included one chat session → engine stayed up (no idle shutdown in 0.1.56
 - AI start: `AGENTS.md`
 
 - Profile visual audit: white page surface with gray footer, original compact collection markup and marketplace picker rows, 154px desktop profile offset, banner thumbnails and dialog styles restored. Removed stale 612px navbar override; desktop is 668px with Download fully contained. Browser verified at desktop and 375px. Original profile HTML and JavaScript recovered from stage-site; original standalone CSS files remain iCloud dataless, so styles were compared against the integrated copy.
+
+## Website auth, download and transition fixes — 2026-10-03
+
+- Branched from `website` at `94a962d3` for the user-authorized fix and deployment. Private page routes now receive a clean application shell instead of the prerendered homepage. Auth images remain static assets. Initial marketing stylesheet links are released when React takes ownership, restoring auth/download typography, contrast and artwork sizing.
+- The Mac download CTA is a native installer link. Route pending, account/profile/setup, auth session, invitation and desktop-connection loading use the shared Stage logo/spinner with reduced-motion support.
+- Verification: production build, SEO checks, page-shell routing regression checks, desktop browser inspection of auth/download, homepage-to-login navigation, and HTTP 200 responses for both installer architectures. Download layout inspected using its existing development-only preview; no account data changed.
+- Deployment remains blocked by Cloudflare access: the connected Limora account does not contain `stage-app-production`. Correct Stage hosting access is required. No production deployment has been made for these fixes.

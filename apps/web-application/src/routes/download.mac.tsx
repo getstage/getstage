@@ -1,3 +1,4 @@
+import { PageLoading } from "@/components/shared/PageLoading";
 import { Globe } from "@phosphor-icons/react";
 import { Navigate, createFileRoute } from "@tanstack/react-router";
 import { Helmet } from "react-helmet-async";
@@ -22,11 +23,7 @@ function DownloadMacPage() {
   const ctaEmail = user?.email ?? "your email";
 
   if (isLoading && !preview) {
-    return (
-      <div className="flex min-h-dvh items-center justify-center bg-white">
-        <span className="inline-block h-6 w-6 animate-spin rounded-full border-2 border-accent border-t-transparent" />
-      </div>
-    );
+    return <PageLoading />;
   }
 
   if (!isAuthenticated && !preview) {
@@ -67,16 +64,13 @@ function DownloadMacPage() {
                   performance, native controls, and your entire design workflow in one place.
                 </p>
                 <div className="mt-8 hidden w-full flex-col items-start gap-2 lg:flex">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      window.location.assign(resolveMacDownloadUrl());
-                    }}
+                  <a
+                    href={resolveMacDownloadUrl()}
                     className="inline-flex h-[38px] w-full cursor-pointer items-center justify-center rounded-[6px] border border-[#525252] bg-gradient-to-b from-[#404040] to-[#0A0A0A] px-3 text-[12px] font-semibold text-[#FAFAFA] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] transition-opacity hover:opacity-95"
                   >
                     <AppleIcon />
                     <span className="ml-2.5">Download for macOS</span>
-                  </button>
+                  </a>
                   <a
                     href={macOsDmgDownloadUrl("x64")}
                     className="text-[11px] font-medium text-[#737373] underline-offset-2 hover:text-[#525252] hover:underline"

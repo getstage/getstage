@@ -43,12 +43,14 @@ export default {
       return fetch(new Request(proxyUrl.toString(), request));
     }
 
-    const assetResponse = await env.ASSETS.fetch(request);
     const pathname = requestUrl.pathname;
+    const privatePage = !/\.[^/]+$/.test(pathname) && (/^\/(auth|profile|builders|setup-profile|billing|invite|dashboard|settings|project|new-project|portal)(\/|$)/.test(pathname) || pathname === '/download/mac' || pathname === '/download/mac/');
+    const assetUrl = new URL(requestUrl);
+    if (privatePage) assetUrl.pathname = "/app-shell";
+    const assetResponse = await env.ASSETS.fetch(privatePage ? new Request(assetUrl, request) : request);
     const headers=new Headers(assetResponse.headers);
     const publicMeta=metaForPath(pathname);
     const production=['getstage.co','www.getstage.co'].includes(requestUrl.hostname);
-    const privatePage=/^\/(auth|profile|builders|setup-profile|billing|invite|dashboard|settings|project|new-project|portal)(\/|$)/.test(pathname)||pathname.startsWith('/download/mac');
     if(!production||privatePage)headers.set('X-Robots-Tag','noindex, nofollow');
     // Unknown page URLs fall back to the SPA's index.html; real files (e.g. /blog/<id>.jpg) are served as-is.
     const isHtml=(assetResponse.headers.get('Content-Type')??'').startsWith('text/html');

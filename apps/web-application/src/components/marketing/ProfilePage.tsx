@@ -1,3 +1,4 @@
+import { PageLoading } from "@/components/shared/PageLoading";
 import { readLocalProfile } from "./localProfile";
 import { technologyGroups } from "@/marketing/marketplace/technologies";
 import { ProfileShareDialog } from "./ProfileShareDialogs";
@@ -109,7 +110,7 @@ function LocalProfile() {
 }
 function PublicProfile({ handle }: { handle: string }) {
   const profile = useQuery(profileApi.public, { handle });
-  if (profile === undefined) return <ProfileStatus text="Loading profile…" />;
+  if (profile === undefined) return <PageLoading />;
   if (!profile)
     return <ProfileStatus text="This profile is private or doesn't exist." />;
   return <ProfileView profile={profile} owner={false} />;
@@ -127,7 +128,7 @@ function ProfileStatus({ text }: { text: string }) {
 function OwnProfile() {
   const { user, isLoading, isAuthenticated } = useAuth();
   const profile = useQuery(profileApi.mine, isAuthenticated ? {} : "skip");
-  if (isLoading) return <ProfileStatus text="Loading your account…" />;
+  if (isLoading) return <PageLoading />;
   if (!user)
     return (
       <section className="profile-service-error">
@@ -148,7 +149,7 @@ function OwnProfile() {
       </section>
     );
   if (profile === undefined)
-    return <ProfileStatus text="Loading your profile…" />;
+    return <PageLoading />;
   return (
     <ProfileView
       profile={profile ?? { ...blank(user.name), handle: suggestedHandle(user.name) }}
