@@ -558,7 +558,7 @@ export function ProfileView({
           </div>
         </div>
         <aside>
-          {!publicMode&&localUpdate?<section className="reward"><span className="reward-icon"><Gift size={28} weight="duotone"/></span><h3>Share your stack.<br/>Get a month free.</h3><p>Share your profile on X.<br/>Get a month of Stage on us.</p><button id="reward" className="button button-primary" onClick={()=>setRewardOpen(true)}>Get a free month ↗</button></section>:<section className="visitor-cta">
+          {!publicMode?<section className="reward"><span className="reward-icon"><Gift size={28} weight="duotone"/></span><h3>Share your stack.<br/>Get a month free.</h3><p>Share your profile on X.<br/>Get a month of Stage on us.</p><button id="reward" className="button button-primary" onClick={()=>setRewardOpen(true)}>Get a free month ↗</button></section>:<section className="visitor-cta">
             <BookmarkSimple size={28} weight="duotone" />
             <h3>
               {publicMode
