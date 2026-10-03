@@ -183,7 +183,7 @@
 /* The download page already provides its installer retry link. */
 @media (min-width: 768px) {
   .navigation.navigation-without-download { width: 520px; }
-  .navigation.navigation-without-download:has(.nav-row > .profile-nav-link) { width: 560px; }
+  .navigation.navigation-without-download:has(.nav-row > .profile-nav-link) { width: 588px; }
   .navigation-without-download .nav-row { padding-right: 8px; }
   .navigation-without-download .nav-row:has(> .profile-nav-link) { padding-right: 20px; }
 }
