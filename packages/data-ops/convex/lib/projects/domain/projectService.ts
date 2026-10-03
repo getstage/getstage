@@ -18,6 +18,7 @@ import {
   recomputeProjectState,
 } from "../../../domain/projects/readModel";
 import { requireProjectAccessForUserId } from "../../../helpers/access/projectAccess";
+import { listActiveMembershipsForUser } from "../../../helpers/access/seatEntitlement";
 import { now } from "../../../helpers/time";
 
 export { requireProjectAccessForUserId };
@@ -167,10 +168,7 @@ async function resolveProjectOwnerForCreate(
     };
   }
 
-  const memberships = await ctx.db
-    .query("projectCollaborators")
-    .withIndex("by_user", (q) => q.eq("userId", actorId))
-    .collect();
+  const memberships = await listActiveMembershipsForUser(ctx, actorId);
   if (!memberships.some((membership) => membership.ownerUserId === spaceOwnerId)) {
     throw new Error("You do not have access to that workspace.");
   }

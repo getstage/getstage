@@ -1,6 +1,7 @@
 import type { Doc, Id } from "../../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../../_generated/server";
 import { getCurrentSubscriptionSnapshot } from "../../billing";
+import { isActiveMembership } from "./seatEntitlement";
 import { requireAuthUser } from "../auth/requireAuthUser";
 
 type ReaderCtx = QueryCtx | MutationCtx;
@@ -52,6 +53,9 @@ async function resolveProjectAccess(
   const ownerSubscription = await getCurrentSubscriptionSnapshot(ctx, String(project.userId));
   if (!ownerSubscription) {
     throw new Error("Not authorized. Project owner needs an active subscription.");
+  }
+  if (!(await isActiveMembership(ctx, membership))) {
+    throw new Error("Not authorized. This workspace is over its plan's seat limit.");
   }
 
   return { user: args.user, project, role: "editor" };

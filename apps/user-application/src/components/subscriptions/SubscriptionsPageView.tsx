@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, useSearch } from "@tanstack/react-router";
 import { useAction as useConvexAction } from "convex/react";
 import { api } from "@/lib/convexApi";
 import { toUserFacingErrorMessage } from "@/lib/errors";
@@ -45,6 +45,8 @@ const PLAN_FEATURES: Record<Tier, Array<{ iconSrc: string; label: string }>> = {
 
 export function SubscriptionsPageView() {
   const navigate = useNavigate();
+  const { from } = useSearch({ from: "/_authed/subscriptions" });
+  const teamOnly = from === "teams";
   const overview = useSettingsOverviewQuery();
   const createCheckoutSession = useConvexAction(api.billing.createCheckoutSession);
   const createCustomerPortalSession = useConvexAction(api.billing.createCustomerPortalSession);
@@ -63,7 +65,7 @@ export function SubscriptionsPageView() {
       window.history.back();
       return;
     }
-    void navigate({ to: "/settings/billing" });
+    void navigate({ to: teamOnly ? "/settings/team" : "/settings/billing" });
   }
 
   async function selectPlan(tier: Tier) {
@@ -133,12 +135,14 @@ export function SubscriptionsPageView() {
               <div className="flex flex-col gap-[20px] min-[720px]:flex-row min-[720px]:items-end min-[720px]:justify-between">
                 <div>
                   <h1 className="text-[21px] font-semibold leading-[1.2] text-[#0a0a0a]">
-                    Pick your Stage plan
+                    {teamOnly ? "Choose a team plan" : "Pick your Stage plan"}
                   </h1>
                   <p className="mt-[10px] text-[13px] font-medium leading-[1.5] text-[#525252]">
-                    {isSubscribed
-                      ? "Change plan anytime. Stripe handles proration on upgrades."
-                      : "14-day free trial. Card required, cancel anytime."}
+                    {teamOnly
+                      ? "Solo includes one seat. Studio and Agency let you invite team members."
+                      : isSubscribed
+                        ? "Change plan anytime. Stripe handles proration on upgrades."
+                        : "14-day free trial. Card required, cancel anytime."}
                   </p>
                   {isSubscribed ? (
                     <p className="mt-[8px] text-[12px] font-medium leading-[1.5] text-[#a3a3a3]">
@@ -168,29 +172,31 @@ export function SubscriptionsPageView() {
 
           <section className="mx-auto w-full rounded-[12px] bg-[#f5f5f5] p-[4px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
             <div className="flex flex-col gap-[4px] min-[900px]:flex-row">
-              <PlanCard
-                name="Solo"
-                price={isYearly ? 290 : 29}
-                pricePeriod={pricePeriod}
-                description="For individual product builders."
-                features={PLAN_FEATURES.start}
-                cta={planCta("start", currentPlan, isSubscribed)}
-                onCtaClick={() => selectPlan("start")}
-                ctaLoading={pendingTier === "start"}
-                ctaDisabled={pendingTier !== null || (isSubscribed && currentPlan === "start")}
-              />
+              {!teamOnly ? (
+                <PlanCard
+                  name="Solo"
+                  price={isYearly ? 290 : 29}
+                  pricePeriod={pricePeriod}
+                  description="For individual product builders."
+                  features={PLAN_FEATURES.start}
+                  cta={planCta("start", currentPlan, isSubscribed)}
+                  onCtaClick={() => selectPlan("start")}
+                  ctaLoading={pendingTier === "start"}
+                  ctaDisabled={pendingTier !== null || (isSubscribed && currentPlan === "start")}
+                />
+              ) : null}
               <PlanCard
                 name="Studio"
                 price={isYearly ? 990 : 99}
                 pricePeriod={pricePeriod}
                 description="For design teams collaborating on the same projects."
                 features={PLAN_FEATURES.pro}
-                cta={planCta("pro", currentPlan, isSubscribed)}
+                cta={teamOnly ? "Manage subscription" : planCta("pro", currentPlan, isSubscribed)}
                 popular
                 primary
-                onCtaClick={() => selectPlan("pro")}
-                ctaLoading={pendingTier === "pro"}
-                ctaDisabled={pendingTier !== null || (isSubscribed && currentPlan === "pro")}
+                onCtaClick={teamOnly ? () => void openManageSubscription() : () => selectPlan("pro")}
+                ctaLoading={teamOnly ? portalLoading : pendingTier === "pro"}
+                ctaDisabled={teamOnly ? portalLoading : pendingTier !== null || (isSubscribed && currentPlan === "pro")}
               />
               <PlanCard
                 name="Agency"
@@ -198,11 +204,11 @@ export function SubscriptionsPageView() {
                 pricePeriod={pricePeriod}
                 description="For agencies managing multiple client projects."
                 features={PLAN_FEATURES.team}
-                cta={planCta("team", currentPlan, isSubscribed)}
+                cta={teamOnly ? "Manage subscription" : planCta("team", currentPlan, isSubscribed)}
                 meta="Agency Plan"
-                onCtaClick={() => selectPlan("team")}
-                ctaLoading={pendingTier === "team"}
-                ctaDisabled={pendingTier !== null || (isSubscribed && currentPlan === "team")}
+                onCtaClick={teamOnly ? () => void openManageSubscription() : () => selectPlan("team")}
+                ctaLoading={teamOnly ? portalLoading : pendingTier === "team"}
+                ctaDisabled={teamOnly ? portalLoading : pendingTier !== null || (isSubscribed && currentPlan === "team")}
               />
             </div>
           </section>
@@ -212,7 +218,9 @@ export function SubscriptionsPageView() {
           ) : null}
 
           <p className="text-center text-[13px] font-medium leading-[1.5] text-[#737373]">
-            AI credits are pooled across each Studio or Agency workspace.
+            {teamOnly
+              ? "Manage your existing Solo subscription in Stripe to switch plans. No second subscription is created here."
+              : "AI credits are pooled across each Studio or Agency workspace."}
           </p>
         </div>
       </div>

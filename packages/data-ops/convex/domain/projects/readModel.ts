@@ -2,6 +2,7 @@ import type { Doc, Id } from "../../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../../_generated/server";
 import { getPhasesForProject, getPortalConfigByProjectId } from "../../_helpers";
 import { resolveAssetUrl } from "../../r2";
+import { listActiveMembershipsForUser } from "../../helpers/access/seatEntitlement";
 
 type ReaderCtx = QueryCtx | MutationCtx;
 
@@ -60,10 +61,7 @@ export async function listAccessibleProjectDocsForUser(
   // Projects shared via workspace membership: every project owned by a workspace
   // this user is an editor of. The owner's own projects always win over a shared
   // duplicate, so track roles by project id.
-  const memberships = await ctx.db
-    .query("projectCollaborators")
-    .withIndex("by_user", (q) => q.eq("userId", userId))
-    .collect();
+  const memberships = await listActiveMembershipsForUser(ctx, userId);
 
   const projectsById = new Map<
     Id<"projects">,

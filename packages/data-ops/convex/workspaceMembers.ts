@@ -17,6 +17,7 @@ import {
 } from "./domain/collaborators/service";
 import type { Id } from "./_generated/dataModel";
 import { resolveAssetUrl } from "./helpers/r2/resolve";
+import { listActiveMembershipsForUser } from "./helpers/access/seatEntitlement";
 
 // Workspace-native team API for Settings → Team. Every user owns exactly one
 // workspace (the projects they own + the members they invite); these operate on
@@ -66,10 +67,7 @@ async function resolveReadableSpaceOwner(
     return workspace.ownerUserId;
   }
   if (ownerUserId === userId) return ownerUserId;
-  const memberships = await ctx.db
-    .query("projectCollaborators")
-    .withIndex("by_user", (q) => q.eq("userId", userId))
-    .collect();
+  const memberships = await listActiveMembershipsForUser(ctx, userId);
   if (!memberships.some((membership) => membership.ownerUserId === ownerUserId)) {
     throw new Error("You do not have access to that workspace.");
   }
@@ -80,10 +78,7 @@ export const listSpaces = query({
   args: {},
   handler: async (ctx) => {
     const user = await requireAuthUser(ctx);
-    const memberships = await ctx.db
-      .query("projectCollaborators")
-      .withIndex("by_user", (q) => q.eq("userId", user._id))
-      .collect();
+    const memberships = await listActiveMembershipsForUser(ctx, user._id);
     const spaces: Array<{
       ownerUserId: string;
       name: string;
