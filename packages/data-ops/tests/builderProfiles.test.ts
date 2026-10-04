@@ -191,9 +191,8 @@ test("all nine new component libraries can be saved and reloaded", async () => {
   expect((await user.query(mine, {})).items).toEqual(ids);
 });
 
-test("Arc saves idempotently, survives a new session and appears on a published profile", async () => {
+test.each(["component-libraries/arc", "skills/logo-design"])("%s saves idempotently, survives a new session and appears on a published profile", async (itemId) => {
   const { t, id, user } = await setup();
-  const itemId = "component-libraries/arc";
   await user.mutation(save, { ...input, published: true });
   await user.mutation(setSaved, { itemId, saved: true });
   await user.mutation(setSaved, { itemId, saved: true });
@@ -204,10 +203,10 @@ test("Arc saves idempotently, survives a new session and appears on a published 
   expect((await user.query(mine, {})).items).toEqual([]);
 });
 
-test("Arc can be selected during profile setup", async () => {
+test.each(["component-libraries/arc", "skills/logo-design"])("%s can be selected during profile setup", async (itemId) => {
   const { user } = await setup();
   const saveStep = makeFunctionReference<"mutation">("builderProfiles:saveSetupStep");
-  const items = ["component-libraries/arc"];
+  const items = [itemId];
   await user.mutation(saveStep, { profile: input, step: 1, items });
   expect((await user.query(mine, {})).items).toEqual(items);
 });
