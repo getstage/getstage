@@ -838,5 +838,19 @@
     "bannerTitle": null,
     "bannerWidth": null,
     "bannerHeight": null
+  },
+  {
+    "id": "skills/logo-design",
+    "name": "Logo Design",
+    "type": "Skills",
+    "category": "Brand design",
+    "description": "From brand brief to tested SVG logos and identity guidelines",
+    "icon": "/marketplace-assets/resources/diamond.svg",
+    "banner": "/marketplace-assets/skill-banners/banner-2.png",
+    "url": "/skills/logo-design/",
+    "officialUrl": "https://github.com/kaankiziltug/logo-design-skill",
+    "bannerTitle": "Logo Design",
+    "bannerWidth": 1200,
+    "bannerHeight": 675
   }
 ]
