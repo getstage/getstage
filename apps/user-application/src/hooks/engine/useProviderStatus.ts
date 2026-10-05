@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useIsMutating, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type {
   ProviderId,
   ProviderListResponse,
@@ -74,6 +74,7 @@ export function useProviderUpdate() {
   const queryClient = useQueryClient();
 
   return useMutation({
+    mutationKey: engineQueryKeys.providerUpdate(),
     mutationFn: async (providerId: ProviderId) => {
       return desktop.engine.updateProvider(providerId);
     },
@@ -86,6 +87,8 @@ export function useProviderUpdate() {
 export function useProviderUpdates() {
   const { providerList } = useProviderStatus();
   const providerUpdate = useProviderUpdate();
+  // Global, so leaving Integrations during a long download keeps "Updating…" and blocks a second start.
+  const isUpdating = useIsMutating({ mutationKey: engineQueryKeys.providerUpdate() }) > 0;
 
   const providersWithUpdates = useMemo(
     () => providerList.providers.filter((provider) => provider.updateAvailable === true),
@@ -119,7 +122,7 @@ export function useProviderUpdates() {
 
   return {
     providersWithUpdates,
-    isUpdating: providerUpdate.isPending,
+    isUpdating,
     updateAll,
   };
 }
