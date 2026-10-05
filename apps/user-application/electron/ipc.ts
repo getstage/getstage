@@ -229,6 +229,8 @@ export function registerIpcHandlers({
       const status = await withDebugTiming("engine:update-provider sidecar-start", () =>
         sidecarSupervisor.start(),
       );
+      // A Codex download can take many minutes; keep the engine from idling out meanwhile.
+      sidecarSupervisor.holdIdleShutdown();
       const payload = await withDebugTiming("engine:update-provider fetch", () =>
         fetchEngineJson<unknown>({
           method: "POST",
@@ -236,7 +238,7 @@ export function registerIpcHandlers({
           port: status.port,
           timeoutMs: PROVIDER_UPDATE_TIMEOUT_MS,
         }),
-      );
+      ).finally(() => sidecarSupervisor.releaseIdleShutdown());
 
       return providerUpdateResponseSchema.parse(payload);
       }),

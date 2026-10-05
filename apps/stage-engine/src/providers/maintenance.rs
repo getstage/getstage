@@ -112,10 +112,14 @@ pub async fn resolve_update_command(spec: ProviderRuntimeSpec) -> UpdateCommand 
 // in `~/.codex/`, which `brew upgrade` cannot update.
 async fn resolve_install_source(spec: ProviderRuntimeSpec) -> Option<InstallSource> {
     let path = resolve_binary_path(spec.binary).await?;
-    let real_path = std::fs::canonicalize(&path)
+    Some(install_source_for_path(spec.id, &path))
+}
+
+fn install_source_for_path(provider_id: ProviderId, path: &str) -> InstallSource {
+    let real_path = std::fs::canonicalize(path)
         .map(|real| real.to_string_lossy().into_owned())
-        .unwrap_or(path);
-    Some(detect_install_source(spec.id, &real_path))
+        .unwrap_or_else(|_| path.to_string());
+    detect_install_source(provider_id, &real_path)
 }
 
 fn update_command_for(spec: ProviderRuntimeSpec, source: InstallSource) -> UpdateCommand {
@@ -301,7 +305,51 @@ fn version_parts(raw: &str) -> Option<[u64; 3]> {
 
 #[cfg(test)]
 mod tests {
-    use super::{InstallSource, ProviderId, detect_install_source, is_newer_version};
+    use super::{
+        InstallSource, ProviderId, detect_install_source, install_source_for_path, is_newer_version,
+    };
+
+    // A unique temp folder per test; removed at the end.
+    fn temp_root(name: &str) -> std::path::PathBuf {
+        let root = std::env::temp_dir().join(format!("stage-{name}-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        std::fs::create_dir_all(&root).unwrap();
+        root
+    }
+
+    fn link(target: &std::path::Path, link: &std::path::Path) {
+        std::fs::create_dir_all(target.parent().unwrap()).unwrap();
+        std::fs::write(target, "").unwrap();
+        std::fs::create_dir_all(link.parent().unwrap()).unwrap();
+        std::os::unix::fs::symlink(target, link).unwrap();
+    }
+
+    #[test]
+    fn homebrew_bin_link_to_native_codex_is_native() {
+        let root = temp_root("codex-native");
+        let bin = root.join("opt/homebrew/bin/codex");
+        link(
+            &root.join("home/.codex/packages/standalone/current/bin/codex"),
+            &bin,
+        );
+        assert_eq!(
+            install_source_for_path(ProviderId::Codex, bin.to_str().unwrap()),
+            InstallSource::Native
+        );
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn homebrew_bin_link_to_cask_is_homebrew() {
+        let root = temp_root("codex-cask");
+        let bin = root.join("opt/homebrew/bin/codex");
+        link(&root.join("opt/homebrew/Caskroom/codex/0.1.0/codex"), &bin);
+        assert_eq!(
+            install_source_for_path(ProviderId::Codex, bin.to_str().unwrap()),
+            InstallSource::Homebrew
+        );
+        std::fs::remove_dir_all(root).unwrap();
+    }
 
     #[test]
     fn detects_claude_native_path() {

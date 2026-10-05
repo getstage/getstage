@@ -24,11 +24,12 @@ enum BriefContent {
 }
 
 /// Adds the text of every uploaded brief file to `input.project_brief` and returns
-/// the uploaded images as attachments. Files that cannot be read are logged and skipped.
+/// the uploaded images as attachments. A file that cannot be read is logged and
+/// skipped; if none can be read, the run fails instead of ignoring the brief.
 pub async fn load_brief_files(
     input: &mut ResearchInput,
     r2_public_base_url: Option<&str>,
-) -> Vec<RunAttachment> {
+) -> Result<Vec<RunAttachment>, String> {
     let typed_brief = input.project_brief.take().filter(|brief| {
         !brief.trim().is_empty() && !brief.trim().starts_with(UPLOADED_BRIEF_PLACEHOLDER)
     });
@@ -60,19 +61,35 @@ pub async fn load_brief_files(
             }
             Ok(BriefContent::Image(bytes)) => {
                 match save_brief_file(key, &extension, &bytes).await {
-                    Ok(path) => attachments.push(RunAttachment {
-                        id: format!("research-brief-{index}"),
-                        kind: RunAttachmentKind::Image,
-                        name: None,
-                        url: None,
-                        mime_type: None,
-                        local_path: Some(path.to_string_lossy().into_owned()),
-                    }),
+                    Ok(path) => {
+                        let path = path.to_string_lossy().into_owned();
+                        // Codex receives the image directly; Claude only gets Read access,
+                        // so the prompt must point at the file.
+                        sections.push(format!(
+                            "--- Brief file {} (image) ---\nOpen and study this image: {path}",
+                            index + 1
+                        ));
+                        attachments.push(RunAttachment {
+                            id: format!("research-brief-{index}"),
+                            kind: RunAttachmentKind::Image,
+                            name: None,
+                            url: None,
+                            mime_type: None,
+                            local_path: Some(path),
+                        });
+                    }
                     Err(error) => tracing::warn!(key = %key, %error, "could not save brief image"),
                 }
             }
             Err(error) => tracing::warn!(key = %key, %error, "could not read brief file"),
         }
+    }
+
+    if sections.is_empty() && !input.uploaded_asset_ids.is_empty() {
+        return Err(
+            "None of the uploaded brief files could be read. Upload them again, or add the brief as text."
+                .to_string(),
+        );
     }
 
     input.project_brief = match (typed_brief, sections.is_empty()) {
@@ -85,7 +102,7 @@ pub async fn load_brief_files(
             sections.join("\n\n")
         )),
     };
-    attachments
+    Ok(attachments)
 }
 
 async fn read_brief_file(

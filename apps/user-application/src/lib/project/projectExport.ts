@@ -198,7 +198,7 @@ function collectAssets(
 // Placed right after "Read first" so agents adopt the selected library before they plan.
 const COMPONENT_LIBRARIES_RULES = `## Component libraries (mandatory)
 
-If \`skills.md\` lists component libraries, they are the UI kit for this project. This is a requirement, not a suggestion. They are public references: do not use Stage credentials or private storage.
+If \`skills.md\` lists component libraries, they are the UI kit for this project. This is a requirement, not a suggestion. They are public references: do not use Stage credentials or private storage. If several libraries are listed, the first one is the primary kit: use the others only for components it does not have.
 
 1. **Read the library docs before planning.** Open each library's documentation. If it offers machine-readable docs (llms.txt, a registry index, an MCP server, or an agent skill / SKILL.md), use and install those first.
 2. **Use the library's stack and install method.** Use the framework, install command and styling system the library documents (for example a shadcn registry, an npm package, CSS modules or Tailwind). Do not port the library to another framework or styling system unless the brief requires it.
@@ -220,10 +220,10 @@ Before writing code, include a component map: for each screen, list the library 
 
 function agentsMarkdown(
   exportedPaths: string[],
-  skillsMarkdown: string | null,
+  hasComponentLibraries: boolean,
   typeLabel: string,
 ) {
-  const componentLibrariesSection = skillsMarkdown ? `\n\n${COMPONENT_LIBRARIES_RULES}` : "";
+  const componentLibrariesSection = hasComponentLibraries ? `\n\n${COMPONENT_LIBRARIES_RULES}` : "";
   return `# AGENTS.md
 
 This folder is a Stage export: thinking and specification for this project. It is not a copy of the Stage application and is not a Git repository unless you initialize one. Treat the exported project material as the source of truth.
@@ -295,7 +295,9 @@ function skillsMarkdown(
   const lines = [
     "# Skills and component libraries",
     "",
-    "Public references selected for this Stage export. Use these as the UI kit. Do not hand-roll replacements. Before planning, open each library's docs and use its machine-readable docs (llms.txt, registry, MCP server or agent skill) and documented install command. Do not expect Stage R2 credentials or private file URLs.",
+    packs.length > 0
+      ? "Public references selected for this Stage export. The component libraries are the UI kit: do not hand-roll replacements. Before planning, open each library's docs and use its machine-readable docs (llms.txt, registry, MCP server or agent skill) and documented install command. Do not expect Stage R2 credentials or private file URLs."
+      : "Public references selected for this Stage export. Apply these skills while implementing. Do not expect Stage R2 credentials or private file URLs.",
   ];
 
   if (skills.length > 0) {
@@ -314,7 +316,7 @@ function skillsMarkdown(
   }
 
   lines.push("");
-  return lines.join("\n");
+  return { markdown: lines.join("\n"), hasComponentLibraries: packs.length > 0 };
 }
 
 export function buildProjectExport(input: BuildProjectExportInput) {
@@ -397,7 +399,7 @@ export function buildProjectExport(input: BuildProjectExportInput) {
   if (catalogMarkdown) {
     files.push({
       relativePath: "skills.md",
-      content: catalogMarkdown,
+      content: catalogMarkdown.markdown,
     });
   }
   const readFirst = catalogMarkdown
@@ -407,7 +409,11 @@ export function buildProjectExport(input: BuildProjectExportInput) {
     : exportedPaths;
   files.unshift({
     relativePath: "AGENTS.md",
-    content: agentsMarkdown(readFirst, catalogMarkdown, input.project.typeLabel),
+    content: agentsMarkdown(
+      readFirst,
+      catalogMarkdown?.hasComponentLibraries ?? false,
+      input.project.typeLabel,
+    ),
   });
   return {
     files,

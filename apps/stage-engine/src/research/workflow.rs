@@ -126,7 +126,9 @@ impl ResearchWorkflow {
                 .fetch_research_input(&auth_token, project_id)
                 .await?;
             let brief_images =
-                load_brief_files(&mut input, self.r2_public_base_url.as_deref()).await;
+                load_brief_files(&mut input, self.r2_public_base_url.as_deref())
+                .await
+                .map_err(WorkflowError::InvalidRequest)?;
             request.attachments.extend(brief_images);
             tracing::info!(
                 run_id = %run_id,
@@ -464,7 +466,9 @@ impl ResearchWorkflow {
             .repository
             .fetch_research_input(auth_token, project_id)
             .await?;
-        let brief_images = load_brief_files(&mut input, self.r2_public_base_url.as_deref()).await;
+        let brief_images = load_brief_files(&mut input, self.r2_public_base_url.as_deref())
+            .await
+            .map_err(WorkflowError::InvalidRequest)?;
         request.attachments.extend(brief_images);
         request.prompt = if section == "opportunities" {
             build_opportunities_prompt(&artifact, &input)
