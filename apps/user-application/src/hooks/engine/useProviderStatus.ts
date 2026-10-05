@@ -94,14 +94,14 @@ export function useProviderUpdates() {
 
   const updateAll = useCallback(
     async (hooks?: {
-      onStart?: (providerLabel: string, commandHint?: string) => void;
+      onStart?: (providerLabel: string) => void;
       onResult?: (
         providerLabel: string,
         result: Awaited<ReturnType<typeof providerUpdate.mutateAsync>>,
       ) => void;
     }) => {
       for (const provider of providersWithUpdates) {
-        hooks?.onStart?.(provider.label, provider.updateHint ?? undefined);
+        hooks?.onStart?.(provider.label);
         const result = await providerUpdate.mutateAsync(provider.id);
         hooks?.onResult?.(provider.label, result);
         if (result.status === "failed") {

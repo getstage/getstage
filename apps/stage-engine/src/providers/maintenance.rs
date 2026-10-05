@@ -90,8 +90,7 @@ async fn sense_update_available_uncached(
     spec: ProviderRuntimeSpec,
     installed: &str,
 ) -> Option<bool> {
-    let path = resolve_binary_path(spec.binary).await?;
-    let source = detect_install_source(spec.id, &path);
+    let source = resolve_install_source(spec).await?;
     let latest = fetch_latest_version(spec, source).await?;
     Some(is_newer_version(&latest, installed))
 }
@@ -103,12 +102,20 @@ pub fn invalidate_sense_cache(provider_id: ProviderId) {
 }
 
 pub async fn resolve_update_command(spec: ProviderRuntimeSpec) -> UpdateCommand {
-    let path = resolve_binary_path(spec.binary).await;
-    let source = path
-        .as_deref()
-        .map(|path| detect_install_source(spec.id, path))
+    let source = resolve_install_source(spec)
+        .await
         .unwrap_or(InstallSource::Unknown);
     update_command_for(spec, source)
+}
+
+// Follow symlinks first: `/opt/homebrew/bin/codex` can point at a native install
+// in `~/.codex/`, which `brew upgrade` cannot update.
+async fn resolve_install_source(spec: ProviderRuntimeSpec) -> Option<InstallSource> {
+    let path = resolve_binary_path(spec.binary).await?;
+    let real_path = std::fs::canonicalize(&path)
+        .map(|real| real.to_string_lossy().into_owned())
+        .unwrap_or(path);
+    Some(detect_install_source(spec.id, &real_path))
 }
 
 fn update_command_for(spec: ProviderRuntimeSpec, source: InstallSource) -> UpdateCommand {
