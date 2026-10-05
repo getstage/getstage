@@ -204,8 +204,9 @@ export function styleGuideMarkdown(artifact: MoodboardArtifact, projectCategory:
     lines.push("", "### Typography", "", `Primary font: **${guide.typography.fontFamily}**`);
     if (guide.typography.fontFamilies.length) lines.push("", `Fallback/additional fonts: ${guide.typography.fontFamilies.join(", ")}`);
     if (guide.typography.rows.length) {
-      lines.push("", "| Style ID | Sample | Size | Weight | Line height | Implementation class |", "|---|---|---:|---|---|---|", ...guide.typography.rows.map(
-        (row) => `| \`${clean(row.id)}\` | ${clean(row.sampleText ?? "Text style")} | ${row.size}px | ${clean(row.weight)} | ${clean(row.lineHeight)} | \`${clean(row.className)}\` |`,
+      // Framework-neutral values: a component library's own styling system applies them.
+      lines.push("", "| Style ID | Sample | Size | Weight | Line height |", "|---|---|---:|---|---|", ...guide.typography.rows.map(
+        (row) => `| \`${clean(row.id)}\` | ${clean(row.sampleText ?? "Text style")} | ${row.size}px | ${clean(row.weight)} | ${clean(row.lineHeight)} |`,
       ));
     }
     if (guide.implementationNotes.length) {
