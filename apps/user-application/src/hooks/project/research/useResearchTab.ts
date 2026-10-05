@@ -1,4 +1,5 @@
 import { useCallback, useState } from "react";
+import { useMutation } from "@tanstack/react-query";
 import type { ProviderId } from "@stage/data-ops/contracts";
 import type { ValidatedResearchConfigureInput } from "@/lib/project/researchConfigureInput";
 import type { Project } from "@/models/project/project";
@@ -15,8 +16,16 @@ export function useResearchTab(project: Pick<Project, "id" | "name" | "clientNam
     useSaveResearchContext(projectId);
   const [saveError, setSaveError] = useState<string | null>(null);
 
-  const startResearch = useCallback(
-    async (input?: ValidatedResearchConfigureInput, providerId?: ProviderId) => {
+  // One mutation for "save context (uploads brief files) + start the run", so
+  // isPending covers the whole wait and the tab never shows a stale screen.
+  const start = useMutation({
+    mutationFn: async ({
+      input,
+      providerId,
+    }: {
+      input?: ValidatedResearchConfigureInput;
+      providerId?: ProviderId;
+    }) => {
       if (!input || !providerId) {
         throw new Error("Configure Research before running.");
       }
@@ -34,7 +43,11 @@ export function useResearchTab(project: Pick<Project, "id" | "name" | "clientNam
 
       await researchRun.startResearch(providerId);
     },
-    [researchRun, saveResearchContext],
+  });
+  const startResearch = useCallback(
+    (input?: ValidatedResearchConfigureInput, providerId?: ProviderId) =>
+      start.mutateAsync({ input, providerId }),
+    [start],
   );
 
   return {
@@ -47,7 +60,7 @@ export function useResearchTab(project: Pick<Project, "id" | "name" | "clientNam
     startResearch,
     cancelResearch: researchRun.cancelResearch,
     isRunning: researchRun.isRunning,
-    isStarting: researchRun.isStarting,
+    isStarting: start.isPending || researchRun.isStarting,
     elapsedSeconds: researchRun.elapsedSeconds,
     lastRunDurationSeconds: researchRun.lastRunDurationSeconds,
     error: saveError ?? researchRun.error,
