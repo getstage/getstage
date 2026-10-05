@@ -25,7 +25,8 @@ enum BriefContent {
 
 /// Adds the text of every uploaded brief file to `input.project_brief` and returns
 /// the uploaded images as attachments. A file that cannot be read is logged and
-/// skipped; if none can be read, the run fails instead of ignoring the brief.
+/// skipped; if none can be read and there is no typed brief, the run fails
+/// instead of researching without a brief.
 pub async fn load_brief_files(
     input: &mut ResearchInput,
     r2_public_base_url: Option<&str>,
@@ -85,7 +86,8 @@ pub async fn load_brief_files(
         }
     }
 
-    if sections.is_empty() && !input.uploaded_asset_ids.is_empty() {
+    // Fail only when there is no usable brief at all; typed text alone is enough.
+    if sections.is_empty() && typed_brief.is_none() && !input.uploaded_asset_ids.is_empty() {
         return Err(
             "None of the uploaded brief files could be read. Upload them again, or add the brief as text."
                 .to_string(),
