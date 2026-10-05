@@ -152,7 +152,8 @@ export function useWireframesRun(projectId: string) {
   }, [terminalEvent]);
 
   useEffect(() => {
-    if (persistedRunningRun && runStartedAtRef.current === null) {
+    // The saved run's start time wins over a local "now" set before it loaded.
+    if (persistedRunningRun) {
       runStartedAtRef.current = persistedRunningRun.startedAt;
     }
   }, [persistedRunningRun]);
