@@ -3,6 +3,7 @@ use std::time::Instant;
 
 use crate::convex_store::wireframes_repository::WireframesRepository;
 use crate::helpers::provider_json::extract_wireframes_artifact;
+use crate::helpers::r2_files::{extension_from_key, fetch_bytes, r2_object_url};
 use crate::helpers::time::now_millis;
 use crate::models::errors::{EngineError, EngineErrorCode};
 use crate::models::providers::ProviderId;
@@ -343,12 +344,12 @@ impl WireframesWorkflow {
 
         let mut attachments = Vec::new();
         for (index, key) in keys.iter().take(MAX_BRAND_KIT_FILES).enumerate() {
-            let Some(url) = resolve_brand_kit_url(key, self.r2_public_base_url.as_deref()) else {
+            let Some(url) = r2_object_url(key, self.r2_public_base_url.as_deref()) else {
                 tracing::warn!(key = %key, "could not resolve brand kit url");
                 continue;
             };
 
-            let bytes = match fetch_url_bytes(&url).await {
+            let bytes = match fetch_bytes(&url).await {
                 Ok(bytes) => bytes,
                 Err(error) => {
                     tracing::warn!(url = %url, %error, "could not fetch brand kit file");
@@ -384,65 +385,11 @@ impl WireframesWorkflow {
     }
 }
 
-fn resolve_brand_kit_url(key: &str, r2_public_base_url: Option<&str>) -> Option<String> {
-    let trimmed = key.trim();
-    // Default-deny: accept only a relative R2 object key, never a caller-supplied URL,
-    // absolute path, or traversal. Otherwise a run could make the local engine fetch
-    // arbitrary or internal network URLs (SSRF).
-    if trimmed.is_empty()
-        || trimmed.contains("://")
-        || trimmed.starts_with('/')
-        || trimmed.contains("..")
-    {
-        return None;
-    }
-
-    let base = r2_public_base_url
-        .filter(|base| !base.trim().is_empty())?
-        .trim_end_matches('/');
-    Some(format!("{base}/{trimmed}"))
-}
-
-fn extension_from_key(key: &str) -> &str {
-    key.rsplit('/')
-        .next()
-        .and_then(|name| name.rsplit_once('.'))
-        .map(|(_, ext)| ext)
-        .filter(|ext| {
-            !ext.is_empty() && ext.len() <= 5 && ext.chars().all(|c| c.is_ascii_alphanumeric())
-        })
-        .unwrap_or("bin")
-}
-
 fn brand_kit_attachment_kind(extension: &str) -> RunAttachmentKind {
     match extension.to_ascii_lowercase().as_str() {
         "jpg" | "jpeg" | "png" | "webp" | "gif" | "svg" => RunAttachmentKind::Image,
         _ => RunAttachmentKind::Document,
     }
-}
-
-async fn fetch_url_bytes(url: &str) -> Result<Vec<u8>, WorkflowError> {
-    let response = reqwest::Client::builder()
-        .redirect(reqwest::redirect::Policy::limited(3))
-        .build()
-        .map_err(|error| {
-            WorkflowError::InvalidRequest(format!("Could not prepare brand kit fetch: {error}"))
-        })?
-        .get(url)
-        .send()
-        .await
-        .map_err(|error| {
-            WorkflowError::InvalidRequest(format!("Could not fetch brand kit file: {error}"))
-        })?
-        .error_for_status()
-        .map_err(|error| {
-            WorkflowError::InvalidRequest(format!("Brand kit fetch failed: {error}"))
-        })?;
-
-    let bytes = response.bytes().await.map_err(|error| {
-        WorkflowError::InvalidRequest(format!("Could not read brand kit bytes: {error}"))
-    })?;
-    Ok(bytes.to_vec())
 }
 
 fn keep_selected_generated_screens(

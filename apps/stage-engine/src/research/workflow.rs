@@ -15,6 +15,7 @@ use crate::providers::adapter::{ProviderRunContext, run_provider_collect};
 use crate::providers::process::{ProviderProcessError, ProviderProcessOutcome};
 use crate::providers::service::assert_provider_ready_for_run;
 use crate::refero::service::ReferoService;
+use crate::research::brief_files::load_brief_files;
 use crate::research::competitive::filter_competitive_analysis;
 use crate::research::prompt::build_research_prompt;
 use crate::research::refero_assets::{
@@ -37,6 +38,7 @@ pub struct ResearchWorkflow {
     secrets: AppSecretsRepository,
     research: ResearchService,
     details: DetailsService,
+    r2_public_base_url: Option<String>,
 }
 
 struct SectionRegenerateContext<'a> {
@@ -54,12 +56,14 @@ impl ResearchWorkflow {
         secrets: AppSecretsRepository,
         research: ResearchService,
         details: DetailsService,
+        r2_public_base_url: Option<String>,
     ) -> Self {
         Self {
             repository,
             secrets,
             research,
             details,
+            r2_public_base_url,
         }
     }
 
@@ -117,13 +121,17 @@ impl ResearchWorkflow {
                 "Load Stage project context",
             );
             tracing::info!(run_id = %run_id, project_id, "loading research input from Convex");
-            let input = self
+            let mut input = self
                 .repository
                 .fetch_research_input(&auth_token, project_id)
                 .await?;
+            let brief_images =
+                load_brief_files(&mut input, self.r2_public_base_url.as_deref()).await;
+            request.attachments.extend(brief_images);
             tracing::info!(
                 run_id = %run_id,
                 project_id,
+                brief_files = input.uploaded_asset_ids.len(),
                 competitor_count = input.competitor_urls.len(),
                 competitive_targets = ?crate::research::competitive::allowed_competitive_targets(&input),
                 "loaded research input"
@@ -452,10 +460,12 @@ impl ResearchWorkflow {
                 )
             })?;
 
-        let input = self
+        let mut input = self
             .repository
             .fetch_research_input(auth_token, project_id)
             .await?;
+        let brief_images = load_brief_files(&mut input, self.r2_public_base_url.as_deref()).await;
+        request.attachments.extend(brief_images);
         request.prompt = if section == "opportunities" {
             build_opportunities_prompt(&artifact, &input)
         } else {

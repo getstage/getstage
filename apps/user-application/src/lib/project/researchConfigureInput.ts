@@ -124,7 +124,8 @@ const industryValueSchema = z
 export const validatedResearchConfigureInputSchema = z.object({
   industry: industryValueSchema,
   website: optionalWebsiteValueSchema.optional(),
-  projectBrief: z.string().trim().min(1).max(MAX_BRIEF_LENGTH),
+  // Empty when only brief files were uploaded; the engine reads the files.
+  projectBrief: z.string().trim().max(MAX_BRIEF_LENGTH).optional(),
   competitorUrls: z.array(websiteValueSchema.transform(normalizeWebsite)).max(MAX_COMPETITORS),
   detailsSections: z.array(detailsSectionSchema).min(1),
   additionalNotes: z.string().trim().min(1).max(MAX_NOTES_LENGTH).optional(),
@@ -193,9 +194,7 @@ export function validateResearchConfigureForm(
     return { success: false, errors };
   }
 
-  const projectBrief = hasBriefText
-    ? briefText
-    : `[Uploaded brief: ${values.briefFileNames.join(", ") || values.briefAttachments.map((file) => file.name).join(", ")}]`;
+  const projectBrief = hasBriefText ? briefText : undefined;
 
   try {
     const data = validatedResearchConfigureInputSchema.parse({

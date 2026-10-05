@@ -51,6 +51,7 @@ impl AppState {
             AppSecretsRepository::new(&config.convex),
             ResearchService::new(refero.clone()),
             details,
+            config.r2_public_base_url.clone(),
         ));
         let moodboard = Arc::new(MoodboardWorkflow::new(
             MoodboardRepository::new(&config.convex),

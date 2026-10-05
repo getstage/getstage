@@ -33,7 +33,8 @@ export function useResearchContext(projectId: string | undefined) {
     return {
       industry: record.industry ?? "",
       website: record.clientWebsite ?? "",
-      projectBrief: record.brief ?? "",
+      // Older versions saved "[Uploaded brief: …]" as the brief text.
+      projectBrief: record.brief?.startsWith("[Uploaded brief:") ? "" : (record.brief ?? ""),
       additionalNotes: record.notes ?? "",
       competitorUrls: record.competitorUrls ?? [],
       detailsSections: record.detailsSections ?? DEFAULT_RESEARCH_CONFIGURE_FORM_VALUES.detailsSections,

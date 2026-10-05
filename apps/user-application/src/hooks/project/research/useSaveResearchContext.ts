@@ -52,7 +52,7 @@ export function useSaveResearchContext(projectId: string) {
           competitorUrls: input.competitorUrls,
           detailsSections: input.detailsSections,
           referenceUrls: [],
-          brief: input.projectBrief,
+          brief: input.projectBrief ?? "",
           notes: input.additionalNotes,
           briefAttachments,
           briefAttachmentName: first?.name ?? null,
