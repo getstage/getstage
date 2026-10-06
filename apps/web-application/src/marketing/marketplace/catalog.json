@@ -852,5 +852,19 @@
     "bannerTitle": "Logo Design",
     "bannerWidth": 1200,
     "bannerHeight": 675
+  },
+  {
+    "id": "component-libraries/hairline",
+    "name": "Hairline",
+    "type": "Components",
+    "category": "Animated UI",
+    "description": "Interactive isometric SVG figures for React and plain JavaScript.",
+    "icon": "/marketplace-assets/libraries/hairline.svg",
+    "banner": null,
+    "url": "/component-libraries/hairline/",
+    "officialUrl": "https://hairline.lucasmarkes.com/",
+    "bannerTitle": null,
+    "bannerWidth": null,
+    "bannerHeight": null
   }
 ]
