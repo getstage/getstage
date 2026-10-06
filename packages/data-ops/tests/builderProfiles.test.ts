@@ -191,7 +191,7 @@ test("all nine new component libraries can be saved and reloaded", async () => {
   expect((await user.query(mine, {})).items).toEqual(ids);
 });
 
-test.each(["component-libraries/arc", "skills/logo-design"])("%s saves idempotently, survives a new session and appears on a published profile", async (itemId) => {
+test.each(["component-libraries/arc", "skills/logo-design", "component-libraries/hairline"])("%s saves idempotently, survives a new session and appears on a published profile", async (itemId) => {
   const { t, id, user } = await setup();
   await user.mutation(save, { ...input, published: true });
   await user.mutation(setSaved, { itemId, saved: true });
@@ -203,7 +203,7 @@ test.each(["component-libraries/arc", "skills/logo-design"])("%s saves idempoten
   expect((await user.query(mine, {})).items).toEqual([]);
 });
 
-test.each(["component-libraries/arc", "skills/logo-design"])("%s can be selected during profile setup", async (itemId) => {
+test.each(["component-libraries/arc", "skills/logo-design", "component-libraries/hairline"])("%s can be selected during profile setup", async (itemId) => {
   const { user } = await setup();
   const saveStep = makeFunctionReference<"mutation">("builderProfiles:saveSetupStep");
   const items = [itemId];
