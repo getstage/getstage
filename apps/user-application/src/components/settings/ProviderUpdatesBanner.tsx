@@ -31,14 +31,12 @@ export function ProviderUpdatesBanner() {
             disabled={isUpdating}
             onClick={() => {
               const names = providersWithUpdates.map((provider) => provider.label).join(", ");
-              setLogLines([`Starting update for ${names}…`]);
+              setLogLines([
+                `Updating ${names}. Downloads can take a few minutes. You can keep using Stage.`,
+              ]);
               void updateAll({
-                onStart: (providerLabel, commandHint) => {
-                  appendLog(
-                    commandHint
-                      ? `Running \`${commandHint}\` for ${providerLabel}…`
-                      : `Updating ${providerLabel}…`,
-                  );
+                onStart: (providerLabel) => {
+                  appendLog(`Updating ${providerLabel}…`);
                 },
                 onResult: (providerLabel, result) => {
                   if (result.command) {

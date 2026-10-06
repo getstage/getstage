@@ -195,14 +195,35 @@ function collectAssets(
   return { assets, assetPathByUrl };
 }
 
+// Placed right after "Read first" so agents adopt the selected library before they plan.
+const COMPONENT_LIBRARIES_RULES = `## Component libraries (mandatory)
+
+If \`skills.md\` lists component libraries, they are the UI kit for this project. This is a requirement, not a suggestion. They are public references: do not use Stage credentials or private storage. If several libraries are listed, the first one is the primary kit: use the others only for components it does not have.
+
+1. **Read the library docs before planning.** Open each library's documentation. If it offers machine-readable docs (llms.txt, a registry index, an MCP server, or an agent skill / SKILL.md), use and install those first.
+2. **Use the library's stack and install method.** Use the framework, install command and styling system the library documents (for example a shadcn registry, an npm package, CSS modules or Tailwind). Do not port the library to another framework or styling system unless the brief requires it.
+3. **Library first, every time.** For every UI element (buttons, inputs, selects, badges, cards, tables, menus, dialogs, toasts, charts, empty states, loaders), use the library component when one exists. Build custom code only for page layout and for needs the library does not cover.
+4. **Use the signature components for the key moments.** Where the library offers richer interactive components that match a flow in \`flows.md\`, use them for those moments instead of plain buttons and cards.
+5. **Map the style guide onto the library's tokens.** Apply the style guide's colors, type and spacing through the library's theme tokens. Do not add a second styling system for them.
+6. **No second kit.** Do not mix in another component library or framework default components unless \`skills.md\` lists them.
+7. **Respect licensing.** Use only free or public components unless the documents say a paid license is available.
+
+### Required in your plan
+
+Before writing code, include a component map: for each screen, list the library components you will use and any custom pieces, with the reason each custom piece is needed.
+
+### Required before you finish
+
+- Seed the demo data so every key component is visible in at least one state (for example, something waiting for review, a contract to sign, a second version to compare).
+- Add \`COMPONENTS.md\` listing each library component used and where.
+- Search the code for hand-built controls (raw \`<button>\`, \`<input>\`, custom card or badge styles) and replace any that have a library equivalent.`;
+
 function agentsMarkdown(
   exportedPaths: string[],
-  skillsMarkdown: string | null,
+  hasComponentLibraries: boolean,
   typeLabel: string,
 ) {
-  const skillsSection = skillsMarkdown
-    ? `\n\n## Preferred skills and libraries\n\nThese are public references. Do not use Stage credentials or private storage.\n\nIf \`skills.md\` is present, implement with those skills and component libraries. Do not hand-roll a replacement kit unless the documents explicitly allow it.`
-    : "";
+  const componentLibrariesSection = hasComponentLibraries ? `\n\n${COMPONENT_LIBRARIES_RULES}` : "";
   return `# AGENTS.md
 
 This folder is a Stage export: thinking and specification for this project. It is not a copy of the Stage application and is not a Git repository unless you initialize one. Treat the exported project material as the source of truth.
@@ -211,7 +232,7 @@ This folder is a Stage export: thinking and specification for this project. It i
 
 ## Read first
 
-${["AGENTS.md", ...exportedPaths.filter((path) => path !== "AGENTS.md")].map((path, index) => `${index + 1}. \`${path}\``).join("\n")}
+${["AGENTS.md", ...exportedPaths.filter((path) => path !== "AGENTS.md")].map((path, index) => `${index + 1}. \`${path}\``).join("\n")}${componentLibrariesSection}
 
 ## How to use this brief
 
@@ -225,7 +246,7 @@ ${["AGENTS.md", ...exportedPaths.filter((path) => path !== "AGENTS.md")].map((pa
 
 - Read every exported document and relevant file in \`assets/\` before planning.
 - Start by summarizing your understanding and proposing an implementation plan before changing files.
-- Keep implementation code clear, maintainable, accessible, and production-ready.${skillsSection}
+- Keep implementation code clear, maintainable, accessible, and production-ready.
 `;
 }
 
@@ -274,7 +295,9 @@ function skillsMarkdown(
   const lines = [
     "# Skills and component libraries",
     "",
-    "Public references selected for this Stage export. Use these as starting points. Pick the exact components while implementing. Do not expect Stage R2 credentials or private file URLs. Do not hand-roll a different component kit.",
+    packs.length > 0
+      ? "Public references selected for this Stage export. The component libraries are the UI kit: do not hand-roll replacements. Before planning, open each library's docs and use its machine-readable docs (llms.txt, registry, MCP server or agent skill) and documented install command. Do not expect Stage R2 credentials or private file URLs."
+      : "Public references selected for this Stage export. Apply these skills while implementing. Do not expect Stage R2 credentials or private file URLs.",
   ];
 
   if (skills.length > 0) {
@@ -293,7 +316,7 @@ function skillsMarkdown(
   }
 
   lines.push("");
-  return lines.join("\n");
+  return { markdown: lines.join("\n"), hasComponentLibraries: packs.length > 0 };
 }
 
 export function buildProjectExport(input: BuildProjectExportInput) {
@@ -376,7 +399,7 @@ export function buildProjectExport(input: BuildProjectExportInput) {
   if (catalogMarkdown) {
     files.push({
       relativePath: "skills.md",
-      content: catalogMarkdown,
+      content: catalogMarkdown.markdown,
     });
   }
   const readFirst = catalogMarkdown
@@ -386,7 +409,11 @@ export function buildProjectExport(input: BuildProjectExportInput) {
     : exportedPaths;
   files.unshift({
     relativePath: "AGENTS.md",
-    content: agentsMarkdown(readFirst, catalogMarkdown, input.project.typeLabel),
+    content: agentsMarkdown(
+      readFirst,
+      catalogMarkdown?.hasComponentLibraries ?? false,
+      input.project.typeLabel,
+    ),
   });
   return {
     files,

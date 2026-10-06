@@ -15,7 +15,9 @@ use crate::providers::maintenance::{
 use crate::providers::models::{invalidate_stage_models_cache, resolve_provider_models};
 
 const VERSION_TIMEOUT: Duration = Duration::from_secs(4);
-const UPDATE_TIMEOUT: Duration = Duration::from_secs(120);
+// Safety net against a hung updater only: `codex update` downloads a ~130 MB package,
+// and on a slow OpenAI mirror that has taken 15 minutes.
+const UPDATE_TIMEOUT: Duration = Duration::from_secs(30 * 60);
 
 pub async fn provider_snapshot(api_version: &'static str) -> ProviderListResponse {
     provider_snapshot_with_options(api_version, false).await

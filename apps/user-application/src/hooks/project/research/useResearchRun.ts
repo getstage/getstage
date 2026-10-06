@@ -114,7 +114,9 @@ export function useResearchRun(projectId: string) {
     if (!isRunning) {
       return;
     }
-    if (runStartedAtRef.current === null && persistedRunningRun) {
+    // The saved run's start time wins: after leaving and reopening the tab, the local
+    // start time was set to "now" before the saved run had loaded.
+    if (persistedRunningRun) {
       runStartedAtRef.current = persistedRunningRun.startedAt;
     }
     if (runStartedAtRef.current === null) {

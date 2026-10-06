@@ -7,16 +7,19 @@ use std::time::SystemTime;
 use serde::{Deserialize, Serialize};
 use tokio::fs;
 
+use crate::models::errors::EngineErrorCode;
 use crate::models::providers::{
     ProviderId, ProviderModel, ProviderModelSource, ProviderOptionChoice, ProviderOptionDescriptor,
 };
 use crate::providers::catalog::ProviderRuntimeSpec;
+use crate::providers::command::run_command;
 use crate::providers::maintenance::resolve_binary_path;
 
 const STAGE_MODELS_CACHE_FILE: &str = ".stage/provider-models-cache.json";
 const CODEX_MODELS_CACHE_FILE: &str = "models_cache.json";
 const MAX_CODEX_MODELS_CACHE_BYTES: u64 = 1_048_576;
 const MAX_CODEX_MODELS: usize = 64;
+const CODEX_DEBUG_MODELS_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(10);
 const MAX_CLAUDE_BINARY_BYTES: u64 = 400 * 1024 * 1024;
 const MAX_CLAUDE_MODELS: usize = 64;
 const CLAUDE_ID_NEEDLE: &[u8] = b"\"claude-";
@@ -69,7 +72,7 @@ pub async fn resolve_provider_models(
 
 async fn fetch_provider_models(spec: ProviderRuntimeSpec) -> Vec<ProviderModel> {
     match spec.id {
-        ProviderId::Codex => fetch_codex_models().await,
+        ProviderId::Codex => fetch_codex_models(spec.binary).await,
         ProviderId::Claude => fetch_claude_models(spec.binary).await,
     }
 }
@@ -302,7 +305,28 @@ fn claude_provider_model(id: &str, is_default: bool) -> ProviderModel {
     }
 }
 
-async fn fetch_codex_models() -> Vec<ProviderModel> {
+// The installed CLI knows the current catalog (`codex debug models`, ~30 ms). The
+// `models_cache.json` file can be stale: another Codex install (such as the one inside
+// the ChatGPT app) may have written it with an older catalog.
+async fn fetch_codex_models(binary: &str) -> Vec<ProviderModel> {
+    if let Ok(result) = run_command(
+        binary,
+        &["debug", "models"],
+        CODEX_DEBUG_MODELS_TIMEOUT,
+        EngineErrorCode::VersionTimeout,
+    )
+    .await
+        && result.code == Some(0)
+    {
+        let models = parse_codex_models_cache(&result.stdout);
+        if !models.is_empty() {
+            return models;
+        }
+    }
+    fetch_codex_cached_models().await
+}
+
+async fn fetch_codex_cached_models() -> Vec<ProviderModel> {
     let Some(path) = codex_models_cache_path() else {
         return Vec::new();
     };
