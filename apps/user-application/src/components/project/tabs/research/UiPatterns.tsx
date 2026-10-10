@@ -151,14 +151,14 @@ function UiPatternGroup({
         <div className="grid grid-cols-1 gap-1 md:grid-cols-3">
           {visibleImages.map(({ image, originalIndex }) => (
             <button
-              key={`${group.id}-${image.src}-${originalIndex}`}
+              key={`${group.id}-${image.src}-${image.fullSrc}-${originalIndex}`}
               type="button"
               onClick={() => onOpenPhoto(image.fullSrc)}
               className="group rounded-[8px] bg-white p-2 text-left shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-transform hover:-translate-y-px"
               aria-label={`Open ${group.title} reference ${originalIndex + 1}`}
             >
               <div className="aspect-[1920/1325] overflow-hidden rounded-[4px] bg-[#F5F5F5]">
-                <img src={image.src} alt="" className="h-full w-full object-contain transition-transform group-hover:scale-[1.01]" />
+                <UiPatternThumbnail image={image} />
               </div>
             </button>
           ))}
@@ -212,6 +212,30 @@ function UiPatternGroup({
         </div>
       ) : null}
     </article>
+  );
+}
+
+function UiPatternThumbnail({ image }: { image: UiPatternImage }) {
+  const [sourceIndex, setSourceIndex] = useState(0);
+  const sources = [...new Set([image.src, image.fullSrc])];
+  const src = sources[sourceIndex];
+
+  if (!src) {
+    return (
+      <div className="flex h-full items-center justify-center text-[12px] text-[#737373]">
+        Image unavailable
+      </div>
+    );
+  }
+
+  return (
+    <img
+      key={src}
+      src={src}
+      alt=""
+      onError={() => setSourceIndex((current) => current + 1)}
+      className="h-full w-full object-contain transition-transform group-hover:scale-[1.01]"
+    />
   );
 }
 

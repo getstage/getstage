@@ -4,6 +4,12 @@
 
 This document retains the original first-release checklist below; do not use its old release-asset or secret-location claims as current instructions.
 
+## Current release scope — 2026-10-10
+
+- Testing candidate: `v0.2.56`, desktop package version `0.2.56`, branch `feat/sta-31-monitoring`. Include the STA-31 monitoring foundation, verified Research dashboard and thumbnail recovery; exclude unrelated plans, design sketches and agent tooling. Stage reviewed paths explicitly, not `git add .`.
+- `pnpm run dev` enables diagnostics only on unpackaged local Testing. Packaged Testing remains opt-in; packaged production is disabled. Publishing a Testing DMG does not enable production telemetry or deploy the web/Convex backend.
+- Verify `.github/workflows/release-desktop.yml` against the exact pushed commit. Do not report downloadable DMGs until both architecture builds and `publish-testing-feed` succeed and `latest-mac.yml` advertises `0.2.56`.
+
 ## 1. Check lokaal
 
 ```bash

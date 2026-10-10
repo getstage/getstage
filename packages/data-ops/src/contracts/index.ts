@@ -16,3 +16,4 @@ export * from "./chat-context";
 export * from "./moodboard";
 export * from "./research";
 export * from "./strategy";
+export * from "./telemetry";

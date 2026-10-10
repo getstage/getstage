@@ -1,0 +1,414 @@
+{
+  "updatedAt": "2026-10-09",
+  "scope": "Real local-desktop Testing Research verified through Grafana on 2026-10-08 (109.653s) and 2026-10-09 after the normal-dev default-on fix (212.580s): both succeeded with Codex, each with one terminal log and seven timed steps. Prometheus cumulative count=2 and duration sum=322.233s. Persistent opt-out, remaining senders and alerts are pending. Production is untouched; this portal is not yet a live health dashboard.",
+  "phases": [
+    {
+      "id": 1,
+      "status": "in_progress",
+      "name": "Observability stack",
+      "area": "Railway + infra/",
+      "description": "Authenticated Collector, private Prometheus and Loki, and login-protected Grafana in the Stage Railway testing project.",
+      "acceptance": "Authenticated OTLP metric and log arrive in Prometheus and Loki; a request without a token is rejected. Grafana opens and both data sources pass health checks.",
+      "files": [
+        "infra/compose.yaml",
+        "infra/otel/collector.yaml",
+        "infra/prometheus/prometheus.yaml",
+        "infra/loki/config.yaml",
+        "infra/grafana/"
+      ]
+    },
+    {
+      "id": 2,
+      "status": "in_progress",
+      "name": "Authenticated ingestion",
+      "area": "Worker + shared contracts",
+      "description": "One allow-listed schema, verified Stage sessions, bounded requests, per-user rate limits and asynchronous OTLP forwarding.",
+      "acceptance": "Valid batch → 204 and visible data; invalid token → 401; unknown fields dropped; 101 events → 413. Counters and histograms remain correct across independent Worker requests.",
+      "files": [
+        "packages/data-ops/src/contracts/telemetry.ts",
+        "apps/web-application/worker/index.ts",
+        "apps/web-application/worker/telemetry/",
+        "apps/web-application/wrangler.telemetry.jsonc",
+        "apps/web-application/scripts/smoke/telemetry.mts"
+      ]
+    },
+    {
+      "id": 3,
+      "status": "in_progress",
+      "name": "Engine runs & steps",
+      "area": "Rust engine",
+      "description": "Bounded non-blocking queue, exactly one terminal run event, timed steps and fine-grained error kinds across workflows.",
+      "acceptance": "A testing research run produces one terminal event plus timed steps sharing a runId. Full/offline queues never slow or fail a run.",
+      "files": [
+        "apps/stage-engine/src/observability/telemetry.rs",
+        "apps/stage-engine/src/observability/telemetry_tests.rs",
+        "apps/stage-engine/src/runs/mod.rs",
+        "apps/stage-engine/src/*/workflow.rs"
+      ]
+    },
+    {
+      "id": 4,
+      "status": "open",
+      "name": "Dependencies & briefs",
+      "area": "Engine clients + providers",
+      "description": "Instrument Details, Refero, Figma, Paper, Convex, R2 and provider CLIs. Count uploaded/loaded brief files and capture token usage and provider updates.",
+      "acceptance": "An invalid Details token on testing produces a dependency event and reaches a testing-only alert within five minutes. Brief upload/load counts agree with actual files.",
+      "files": [
+        "apps/stage-engine/src/details/",
+        "apps/stage-engine/src/refero/",
+        "apps/stage-engine/src/providers/",
+        "apps/stage-engine/src/research/brief_files.rs"
+      ]
+    },
+    {
+      "id": 5,
+      "status": "in_progress",
+      "name": "Desktop diagnostics",
+      "area": "Electron + renderer",
+      "description": "Sidecar lifecycle, auto-update, auth and scrubbed UI errors, with a privacy opt-out and five-minute heartbeat.",
+      "acceptance": "Killing the engine produces a crash event. Turning diagnostics off stops both senders immediately, clears queued events and survives app restart.",
+      "files": [
+        "apps/user-application/electron/helpers/telemetry.ts",
+        "apps/user-application/electron/sidecar.ts",
+        "apps/user-application/electron/helpers/auto-update.ts",
+        "apps/user-application/src/"
+      ]
+    },
+    {
+      "id": 6,
+      "status": "open",
+      "name": "Cloud reporting",
+      "area": "Worker + Convex",
+      "description": "Request latency and 5xx; authenticated Convex log streaming or server-to-server fallback; report billing and reward failures without changing their logic.",
+      "acceptance": "A forced Convex failure reaches Cloud within a minute. Invalid webhook/server tokens are rejected; reporting failures cannot affect billing or credit transactions.",
+      "files": [
+        "apps/web-application/worker/",
+        "packages/data-ops/convex/telemetry.ts",
+        "packages/data-ops/convex/lib/billing/",
+        "packages/data-ops/convex/lib/rewards/"
+      ]
+    },
+    {
+      "id": 7,
+      "status": "in_progress",
+      "name": "Dashboards & alerts",
+      "area": "Provisioned Grafana",
+      "description": "Health, Failures, Per module, Setup friction, Cloud and Business dashboards, tested alerts, and a genuinely isolated Business reader.",
+      "acceptance": "Every panel has testing data. Every alert is intentionally triggered and delivered. Adrien cannot query operational logs or user ids.",
+      "files": [
+        "infra/grafana/dashboards/",
+        "infra/grafana/provisioning/alerting/"
+      ]
+    }
+  ],
+  "audit": [
+    {
+      "id": "MON-001",
+      "phase": 1,
+      "priority": "P0",
+      "owner": "Werner",
+      "status": "verified",
+      "title": "Use the Stage Railway workspace",
+      "change": "Deploy the testing stack in the Railway workspace Werner identifies for Stage and record project and environment ids without secrets.",
+      "verification": "Account read-back shows the approved workspace; project and environment ids are recorded without secrets.",
+      "evidence": "Werner identified Adrien Ninet's Pro workspace for Stage. Wessel's Railway CLI and connector access it; stage-observability project 7f561e4e-2133-43cd-9ffd-60806aefc37a, testing environment b526c305-9fd8-4a29-b12f-071906dcb153."
+    },
+    {
+      "id": "MON-002",
+      "phase": 1,
+      "priority": "P0",
+      "owner": "Engineering",
+      "status": "in_progress",
+      "title": "Validate and deploy the four-service stack",
+      "change": "Version Collector, Prometheus, Loki and Grafana configs. Keep backends private; attach volumes and configure 90/30-day retention. Recheck pinned images for advisories before deployment.",
+      "verification": "Service-native config validation plus an end-to-end metric/log smoke test; missing/wrong collector tokens rejected; restart preserves data.",
+      "evidence": "Railway testing 2026-10-06: four active deployments SUCCESS and online. Smoke passed: missing/wrong bearer 401; authenticated synthetic metric and log visible through Grafana data sources; Health dashboard provisioned. Prometheus mounted its volume and replayed WAL after redeploy. Long-term retention remains unverified."
+    },
+    {
+      "id": "MON-003",
+      "phase": 1,
+      "priority": "P1",
+      "owner": "Werner",
+      "status": "in_progress",
+      "title": "Domains, credentials and volumes",
+      "change": "Approve testing domain names, add Railway/Cloudflare access and set collector/admin secrets through platform secret stores. Only Collector and Grafana get public domains.",
+      "verification": "HTTPS works; no public Prometheus/Loki endpoint; credentials absent from git, browser bundles and desktop builds.",
+      "evidence": "Railway testing HTTPS domains exist for Collector and Grafana; strong secrets are in Railway variables; Prometheus/Loki have no public domains. Custom getstage.co DNS remains open."
+    },
+    {
+      "id": "MON-004",
+      "phase": 2,
+      "priority": "P0",
+      "owner": "Engineering",
+      "status": "in_progress",
+      "title": "Complete the shared event schema",
+      "change": "Define provider_status, export, sidecar, desktop_update, renderer_error and auth fully; add heartbeat and cloud event types. Bound all strings, lists, numeric values and operation/model vocabularies.",
+      "verification": "TS/Rust schema fixtures agree. Payload limits, malformed events, unknown fields and metric label cardinality are tested.",
+      "evidence": "Shared contracts cover all 12 client and four server-only variants; 62 contract tests pass. Worker now strips private/unknown fields, derives identity from JWT, drops stale/wrong-channel/cloud records, caps app-version metric labels to 10 configured releases (other for the rest), and keeps ids out of metric/resource labels. 12 real-workerd/unit tests and web/data-ops typechecks pass. Six shared fixtures now verify actual Rust run/step serialization against Zod with no stripped fields; 68 contract tests pass. Remaining Rust event variants and event-to-metric coverage are pending; not verified."
+    },
+    {
+      "id": "MON-005",
+      "phase": 2,
+      "priority": "P0",
+      "owner": "Engineering",
+      "status": "in_progress",
+      "title": "Verify identity and protect ingestion",
+      "change": "Verify JWT signature, issuer, audience and expiry with the existing auth configuration; derive userId from verified identity rather than trusting the payload. Authenticate cloud producers separately.",
+      "verification": "Invalid/expired/wrong-issuer tokens → 401; spoofed user ids cannot be attributed to another user; rate limits are durable and enforced.",
+      "evidence": "2026-10-06: stage-telemetry-testing deployed as a telemetry-only Worker, route testing.getstage.co/api/telemetry; current version 73e6e0ae-66fc-4228-a0fb-8e87fad4b009 after two testing secrets were installed without printing values. No website bundle/production deployment. Public route and workers.dev alias return 401 for missing/invalid tokens and 405 for GET; shared homepage/auth remain HTTP 200. Local workerd tests cover forged/expired/wrong-issuer/audience/algorithm/missing-expiry tokens, verified user attribution and durable user limits. 2026-10-08: the real signed-in desktop Research run reached deployed Testing intake and is visible in Grafana-backed Loki/Prometheus: one successful terminal event, seven steps, run count=1 and histogram count=1/sum=109.653s. This verifies the real authenticated ingestion path, not a synthetic/local-JWT fixture. HTTP 204 was not directly captured for that desktop request. Cloud producer auth remains phase 6."
+    },
+    {
+      "id": "MON-006",
+      "phase": 2,
+      "priority": "P0",
+      "owner": "Engineering",
+      "status": "in_progress",
+      "title": "Make OTLP counters and histograms mathematically correct",
+      "change": "Specify delta versus cumulative temporality for a stateless Worker, collector conversion and restart behavior. Preserve histogram buckets and exact stage_* names. Do not emit per-batch cumulative counters that reset each request.",
+      "verification": "Multiple requests and concurrent producers yield correct increases and quantiles with no double-counting or lost counts after a collector restart.",
+      "evidence": "TelemetryState owns SQLite-persisted cumulative counters/histograms with stable start times, monotonic export timestamps and serialized asynchronous snapshots. Local real-workerd tests verify exact totals/buckets for concurrent requests, persisted state after restart and recovery on the next observation after export failure. This avoids unsafe overlapping stateless deltas; existing Collector conversion must pass through cumulative inputs. scripts/smoke/telemetry.mts local-bridge mode passed against real Railway: after concurrent requests and a local Worker restart, Prometheus shows count=4, duration sum=25s and the <=5s bucket=2; matching sanitized logs are visible in Loki. All bridge metric names use stage_ingestion_smoke_* and log event ingestion_smoke, never real module-health series. This uses a local auth fixture, not a deployed signed-in Stage session. 2026-10-08: a real desktop Research run is independently visible in Prometheus history with runs_total=1, duration_count=1 and duration_sum=109.653s, matching Loki. No duplicate terminal log was found. Current instant queries are empty after inactivity because exports are event-driven; historical range queries recover the run. Collector-restart and backend quantile acceptance remain pending."
+    },
+    {
+      "id": "MON-007",
+      "phase": 2,
+      "priority": "P1",
+      "owner": "Engineering",
+      "status": "in_progress",
+      "title": "Reconcile event rate limits with real workflows",
+      "change": "Estimate runs × steps × dependency calls plus status refreshes and heartbeats before committing to 600 events/user/hour. Document loss budgets and count ingestion drops without a telemetry recursion loop.",
+      "verification": "A realistic busy session fits the approved budget; oversized bodies reject before unbounded parsing; telemetry requests do not instrument themselves recursively.",
+      "evidence": "Local workerd tests enforce streamed 256 KiB UTF-8 bodies, 100 events/batch and an atomic SQLite-backed 600-received-event/user window (one hour from first admission), including concurrent arrivals and persistence after restart. Invalid/stale/channel-mismatch drops have aggregate counters; no intake middleware recursion. Export is bounded (500 queued events/20 batches, 5-second HTTP deadlines, 15-second queue age, no retries); capacity returns 503, not false acceptance. Rate state stores hashed user ids and expires after its window; metric state is capped at 20,000 series. Busy real-session loss budgets, queue saturation/expiry and window-expiry acceptance are still pending."
+    },
+    {
+      "id": "MON-008",
+      "phase": 3,
+      "priority": "P0",
+      "owner": "Engineering",
+      "status": "in_progress",
+      "title": "Implement non-blocking engine telemetry",
+      "change": "Queue ≤500 events; batch at 10 seconds or 50 events; use try_send, bounded HTTP timeouts and no endless retries. Keep auth/config launch context out of event payloads.",
+      "verification": "Tests cover full queue, offline network, shutdown, token expiry and cancellation with no measurable run slowdown.",
+      "evidence": "2026-10-06: local Research/section sender uses try_send, a 500-event waiting queue, 50-event/10-second active batches, 15-second age limit, five-second total HTTP flush, no retries or idle polling. Fixed Testing endpoint; explicit opt-in plus independent Testing channel/Convex checks. Bearers are header-only; sessions are grouped separately; no collector secret, disk spool or raw RunEvent serialization. Nine telemetry tests cover full queue, offline/closed queue, expired tokens/no retries, session separation, stale drops, concurrent terminal observations, privacy/schema parity and real worker abort/queued-credential purge. All 196 engine tests, strict Clippy and desktop typecheck pass. 2026-10-08: real local Testing desktop acceptance passed for one Codex Research run completed at 10:29:16.497 UTC, duration 109.653s. Grafana queries read back one terminal log, seven steps, Prometheus run count=1 and duration count=1/sum=109.653s. The log payload allow-list passed with no private fields. 2026-10-09: user-approved unpackaged local Testing default-on launch configuration; Electron now loads the local .env Convex URL consistently with the renderer. Eight configuration tests cover default-on, explicit opt-out, backend isolation, packaged Testing opt-in and packaged production rejection. The initial run had diagnostics disabled. After restart, the next real run completed at 17:56:45.927 UTC: Codex Research succeeded in 212.580s, one terminal Loki event and seven successful steps. Prometheus cumulative run/duration count=2 and duration sum=322.233s match the prior 109.653s plus this run. The live engine reports diagnostics enabled against the exact Testing backend. Hung-network deadline and measured busy-session slowdown remain pending."
+    },
+    {
+      "id": "MON-009",
+      "phase": 3,
+      "priority": "P1",
+      "owner": "Engineering",
+      "status": "in_progress",
+      "title": "Instrument run lifecycle, error kinds and every step",
+      "change": "Reuse RunManager and workflow helpers; add provider/parse/save/brief-files timing without UI tool calls. Include pre-run context_save timing so apparently stuck starts are visible.",
+      "verification": "Each success/failure/cancellation emits exactly one terminal run event; failedStep points to the cause; context_save latency is visible.",
+      "evidence": "2026-10-06: RunEventSink observes only allow-listed Research/section metadata; an atomic terminal guard emits at most one success/failure/cancellation observation, with total elapsed time. Existing verify-provider/stage-context/Details/Refero helpers provide bounded steps; explicit brief/provider/parse/save hooks add timing without UI tool calls or changing workflow results. Pending failed steps identify the latest cause; cancellation closes them as skipped. Provider error codes map to bounded kinds; parse failures report artifact_invalid rather than falsely implying a CLI exit. Six Rust/Zod fixtures match exactly; privacy and concurrent-terminal tests pass. Delivery remains best-effort. 2026-10-08 real-run proof: one successful Research terminal log and seven successful steps share one runId. Durations: verify-provider 82ms, stage-context 2397ms (includes brief-files 1577ms), details-context 51041ms, provider 52510ms, parse 3ms and save 2812ms; total 109653ms. Matching Prometheus run/step counters and duration histogram are visible in history. App version 0.2.55 is present in logs; unconfigured version/model/category metric labels remain other. Pre-run context_save, fine-grained dependency error kinds, model/category/usage metadata and other workflows remain pending."
+    },
+    {
+      "id": "MON-010",
+      "phase": 4,
+      "priority": "P1",
+      "owner": "Engineering",
+      "status": "open",
+      "title": "Wrap dependencies and brief loading",
+      "change": "Instrument every listed client, distinguish unauthorized/not-configured/timeouts and unreadable files; reconcile per-type brief counts and partial load failures.",
+      "verification": "Fault injection for each dependency; uploaded and loaded counts match fixtures for PDF/DOCX/TXT/MD/images.",
+      "evidence": "No dependency instrumentation yet."
+    },
+    {
+      "id": "MON-011",
+      "phase": 4,
+      "priority": "P1",
+      "owner": "Engineering",
+      "status": "open",
+      "title": "Provider readiness, updates and token usage",
+      "change": "Deduplicate status changes per launch and parse Claude/Codex token events; capture update duration, install source and failures.",
+      "verification": "CLI fixtures verify usage, missing/authenticated state changes, cancelled processes and failed updates.",
+      "evidence": "Provider clients unchanged."
+    },
+    {
+      "id": "MON-012",
+      "phase": 5,
+      "priority": "P0",
+      "owner": "Adrien",
+      "status": "blocked",
+      "title": "Approve honest privacy wording and policy",
+      "change": "Replace the claim of anonymous diagnostics or remove identifying ids. Approve metadata-only collection, EU hosting, retention and opt-out wording before release. Redaction alone does not make arbitrary error messages content-safe.",
+      "verification": "Privacy review approves exactly which fields leave the device; tests strip URLs, emails, paths and user-authored text from errors/component stacks.",
+      "evidence": "Spec stores user/project ids in logs while calling diagnostics anonymous."
+    },
+    {
+      "id": "MON-013",
+      "phase": 5,
+      "priority": "P0",
+      "owner": "Engineering",
+      "status": "in_progress",
+      "title": "Make opt-out immediate across both processes",
+      "change": "Persist preferences, stop heartbeat/senders and purge queues when disabled. Restart or reconfigure a running sidecar rather than waiting for the next launch; do not send buffered data after re-enabling.",
+      "verification": "Worker/device network inspection finds zero diagnostics traffic after opt-out, including an already-running engine; preference survives restart.",
+      "evidence": "2026-10-06: the Testing engine now exposes disable-only POST /v1/telemetry/disable. It atomically stops producers and aborts the background worker/request, purging pending events and transport credentials without cancelling AI runs; a test exercises the actual waiting exporter and existing run scope. There is no runtime enable endpoint. Electron clamps packaged production opt-in off; Rust independently requires exact Testing deployment/channel and valid metadata. 2026-10-09: unpackaged local desktops targeting the exact Testing backend default on with user approval; STAGE_TELEMETRY_ENABLED=0 remains an explicit launch opt-out. Packaged Testing remains opt-in and packaged production stays disabled. Persistent Settings preference/UI, desktop sender/heartbeat stop, in-flight network inspection and restart/re-enable checks remain unimplemented; release is blocked."
+    },
+    {
+      "id": "MON-014",
+      "phase": 5,
+      "priority": "P1",
+      "owner": "Engineering",
+      "status": "open",
+      "title": "Desktop errors, sidecar, auth and updates",
+      "change": "Validate renderer-error IPC; scrub messages and component stacks; normalize route templates and emit sidecar/update/auth outcomes without raw URLs or props.",
+      "verification": "Intentional renderer error, engine kill, port conflict, failed update and auth timeout appear with bounded sanitized metadata.",
+      "evidence": "Desktop unchanged."
+    },
+    {
+      "id": "MON-015",
+      "phase": 5,
+      "priority": "P1",
+      "owner": "Engineering",
+      "status": "open",
+      "title": "Define expiring active-session aggregation",
+      "change": "Use server-side heartbeat state with expiry or an approved aggregation model. A heartbeat cannot directly set the aggregate active-session gauge; session/user ids stay out of metric labels.",
+      "verification": "Two sessions count as two; closed/offline/opted-out sessions expire; channel/version aggregates do not retain stale activity.",
+      "evidence": "Spec lists a gauge without a state/expiry design."
+    },
+    {
+      "id": "MON-016",
+      "phase": 6,
+      "priority": "P1",
+      "owner": "Werner",
+      "status": "blocked",
+      "title": "Confirm Convex log-stream availability",
+      "change": "Check the Stage Convex plan. Choose authenticated log-stream webhooks or internal.telemetry.report with a separate server token, including a matching Worker auth path.",
+      "verification": "One forced testing failure appears within a minute; wrong webhook/server secrets rejected; billing/credit behavior unchanged.",
+      "evidence": "Plan not checked; section 8.4 fallback needs a Worker server-auth implementation."
+    },
+    {
+      "id": "MON-017",
+      "phase": 6,
+      "priority": "P1",
+      "owner": "Engineering",
+      "status": "open",
+      "title": "Report Worker, billing and reward health safely",
+      "change": "Instrument route templates, latency and 5xx; report Stripe/checkout/reward failures without changing transactions or swallowing existing errors.",
+      "verification": "Failure tests preserve current transaction results and avoid telemetry endpoint recursion.",
+      "evidence": "Cloud handlers unchanged."
+    },
+    {
+      "id": "MON-018",
+      "phase": 7,
+      "priority": "P0",
+      "owner": "Engineering",
+      "status": "open",
+      "title": "Isolate Adrien's Business access",
+      "change": "Do not rely on a folder permission alone: a Grafana OSS Viewer can otherwise query shared data sources. Use a separate organization/data source with pre-aggregated business metrics, or another reviewed access boundary; no operational Loki access.",
+      "verification": "Adrien cannot query user/project/run ids, Explore logs or operational data sources, including through the API.",
+      "evidence": "Business-only folder permissions in the spec are not a complete data-access boundary."
+    },
+    {
+      "id": "MON-019",
+      "phase": 7,
+      "priority": "P1",
+      "owner": "Engineering",
+      "status": "in_progress",
+      "title": "Finish dashboard queries and required dimensions",
+      "change": "Provision six dashboards; consistently apply channel/version/module/provider variables. Add competitor counts/credit outcomes only as approved numeric/enumerated fields, never URLs or names.",
+      "verification": "Every panel has testing data; cancel semantics are consistent; metrics exist for every panel and expected filter.",
+      "evidence": "2026-10-09: infra/grafana/dashboards/research.json is provisioned on Railway Testing and is Grafana's default home. Deployment d8f533da-fdcf-4333-b4ee-0886bc8e65d2 is SUCCESS; data sources are healthy. Eight panels show recorded-window run counts, success rate, elapsed duration, failures, run/step tables and logs. Persisted Loki events avoid disappearing inactive push metrics and exclude Worker smoke records. Query checks match the real run (1, 100%, 212.580s, zero failures, seven steps); hosted browser checks pass tables, Run ID drill-down, no-data Production state and home navigation. The duplicate step chart was removed in the minimalism review. Remaining dashboards, requested dimensions, comprehensive cancel/failure acceptance and alert delivery are still open."
+    },
+    {
+      "id": "MON-020",
+      "phase": 7,
+      "priority": "P1",
+      "owner": "Engineering",
+      "status": "open",
+      "title": "Make each alert computable and test it on testing",
+      "change": "Use increase/rate rather than lifetime totals. Add aggregation for per-session crash loops and brief failures across runs without id labels; define newest release ordering. Duplicate production-only rules for intentional testing, not production fault injection.",
+      "verification": "Each alert is triggered once on testing, includes its matching dashboard link and reaches a configured recipient.",
+      "evidence": "Spec's testing unauthorized acceptance conflicts with the production-only alert rule."
+    },
+    {
+      "id": "MON-021",
+      "phase": 7,
+      "priority": "P1",
+      "owner": "Werner",
+      "status": "blocked",
+      "title": "Choose notification recipients and a supported push route",
+      "change": "Approve email recipients, SMTP credentials and phone delivery. Confirm a currently supported push integration for self-hosted Grafana rather than assuming OnCall/mobile push works by default.",
+      "verification": "A real testing email and phone notification reach the agreed recipients.",
+      "evidence": "No SMTP or push integration configured."
+    },
+    {
+      "id": "MON-022",
+      "phase": 7,
+      "priority": "P1",
+      "owner": "Engineering",
+      "status": "open",
+      "title": "Provide Railway disk metrics",
+      "change": "Choose a Railway volume usage source or authenticated exporter so the >80% disk alert has real data; do not assume app OTLP events contain filesystem capacity.",
+      "verification": "Every volume has capacity/usage metrics and an intentional threshold test fires the alert.",
+      "evidence": "Spec requests a disk alert but defines no collection mechanism."
+    },
+    {
+      "id": "MON-023",
+      "phase": 3,
+      "priority": "P2",
+      "owner": "Engineering",
+      "status": "open",
+      "title": "Cover the future V3 Agent explicitly",
+      "change": "Extend the shared contract for ask/create, canvas surface, enabled marketplace skills/libraries and per-tool outcomes when the Agent loop lands. Keep custom skill names and canvas content out of telemetry.",
+      "verification": "Ask/create fixtures and a failed tool call are visible without prompt/answer content; no Agent feature code required for the current module rollout.",
+      "evidence": "Decision plan includes V3 Agent events not specified in the module-run build schema."
+    },
+    {
+      "id": "MON-024",
+      "phase": 1,
+      "priority": "P0",
+      "owner": "Engineering",
+      "status": "verified",
+      "title": "Host the Stage monitoring frontend behind login",
+      "change": "Werner requested online access. Deploy the React audit/rollout portal as a separate Cloudflare testing Worker; gate all HTML/assets using the existing approved Grafana testing admin login, with upstream verification, rate limiting, no-store and CSP. Do not expose operational data sources or embed credentials. No production collection or website deploy.",
+      "verification": "Anonymous HTML/JS/font/logo requests reject with 401. Wrong credentials and non-admin users cannot read assets. Approved admin gets the Stage React interface and all views render in a real browser over HTTPS.",
+      "evidence": "2026-10-06: deployed at https://stage-monitoring-testing.steep-resonance-f13d.workers.dev (initial version 202c3c13-5a0b-4aba-842e-f2c315ce51ae). Anonymous HTML/JS/logo/font requests return 401; approved werner Grafana testing admin credentials return HTTP 200. Seven local data/access/infra tests, typecheck and build pass. Real hosted Chromium verifies Overview, Audit filtering/expansion, lazy-loaded Build plan and Your setup, mobile layout and zero browser errors. Every asset is gated; grants are hashed/in-memory for 30 seconds; auth attempts are rate-limited; no credentials in client bundles or stored by this Worker. Portal remains rollout/audit UI, not live engine health."
+    }
+  ],
+  "setup": [
+    {
+      "title": "Stage Testing Research login",
+      "owner": "Werner",
+      "detail": "Completed: a real signed-in local Testing desktop Research run was independently verified in Grafana on 2026-10-08: succeeded with Codex in 109.653s; one terminal log, seven timed steps, matching run count and duration histogram. No token was requested in chat and the log field allow-list passed. Use historical time ranges for inactive push metrics; no idle refresh is implemented. Persistent Settings opt-out remains a release gate. This verifies one Research path, not all workflows or alerts.",
+      "unlocks": "Phases 2–3 · real authenticated acceptance"
+    },
+    {
+      "title": "Railway spend and region",
+      "owner": "Werner",
+      "detail": "Testing is deployed in Adrien Ninet's Pro workspace. Review ongoing spend. Services and volumes currently share EU West; a future region change needs a volume migration that preserves data.",
+      "unlocks": "Phase 1 · operations"
+    },
+    {
+      "title": "Cloudflare and testing domains",
+      "owner": "Werner",
+      "detail": "Cloudflare access and Testing Worker secrets already work; no additional access is needed for the Research proof. Temporary HTTPS domains are online. Approve optional custom getstage.co DNS names; production waits for explicit acceptance.",
+      "unlocks": "Phases 1–2 · HTTPS and secrets"
+    },
+    {
+      "title": "Convex plan",
+      "owner": "Werner",
+      "detail": "Check whether the Stage deployments support webhook log streams. If not, confirm the internal reporting-action fallback; no billing rewrite is needed.",
+      "unlocks": "Phase 6 · cloud errors"
+    },
+    {
+      "title": "Privacy approval",
+      "owner": "Adrien",
+      "detail": "Approve identifying metadata versus actual anonymity, opt-out text, EU region and 30/90-day retention. Publish the corresponding privacy policy before collecting production diagnostics.",
+      "unlocks": "Phase 5 · release gate"
+    },
+    {
+      "title": "Alert destinations",
+      "owner": "Werner + Adrien",
+      "detail": "Choose email addresses, SMTP delivery and a supported phone notification service. Enter credentials through platform secrets, never here or in chat.",
+      "unlocks": "Phase 7 · notification tests"
+    },
+    {
+      "title": "Testing sign-off",
+      "owner": "Werner",
+      "detail": "Review each phase's evidence. Keep production untouched until the end-to-end testing run, opt-out checks, access isolation and all alert delivery tests pass.",
+      "unlocks": "Production · separate approval"
+    }
+  ]
+}

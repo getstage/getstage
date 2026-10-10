@@ -15,6 +15,7 @@ use crate::models::runs::{
     CancelRunResponse, RunEvent, RunMode, RunStatus, StartRunRequest, StartRunResponse,
 };
 use crate::moodboard::workflow::MoodboardWorkflow;
+use crate::observability::telemetry::{RunDiagnostics, TelemetryClient, TelemetryStep};
 use crate::providers::adapter::{ProviderRunContext, provider_unavailable_event, run_provider};
 use crate::providers::service::assert_provider_ready_for_run;
 use crate::research::workflow::ResearchWorkflow;
@@ -62,10 +63,26 @@ struct ActiveRun {
 pub struct RunEventSink {
     events: broadcast::Sender<RunEvent>,
     history: Arc<Mutex<Vec<RunEvent>>>,
+    diagnostics: Option<Arc<RunDiagnostics>>,
 }
 
 impl RunEventSink {
+    pub fn telemetry_step_started(&self, step: TelemetryStep) {
+        if let Some(diagnostics) = &self.diagnostics {
+            diagnostics.step_started(step);
+        }
+    }
+
+    pub fn telemetry_step_completed(&self, step: TelemetryStep) {
+        if let Some(diagnostics) = &self.diagnostics {
+            diagnostics.step_completed(step);
+        }
+    }
+
     pub fn send(&self, event: RunEvent) {
+        if let Some(diagnostics) = &self.diagnostics {
+            diagnostics.observe(&event);
+        }
         match self.history.lock() {
             Ok(mut history) => history.push(event.clone()),
             Err(error) => {
@@ -98,6 +115,7 @@ pub struct RunWorkflows {
 #[derive(Debug)]
 pub struct RunManager {
     api_version: &'static str,
+    telemetry: Option<Arc<TelemetryClient>>,
     runs: Arc<RwLock<HashMap<String, ActiveRun>>>,
     project_run_dedupe: Arc<RwLock<HashMap<ProjectRunDedupeKey, String>>>,
     chat: Option<Arc<ChatWorkflow>>,
@@ -113,6 +131,7 @@ impl RunManager {
     pub fn new(api_version: &'static str, workflows: RunWorkflows) -> Self {
         Self {
             api_version,
+            telemetry: TelemetryClient::from_env(),
             runs: Arc::new(RwLock::new(HashMap::new())),
             project_run_dedupe: Arc::new(RwLock::new(HashMap::new())),
             chat: workflows.chat,
@@ -122,6 +141,12 @@ impl RunManager {
             moodboard: workflows.moodboard,
             flows: workflows.flows,
             wireframes: workflows.wireframes,
+        }
+    }
+
+    pub fn disable_telemetry(&self) {
+        if let Some(telemetry) = &self.telemetry {
+            telemetry.disable();
         }
     }
 
@@ -194,12 +219,23 @@ impl RunManager {
         let moodboard = self.moodboard.clone();
         let flows = self.flows.clone();
         let wireframes = self.wireframes.clone();
+        let diagnostics = self
+            .telemetry
+            .as_ref()
+            .and_then(|telemetry| telemetry.research(&request, &run_id, auth_token.as_deref()));
+        if let Some(diagnostics) = &diagnostics {
+            diagnostics.step_started(TelemetryStep::VerifyProvider);
+        }
         let context = ProviderRunContext {
             api_version,
             run_id: run_id.clone(),
             request,
         };
-        let sink = RunEventSink { events, history };
+        let sink = RunEventSink {
+            events,
+            history,
+            diagnostics,
+        };
 
         tokio::spawn(async move {
             if matches!(context.request.mode, RunMode::Moodboard) {

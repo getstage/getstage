@@ -1,0 +1,30 @@
+{
+  "$schema": "../web-application/node_modules/wrangler/config-schema.json",
+  "name": "stage-monitoring",
+  "main": "worker/index.ts",
+  "compatibility_date": "2025-02-20",
+  "assets": {
+    "binding": "ASSETS",
+    "directory": "dist",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": true
+  },
+  "env": {
+    "testing": {
+      "name": "stage-monitoring-testing",
+      "workers_dev": true,
+      "vars": {
+        "GRAFANA_AUTH_ORIGIN": "https://grafana-testing-038e.up.railway.app",
+        "MONITORING_ALLOWED_LOGIN": "werner"
+      },
+      "unsafe": {
+        "bindings": [{
+          "name": "AUTH_RATE_LIMITER",
+          "type": "ratelimit",
+          "namespace_id": "3107",
+          "simple": { "limit": 10, "period": 60 }
+        }]
+      }
+    }
+  }
+}

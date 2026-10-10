@@ -1,6 +1,7 @@
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 import { defineConfig, externalizeDepsPlugin } from "electron-vite";
+import { loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
 import { TanStackRouterVite } from "@tanstack/router-plugin/vite";
 import tailwindcss from "@tailwindcss/vite";
@@ -10,7 +11,6 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const desktopBuildEnv = {
-  "process.env.VITE_CONVEX_URL": JSON.stringify(process.env.VITE_CONVEX_URL ?? ""),
   "process.env.STAGE_DESKTOP_AUTH_URL": JSON.stringify(
     process.env.STAGE_DESKTOP_AUTH_URL ?? "",
   ),
@@ -23,9 +23,14 @@ const desktopBuildEnv = {
   "process.env.STAGE_DESKTOP_CHANNEL": JSON.stringify(process.env.STAGE_DESKTOP_CHANNEL ?? ""),
 };
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   main: {
-    define: desktopBuildEnv,
+    define: {
+      ...desktopBuildEnv,
+      "process.env.VITE_CONVEX_URL": JSON.stringify(
+        process.env.VITE_CONVEX_URL ?? loadEnv(mode, __dirname, "VITE_").VITE_CONVEX_URL ?? "",
+      ),
+    },
     plugins: [externalizeDepsPlugin({ exclude: ["@stage/data-ops"] })],
     resolve: {
       alias: {
@@ -109,4 +114,4 @@ export default defineConfig({
       },
     },
   },
-});
+}));

@@ -1,6 +1,8 @@
 import { metaForPath } from "../src/marketing/pageMeta";
 import { getWebRouteLockRedirect } from "../src/lib/webRoutePolicy";
-interface Env {
+import { handleTelemetry, type TelemetryEnv } from "./telemetry/index";
+export { TelemetryState } from "./telemetry/state";
+interface Env extends TelemetryEnv {
   ASSETS: { fetch: (request: Request) => Promise<Response> };
   CONVEX_HTTP_ORIGIN?: string;
 }
@@ -23,6 +25,8 @@ export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const requestUrl = new URL(request.url);
     const backendOrigin = normalizeOrigin(env.CONVEX_HTTP_ORIGIN);
+
+    if (requestUrl.pathname === "/api/telemetry") return handleTelemetry(request, env);
 
     if (shouldProxy(requestUrl.pathname)) {
       if (!backendOrigin) {
