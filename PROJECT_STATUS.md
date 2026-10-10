@@ -41,9 +41,9 @@
 
 ## Testing desktop release — 2026-10-10
 
-- User authorized a new Testing tag for the STA-31 monitoring foundation and Research thumbnail recovery. Desktop package version: `0.2.56`; intended tag: `v0.2.56`, branch `feat/sta-31-monitoring`. The tag triggers signed/notarized arm64 + x64 builds and the separate `desktop-testing-feed`; this is not a production release.
+- User authorized a new Testing tag for the STA-31 monitoring foundation and Research thumbnail recovery. Desktop package version: `0.2.56`; tag `v0.2.56` and branch `feat/sta-31-monitoring` are pushed at commit `85fbe87f`. The tag triggers signed/notarized arm64 + x64 builds and the separate `desktop-testing-feed`; this is not a production release.
 - Bundled changes: Research/section metadata sender with bounded queue and stop endpoint, authenticated Testing intake/contracts, rollout portal, versioned Grafana Research dashboard, local `.env` alignment and thumbnail fallback. Packaged Testing diagnostics remain explicit opt-in; automatic diagnostics are limited to unpackaged local Testing. Production collection stays disabled.
-- Release checks: frozen lockfile install, 196 engine tests, strict all-target/all-feature Clippy, 76 contract/desktop configuration tests, 12 Worker tests and monitoring build pass. Desktop version/build and GitHub Actions status must be verified before claiming published DMGs. Unrelated V3 plans, design sketches and agent-skill changes are excluded.
+- Release checks: frozen lockfile install, 196 engine tests, strict all-target/all-feature Clippy, 76 contract/desktop configuration tests, 12 Worker tests and monitoring build pass. Testing-configured desktop build/typecheck and web typecheck also pass. GitHub Actions run https://github.com/getstage/getstage/actions/runs/38043119051 has started for the exact tagged commit; Resolve environment passed and Stage engine quality is running. Signed/notarized DMGs and update-feed publication are not yet verified. Unrelated V3 plans, design sketches and agent-skill changes are excluded.
 
 ## NOW (this week)
 
