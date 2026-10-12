@@ -15,6 +15,7 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
 }
 
 export function AddFlowModal({
+  diagramLabel = "Flow",
   step,
   draft,
   newStepDraft,
@@ -25,6 +26,7 @@ export function AddFlowModal({
   onAddStep,
   onSave,
 }: {
+  diagramLabel?: string;
   step: AddFlowStep;
   draft: AddFlowDraft;
   newStepDraft: string;
@@ -43,7 +45,7 @@ export function AddFlowModal({
       className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(0,0,0,0.1)] backdrop-blur-[5px]"
       role="dialog"
       aria-modal="true"
-      aria-label={step === "details" ? "Add Flow Manually" : "Add Steps"}
+      aria-label={step === "details" ? `Add ${diagramLabel} Manually` : "Add Steps"}
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) onClose();
       }}
@@ -53,12 +55,12 @@ export function AddFlowModal({
           <>
             <div className="flex items-center justify-center px-3 pb-3 pt-2">
               <h3 className="text-[13px] font-semibold leading-[1.5] text-[#0A0A0A]">
-                Add Flow Manually
+                Add {diagramLabel} Manually
               </h3>
             </div>
             <div className="flex flex-col gap-1">
               <div className="flex flex-col gap-4 rounded-[8px] bg-white p-3 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
-                <Field label="Flow Title">
+                <Field label={`${diagramLabel} Title`}>
                   <input
                     value={draft.title}
                     onChange={(event) => onDraftChange({ title: event.target.value })}
@@ -66,7 +68,7 @@ export function AddFlowModal({
                     placeholder="Baseframe"
                   />
                 </Field>
-                <Field label="Flow Description">
+                <Field label={`${diagramLabel} Description`}>
                   <textarea
                     value={draft.description}
                     onChange={(event) => onDraftChange({ description: event.target.value })}
@@ -74,7 +76,7 @@ export function AddFlowModal({
                     placeholder="Type here..."
                   />
                 </Field>
-                <Field label="Flow Type">
+                <Field label={`${diagramLabel} Type`}>
                   <div className="relative w-full">
                     <select
                       value={draft.category}

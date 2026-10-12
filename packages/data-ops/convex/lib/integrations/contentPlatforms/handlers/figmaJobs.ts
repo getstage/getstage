@@ -3,7 +3,10 @@ import type { Id } from "../../../../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../../../../_generated/server";
 import { requireAuthUser } from "../../../../_helpers";
 import { requireProjectAccessForUserId } from "../../../../domain/projects/service";
-import { getConnection } from "../domain";
+import { getConnection, requireFigmaExportAccess } from "../domain";
+import { flowsArtifactSchema } from "../../../../../src/contracts/flows";
+import { buildFigJamWritePlan, isCurrentFigJamSnapshot } from "../../../../../src/domain/figjam";
+import { findLatestArtifact } from "../../../projectAi/domain/latestArtifact";
 
 export const createFigmaCanvasExportJobArgs = {
   projectId: v.id("projects"),
@@ -15,6 +18,22 @@ export const createFigmaCanvasExportJobArgs = {
   pairingExpiresAt: v.number(),
 };
 
+export const createFigJamArtifactExportJobArgs = {
+  projectId: v.id("projects"),
+  artifactId: v.id("projectAiArtifacts"),
+  pairingCodeHash: v.string(),
+  pairingExpiresAt: v.number(),
+};
+
+export async function createFigJamArtifactExportJobHandler(
+  ctx: MutationCtx,
+  args: { projectId: Id<"projects">; artifactId: Id<"projectAiArtifacts">; pairingCodeHash: string; pairingExpiresAt: number },
+) {
+  return createFigmaCanvasExportJobHandler(ctx, {
+    ...args, screenId: "flow-map", exportKind: "figjam_flow_map", writePlanJson: "{}", canvasAware: true,
+  });
+}
+
 export const claimFigmaExportJobArgs = {
   pairingCodeHash: v.string(),
   figmaUserId: v.string(),
@@ -23,6 +42,7 @@ export const claimFigmaExportJobArgs = {
   claimTokenHash: v.string(),
   claimExpiresAt: v.number(),
   claimedAt: v.number(),
+  supportedWritePlanKinds: v.optional(v.array(v.literal("figjam-canvas-map"))),
 };
 
 export const heartbeatFigmaExportJobArgs = {
@@ -56,6 +76,7 @@ export async function createFigmaCanvasExportJobHandler(
     writePlanJson: string;
     pairingCodeHash: string;
     pairingExpiresAt: number;
+    canvasAware?: boolean;
   },
 ) {
   const user = await requireAuthUser(ctx);
@@ -81,6 +102,14 @@ export async function createFigmaCanvasExportJobHandler(
     throw new Error("Flows artifact not found.");
   }
 
+  let writePlanJson = args.writePlanJson;
+  if (args.exportKind === "figjam_flow_map") {
+    const latest = await findLatestArtifact(ctx, args.projectId, "flows", "flowsArtifact");
+    if (latest?._id !== artifact._id) throw new Error("The diagram was replaced. Refresh before exporting.");
+    const content = flowsArtifactSchema.parse(JSON.parse(artifact.contentJson ?? "null"));
+    writePlanJson = JSON.stringify(buildFigJamWritePlan(content, args.canvasAware));
+  }
+
   const connection = await getConnection(ctx, user._id, "figma");
   if (!connection || connection.status !== "active" || !connection.accountId) {
     throw new Error("Connect Figma in Settings before exporting.");
@@ -94,20 +123,27 @@ export async function createFigmaCanvasExportJobHandler(
         q.eq("artifactId", args.artifactId).eq("screenId", args.screenId),
       )
       .collect()
-  ).sort((a, b) => b.updatedAt - a.updatedAt)[0];
+  ).filter((job) => job.userId === user._id).sort((a, b) => b.updatedAt - a.updatedAt)[0];
 
+  if (existing?.status === "claimed" && (existing.claimExpiresAt ?? 0) > timestamp) {
+    throw new Error("An export is already running. Wait for it to finish before requesting another.");
+  }
   if (existing) {
     await ctx.db.patch(existing._id, {
       figmaAccountId: connection.accountId,
       exportKind: args.exportKind,
       status: "requested",
-      writePlanJson: args.writePlanJson,
+      writePlanJson,
       pairingCodeHash: args.pairingCodeHash,
       pairingExpiresAt: args.pairingExpiresAt,
       claimedFigmaUserId: undefined,
       claimTokenHash: undefined,
       claimExpiresAt: undefined,
       errorMessage: undefined,
+      destinationFileName: undefined,
+      destinationNodeId: undefined,
+      destinationUrl: undefined,
+      completedAt: undefined,
       updatedAt: timestamp,
     });
     return {
@@ -124,7 +160,7 @@ export async function createFigmaCanvasExportJobHandler(
     exportKind: args.exportKind,
     figmaAccountId: connection.accountId,
     status: "requested",
-    writePlanJson: args.writePlanJson,
+    writePlanJson,
     pairingCodeHash: args.pairingCodeHash,
     pairingExpiresAt: args.pairingExpiresAt,
     attemptCount: 0,
@@ -148,6 +184,7 @@ export async function claimFigmaExportJobHandler(
     claimTokenHash: string;
     claimExpiresAt: number;
     claimedAt: number;
+    supportedWritePlanKinds?: Array<"figjam-canvas-map">;
   },
 ) {
   const job = await ctx.db
@@ -163,6 +200,13 @@ export async function claimFigmaExportJobHandler(
   }
   if (job.status === "completed") {
     throw new Error("This export is already completed.");
+  }
+  await requireFigmaExportAccess(ctx, job);
+  if (job.status === "claimed" && (job.claimExpiresAt ?? 0) > args.claimedAt) {
+    throw new Error("This export is already being written by another plugin session.");
+  }
+  if (JSON.parse(job.writePlanJson).kind === "figjam-canvas-map" && !args.supportedWritePlanKinds?.includes("figjam-canvas-map")) {
+    throw new Error("Update Stage Exporter before exporting the saved canvas graph.");
   }
   const expectedEditor = job.exportKind === "figjam_flow_map" ? "figjam" : "figma";
   if (args.editorType !== expectedEditor) {
@@ -205,6 +249,7 @@ export async function heartbeatFigmaExportJobHandler(
   if (job.status !== "claimed") {
     throw new Error("Export job is not actively claimed.");
   }
+  await requireFigmaExportAccess(ctx, job);
   await ctx.db.patch(job._id, {
     claimExpiresAt: args.claimExpiresAt,
     updatedAt: args.heartbeatAt,
@@ -226,7 +271,8 @@ export async function completeFigmaExportJobHandler(
     .withIndex("by_claim_hash", (q) => q.eq("claimTokenHash", args.claimTokenHash))
     .unique();
 
-  if (!job || !job.claimExpiresAt || job.claimExpiresAt < args.completedAt) {
+  if (job?.status === "completed") return { jobId: String(job._id), status: "completed" as const };
+  if (!job || job.status !== "claimed" || !job.claimExpiresAt || job.claimExpiresAt < args.completedAt) {
     throw new Error("Export claim is invalid or expired.");
   }
 
@@ -238,6 +284,14 @@ export async function completeFigmaExportJobHandler(
     completedAt: args.completedAt,
     updatedAt: args.completedAt,
   });
+
+  // The token can confirm its own already-created snapshot after revocation,
+  // but cannot write links into a project the creator can no longer access.
+  try {
+    await requireFigmaExportAccess(ctx, job);
+  } catch {
+    return { jobId: String(job._id), status: "completed" as const };
+  }
 
   const exportKind = job.exportKind ?? "wireframe";
   if (args.destinationUrl && exportKind === "wireframe") {
@@ -263,6 +317,9 @@ export async function completeFigmaExportJobHandler(
 
   if (args.destinationUrl && exportKind === "figjam_flow_map") {
     const artifact = await ctx.db.get(job.artifactId);
+    if (!isCurrentFigJamSnapshot(artifact?.contentJson, job.writePlanJson)) {
+      return { jobId: String(job._id), status: "completed" as const };
+    }
     if (artifact?.contentJson) {
       try {
         const content = JSON.parse(artifact.contentJson) as Record<string, unknown>;
@@ -322,7 +379,7 @@ export async function failFigmaExportJobHandler(
     .query("figmaExportJobs")
     .withIndex("by_claim_hash", (q) => q.eq("claimTokenHash", args.claimTokenHash))
     .unique();
-  if (!job) {
+  if (!job || job.status !== "claimed" || (job.claimExpiresAt ?? 0) < args.failedAt) {
     return null;
   }
 
@@ -343,6 +400,15 @@ export async function getFigmaExportJobHandler(
   if (!job || job.userId !== user._id) {
     return null;
   }
+  let snapshotOutdated = false;
+  if (job.exportKind === "figjam_flow_map") {
+    try {
+      await requireProjectAccessForUserId(ctx, { userId: user._id, projectId: job.projectId });
+      snapshotOutdated = !isCurrentFigJamSnapshot((await ctx.db.get(job.artifactId))?.contentJson, job.writePlanJson);
+    } catch {
+      snapshotOutdated = true;
+    }
+  }
   return {
     id: String(job._id),
     status: job.status,
@@ -351,6 +417,7 @@ export async function getFigmaExportJobHandler(
     destinationUrl: job.destinationUrl ?? null,
     errorMessage: job.errorMessage ?? null,
     exportKind: job.exportKind ?? "wireframe",
+    snapshotOutdated,
     updatedAt: job.updatedAt,
   };
 }

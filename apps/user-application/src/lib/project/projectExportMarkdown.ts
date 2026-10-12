@@ -6,6 +6,8 @@ import type {
   StrategyArtifact,
   WireframesArtifact,
 } from "@stage/data-ops/contracts";
+import { mapReferenceToItem } from "@/types/project/moodboardTab";
+import { resolveStyleGuideSpec, styleGuideDesignMarkdown } from "./styleGuideSpec";
 
 type AssetPathMap = ReadonlyMap<string, string>;
 type UploadedAsset = { title: string; url: string | null; mimeType?: string };
@@ -212,6 +214,15 @@ export function styleGuideMarkdown(artifact: MoodboardArtifact, projectCategory:
     if (guide.implementationNotes.length) {
       lines.push("", "### Implementation rules", "", ...list(guide.implementationNotes));
     }
+    if (guide.spec) {
+      // The team edited this guide in Stage; their version is what Claude Code should build from.
+      const references = artifact.references
+        .filter((reference) => reference.directionId === guide.directionId && reference.isInMoodboard)
+        .map((reference) => mapReferenceToItem(reference, artifact.directions));
+      const name = artifact.directions.find((direction) => direction.id === guide.directionId)?.name ?? guide.title;
+      const edited = styleGuideDesignMarkdown(resolveStyleGuideSpec(guide, name, references), references);
+      lines.push("", "### Team-edited style guide (takes precedence)", "", ...edited.split("\n").slice(2).map((line) => (line.startsWith("#") ? `##${line}` : line)));
+    }
   }
   return document("Style Guide", lines);
 }
@@ -222,7 +233,13 @@ export function flowsMarkdown(artifact: FlowsArtifact) {
     lines.push("", "## User flows");
     for (const flow of artifact.flows) {
       lines.push("", `### ${flow.title}`, "", flow.description, "", `**${flow.status} · ${flow.category} · ${flow.screenCount} screens**`);
-      if (flow.steps.length) lines.push("", ...[...flow.steps].sort((a, b) => a.order - b.order).map((step, index) => `${index + 1}. ${step.label}`));
+      const board = artifact.canvas?.boards.find((entry) => entry.flowId === flow.id);
+      if (board) {
+        lines.push("", "#### Nodes", "", ...list(flow.steps.map((step) => `${step.label} (ID: \`${step.id}\`)`)), "", "#### Connections", "");
+        lines.push(...(board.edges.length ? board.edges.map((edge) => `- \`${edge.source}\` → \`${edge.target}\``) : ["No connections."]));
+      } else if (flow.steps.length) {
+        lines.push("", ...[...flow.steps].sort((a, b) => a.order - b.order).map((step, index) => `${index + 1}. ${step.label}`));
+      }
     }
   }
   if (artifact.screens.length) {

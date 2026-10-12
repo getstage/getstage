@@ -21,18 +21,22 @@ function buildFlowsArtifact(
   const current = record.artifact;
   return flowsArtifactSchema.parse({
     ...current,
-    flows: flows.map((flow, flowIndex) => ({
+    flows: flows.map((flow) => ({
       id: flow.id,
       title: flow.title,
       description: flow.description,
       status: normalizeStatus(flow.status),
       category: flow.category ?? "Project flow",
       screenCount: flow.screenCount ?? Math.max((flow.steps ?? []).length - 1, 1),
-      steps: (flow.steps ?? []).map((step, stepIndex) => ({
-        id: `${flow.id}-step-${stepIndex + 1}`,
-        order: stepIndex,
-        label: step,
-      })),
+      steps: (flow.steps ?? []).map((step, stepIndex) => {
+        const original = current.flows.find((entry) => entry.id === flow.id)?.steps[stepIndex];
+        return {
+          ...original,
+          id: original?.id ?? `${flow.id}-step-${stepIndex + 1}`,
+          order: original?.order ?? stepIndex,
+          label: step,
+        };
+      }),
     })),
     screens: screens.map((screen) => ({
       id: screen.id,
@@ -58,6 +62,7 @@ export function useSaveFlowsArtifact(projectId: string) {
         artifactId: record.id as Id<"projectAiArtifacts">,
         contentJson: JSON.stringify(artifact),
         summary: `${artifact.flows.length} flows · ${artifact.screens.length} screens`,
+        expectedUpdatedAt: record.updatedAt,
       });
       return artifact;
     },

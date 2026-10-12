@@ -85,6 +85,7 @@ export function ProjectDetailView() {
   // The API resolves enabledSteps to a concrete array; `??` only covers the brief frame
   // before the project detail has loaded (the header isn't shown then anyway).
   const enabledSteps: readonly string[] = live.detail?.enabledSteps ?? WORKFLOW_STEPS;
+  const projectCategory = resolveProjectCategory(live.detail?.type ?? "websites") ?? "websites";
 
   // If the active step gets turned off via Edit Workflow, fall back to Overview so we
   // never render a tab the project has disabled.
@@ -163,24 +164,17 @@ export function ProjectDetailView() {
 
   return (
     <>
-      <div className="flex-1 px-[clamp(16px,7vw,100px)] py-[clamp(20px,4vw,44px)]">
+      <div className={activeTab === "flows" ? "project-canvas-page flex h-full min-h-0 flex-col" : "min-h-full"}>
         <motion.div
+          className={activeTab === "flows" ? "flex min-h-0 flex-1 flex-col" : undefined}
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
         >
-          <div className="w-full pt-0">
-            <button
-              type="button"
-              onClick={goBack}
-              className="mb-6 inline-flex w-fit cursor-pointer items-center gap-[8px] text-[13px] font-medium text-[#A3A3A3] transition-colors hover:text-[#525252]"
-            >
-              <ArrowLeftIcon />
-              {projectBackDestination.label}
-            </button>
-
+          <div className="w-full shrink-0 border-b border-[#e5e5e5] px-6 pt-5">
             <ProjectHeader
               project={project}
+              projectCategory={projectCategory}
               projectImageUrl={live.detail?.projectImageUrl}
               projectCategoryLabel={
                 live.detail
@@ -214,7 +208,7 @@ export function ProjectDetailView() {
           </div>
 
           {activeTab === "overview" && (
-            <div className="w-full pb-[120px] pt-7">
+            <div className="w-full px-[clamp(16px,7vw,100px)] pb-[120px] pt-7">
               <KanbanBoard
                 phases={project.phases}
                 phaseOptions={live.phases}
@@ -273,7 +267,7 @@ export function ProjectDetailView() {
               <ProjectStepView
                 activeTab={activeTab as StepTab}
                 project={project}
-                projectCategory={resolveProjectCategory(live.detail?.type ?? "websites") ?? "websites"}
+                projectCategory={projectCategory}
                 artifactQueriesEnabled={artifactQueriesEnabled}
                 pendingStrategyGeneration={pendingStrategyGeneration}
                 pendingStrategyProviderId={pendingStrategyProviderId}

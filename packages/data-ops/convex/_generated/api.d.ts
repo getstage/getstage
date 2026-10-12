@@ -119,6 +119,7 @@ import type * as lib_projectAi_handlers_artifacts from "../lib/projectAi/handler
 import type * as lib_projectAi_handlers_chat from "../lib/projectAi/handlers/chat.js";
 import type * as lib_projectAi_handlers_context from "../lib/projectAi/handlers/context.js";
 import type * as lib_projectAi_handlers_flows from "../lib/projectAi/handlers/flows.js";
+import type * as lib_projectAi_handlers_flowsCanvas from "../lib/projectAi/handlers/flowsCanvas.js";
 import type * as lib_projectAi_handlers_moodboard from "../lib/projectAi/handlers/moodboard.js";
 import type * as lib_projectAi_handlers_research from "../lib/projectAi/handlers/research.js";
 import type * as lib_projectAi_handlers_runs from "../lib/projectAi/handlers/runs.js";
@@ -148,6 +149,7 @@ import type * as platform_inviteEmail from "../platform/inviteEmail.js";
 import type * as platform_inviteTokens from "../platform/inviteTokens.js";
 import type * as platform_rateLimits from "../platform/rateLimits.js";
 import type * as portal from "../portal.js";
+import type * as presence from "../presence.js";
 import type * as projectAi from "../projectAi.js";
 import type * as projects from "../projects.js";
 import type * as r2 from "../r2.js";
@@ -279,6 +281,7 @@ declare const fullApi: ApiFromModules<{
   "lib/projectAi/handlers/chat": typeof lib_projectAi_handlers_chat;
   "lib/projectAi/handlers/context": typeof lib_projectAi_handlers_context;
   "lib/projectAi/handlers/flows": typeof lib_projectAi_handlers_flows;
+  "lib/projectAi/handlers/flowsCanvas": typeof lib_projectAi_handlers_flowsCanvas;
   "lib/projectAi/handlers/moodboard": typeof lib_projectAi_handlers_moodboard;
   "lib/projectAi/handlers/research": typeof lib_projectAi_handlers_research;
   "lib/projectAi/handlers/runs": typeof lib_projectAi_handlers_runs;
@@ -308,6 +311,7 @@ declare const fullApi: ApiFromModules<{
   "platform/inviteTokens": typeof platform_inviteTokens;
   "platform/rateLimits": typeof platform_rateLimits;
   portal: typeof portal;
+  presence: typeof presence;
   projectAi: typeof projectAi;
   projects: typeof projects;
   r2: typeof r2;
@@ -1105,6 +1109,68 @@ export declare const components: {
             | "bounced"
             | "failed";
         },
+        null
+      >;
+    };
+  };
+  presence: {
+    public: {
+      disconnect: FunctionReference<
+        "mutation",
+        "internal",
+        { scheduled?: boolean; sessionToken: string },
+        null
+      >;
+      heartbeat: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          interval?: number;
+          roomId: string;
+          sessionId: string;
+          userId: string;
+        },
+        { roomToken: string; sessionToken: string }
+      >;
+      list: FunctionReference<
+        "query",
+        "internal",
+        { limit?: number; roomToken: string },
+        Array<{
+          data?: any;
+          lastDisconnected: number;
+          online: boolean;
+          userId: string;
+        }>
+      >;
+      listRoom: FunctionReference<
+        "query",
+        "internal",
+        { limit?: number; onlineOnly?: boolean; roomId: string },
+        Array<{ lastDisconnected: number; online: boolean; userId: string }>
+      >;
+      listUser: FunctionReference<
+        "query",
+        "internal",
+        { limit?: number; onlineOnly?: boolean; userId: string },
+        Array<{ lastDisconnected: number; online: boolean; roomId: string }>
+      >;
+      removeRoom: FunctionReference<
+        "mutation",
+        "internal",
+        { roomId: string },
+        null
+      >;
+      removeRoomUser: FunctionReference<
+        "mutation",
+        "internal",
+        { roomId: string; userId: string },
+        null
+      >;
+      updateRoomUser: FunctionReference<
+        "mutation",
+        "internal",
+        { data?: any; roomId: string; userId: string },
         null
       >;
     };

@@ -23,6 +23,23 @@ fn sample_input() -> WireframesInput {
 }
 
 #[test]
+fn saved_graph_navigation_uses_screen_references_not_array_order() {
+    let mut input = sample_input();
+    let graph = r#"{"canvas":{"version":1,"boards":[{"flowId":"main","edges":[{"source":"home","target":"pricing"}]}]}}"#;
+    input.flows_artifact_json = Some(graph.into());
+    let prompt = build_wireframes_prompt(
+        &input,
+        WireframeKind::Lofi,
+        WireframesPromptOptions::default(),
+    );
+    assert!(prompt.contains(graph));
+    assert!(prompt.contains("boards/edges define navigation, not the order of steps"));
+    assert!(prompt.contains(
+        "Action/decision nodes without screenId must not become extra wireframe screens"
+    ));
+}
+
+#[test]
 fn includes_partial_regeneration_block_when_screen_ids_provided() {
     let prompt = build_wireframes_prompt(
         &sample_input(),

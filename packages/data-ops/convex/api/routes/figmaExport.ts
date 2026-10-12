@@ -10,6 +10,7 @@ const claimSchema = z.object({
   figmaUserId: z.string().trim().min(1),
   documentName: z.string().trim().min(1).max(240),
   editorType: z.enum(["figma", "figjam"]),
+  supportedWritePlanKinds: z.array(z.literal("figjam-canvas-map")).max(1).optional(),
 });
 
 const heartbeatSchema = z.object({
@@ -56,6 +57,7 @@ export function createFigmaExportRoutes() {
         claimTokenHash: await hashSecret(claimToken),
         claimExpiresAt: now + 10 * 60 * 1000,
         claimedAt: now,
+        supportedWritePlanKinds: input.supportedWritePlanKinds,
       },
     );
 

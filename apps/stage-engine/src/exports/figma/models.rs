@@ -186,46 +186,6 @@ pub struct CreateFigJamExportRequest {
     pub artifact_id: String,
 }
 
-#[derive(Clone, Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct FlowsArtifact {
-    pub title: String,
-    #[serde(default)]
-    pub flows: Vec<Flow>,
-}
-
-#[derive(Clone, Debug, Deserialize)]
-pub struct Flow {
-    pub id: String,
-    pub title: String,
-    pub description: String,
-    #[serde(default)]
-    pub steps: Vec<FlowStep>,
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct FlowStep {
-    pub id: String,
-    pub label: String,
-}
-
-#[derive(Clone, Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct FigJamWritePlan {
-    pub api_version: &'static str,
-    pub kind: &'static str,
-    pub name: String,
-    pub flows: Vec<FigJamWriteFlow>,
-}
-
-#[derive(Clone, Debug, Serialize)]
-pub struct FigJamWriteFlow {
-    pub id: String,
-    pub title: String,
-    pub description: String,
-    pub steps: Vec<FlowStep>,
-}
-
 #[derive(Clone, Debug, Serialize)]
 pub struct FigmaWriteSection {
     pub id: String,

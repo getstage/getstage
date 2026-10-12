@@ -4,6 +4,8 @@ import { useStageWidgetVisibility } from "@/hooks/companion/useStageWidgetVisibi
 import { useCompanionState } from "@/hooks/useCompanionState";
 import {
   STAGE_SHORTCUT_OPEN_CHAT,
+  STAGE_CHAT_OPEN_REQUEST,
+  STAGE_CHAT_FOCUS,
   STAGE_SHORTCUT_TOGGLE_VOICE,
 } from "@/lib/companion/shortcutEvents";
 
@@ -37,7 +39,7 @@ export function DesktopShell({
   const companionStateRef = useRef(companion.state);
   companionStateRef.current = companion.state;
   const pendingVoiceShortcutRef = useRef(false);
-  const pendingChatShortcutRef = useRef(false);
+  const pendingChatShortcutRef = useRef<typeof STAGE_SHORTCUT_OPEN_CHAT | typeof STAGE_CHAT_FOCUS | undefined>(undefined);
   useEffect(() => {
     if (isCompanionWindow) {
       return;
@@ -67,31 +69,29 @@ export function DesktopShell({
         });
       }) ?? (() => {});
 
-    const unsubscribeChat =
-      window.stageDesktop?.voice?.onOpenLatestChatShortcut?.(() => {
-        const now = Date.now();
-        if (now - lastChatShortcutAt < SHORTCUT_DEBOUNCE_MS) {
+    function requestChat(eventName: typeof STAGE_SHORTCUT_OPEN_CHAT | typeof STAGE_CHAT_FOCUS = STAGE_SHORTCUT_OPEN_CHAT) {
+      const now = Date.now();
+      if (now - lastChatShortcutAt < SHORTCUT_DEBOUNCE_MS) return;
+      lastChatShortcutAt = now;
+      void import("@/components/companion/CritiquePanel").then(() => {
+        if (cancelled) return;
+        if (companionStateRef.current === "response" || companionStateRef.current === "thinking") {
+          window.dispatchEvent(new CustomEvent(eventName));
           return;
         }
-
-        lastChatShortcutAt = now;
-        void Promise.all([
-          import("@/components/companion/VoiceControlBar"),
-          import("@/components/companion/CritiquePanel"),
-        ]).then(() => {
-          if (cancelled) {
-            return;
-          }
-
-          pendingChatShortcutRef.current = true;
-          void companion.setState("response");
-        });
-      }) ?? (() => {});
+        pendingChatShortcutRef.current = eventName;
+        void companion.setState("response");
+      });
+    }
+    const unsubscribeChat = window.stageDesktop?.voice?.onOpenLatestChatShortcut?.(() => requestChat()) ?? (() => {});
+    const requestCanvasChat = () => requestChat(STAGE_CHAT_FOCUS);
+    window.addEventListener(STAGE_CHAT_OPEN_REQUEST, requestCanvasChat);
 
     return () => {
       cancelled = true;
       unsubscribeVoice();
       unsubscribeChat();
+      window.removeEventListener(STAGE_CHAT_OPEN_REQUEST, requestCanvasChat);
     };
   }, [companion.setState, isCompanionWindow]);
 
@@ -116,8 +116,9 @@ export function DesktopShell({
         }
 
         if (pendingChatShortcutRef.current) {
-          pendingChatShortcutRef.current = false;
-          window.dispatchEvent(new CustomEvent(STAGE_SHORTCUT_OPEN_CHAT));
+          const eventName = pendingChatShortcutRef.current;
+          pendingChatShortcutRef.current = undefined;
+          window.dispatchEvent(new CustomEvent(eventName));
         }
       });
     });
@@ -200,7 +201,7 @@ export function DesktopShell({
   return (
     <div className="stage-desktop-shell min-h-dvh">
       {children}
-      {!forceHideCompanion && (!hideCompanion || allowStageWidgetEverywhere) ? (
+      {!forceHideCompanion && (!hideCompanion || allowStageWidgetEverywhere || companion.state === "response" || companion.state === "thinking") ? (
         <>
           <Suspense fallback={null}>
             <VoiceControlBar state={companion.state} onStateChange={companion.setState} />

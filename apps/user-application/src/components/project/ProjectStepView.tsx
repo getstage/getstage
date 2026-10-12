@@ -113,14 +113,16 @@ export function ProjectStepView({
     assets: true,
   };
   const blockedStep = getBlockedProjectStep(activeTab, stepStatus);
+  const stepLabels = { ...PROJECT_STEP_LABELS, flows: projectCategory === "websites" ? "Sitemap" : "Flows" };
 
   return (
-    <div className="w-full pb-[120px] pt-7">
-      <Suspense fallback={<TabLoadingState label={`Loading ${PROJECT_STEP_LABELS[activeTab]}…`} />}>
+    <div className={activeTab === "flows" ? "flex min-h-0 w-full flex-1 flex-col" : "w-full px-[clamp(16px,7vw,100px)] pb-[120px] pt-7"}>
+      <Suspense fallback={<TabLoadingState label={`Loading ${stepLabels[activeTab]}…`} />}>
         {blockedStep ? (
           <ProjectStepBlockedState
             currentTab={activeTab}
             requiredTab={blockedStep}
+            labels={stepLabels}
             onGoToStep={() => onGoToTab(blockedStep)}
           />
         ) : null}
@@ -152,7 +154,9 @@ export function ProjectStepView({
         ) : null}
         {!blockedStep && activeTab === "flows" ? (
           <FlowsTab
+            key={project.id}
             project={project}
+            projectCategory={projectCategory}
             onGoToResearch={() => onGoToTab("research")}
             onGoToStrategy={() => onGoToTab("strategy")}
           />
@@ -192,14 +196,16 @@ function getBlockedProjectStep(activeTab: StepTab, stepStatus: ProjectStepStatus
 function ProjectStepBlockedState({
   currentTab,
   requiredTab,
+  labels,
   onGoToStep,
 }: {
   currentTab: StepTab;
   requiredTab: StepTab;
+  labels: Record<StepTab, string>;
   onGoToStep: () => void;
 }) {
-  const currentLabel = PROJECT_STEP_LABELS[currentTab];
-  const requiredLabel = PROJECT_STEP_LABELS[requiredTab];
+  const currentLabel = labels[currentTab];
+  const requiredLabel = labels[requiredTab];
 
   return (
     <section className="rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">

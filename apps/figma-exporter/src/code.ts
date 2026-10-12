@@ -1,3 +1,6 @@
+import type { FigJamCanvasWritePlan } from "../../../packages/data-ops/src/contracts/figma-export";
+import { executeFigJamCanvasWritePlan } from "./figjamCanvas";
+
 type FigmaWritePlan = {
   apiVersion: "v1";
   kind: "wireframe";
@@ -86,7 +89,8 @@ type CanvasWritePlan =
   | FigmaWritePlan
   | HifiFigmaWritePlan
   | NodesFigmaWritePlan
-  | FigJamWritePlan;
+  | FigJamWritePlan
+  | FigJamCanvasWritePlan;
 
 type ClaimResponse = {
   jobId: string;
@@ -104,6 +108,7 @@ figma.ui.onmessage = async (message: { type?: string; pairingCode?: string }) =>
   let claimToken: string | null = null;
   let createdNodes: SceneNode[] = [];
   let stopHeartbeat: (() => void) | null = null;
+  let confirming = false;
 
   try {
     const figmaUserId = figma.currentUser?.id;
@@ -117,12 +122,13 @@ figma.ui.onmessage = async (message: { type?: string; pairingCode?: string }) =>
       figmaUserId,
       documentName: figma.root.name,
       editorType: figma.editorType,
+      supportedWritePlanKinds: ["figjam-canvas-map"],
     });
     claimToken = claim.claimToken;
     stopHeartbeat = startHeartbeat(claim.claimToken);
     notifyUi(
       "working",
-      claim.writePlan.kind === "figjam-flow-map"
+      claim.writePlan.kind === "figjam-flow-map" || claim.writePlan.kind === "figjam-canvas-map"
         ? "Creating editable FigJam flow map..."
         : claim.writePlan.kind === "hifi-wireframe"
           ? "Placing Hi-Fi wireframe image..."
@@ -130,7 +136,9 @@ figma.ui.onmessage = async (message: { type?: string; pairingCode?: string }) =>
     );
 
     const execution =
-      claim.writePlan.kind === "figjam-flow-map"
+      claim.writePlan.kind === "figjam-canvas-map"
+        ? await executeFigJamCanvasWritePlan(claim.writePlan, createdNodes)
+        : claim.writePlan.kind === "figjam-flow-map"
         ? await executeFigJamWritePlan(claim.writePlan)
         : claim.writePlan.kind === "hifi-wireframe"
           ? await executeHifiFigmaWritePlan(claim.writePlan)
@@ -144,13 +152,16 @@ figma.ui.onmessage = async (message: { type?: string; pairingCode?: string }) =>
       ? `https://www.figma.com/${figma.editorType === "figjam" ? "board" : "design"}/${fileKey}?node-id=${root.id.replace(":", "-")}`
       : undefined;
 
+    confirming = true;
     await postJson("/api/v1/figma-export/complete", {
       claimToken: claim.claimToken,
       destinationNodeId: root.id,
       destinationUrl,
     });
-    figma.currentPage.selection = [root];
-    figma.viewport.scrollAndZoomIntoView([root]);
+    if (root.parent === figma.currentPage) {
+      figma.currentPage.selection = [root];
+      figma.viewport.scrollAndZoomIntoView([root]);
+    }
     const fontWarning = "warning" in execution ? execution.warning : undefined;
     notifyUi(
       "success",
@@ -160,10 +171,16 @@ figma.ui.onmessage = async (message: { type?: string; pairingCode?: string }) =>
     );
   } catch (error) {
     var errorMessage = friendlyError(error instanceof Error ? error.message : "");
-    for (var i = createdNodes.length - 1; i >= 0; i--) {
-      if (!createdNodes[i].removed) createdNodes[i].remove();
+    if (confirming) {
+      // A lost completion response may already have committed in Stage. Keep the
+      // user's created diagram rather than deleting a successfully exported map.
+      errorMessage = "Export created, but Stage confirmation failed. Check the export status in Stage before retrying.";
+    } else {
+      for (var i = createdNodes.length - 1; i >= 0; i--) {
+        if (!createdNodes[i].removed) createdNodes[i].remove();
+      }
     }
-    if (claimToken) {
+    if (claimToken && !confirming) {
       try {
         await postJson("/api/v1/figma-export/fail", {
           claimToken: claimToken,

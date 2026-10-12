@@ -16,6 +16,7 @@ import { normalizeOptional } from "../domain/normalize";
 import { now } from "../domain/time";
 import type { AiModule } from "../domain/validators";
 import { CREDIT_COSTS, recordUsage, requireCredits } from "../../credits/service";
+import { parseStyleGuideSection, styleGuideEditSchema } from "../../../../src/contracts/styleGuideSpec";
 
 /**
  * Save the moodboard board structure (references + directions + uploaded files)
@@ -82,6 +83,47 @@ export async function saveMoodboardArtifactHandler(
   });
 
   return { artifactId: String(artifactId), savedAt: timestamp };
+}
+
+export const editStyleGuideArgs = {
+  projectId: v.id("projects"),
+  directionId: v.string(),
+  editJson: v.string(),
+};
+
+/**
+ * Apply one collaborator's edit to a single Style Guide section. Convex runs this as a
+ * transaction on the latest artifact, so teammates editing different sections never
+ * overwrite each other; the same section is last-write-wins.
+ */
+export async function editStyleGuideHandler(
+  ctx: MutationCtx,
+  args: { projectId: Id<"projects">; directionId: string; editJson: string },
+) {
+  await requireProjectAccess(ctx, args.projectId);
+  if (args.editJson.length > 20000) throw new Error("Style guide edit is too large.");
+  if (await findRunningRunForProjectModule(ctx, args.projectId, "styleguide")) {
+    throw new Error("Wait for the style guide to finish generating before editing it.");
+  }
+  const edit = styleGuideEditSchema.parse(JSON.parse(args.editJson));
+  const record = await findLatestArtifact(ctx, args.projectId, "moodboard", "moodboardArtifact");
+  if (!record?.contentJson) throw new Error("Moodboard not found.");
+
+  const artifact = JSON.parse(record.contentJson) as { styleGuides?: Array<Record<string, unknown>> };
+  const guide = artifact.styleGuides?.find((entry) => entry.directionId === args.directionId);
+  if (!guide) throw new Error("This style guide no longer exists. Reload and try again.");
+
+  if (edit.kind === "reset") {
+    delete guide.spec;
+  } else {
+    const spec = (guide.spec ?? {}) as Record<string, unknown>;
+    spec[edit.section] = parseStyleGuideSection(edit.section, edit.value);
+    guide.spec = spec;
+  }
+
+  const updatedAt = now();
+  await ctx.db.patch(record._id, { contentJson: JSON.stringify(artifact), updatedAt });
+  return { updatedAt };
 }
 
 /**

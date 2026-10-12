@@ -3,11 +3,13 @@
  * Logic: `lib/projectAi/handlers/*` + `lib/projectAi/domain/*`
  */
 import { internalMutation, internalQuery, mutation, query } from "./_generated/server";
+import { v } from "convex/values";
 import * as apiHandlers from "./lib/projectAi/handlers/api";
 import * as artifactHandlers from "./lib/projectAi/handlers/artifacts";
 import * as contextHandlers from "./lib/projectAi/handlers/context";
 import * as chatHandlers from "./lib/projectAi/handlers/chat";
 import * as flowsHandlers from "./lib/projectAi/handlers/flows";
+import * as flowsCanvasHandlers from "./lib/projectAi/handlers/flowsCanvas";
 import * as moodboardHandlers from "./lib/projectAi/handlers/moodboard";
 import * as researchHandlers from "./lib/projectAi/handlers/research";
 import * as runHandlers from "./lib/projectAi/handlers/runs";
@@ -130,6 +132,12 @@ export const saveMoodboardArtifact = mutation({
   handler: moodboardHandlers.saveMoodboardArtifactHandler,
 });
 
+export const editStyleGuide = mutation({
+  args: moodboardHandlers.editStyleGuideArgs,
+  returns: v.object({ updatedAt: v.number() }),
+  handler: moodboardHandlers.editStyleGuideHandler,
+});
+
 export const createMoodboardRun = mutation({
   args: moodboardHandlers.createMoodboardRunArgs,
   handler: moodboardHandlers.createMoodboardRunHandler,
@@ -178,6 +186,12 @@ export const completeFlowsRun = mutation({
 export const failFlowsRun = mutation({
   args: flowsHandlers.failFlowsRunArgs,
   handler: flowsHandlers.failFlowsRunHandler,
+});
+
+export const editFlowsCanvas = mutation({
+  args: flowsCanvasHandlers.editFlowsCanvasArgs,
+  returns: v.object({ updatedAt: v.number(), contentJson: v.string() }),
+  handler: flowsCanvasHandlers.editFlowsCanvasHandler,
 });
 
 export const updateFlowsArtifact = mutation({

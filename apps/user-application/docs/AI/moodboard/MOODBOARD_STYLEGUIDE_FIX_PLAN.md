@@ -1,6 +1,6 @@
 # MOODBOARD STYLE GUIDE FIX PLAN
 
-Last updated: 2026-06-24
+Last updated: 2026-10-09 (STA-56 references added; original June fix phases unchanged)
 
 Related: [`MOODBOARD_DEV_STATUS.md`](./MOODBOARD_DEV_STATUS.md) · [`MOODBOARD_TESTING.md`](./MOODBOARD_TESTING.md) · [`R2_PUBLIC_DOMAIN_AUDIT.md`](../infra/R2_PUBLIC_DOMAIN_AUDIT.md)
 
@@ -9,6 +9,76 @@ Related: [`MOODBOARD_DEV_STATUS.md`](./MOODBOARD_DEV_STATUS.md) · [`MOODBOARD_T
 Unified plan for the full Moodboard / Style Guide experience: multi-project state isolation, Edit button, logo, fast image loading, AI that actually sees moodboard photos, engine dedupe safety, and parallel-run UX.
 
 ---
+
+## STA-56 — Style Guide redesign references (2026-10-09)
+
+**Status:** Two Figma reference sets recorded; initial code inspection complete. Full-frame inspection and **Style Guide implementation remain pending**. The separate Sitemap/Flows canvas now has a local implementation, category-aware engine prompts and a graph-aware FigJam snapshot pipeline; its verified scope and remaining gaps are recorded in [`FLOWS_CHANGE_AUDIT.md`](../flows/FLOWS_CHANGE_AUDIT.md#implementation-checkpoint--local-only). This redesign is separate from the original June fixes below.
+
+Werner supplied both sets as **Style Guide** references. However, the screenshots accompanying the second set show a **SITEMAP canvas** and its toolbar, not the Style Guide editor. Preserve the supplied labels without silently reclassifying either set. Confirm the frame-to-module mapping before implementation; the supplied canvas interaction is documented separately in [`FLOWS_CHANGE_AUDIT.md`](../flows/FLOWS_CHANGE_AUDIT.md#sta-56--canvas-redesign-plan-2026-10-09).
+
+Access verification: no configured Figma MCP server or listening desktop MCP endpoint was available. A public read of frame `2176:6255` returned a login/sign-up page, not frame content. Full frame titles, layouts and prototype interactions have **not** been verified. Use authenticated Figma access or exported frame screenshots before claiming visual fidelity.
+
+Figma file: **Stage <> Main** (`1r1quTKtqFy9E2UZt3rnOd`).
+
+| Reference | Figma node | Design link |
+|-----------|------------|-------------|
+| 1 | `2176:7551` | [Open frame](https://www.figma.com/design/1r1quTKtqFy9E2UZt3rnOd/Stage-%3C%3E-Main?node-id=2176-7551&m=dev) |
+| 2 | `2176:8051` | [Open frame](https://www.figma.com/design/1r1quTKtqFy9E2UZt3rnOd/Stage-%3C%3E-Main?node-id=2176-8051&m=dev) |
+| 3 | `2176:8583` | [Open frame](https://www.figma.com/design/1r1quTKtqFy9E2UZt3rnOd/Stage-%3C%3E-Main?node-id=2176-8583&m=dev) |
+| 4 | `2176:9101` | [Open frame](https://www.figma.com/design/1r1quTKtqFy9E2UZt3rnOd/Stage-%3C%3E-Main?node-id=2176-9101&m=dev) |
+| 5 | `2176:7803` | [Open frame](https://www.figma.com/design/1r1quTKtqFy9E2UZt3rnOd/Stage-%3C%3E-Main?node-id=2176-7803&m=dev) |
+
+- Isolated branch: `feat/sta-56-styleguide-flows`, worktree `/Users/wernerjohannesdieben/stage_mvp-sta-56-styleguide-flows`.
+### Second reference set supplied as Style Guide
+
+| Reference | Figma node | Design link |
+|-----------|------------|-------------|
+| 6 | `2176:6255` | [Open frame](https://www.figma.com/design/1r1quTKtqFy9E2UZt3rnOd/Stage-%3C%3E-Main?node-id=2176-6255&m=dev) |
+| 7 | `2176:6614` | [Open frame](https://www.figma.com/design/1r1quTKtqFy9E2UZt3rnOd/Stage-%3C%3E-Main?node-id=2176-6614&m=dev) |
+| 8 | `2176:7029` | [Open frame](https://www.figma.com/design/1r1quTKtqFy9E2UZt3rnOd/Stage-%3C%3E-Main?node-id=2176-7029&m=dev) |
+| 9 | `2205:8645` | [Open frame](https://www.figma.com/design/1r1quTKtqFy9E2UZt3rnOd/Stage-%3C%3E-Main?node-id=2205-8645&m=dev) |
+| 10 | `2205:9089` | [Open frame](https://www.figma.com/design/1r1quTKtqFy9E2UZt3rnOd/Stage-%3C%3E-Main?node-id=2205-9089&m=dev) |
+
+The initial request was inspection/planning; Werner subsequently authorized icon storage and canvas integration. Product changes remain in the isolated Sitemap/Flows slice, including persistence, generation safety and the local FigJam snapshot pipeline. The full Style Guide frames/access are still missing; do not invent its layout or mark STA-56 complete. No Style Guide product code has been changed.
+- The October 5–6 architecture discussion is captured in `docs/visuals/collaborative-design-workflow.html`, currently an untracked file in the original `stage_mvp` worktree, not included in this branch. It covers token-driven previews, shadows/motion, selected-guide exports and safe simultaneous editing; it is not a substitute for inspecting the Figma frames.
+### Initial code findings and proposed Style Guide work
+
+These findings are from the isolated worktree, not from authenticated Figma inspection:
+
+- `packages/data-ops/src/contracts/moodboard.ts` represents palettes, atmosphere and typography but lacks structured semantic light/dark themes, elevation, motion specifications and an explicit project-selected guide.
+- `StyleGuideView.tsx` implements the existing editable samples; components still contain fixed white surfaces and `shadow-sm`. Token changes cannot yet express the proposed complete preview faithfully.
+- `useMoodboardTab.ts` merges the current guide into a full Moodboard artifact and saves that snapshot. This is not safe simultaneous section editing by multiple teammates.
+- `projectExportMarkdown.ts` exports all guides; the Wireframes prompt refers to `styleGuides[]` rather than an explicit selected-guide contract.
+
+Proposed implementation order (subject to frame inspection):
+
+1. Confirm frame mapping and extract actual sections, controls, states, assets and responsive behavior. Compare with the October 5–6 intent/references/rules/advanced proposal; do not treat that proposal as verified frame content.
+2. Extend the saved specification compatibly: semantic light/dark tokens, type scale, spacing/radius, elevation, layout rules, annotated reference IDs, component states, motion duration/easing/reduced-motion and selected guide ID. Preserve existing projects without inventing unavailable values.
+3. Add authorized, targeted Convex edits per guide section/token and guide selection. Unrelated edits should coexist; same-target stale edits should surface a conflict. AI regeneration must check the target revision before replacing anything.
+4. Restructure the existing Moodboard Style Guide editor according to the inspected frames. Keep working edit/save/cancel behavior, explicit pending/failure states and local drafts that are not reset by unrelated remote updates.
+5. Implement a controlled component preview from the same draft specification: light/dark, shadows, typography and interaction states. Use existing GSAP for composed motion where needed, CSS/Motion for simple states, reduced-motion support and effect cleanup. Verify the claimed R2 recipe collection before designing its loader; do not execute arbitrary remote JavaScript in Electron.
+6. Generate `DESIGN.md`, exports and any guide-consuming Wireframes path from the same **saved selected guide**. Keep preview-only draft changes distinct from exported committed data and preserve the existing Lo-Fi product boundary.
+7. Verify old guides, save/reload, project switching, concurrent edits, selection consistency, AI-regeneration races, preview fidelity and accessible keyboard/reduced-motion behavior.
+
+Implementation remains gated on full-frame access and clarification of the canvas-versus-Style-Guide labeling.
+
+---
+
+## STA-56 — Collaborative Style Guide editor (2026-10-12)
+
+Figma: Style Guide P1–P5 (`2176-6255`, `2176-6614`, `2176-7029`, `2205-8645`, `2205-9089`).
+
+**Built (not yet deployed or released):**
+- One scrolling editor per Direction replaces `StyleGuideView`: Intent, References (likes + "Look at it when building" tags), Colors (6 roles, Light/Dark), Fonts, Shape and density, Do and Don't, Advanced (role table, typescale, layout, motion, components).
+- **Autosave per section** via `projectAi.editStyleGuide` (Convex transaction on the latest artifact). Teammates in different sections never overwrite each other; the same section is last-write-wins. No footer Save/Reset.
+- Edits live in `styleGuide.spec` (`packages/data-ops/src/contracts/styleGuideSpec.ts`). Absent sections fall back to the generated values, so **Reset to generated** clears `spec`, and **Regenerate All** replaces the guide (and its edits).
+- **Live presence** with `@convex-dev/presence` (`convex/presence.ts`): avatars in the header and next to the section each teammate is in. Access = project owner + workspace members (`requireProjectAccess`).
+- **Preview** renders real shadcn/ui components (`src/components/shadcn/`, Radix + cva) themed from the spec through shadcn CSS variables, scoped as `sg-*` tokens in `globals.css`. **DESIGN.md** tab and **Export** come from the same spec; the project export appends the team-edited guide.
+
+**Open:**
+- Per-section Regenerate (needs engine support for one section); "Use this one" (no chosen-Direction concept exists downstream yet); "Click to change" reference image.
+- Board saves (`saveMoodboardArtifact`) still write the whole artifact; a stale board save can drop a just-made style guide edit (Phase 5b).
+- Deploy Convex functions to testing (`convex dev --once`) before the desktop build can use them.
 
 ## Checklist
 

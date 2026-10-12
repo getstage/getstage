@@ -1,0 +1,15 @@
+.project-detail-header { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 16px 12px; }
+.project-detail-header .project-header-primary, .project-detail-header .project-header-secondary { display: contents; }
+.project-detail-header .project-header-title { grid-area: 1 / 1; }
+.project-detail-header .project-header-metadata { display: none; }
+.project-detail-header h1 { font-size: 18px; }
+.project-detail-header .project-header-actions { grid-area: 2 / 2; align-self: center; padding-bottom: 8px; }
+.project-detail-header .project-header-tabs { grid-area: 2 / 1; }
+.project-detail-header .project-header-portal { grid-area: 1 / 2; }
+.project-detail-header .project-tab-menu { padding: 0; border-radius: 0; background: transparent; }
+.project-detail-header .project-tab-menu > div { gap: 0; }
+.project-detail-header .project-tab-menu button { height: 40px; border-radius: 0; border-bottom: 2px solid transparent; background: transparent; padding: 10px; color: #525252; box-shadow: none; }
+.project-detail-header .project-tab-menu button[aria-current="page"] { border-bottom-color: #6155ff; color: #5147d9; }
+.project-detail-header .project-header-actions > button { order: 3; }
+.project-detail-header .project-header-actions > .project-export-action { order: 2; background: linear-gradient(#7b76df, #463fba); color: #fff; }
+.project-detail-header .project-header-actions > .project-share-action { order: 1; }

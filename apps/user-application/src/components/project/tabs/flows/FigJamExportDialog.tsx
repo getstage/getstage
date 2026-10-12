@@ -9,6 +9,7 @@ type FigJamExportDialogProps = {
   jobStatus?: "requested" | "claimed" | "completed" | "failed" | undefined;
   destinationUrl?: string | null | undefined;
   errorMessage?: string | null | undefined;
+  snapshotOutdated?: boolean;
 };
 
 export function FigJamExportDialog({
@@ -18,13 +19,13 @@ export function FigJamExportDialog({
   jobStatus,
   destinationUrl,
   errorMessage,
+  snapshotOutdated = false,
 }: FigJamExportDialogProps) {
   if (!request) return null;
 
   const status = jobStatus ?? request.status;
   const isCompleted = status === "completed";
   const isFailed = status === "failed";
-  const isWaiting = status === "requested" || status === "claimed";
 
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
@@ -38,7 +39,7 @@ export function FigJamExportDialog({
           {isCompleted ? (
             <div className="mt-4">
               <Dialog.Description className="text-[13px] font-medium leading-[1.5] text-[#404040]">
-                Your flow map has been exported to FigJam.
+                Your saved diagram snapshot has been exported to FigJam.
               </Dialog.Description>
               {destinationUrl ? (
                 <a
@@ -73,6 +74,12 @@ export function FigJamExportDialog({
                 {status === "claimed" ? "Plugin connected — exporting…" : "Waiting for plugin…"}
               </div>
             </div>
+          )}
+
+          {snapshotOutdated && (
+            <p role="status" className="mt-3 text-[12px] leading-[1.5] text-[#737373]">
+              This export is an earlier snapshot, not the current saved diagram. Request a new export for the latest version.
+            </p>
           )}
 
           <div className="mt-6 flex items-center justify-end">

@@ -13,6 +13,7 @@ export function ScreenElementList({
         <li key={`element-${elementIndex}`} className="py-[6px] pr-3 marker:text-[#262626]">
           {editing ? (
             <input
+              aria-label={`Key element ${elementIndex + 1}`}
               value={element}
               onChange={(event) => onDraftElementChange?.(elementIndex, event.target.value)}
               className="block h-[12px] w-full min-w-0 appearance-none border-0 bg-transparent p-0 text-[12px] font-medium leading-[1.25] text-[#262626] outline-none placeholder:text-[#737373] focus:text-[#171717]"

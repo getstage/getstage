@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { projectCategorySchema } from "./desktop-api/project";
+import { styleGuideSpecSchema } from "./styleGuideSpec";
 
 export const moodboardImportModeSchema = z.enum(["upload", "figma", "ai", "url"]);
 
@@ -85,6 +86,8 @@ export const moodboardStyleGuideSchema = z.object({
     weightSamples: z.array(moodboardTypographyWeightSampleSchema).default([]),
   }),
   componentSwatchCount: z.number().int().nonnegative().default(6),
+  // Team edits on top of the generated guide; absent sections use the generated values.
+  spec: styleGuideSpecSchema.partial().optional(),
 });
 
 export const moodboardInputSchema = z.object({

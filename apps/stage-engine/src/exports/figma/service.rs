@@ -7,9 +7,8 @@ use crate::helpers::time::now_millis;
 
 use super::models::{
     CreateFigJamExportRequest, CreateFigmaExportRequest, CreateFigmaExportResponse, CreateJobInput,
-    FigJamWriteFlow, FigJamWritePlan, FigmaWriteBlock, FigmaWritePlan, FigmaWriteSection,
-    FlowsArtifact, GeneratedBlock, GeneratedScreen, HifiFigmaWritePlan, NodesFigmaWritePlan,
-    WireframeFigmaWritePlan, WireframesArtifact,
+    FigmaWriteBlock, FigmaWritePlan, FigmaWriteSection, GeneratedBlock, GeneratedScreen,
+    HifiFigmaWritePlan, NodesFigmaWritePlan, WireframeFigmaWritePlan, WireframesArtifact,
 };
 use super::repository::FigmaExportRepository;
 
@@ -100,34 +99,8 @@ impl FigmaExportService {
         token: &str,
         request: CreateFigJamExportRequest,
     ) -> anyhow::Result<CreateFigmaExportResponse> {
-        let artifact_record = self
-            .repository
-            .fetch_latest_flows_artifact(token, &request.project_id)
-            .await?;
-        if artifact_record.id != request.artifact_id {
-            bail!("Selected flows artifact is no longer the latest artifact.");
-        }
-
-        let content_json = artifact_record
-            .content_json
-            .context("flows artifact has no content")?;
-        let artifact: FlowsArtifact =
-            serde_json::from_str(&content_json).context("flows artifact content is invalid")?;
-        let write_plan = FigJamWritePlan {
-            api_version: "v1",
-            kind: "figjam-flow-map",
-            name: artifact.title,
-            flows: artifact
-                .flows
-                .into_iter()
-                .map(|flow| FigJamWriteFlow {
-                    id: flow.id,
-                    title: flow.title,
-                    description: flow.description,
-                    steps: flow.steps,
-                })
-                .collect(),
-        };
+        // Compile from the authoritative artifact inside the authorized Convex
+        // mutation, not a sidecar snapshot that can race a canvas edit.
         let pairing_code = pairing_code();
         let expires_at = now_millis() + PAIRING_TTL_MS;
         let job = self
@@ -138,8 +111,7 @@ impl FigmaExportService {
                     project_id: request.project_id,
                     artifact_id: request.artifact_id,
                     screen_id: "flow-map".to_string(),
-                    write_plan_json: serde_json::to_string(&write_plan)
-                        .context("failed to serialize FigJam write plan")?,
+                    write_plan_json: String::new(),
                     pairing_code_hash: hash_secret(&pairing_code),
                     pairing_expires_at: expires_at,
                     export_kind: "figjam_flow_map",

@@ -1,4 +1,5 @@
 import type { ProjectTab } from "@/models/project/project";
+import type { ProjectCategory } from "@stage/data-ops/contracts";
 
 export const PROJECT_PAGE_TABS: { key: ProjectTab; label: string; iconSrc: string }[] = [
   { key: "overview", label: "Overview", iconSrc: "/logos/dashboard/overview.svg" },
@@ -15,6 +16,7 @@ export const PROJECT_PAGE_TABS: { key: ProjectTab; label: string; iconSrc: strin
 export const WORKFLOW_TABS = PROJECT_PAGE_TABS.filter((tab) => tab.key !== "overview");
 
 /** The tabs to render in the project nav: Overview plus every enabled step. */
-export function getEnabledProjectTabs(enabledSteps: readonly string[]) {
-  return PROJECT_PAGE_TABS.filter((tab) => tab.key === "overview" || enabledSteps.includes(tab.key));
+export function getEnabledProjectTabs(enabledSteps: readonly string[], category?: ProjectCategory) {
+  return PROJECT_PAGE_TABS.filter((tab) => tab.key === "overview" || enabledSteps.includes(tab.key))
+    .map((tab) => tab.key === "flows" && category === "websites" ? { ...tab, label: "Sitemap" } : tab);
 }

@@ -3,7 +3,6 @@ import type { MoodboardStyleGuide, MoodboardUploadedFile, ProviderId } from "@st
 import { GenerateStrategyRunDialog } from "@/components/project/GenerateStrategyRunDialog";
 import { UpstreamStaleBanner } from "@/components/project/UpstreamStaleBanner";
 import {
-  defaultStyleGuide,
   type MoodboardItem,
   type MoodboardMode,
 } from "@/data/fixtures/project/moodboardTabFixtures";
@@ -21,7 +20,7 @@ import { Header } from "./Header";
 import { ModeToggle } from "./ModeToggle";
 import { MoodboardGrid } from "./MoodboardGrid";
 import { StyleGuideGenerating } from "./StyleGuideGenerating";
-import { StyleGuideView } from "./StyleGuideView";
+import { StyleGuideEditor } from "./styleguide/StyleGuideEditor";
 import { DirectionIcon } from "./moodboardIcons";
 import { UploadDropzone } from "./UploadDropzone";
 import { TabLoadingState } from "../TabLoadingState";
@@ -117,7 +116,6 @@ export function MoodboardTab({ project, onGoToResearch, onGoToStrategy, onGoToFl
   const [activeStyleGuideDirectionName, setActiveStyleGuideDirectionName] = useState<string>();
   const [styleGuideDialogDirection, setStyleGuideDialogDirection] = useState<string>();
   const [styleGuideGeneratingMode, setStyleGuideGeneratingMode] = useState<"generate" | "regenerate">("generate");
-  const [isEditingStyleGuide, setIsEditingStyleGuide] = useState(false);
   const [newDirectionName, setNewDirectionName] = useState<string>();
   const directionMenuRef = useRef<HTMLDivElement | null>(null);
 
@@ -173,21 +171,18 @@ export function MoodboardTab({ project, onGoToResearch, onGoToStrategy, onGoToFl
     selectedVisibleItems.length > 0 &&
     selectedVisibleItems.every((item) => item.isInMoodboard && item.folder === activeFolder);
   const deleteButtonLabel = canRemoveFromActiveDirection ? "Remove from Direction" : "Delete selected";
-  const activeStyleGuide = (() => {
-    if (!activeStyleGuideDirectionName || !moodboard.data) {
-      return defaultStyleGuide;
-    }
-
-    const directionId = moodboard.data.tabData.directions.find(
-      (direction) => direction.name === activeStyleGuideDirectionName,
-    )?.id;
-
-    if (!directionId) {
-      return defaultStyleGuide;
-    }
-
-    return getStyleGuideForDirection(moodboard.data.tabData, directionId) ?? defaultStyleGuide;
-  })();
+  const activeDirectionId = moodboard.data?.tabData.directions.find(
+    (direction) => direction.name === activeStyleGuideDirectionName,
+  )?.id;
+  const activeStyleGuide =
+    activeDirectionId && moodboard.data ? getStyleGuideForDirection(moodboard.data.tabData, activeDirectionId) : undefined;
+  const activeStyleGuideReferences = useMemo(
+    () =>
+      moodboard.data?.tabData.references.filter(
+        (reference) => reference.directionId === activeDirectionId && reference.isInMoodboard,
+      ) ?? [],
+    [moodboard.data, activeDirectionId],
+  );
 
   // Restore the style-guide generating screen after a tab remount: the durable "running"
   // styleguide run carries the directionId, so we re-open generating for that direction.
@@ -470,49 +465,25 @@ export function MoodboardTab({ project, onGoToResearch, onGoToStrategy, onGoToFl
     return <StyleGuideGenerating mode={styleGuideGeneratingMode} previewUrl={generatingPreviewUrl} />;
   }
 
-  if (view === "style-guide") {
+  if (view === "style-guide" && activeDirectionId && activeStyleGuide && activeStyleGuideDirectionName) {
     return (
-        <StyleGuideView
-          styleGuide={activeStyleGuide}
-          isEditing={isEditingStyleGuide}
-          onEdit={() => setIsEditingStyleGuide(true)}
-          onSave={(editedGuide) => {
-            const directionId = moodboard.data?.tabData.directions.find(
-              (item) => item.name === activeStyleGuideDirectionName,
-            )?.id;
-            if (!directionId) {
-              return;
-            }
-            void moodboard
-              .saveStyleGuide(directionId, editedGuide, {
-                mode,
-                items,
-                directions: folders,
-                uploadedFiles,
-              })
-              .then(() => setIsEditingStyleGuide(false))
-              .catch(() => {
-                // Error is surfaced through moodboard.error.
-              });
-          }}
-          onCancel={() => setIsEditingStyleGuide(false)}
-          onBack={() => setView("hub")}
-          onRegenerate={() => {
-            const directionId = moodboard.data?.tabData.directions.find(
-              (item) => item.name === activeStyleGuideDirectionName,
-            )?.id;
-            if (!directionId) {
-              return;
-            }
-            setIsEditingStyleGuide(false);
-            setStyleGuideGeneratingMode("regenerate");
-            setView("generating-style-guide");
-            void moodboard.regenerateStyleGuide(directionId).catch(() => {
-              setView("style-guide");
-            });
-          }}
-        />
-      );
+      <StyleGuideEditor
+        key={activeDirectionId}
+        projectId={project.id}
+        directionId={activeDirectionId}
+        directionName={activeStyleGuideDirectionName}
+        guide={activeStyleGuide}
+        references={activeStyleGuideReferences}
+        onBack={() => setView("hub")}
+        onRegenerateAll={() => {
+          setStyleGuideGeneratingMode("regenerate");
+          setView("generating-style-guide");
+          void moodboard.regenerateStyleGuide(activeDirectionId).catch(() => {
+            setView("style-guide");
+          });
+        }}
+      />
+    );
   }
 
   if (moodboard.isImporting) {

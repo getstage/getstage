@@ -1,5 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { ProviderId } from "@stage/data-ops/contracts";
+import { useMutation } from "convex/react";
+import { flowsArtifactSchema, type ProviderId, type ProjectCategory, type FlowsCanvasEdit } from "@stage/data-ops/contracts";
+import type { Id } from "@stage/data-ops/convex/data-model";
+import { api } from "@/lib/convexApi";
+import { FlowsCanvas } from "./FlowsCanvas";
 import { GenerateStrategyRunDialog } from "@/components/project/GenerateStrategyRunDialog";
 import { UpstreamStaleBanner } from "@/components/project/UpstreamStaleBanner";
 import { getDefaultExpandedFlowId } from "@/data/fixtures/project/flowsTabFixtures";
@@ -27,11 +31,16 @@ import { TabLoadingState } from "../TabLoadingState";
 
 type FlowsTabProps = {
   project: Project;
+  projectCategory: ProjectCategory;
   onGoToResearch?: () => void;
   onGoToStrategy?: () => void;
 };
 
-export function FlowsTab({ project, onGoToResearch, onGoToStrategy }: FlowsTabProps) {
+export function FlowsTab({ project, projectCategory, onGoToResearch, onGoToStrategy }: FlowsTabProps) {
+  const label = projectCategory === "websites" ? "Sitemap" : "Flows";
+  const diagramLabel = projectCategory === "websites" ? "Sitemap" : "Flow";
+  const [showCanvas, setShowCanvas] = useState(true);
+  const editCanvas = useMutation(api.projectAi.editFlowsCanvas);
   const flowsTab = useFlowsTab({ id: project.id, name: project.name });
   const flowsRun = useFlowsRun(project.id);
   const saveFlows = useSaveFlowsArtifact(project.id);
@@ -56,8 +65,14 @@ export function FlowsTab({ project, onGoToResearch, onGoToStrategy }: FlowsTabPr
   const [generateDialogOpen, setGenerateDialogOpen] = useState(false);
   const [uiError, setUiError] = useState<string | null>(null);
   const saveQueueRef = useRef<Promise<void>>(Promise.resolve());
+  const hydratedTabContent = useRef<string | undefined>(undefined);
+  const latestTabData = useRef(artifactRecord?.tabData);
+  latestTabData.current = artifactRecord?.tabData;
 
   useEffect(() => {
+    const content = JSON.stringify(artifactRecord?.tabData ?? null);
+    if (content === hydratedTabContent.current) return;
+    hydratedTabContent.current = content;
     if (artifactRecord?.tabData) {
       const { tabData } = artifactRecord;
       setFlows(tabData.flows);
@@ -98,6 +113,7 @@ export function FlowsTab({ project, onGoToResearch, onGoToStrategy }: FlowsTabPr
   const progress = flowTotal > 0 ? (approvedCount / flowTotal) * 100 : 0;
   const flowRunBusy = flowsRun.isRunning || flowsRun.isStarting;
   const visibleRunError = artifactRecord ? null : flowsRun.error;
+  const canvasVisible = activePanelTab === "flows" && showCanvas;
 
   async function persist(nextFlows: ProjectFlow[], nextScreens = screens) {
     if (!artifactRecord) {
@@ -107,7 +123,13 @@ export function FlowsTab({ project, onGoToResearch, onGoToStrategy }: FlowsTabPr
     const saveTask = () => saveFlows.saveFlowsArtifact(artifactRecord, nextFlows, nextScreens);
     const nextSave = saveQueueRef.current.then(saveTask, saveTask).then(() => undefined);
     saveQueueRef.current = nextSave.catch(() => undefined);
-    await nextSave;
+    try {
+      await nextSave;
+    } catch (error) {
+      setFlows(latestTabData.current?.flows ?? []);
+      setScreens(latestTabData.current?.screens ?? []);
+      throw error;
+    }
   }
 
   const toggleFlow = (flowId: string) => {
@@ -148,6 +170,7 @@ export function FlowsTab({ project, onGoToResearch, onGoToStrategy }: FlowsTabPr
     setFlows(nextFlows);
     setEditingFlowId(null);
     void persist(nextFlows).catch((error) => {
+      setEditingFlowId(flowId);
       setUiError(error instanceof Error ? error.message : "Could not save flow steps.");
     });
   };
@@ -197,6 +220,9 @@ export function FlowsTab({ project, onGoToResearch, onGoToStrategy }: FlowsTabPr
     setExpandedFlowId(newFlow.id);
     closeAddFlow();
     void persist(nextFlows).catch((error) => {
+      setAddFlowDraft(addFlowDraft);
+      setAddFlowStep("steps");
+      setAddFlowOpen(true);
       setUiError(error instanceof Error ? error.message : "Could not save manual flow.");
     });
   };
@@ -255,6 +281,27 @@ export function FlowsTab({ project, onGoToResearch, onGoToStrategy }: FlowsTabPr
     });
   }
 
+  async function saveCanvasScreen(screenId: string, elements: string[], original: string[]) {
+    if (!artifactRecord || flowRunBusy) throw new Error("Screen editing is paused while generation is running.");
+    const current = artifactRecord.tabData;
+    const screen = current.screens.find((entry) => entry.id === screenId);
+    if (!screen) throw new Error("This screen is no longer available.");
+    if (JSON.stringify(screen.keyElements) !== JSON.stringify(original)) {
+      throw new Error("Screen elements changed elsewhere. Cancel and reopen the editor before saving.");
+    }
+    await persist(current.flows, current.screens.map((entry) => entry.id === screenId ? { ...entry, keyElements: elements } : entry));
+  }
+
+  async function saveCanvasEdit(edit: FlowsCanvasEdit) {
+    if (!artifactRecord) throw new Error("Generate a diagram before editing.");
+    const result = await editCanvas({
+      projectId: project.id as Id<"projects">,
+      artifactId: artifactRecord.id as Id<"projectAiArtifacts">,
+      editJson: JSON.stringify(edit),
+    });
+    return { artifact: flowsArtifactSchema.parse(JSON.parse(result.contentJson)), updatedAt: result.updatedAt };
+  }
+
   async function handleSendToFigJam() {
     if (!artifactRecord) return;
     setUiError(null);
@@ -262,11 +309,11 @@ export function FlowsTab({ project, onGoToResearch, onGoToStrategy }: FlowsTabPr
   }
 
   if (flowsTab.isLoading) {
-    return <TabLoadingState label="Loading flows…" />;
+    return <TabLoadingState label={`Loading ${label}…`} />;
   }
 
   if (!artifactRecord && (flowsRun.isRunning || flowsRun.isStarting)) {
-    return <FlowsGeneratingState />;
+    return <FlowsGeneratingState label={label} />;
   }
 
   if (regeneratingScreenTitle) {
@@ -283,6 +330,7 @@ export function FlowsTab({ project, onGoToResearch, onGoToStrategy }: FlowsTabPr
       {!artifactRecord ? (
         <>
           <FlowsEmptyState
+            label={label}
             isRunning={flowsRun.isRunning || flowsRun.isStarting}
             error={uiError ?? visibleRunError ?? (flowsTab.parseError ? "Saved flows could not be loaded." : null)}
             onGenerate={() => setGenerateDialogOpen(true)}
@@ -290,9 +338,9 @@ export function FlowsTab({ project, onGoToResearch, onGoToStrategy }: FlowsTabPr
           <GenerateStrategyRunDialog
             open={generateDialogOpen}
             onOpenChange={setGenerateDialogOpen}
-            title="Generate Flows"
-            description="Turn your research, strategy and moodboard direction into editable project flows."
-            confirmLabel="Generate Flows"
+            title={`Generate ${label}`}
+            description={`Turn your research, strategy and moodboard direction into editable project ${label.toLowerCase()}.`}
+            confirmLabel={`Generate ${label}`}
             isSubmitting={flowRunBusy}
             providerOptions={aiProvider.providerOptions}
             selectedProviderId={aiProvider.resolvedProviderId}
@@ -302,8 +350,8 @@ export function FlowsTab({ project, onGoToResearch, onGoToStrategy }: FlowsTabPr
         </>
       ) : null}
       {artifactRecord ? (
-      <section className="overflow-hidden rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
-        <div className="flex flex-col gap-4 p-4">
+      <section className={canvasVisible ? "flows-canvas-workspace flex min-h-0 flex-1 flex-col" : "min-h-0 flex-1 overflow-auto bg-[#F5F5F5] p-1"}>
+        <div className={canvasVisible ? "flex min-h-0 flex-1 flex-col" : "flex flex-col gap-4 p-4"}>
           {uiError || figJamExport.error ? (
             <div className={`rounded-[8px] px-3 py-2 text-[12px] font-medium leading-[1.5] ${
               "bg-[#FEF2F2] text-[#991B1B]"
@@ -318,11 +366,13 @@ export function FlowsTab({ project, onGoToResearch, onGoToStrategy }: FlowsTabPr
             jobStatus={figJamExport.job?.status}
             destinationUrl={figJamExport.job?.destinationUrl}
             errorMessage={figJamExport.job?.errorMessage}
+            snapshotOutdated={figJamExport.job?.snapshotOutdated}
           />
+          {!canvasVisible ? <>
           <div className="flex flex-wrap items-end justify-between gap-5">
             <div className="min-w-0">
               <h2 className="font-heading text-[15px] font-medium leading-[1.25] text-[#171717]">
-                Flows
+                {label}
               </h2>
               <div className="mt-3 flex flex-wrap items-center gap-3 text-[13px] font-medium leading-[1.25] text-[#171717]">
                 <div className="h-[10px] w-[65px] overflow-hidden rounded-full bg-[#E5E5E5]">
@@ -331,18 +381,24 @@ export function FlowsTab({ project, onGoToResearch, onGoToStrategy }: FlowsTabPr
                     style={{ width: `${progress}%` }}
                   />
                 </div>
-                <span>{approvedCount} of {flowTotal} flows approved</span>
+                <span>{approvedCount} of {flowTotal} {projectCategory === "websites" ? "sitemaps" : "flows"} approved</span>
                 <span className="h-1 w-1 rounded-full bg-[#D4D4D4]" aria-hidden="true" />
                 <span className="text-[#737373]">{screenTotal} Unique screens identified</span>
               </div>
             </div>
 
             {activePanelTab === "flows" ? (
-              <FlowHeaderActions
-                onAddFlow={() => setAddFlowOpen(true)}
-                onSendToFigJam={() => void handleSendToFigJam()}
-                sendingToFigJam={figJamExport.isExporting}
-              />
+              <div className="flex flex-wrap items-center gap-2">
+                <button type="button" onClick={() => setShowCanvas((current) => !current)} className="h-8 rounded-[6px] bg-white px-3 text-[13px] font-medium text-[#525252] shadow-sm">
+                  {showCanvas ? "View details" : "View canvas"}
+                </button>
+                <FlowHeaderActions
+                  diagramLabel={diagramLabel}
+                  onAddFlow={() => setAddFlowOpen(true)}
+                  onSendToFigJam={() => void handleSendToFigJam()}
+                  sendingToFigJam={figJamExport.isExporting}
+                />
+              </div>
             ) : null}
           </div>
 
@@ -358,7 +414,7 @@ export function FlowsTab({ project, onGoToResearch, onGoToStrategy }: FlowsTabPr
                 }`}
               >
                 <FlowIcon />
-                Flows
+                {label}
                 <span className="text-[#737373]">({flowTotal})</span>
               </button>
               <button
@@ -381,8 +437,24 @@ export function FlowsTab({ project, onGoToResearch, onGoToStrategy }: FlowsTabPr
 
             {activePanelTab === "screens" ? <ScreenFilter screenTotal={screenTotal} /> : null}
           </div>
+          </> : null}
 
-          {activePanelTab === "flows" ? (
+          {canvasVisible ? (
+            <FlowsCanvas
+              key={artifactRecord.id}
+              artifact={artifactRecord.artifact}
+              updatedAt={artifactRecord.updatedAt}
+              projectCategory={projectCategory}
+              disabled={flowRunBusy}
+              onAdd={() => setAddFlowOpen(true)}
+              actions={<>
+                <button type="button" className="flows-canvas-action" onClick={() => setShowCanvas(false)}>View details</button>
+                <button type="button" className="flows-canvas-action" disabled={figJamExport.isExporting} onClick={() => void handleSendToFigJam()}>{figJamExport.isExporting ? "Sending…" : "Send to FigJam"}</button>
+              </>}
+              onEdit={saveCanvasEdit}
+              onSaveScreen={saveCanvasScreen}
+            />
+          ) : activePanelTab === "flows" ? (
             <div className="flex flex-col gap-1">
               {flows.map((flow, index) => (
                 <FlowRow
@@ -448,6 +520,7 @@ export function FlowsTab({ project, onGoToResearch, onGoToStrategy }: FlowsTabPr
                 setScreens(nextScreens);
                 setEditingScreenId(null);
                 void persist(flows, nextScreens).catch((error) => {
+                  setEditingScreenId(screenId);
                   setUiError(error instanceof Error ? error.message : "Could not save screen elements.");
                 });
               }}
@@ -459,6 +532,7 @@ export function FlowsTab({ project, onGoToResearch, onGoToStrategy }: FlowsTabPr
 
       {addFlowOpen ? (
         <AddFlowModal
+          diagramLabel={diagramLabel}
           step={addFlowStep}
           draft={addFlowDraft}
           newStepDraft={newStepDraft}
@@ -475,10 +549,12 @@ export function FlowsTab({ project, onGoToResearch, onGoToStrategy }: FlowsTabPr
 }
 
 function FlowsEmptyState({
+  label,
   isRunning,
   error,
   onGenerate,
 }: {
+  label: string;
   isRunning: boolean;
   error: string | null;
   onGenerate: () => void;
@@ -491,10 +567,10 @@ function FlowsEmptyState({
             <img src="/logos/dashboard/flows.svg" alt="" aria-hidden="true" className="h-[37px] w-[37px]" />
             <div className="flex flex-col gap-2">
               <h2 className="text-[20px] font-semibold leading-[1.2] text-[#171717]">
-                Generate project flows
+                Generate project {label.toLowerCase()}
               </h2>
               <p className="text-[13px] font-medium leading-[1.5] text-[#525252]">
-                Turn approved research, strategy and moodboard direction into editable user flows and reusable screens.
+                Turn approved research, strategy and moodboard direction into editable {label.toLowerCase()} and reusable screens.
               </p>
             </div>
             {error ? (
@@ -509,7 +585,7 @@ function FlowsEmptyState({
               className="inline-flex h-[34px] items-center gap-2 rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7B76DF] to-[#463FBA] pl-[10px] pr-3 text-[13px] font-medium leading-none text-[#FAFAFA] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] disabled:cursor-not-allowed disabled:opacity-60"
             >
               <img src="/logos/dashboard/ai-generated.svg" alt="" aria-hidden="true" className="h-[15px] w-[15px] brightness-0 invert" />
-              {isRunning ? "Generating..." : "Generate Flows"}
+              {isRunning ? "Generating..." : `Generate ${label}`}
             </button>
           </div>
         </div>
@@ -518,7 +594,7 @@ function FlowsEmptyState({
   );
 }
 
-function FlowsGeneratingState() {
+function FlowsGeneratingState({ label }: { label: string }) {
   return (
     <section className="overflow-hidden rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
       <div className="rounded-[8px] bg-white px-[44px] py-[44px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
@@ -527,7 +603,7 @@ function FlowsGeneratingState() {
             <img src="/logos/dashboard/flows.svg" alt="" aria-hidden="true" className="h-[37px] w-[37px]" />
             <div className="flex w-full flex-col items-center gap-2">
               <p className="text-center text-[16px] font-semibold leading-none text-[#171717]">
-                Generating Flows
+                Generating {label}
               </p>
               <p className="text-center text-[13px] font-medium leading-[1.5] text-[#525252]">
                 Turning your project intelligence into editable journeys and screens.
@@ -538,7 +614,7 @@ function FlowsGeneratingState() {
               <LoadingStep icon="/logos/check.svg" label="Research attached" />
               <LoadingStep icon="/logos/check.svg" label="Strategy attached" />
               <LoadingStep icon="/logos/check.svg" label="Moodboard direction attached" />
-              <LoadingStep icon="/logos/loader.svg" label="Generating flows" spinning />
+              <LoadingStep icon="/logos/loader.svg" label={`Generating ${label.toLowerCase()}`} spinning />
               <LoadingStep icon="/logos/unchecked.svg" label="Saving artifact" />
             </div>
           </div>

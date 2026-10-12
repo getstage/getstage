@@ -2,6 +2,7 @@ use anyhow::{Context, bail};
 use serde_json::{Map as JsonMap, Value as JsonValue, json};
 
 use crate::models::flows::FlowsInput;
+use crate::models::research::ProjectCategory;
 
 const MAX_FLOWS: usize = 8;
 const MAX_STEPS_PER_FLOW: usize = 8;
@@ -44,11 +45,29 @@ fn normalize_flows_artifact_with_status_policy(
         .cloned()
         .unwrap_or_default();
 
+    let preserve_membership = !force_draft
+        || object.get("canvas").is_some_and(JsonValue::is_object)
+        || input
+            .existing_flows_artifact_json
+            .as_deref()
+            .and_then(|raw| serde_json::from_str::<JsonValue>(raw).ok())
+            .is_some_and(|value| value.get("canvas").is_some_and(JsonValue::is_object));
+    let max_steps = if preserve_membership {
+        usize::MAX
+    } else if input.project_category == ProjectCategory::Websites {
+        MAX_SCREENS
+    } else {
+        MAX_STEPS_PER_FLOW
+    };
     let normalized_flows = flows
         .iter()
-        .take(MAX_FLOWS)
+        .take(if preserve_membership {
+            usize::MAX
+        } else {
+            MAX_FLOWS
+        })
         .enumerate()
-        .filter_map(|(index, flow)| normalize_flow(flow, index, force_draft).transpose())
+        .filter_map(|(index, flow)| normalize_flow(flow, index, force_draft, max_steps).transpose())
         .collect::<anyhow::Result<Vec<_>>>()?;
 
     if normalized_flows.is_empty() {
@@ -57,9 +76,24 @@ fn normalize_flows_artifact_with_status_policy(
 
     let normalized_screens = screens
         .iter()
-        .take(MAX_SCREENS)
+        .take(if preserve_membership {
+            usize::MAX
+        } else {
+            MAX_SCREENS
+        })
         .enumerate()
-        .filter_map(|(index, screen)| normalize_screen(screen, index).transpose())
+        .filter_map(|(index, screen)| {
+            normalize_screen(
+                screen,
+                index,
+                if force_draft {
+                    MAX_KEY_ELEMENTS
+                } else {
+                    usize::MAX
+                },
+            )
+            .transpose()
+        })
         .collect::<anyhow::Result<Vec<_>>>()?;
 
     let mut normalized = JsonMap::new();
@@ -86,7 +120,11 @@ fn normalize_flows_artifact_with_status_policy(
                 .and_then(JsonValue::as_str)
                 .map(str::trim)
                 .filter(|value| !value.is_empty())
-                .unwrap_or("Project Flows")
+                .unwrap_or(if input.project_category == ProjectCategory::Websites {
+                    "Project Sitemap"
+                } else {
+                    "Project Flows"
+                })
         ),
     );
     normalized.insert("flows".to_string(), JsonValue::Array(normalized_flows));
@@ -95,6 +133,10 @@ fn normalize_flows_artifact_with_status_policy(
         "generatedAt".to_string(),
         json!(i64::try_from(generated_at).unwrap_or(i64::MAX)),
     );
+
+    if let Some(canvas) = object.get("canvas") {
+        normalized.insert("canvas".to_string(), canvas.clone());
+    }
 
     if let Some(figjam_url) = object
         .get("figjamUrl")
@@ -186,7 +228,6 @@ pub fn merge_flow_patch(
     if let Some(steps) = patch.get("steps").and_then(JsonValue::as_array) {
         let normalized_steps = steps
             .iter()
-            .take(MAX_STEPS_PER_FLOW)
             .enumerate()
             .filter_map(|(index, step)| normalize_step(step, flow_id, index).transpose())
             .collect::<anyhow::Result<Vec<_>>>()?;
@@ -206,6 +247,7 @@ fn normalize_flow(
     flow: &JsonValue,
     index: usize,
     force_draft: bool,
+    max_steps: usize,
 ) -> anyhow::Result<Option<JsonValue>> {
     let Some(object) = flow.as_object() else {
         return Ok(None);
@@ -232,7 +274,7 @@ fn normalize_flow(
         .unwrap_or_default();
     let normalized_steps = steps
         .iter()
-        .take(MAX_STEPS_PER_FLOW)
+        .take(max_steps)
         .enumerate()
         .filter_map(|(step_index, step)| normalize_step(step, &id, step_index).transpose())
         .collect::<anyhow::Result<Vec<_>>>()?;
@@ -252,7 +294,11 @@ fn normalize_flow(
     })))
 }
 
-fn normalize_screen(screen: &JsonValue, index: usize) -> anyhow::Result<Option<JsonValue>> {
+fn normalize_screen(
+    screen: &JsonValue,
+    index: usize,
+    max_key_elements: usize,
+) -> anyhow::Result<Option<JsonValue>> {
     let Some(object) = screen.as_object() else {
         return Ok(None);
     };
@@ -270,7 +316,7 @@ fn normalize_screen(screen: &JsonValue, index: usize) -> anyhow::Result<Option<J
         .and_then(JsonValue::as_u64)
         .unwrap_or(1);
     let key_elements =
-        normalize_string_array(object.get("keyElements"), MAX_KEY_ELEMENTS).unwrap_or_default();
+        normalize_string_array(object.get("keyElements"), max_key_elements).unwrap_or_default();
 
     Ok(Some(json!({
         "id": id,
@@ -308,7 +354,12 @@ fn normalize_step(
 
     let mut normalized = JsonMap::new();
     normalized.insert("id".to_string(), json!(id));
-    normalized.insert("order".to_string(), json!(index));
+    let order = step
+        .get("order")
+        .filter(|value| value.as_u64().is_some())
+        .cloned()
+        .unwrap_or_else(|| json!(index));
+    normalized.insert("order".to_string(), order);
     normalized.insert("label".to_string(), json!(label));
     if let Some(screen_id) = screen_id.filter(|value| !value.is_empty()) {
         normalized.insert("screenId".to_string(), json!(screen_id));

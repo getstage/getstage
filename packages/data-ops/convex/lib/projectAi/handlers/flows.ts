@@ -1,4 +1,6 @@
 import { v } from "convex/values";
+import { flowsArtifactSchema } from "../../../../src/contracts/flows";
+import { assertFlowsCanvasIdentity, validateFlowsCanvas } from "../../../../src/domain/flows-canvas";
 import type { Id } from "../../../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../../../_generated/server";
 import { requireProjectAccess } from "../../../_helpers";
@@ -18,6 +20,7 @@ import { normalizeOptional } from "../domain/normalize";
 import { resolveAssetContentJson } from "../domain/researchContent";
 import { now } from "../domain/time";
 import { projectAiProviderId } from "../domain/validators";
+import { resolveProjectCategory } from "../../projects/domain/projectCategory";
 
 export const getFlowsInputArgs = {
   projectId: v.id("projects"),
@@ -63,6 +66,7 @@ export async function getFlowsInputHandler(
   return {
     projectId: String(project._id),
     projectName: project.name,
+    projectCategory: resolveProjectCategory(project.type),
     researchArtifactId: String(latestResearch._id),
     researchArtifactJson: latestResearch.contentJson,
     strategyArtifactId: String(latestStrategy._id),
@@ -158,14 +162,25 @@ export async function completeFlowsRunHandler(
     }
   }
 
-  await deletePreviousFlowsArtifacts(ctx, args.projectId);
-
+  const previous = await findLatestArtifact(ctx, args.projectId, "flows", "flowsArtifact");
+  const previousArtifact = previous?.contentJson
+    ? flowsArtifactSchema.parse(JSON.parse(previous.contentJson))
+    : undefined;
   const parsed = parseFlowsContentJson(args.contentJson, args.projectId);
+  if (previousArtifact?.canvas) {
+    const next = flowsArtifactSchema.parse(parsed);
+    if (next.flows.length !== previousArtifact.flows.length) {
+      throw new Error("Regeneration cannot add or remove saved diagrams. Use the manual add action instead.");
+    }
+    assertFlowsCanvasIdentity(previousArtifact, next);
+    parsed.canvas = previousArtifact.canvas;
+  }
   if (args.researchArtifactId) parsed.researchArtifactId = args.researchArtifactId;
   if (args.strategyArtifactId) parsed.strategyArtifactId = args.strategyArtifactId;
   if (args.moodboardArtifactId) parsed.moodboardArtifactId = args.moodboardArtifactId;
   validateFlowsArtifactShape(parsed, args.projectId);
   const contentJson = JSON.stringify(parsed);
+  await deletePreviousFlowsArtifacts(ctx, args.projectId);
 
   const artifactId = await createArtifactRecord(ctx, {
     userId: user._id,
@@ -231,6 +246,7 @@ export const updateFlowsArtifactArgs = {
   artifactId: v.id("projectAiArtifacts"),
   contentJson: v.string(),
   summary: v.optional(v.string()),
+  expectedUpdatedAt: v.optional(v.number()),
 };
 
 export async function updateFlowsArtifactHandler(
@@ -240,6 +256,7 @@ export async function updateFlowsArtifactHandler(
     artifactId: Id<"projectAiArtifacts">;
     contentJson: string;
     summary?: string;
+    expectedUpdatedAt?: number;
   },
 ) {
   await requireProjectAccess(ctx, args.projectId);
@@ -253,9 +270,24 @@ export async function updateFlowsArtifactHandler(
     throw new Error("Artifact is not a flows artifact.");
   }
 
-  parseFlowsContentJson(args.contentJson, args.projectId);
+  const parsed = parseFlowsContentJson(args.contentJson, args.projectId);
+  const current = artifact.contentJson ? flowsArtifactSchema.parse(JSON.parse(artifact.contentJson)) : undefined;
+  if ((args.expectedUpdatedAt !== undefined || current?.canvas) && args.expectedUpdatedAt !== artifact.updatedAt) {
+    throw new Error("This diagram changed. Review the latest version before saving.");
+  }
+  if (await findRunningRunForProjectModule(ctx, args.projectId, "flows")) {
+    throw new Error("Wait for generation to finish before editing the diagram.");
+  }
+  if (current?.canvas) {
+    if (JSON.stringify(parsed.canvas) !== JSON.stringify(current.canvas)) {
+      throw new Error("Use canvas actions to edit connections and positions.");
+    }
+    assertFlowsCanvasIdentity(current, flowsArtifactSchema.parse(parsed));
+  } else if (parsed.canvas !== undefined) {
+    throw new Error("Use canvas actions to edit connections and positions.");
+  }
 
-  const timestamp = now();
+  const timestamp = Math.max(now(), artifact.updatedAt + 1);
   await ctx.db.patch(args.artifactId, {
     contentJson: args.contentJson,
     summary: normalizeOptional(args.summary),
@@ -319,6 +351,7 @@ function validateFlowsArtifactShape(artifact: Record<string, unknown>, projectId
 
   artifact.flows.forEach((flow, index) => validateFlow(flow, index));
   artifact.screens.forEach((screen, index) => validateScreen(screen, index));
+  if (artifact.canvas !== undefined) validateFlowsCanvas(flowsArtifactSchema.parse(artifact));
 }
 
 function validateFlow(flow: unknown, index: number) {

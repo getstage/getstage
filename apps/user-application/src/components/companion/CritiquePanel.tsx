@@ -37,7 +37,7 @@ import {
 } from "@/lib/companion/stageChats";
 import { SetupStepsDialog } from "@/components/ui/SetupStepsDialog";
 import { useProviderRequired } from "@/components/app/ProviderRequiredDialog";
-import { STAGE_SHORTCUT_OPEN_CHAT } from "@/lib/companion/shortcutEvents";
+import { STAGE_CHAT_FOCUS, STAGE_SHORTCUT_OPEN_CHAT } from "@/lib/companion/shortcutEvents";
 import type { StageChat, StageChatAttachment, StageChatMessage } from "@/models/companion/chat";
 import { useDesktopAuth } from "@/lib/auth";
 import { api } from "@/lib/convexApi";
@@ -335,12 +335,19 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
       runHistoryShortcut();
     }
 
+    function handleCanvasChatFocus() {
+      setHistoryOpen(false);
+      window.requestAnimationFrame(() => textareaRef.current?.focus());
+    }
+
     window.addEventListener("stage-voice-transcript-ready", handleTranscriptReady);
     window.addEventListener(STAGE_SHORTCUT_OPEN_CHAT, handleOpenLatestChatShortcut);
+    window.addEventListener(STAGE_CHAT_FOCUS, handleCanvasChatFocus);
 
     return () => {
       window.removeEventListener("stage-voice-transcript-ready", handleTranscriptReady);
       window.removeEventListener(STAGE_SHORTCUT_OPEN_CHAT, handleOpenLatestChatShortcut);
+      window.removeEventListener(STAGE_CHAT_FOCUS, handleCanvasChatFocus);
     };
   }, [onStateChange, visible]);
 

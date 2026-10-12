@@ -1,7 +1,10 @@
+use crate::models::research::ProjectCategory;
+
 #[derive(Clone, Debug)]
 pub struct FlowsInput {
     pub project_id: String,
     pub project_name: String,
+    pub project_category: ProjectCategory,
     pub research_artifact_id: String,
     pub research_artifact_json: String,
     pub strategy_artifact_id: String,

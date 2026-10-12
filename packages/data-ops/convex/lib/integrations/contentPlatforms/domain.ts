@@ -1,6 +1,7 @@
 import type { Doc, Id } from "../../../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../../../_generated/server";
 import { decryptSecret } from "../../../lib/credentialVault";
+import { requireProjectAccessForUserId } from "../../../helpers/access/projectAccess";
 import type {
   NativeProvider,
   TokenPayload,
@@ -17,6 +18,17 @@ export async function getConnection(
     .query("nativeIntegrationConnections")
     .withIndex("by_user_provider", (q) => q.eq("userId", userId).eq("provider", provider))
     .unique();
+}
+
+export async function requireFigmaExportAccess(
+  ctx: ConnectionCtx,
+  job: Pick<Doc<"figmaExportJobs">, "userId" | "projectId" | "figmaAccountId">,
+) {
+  await requireProjectAccessForUserId(ctx, { userId: job.userId, projectId: job.projectId });
+  const connection = await getConnection(ctx, job.userId, "figma");
+  if (connection?.status !== "active" || connection.accountId !== job.figmaAccountId) {
+    throw new Error("Reconnect Figma in Stage and request a new export.");
+  }
 }
 
 export function formatConnectionSummary(record: Doc<"nativeIntegrationConnections"> | null) {

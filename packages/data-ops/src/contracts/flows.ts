@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { flowsCanvasSchema } from "./flows-canvas";
 
 export const flowStatusSchema = z.enum(["Approved", "Draft", "In Review"]);
 
@@ -46,6 +47,7 @@ export const flowsArtifactSchema = z.object({
   figjamUrl: z.string().url().optional(),
   figjamExportedAt: z.number().int().nonnegative().optional(),
   flows: z.array(flowSchema).default([]),
+  canvas: flowsCanvasSchema.optional(),
   screens: z.array(screenSchema).default([]),
   generatedAt: z.number().int().nonnegative(),
   updatedAt: z.number().int().nonnegative().optional(),

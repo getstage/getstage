@@ -100,6 +100,11 @@ export const createFigmaCanvasExportJob = mutation({
   handler: figmaJobHandlers.createFigmaCanvasExportJobHandler,
 });
 
+export const createFigJamArtifactExportJob = mutation({
+  args: figmaJobHandlers.createFigJamArtifactExportJobArgs,
+  handler: figmaJobHandlers.createFigJamArtifactExportJobHandler,
+});
+
 export const claimFigmaExportJob = internalMutation({
   args: figmaJobHandlers.claimFigmaExportJobArgs,
   handler: figmaJobHandlers.claimFigmaExportJobHandler,

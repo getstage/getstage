@@ -10,7 +10,7 @@ import {
   type MoodboardBoardState,
   type MoodboardBoardItem,
 } from "@/lib/project/moodboardBoardState";
-import type { MoodboardStyleGuide, ProviderId } from "@stage/data-ops/contracts";
+import type { ProviderId } from "@stage/data-ops/contracts";
 import { api } from "@/lib/convexApi";
 import { MOODBOARD_IMAGE_ACCEPT, createImageThumbnail, uploadFileToR2 } from "@/lib/r2Uploads";
 import { readFileAsDataUrl } from "@/lib/utils";
@@ -221,32 +221,6 @@ export function useMoodboardTab(project: Pick<Project, "id" | "name">) {
     [project, saveArtifact, data],
   );
 
-  const saveStyleGuide = useCallback(
-    async (
-      directionId: string,
-      editedGuide: MoodboardStyleGuide,
-      boardState: MoodboardBoardState,
-    ) => {
-      setIsSaving(true);
-      setError(undefined);
-      try {
-        const currentStyleGuides = data?.tabData.styleGuides ?? [];
-        const mergedStyleGuides = [
-          ...currentStyleGuides.filter((guide) => guide.directionId !== directionId),
-          editedGuide,
-        ];
-        const artifact = tabStateToMoodboardArtifact(project, boardState, mergedStyleGuides);
-        await saveArtifact(artifact);
-      } catch (caught) {
-        setError(caught instanceof Error ? caught.message : "Could not save style guide.");
-        throw caught;
-      } finally {
-        setIsSaving(false);
-      }
-    },
-    [project, saveArtifact, data],
-  );
-
   const uploadFiles = useCallback(
     async (files: FileList | File[]): Promise<MoodboardUploadResult> => {
       const fileArray = Array.from(files).filter((file) => file.type.startsWith("image/"));
@@ -441,7 +415,6 @@ export function useMoodboardTab(project: Pick<Project, "id" | "name">) {
     hasArtifact: data !== null,
     parseError: moodboardArtifact.parseError,
     saveBoard,
-    saveStyleGuide,
     isSaving,
     uploadFiles,
     isUploading,

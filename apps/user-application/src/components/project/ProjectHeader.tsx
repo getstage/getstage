@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
+import type { ProjectCategory } from "@stage/data-ops/contracts";
 import type {
   SaveClientProfileInput,
   SaveProjectProfileInput,
@@ -9,6 +10,7 @@ import type { Phase, Project, ProjectTab } from "@/models/project/project";
 import type { ProjectModal, ProjectTimeline } from "@/types/project/projectHeader";
 import { ProjectActionsMenu } from "./header/ProjectActionsMenu";
 import { ProjectActionModal } from "./header/ProjectHeaderModals";
+import "./header/projectHeader.css";
 
 export type { ProjectTimeline };
 
@@ -16,6 +18,7 @@ export function ProjectHeader({
   project,
   projectImageUrl,
   projectCategoryLabel,
+  projectCategory,
   clientAvatarUrl,
   timeline,
   activeTab,
@@ -38,6 +41,7 @@ export function ProjectHeader({
 }: {
   project: Project;
   projectCategoryLabel?: string;
+  projectCategory?: ProjectCategory;
   projectImageUrl?: string;
   clientAvatarUrl?: string;
   timeline: ProjectTimeline;
@@ -94,13 +98,13 @@ export function ProjectHeader({
   }
 
   return (
-    <section className="flex flex-col gap-4">
-      <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-start gap-[14px]">
-        <div className="min-w-0">
+    <section className="project-detail-header">
+      <div className="project-header-primary grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-start gap-[14px]">
+        <div className="project-header-title min-w-0">
           <h1 className="max-w-[720px] truncate font-heading text-[20px] font-semibold leading-[1.2] text-[#0A0A0A]">
             {project.name}
           </h1>
-          <div className="mt-2 flex min-w-0 items-center gap-2 text-[13px] font-medium leading-[1.2] text-[#737373]">
+          <div className="project-header-metadata mt-2 flex min-w-0 items-center gap-2 text-[13px] font-medium leading-[1.2] text-[#737373]">
             <span className="truncate">{project.clientName}</span>
             {projectCategoryLabel ? (
               <>
@@ -113,18 +117,18 @@ export function ProjectHeader({
           </div>
         </div>
 
-        <div ref={projectMenuRef} className="relative flex min-w-0 items-center justify-end gap-[6px]">
+        <div ref={projectMenuRef} className="project-header-actions relative flex min-w-0 items-center justify-end gap-[6px]">
           <button
             type="button"
             onClick={() => onExport({ step: "sections" })}
-            className="inline-flex h-[27px] shrink-0 cursor-pointer items-center rounded-[6px] bg-[#F5F5F5] py-[6px] px-3 text-[13px] font-medium leading-[1.25] text-[#262626] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#ECECEC]"
+            className="project-export-action inline-flex h-[27px] shrink-0 cursor-pointer items-center rounded-[6px] bg-[#F5F5F5] py-[6px] px-3 text-[13px] font-medium leading-[1.25] text-[#262626] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#ECECEC]"
           >
             Export
           </button>
           <button
             type="button"
             onClick={onShare}
-            className="inline-flex h-[27px] shrink-0 cursor-pointer items-center gap-2 rounded-[6px] bg-[#F5F5F5] py-[6px] pl-[10px] pr-3 text-[13px] font-medium leading-[1.25] text-[#262626] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#ECECEC]"
+            className="project-share-action inline-flex h-[27px] shrink-0 cursor-pointer items-center gap-2 rounded-[6px] bg-[#F5F5F5] py-[6px] pl-[10px] pr-3 text-[13px] font-medium leading-[1.25] text-[#262626] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#ECECEC]"
           >
             Share
             <img src="/logos/dashboard/share.svg" alt="" aria-hidden="true" className="h-[15px] w-[15px] shrink-0" />
@@ -149,17 +153,18 @@ export function ProjectHeader({
         </div>
       </div>
 
-      <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-start gap-[10px]">
-        <div className="min-w-0 max-w-full overflow-hidden">
+      <div className="project-header-secondary grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-start gap-[10px]">
+        <div className="project-header-tabs min-w-0 max-w-full overflow-hidden">
           <div className="project-tab-menu w-fit max-w-full overflow-x-auto rounded-[8px] bg-[#F5F5F5] p-[2px]">
             <div className="flex w-max items-start gap-[8px]">
-              {getEnabledProjectTabs(enabledSteps).map((tab) => {
+              {getEnabledProjectTabs(enabledSteps, projectCategory).map((tab) => {
                 const isActive = tab.key === activeTab;
                 return (
                   <button
                     key={tab.key}
                     type="button"
                     onClick={() => onTabChange(tab.key)}
+                    aria-current={isActive ? "page" : undefined}
                     className={`inline-flex shrink-0 cursor-pointer items-center gap-[8px] whitespace-nowrap rounded-[6px] py-[6px] pl-[10px] pr-[12px] text-[13px] font-medium leading-none transition-all duration-150 ${
                       isActive
                         ? "bg-gradient-to-b from-[#8D87FF] to-[#7B76DF] text-[#E5E5E5] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]"
@@ -182,7 +187,7 @@ export function ProjectHeader({
           </div>
         </div>
 
-        <div className="flex min-w-0 items-center justify-end gap-2">
+        <div className="project-header-portal flex min-w-0 items-center justify-end gap-2">
           <button
             type="button"
             onClick={() =>

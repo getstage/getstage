@@ -390,6 +390,8 @@ pub fn build_wireframes_prompt(
 - Each generated screen MUST have 1-6 sections; each section MUST have 1-5 blocks.
 - copySlots are short strings (no markdown), filled from Strategy CTAs/value props when available.
 - One screen per generatedScreens[] entry; preserve every selected screen from the configure list.
+- Saved flows canvas boards/edges define navigation, not the order of steps in an array. Use those saved connections when deciding links and destinations.
+- Resolve navigation nodes to screens through step.screenId and the saved screens[] list. Action/decision nodes without screenId must not become extra wireframe screens.
 - configureScreens[].required: true ONLY for the 2-4 screens essential to the core funnel (e.g. the primary landing page). Default every other screen to required: false so the user can toggle it off — do not mark every screen required.
 - {brand_source_line}
 {lofi_html_ban}{selection_block}{regenerate_block}{style_direction_block}{layout_block}</rules>

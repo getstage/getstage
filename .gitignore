@@ -17,6 +17,8 @@ apps/user-application/resources/stage-engine/stage-engine
 **/target/
 .tanstack/
 *.tsbuildinfo
+apps/user-application/test-results/
+apps/user-application/playwright-report/
 
 # Accidental Vite/output at repo root (apps live under apps/, not ./app/)
 /app/

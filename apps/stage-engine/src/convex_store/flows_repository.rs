@@ -244,6 +244,7 @@ impl FlowsRepository {
 struct ConvexFlowsInput {
     project_id: String,
     project_name: String,
+    project_category: crate::models::research::ProjectCategory,
     research_artifact_id: String,
     research_artifact_json: String,
     strategy_artifact_id: String,
@@ -259,6 +260,7 @@ impl ConvexFlowsInput {
         FlowsInput {
             project_id: self.project_id,
             project_name: self.project_name,
+            project_category: self.project_category,
             research_artifact_id: self.research_artifact_id,
             research_artifact_json: self.research_artifact_json,
             strategy_artifact_id: self.strategy_artifact_id,
@@ -284,4 +286,26 @@ fn summary_text(artifact: &JsonValue) -> String {
         .unwrap_or(0);
 
     format!("{flows} flows · {screens} screens")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn flows_input_requires_canonical_project_category() {
+        let mut value = serde_json::json!({
+            "projectId": "p1", "projectName": "Project", "researchArtifactId": "r1", "researchArtifactJson": "{}",
+            "strategyArtifactId": "s1", "strategyArtifactJson": "{}", "moodboardArtifactId": "m1", "moodboardArtifactJson": "{}"
+        });
+        assert!(serde_json::from_value::<ConvexFlowsInput>(value.clone()).is_err());
+        value["projectCategory"] = serde_json::json!("ios-apps");
+        assert_eq!(
+            serde_json::from_value::<ConvexFlowsInput>(value)
+                .unwrap()
+                .into_flows_input()
+                .project_category,
+            crate::models::research::ProjectCategory::IosApps
+        );
+    }
 }
