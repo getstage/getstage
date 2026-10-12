@@ -18,3 +18,4 @@ export * from "./moodboard";
 export * from "./styleGuideSpec";
 export * from "./research";
 export * from "./strategy";
+export * from "./telemetry";

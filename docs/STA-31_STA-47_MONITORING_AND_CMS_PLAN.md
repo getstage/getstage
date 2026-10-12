@@ -1,6 +1,6 @@
 # STA-31 monitoring and STA-47 CMS
 
-> **Status:** STA-47 built on branch `feat/sta-44-seo-pages` as repo-based content (Strapi dropped 2026-09-30). STA-31 is a plan only.
+> **Status:** STA-47 built on branch `feat/sta-44-seo-pages` as repo-based content (Strapi dropped 2026-09-30). STA-31 has a protected online Testing audit portal, Railway Testing stack and separate authenticated intake deployed on 2026-10-06. A local Research sender is built (automatic for unpackaged local Testing desktops; packaged Testing remains opt-in); real signed-in application telemetry is not yet verified and production is untouched.
 > **Owner:** Wessel (Linear `STA-31`, `STA-47`)
 > **Last updated:** 2026-09-30
 
@@ -39,6 +39,8 @@ Out of scope: a web-app version of the Agent ("Jev AI + Stage as a web app"). Th
 | Website deploys are manual from a laptop; there is no CI for the web app. | `.github/workflows/` | Kept on purpose: `pnpm web:ship` adds the safety checks locally. |
 
 ## Part 1: STA-31 monitoring (self-hosted on Railway)
+
+Build spec (events, metrics, dashboards, alerts, agent prompt): [`STA-31_MONITORING_BUILD_SPEC.md`](STA-31_MONITORING_BUILD_SPEC.md).
 
 ### Architecture
 
@@ -119,14 +121,14 @@ User, project and request ids never go into metric labels, because they would mu
 
 ### Work items (STA-31)
 
-- [ ] Railway project `stage-observability`: Collector, Prometheus, Loki, Grafana, volumes, `grafana.getstage.co`.
-- [ ] Collector config with bearer-token auth. Prometheus with the OTLP receiver enabled.
+- [x] Railway testing project `stage-observability`: Collector, Prometheus, Loki, Grafana and volumes. Railway domains are active; custom `grafana.getstage.co` DNS remains open.
+- [x] Collector config with bearer-token auth and Prometheus ingest, verified with a synthetic smoke test.
 - [ ] Worker `POST /api/telemetry`: auth, zod allow-list, rate limit, forward to the Collector.
 - [ ] Engine: a telemetry module with a local queue and background send that drops events on failure and never blocks a request. Hook it into `RunManager` (module runs) and into the Agent loop (requests and tool calls).
 - [ ] Engine: token usage from the Claude and Codex CLI result events.
 - [ ] Desktop: Settings → Privacy toggle ("Share anonymous diagnostics", on by default).
 - [ ] Dashboards as JSON in `infra/grafana/` (versioned) and alert rules.
-- [ ] Privacy policy: what is sent, where (Railway, EU region), and retention.
+- [ ] Privacy policy: what is sent, its actual Railway region, and retention.
 
 ## Part 2: STA-47 website content (repo-based, no CMS)
 
@@ -180,6 +182,16 @@ Verified: production build and pre-render pass. A test page with every block ren
 - [ ] Give Adrien repo write access and Cloudflare access for `wrangler login`.
 - [ ] Homepage copy into content (sections are hand-built in `src/components/stage-landing/markup/`).
 - [ ] Optional later: Markdown for blog bodies (hand-writing rich-text JSON is clumsy).
+
+## STA-31 implementation checkpoint (2026-10-06)
+
+`apps/monitoring` is the internal rollout portal: local preview (`pnpm monitoring:dev`, port 4310) plus protected Testing hosting at https://stage-monitoring-testing.steep-resonance-f13d.workers.dev using the existing `werner` Grafana admin login. Every asset is access-gated. It contains the living build spec, seven phase gates, user setup checklist and 24 Zod-validated audit findings. The canonical audit is `apps/monitoring/src/data/rollout.json`; the app is not a replacement for Grafana.
+
+`infra/` contains the phase-1 four-service configs, Dockerfiles, local Compose, initial Grafana Health provisioning and a testing-only smoke script. Native config validation and app tests/build/typecheck pass. The four services are deployed in Railway testing under Adrien Ninet's Pro workspace. The Railway smoke test passed: bearer rejection, authenticated synthetic data through Prometheus/Loki, and Grafana dashboard provisioning. The telemetry-only Testing Worker is deployed separately from the website; 12 Worker tests and a local-workerd → real Railway count/histogram/log bridge passed. The 68 shared-contract tests include six Rust serialization fixtures. Phase 3 now has a local Research/section sender: bounded/non-blocking queue, one terminal observation, timed steps, metadata-only transport, Testing-only gates and runtime stop. On 2026-10-09, the user approved default-on diagnostics for normal unpackaged local Testing launches; `.env` supplies the shared Convex URL, an explicit launch opt-out remains available, and packaged production stays disabled. Nine telemetry tests, all 196 engine tests, strict Clippy and desktop typecheck pass. Deployed positive auth and a real Research run still need a signed-in Testing session. Persistent desktop opt-out, remaining workflows/dependencies/cloud instrumentation, alerts, custom DNS and production are unfinished. No billing logic changed.
+
+The newer build spec is authoritative for deployment routing: authenticated public Collector and login-protected Grafana, private Prometheus/Loki. The older Tunnel/Access wording below is not an extra requirement for that stack. The standalone portal, however, must remain local until explicitly access-protected.
+
+Privacy wording, immediate opt-out, complete event contracts, stateless OTLP counters and Business data-source isolation need the fixes listed in the build spec's implementation tracker and app audit.
 
 ## Order
 

@@ -1,0 +1,59 @@
+extensions:
+  bearertokenauth:
+    scheme: Bearer
+    token: ${env:OTEL_COLLECTOR_TOKEN}
+  health_check:
+    endpoint: 0.0.0.0:13133
+
+receivers:
+  otlp:
+    protocols:
+      http:
+        endpoint: 0.0.0.0:4318
+        max_request_body_size: 1048576
+        auth:
+          authenticator: bearertokenauth
+
+processors:
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 128
+    spike_limit_mib: 32
+  # A stateless Worker will emit deltas; never treat each HTTP batch as a
+  # fresh cumulative counter. Validate concurrent producer semantics in phase 2.
+  deltatocumulative:
+    max_stale: 1h
+    max_streams: 50000
+  batch:
+    timeout: 1s
+    send_batch_size: 512
+    send_batch_max_size: 1024
+
+exporters:
+  prometheusremotewrite:
+    endpoint: ${env:PROMETHEUS_REMOTE_WRITE_URL}
+    resource_to_telemetry_conversion:
+      enabled: false
+    retry_on_failure:
+      enabled: true
+      max_elapsed_time: 30s
+  otlphttp/loki:
+    endpoint: ${env:LOKI_OTLP_URL}
+    retry_on_failure:
+      enabled: true
+      max_elapsed_time: 30s
+    sending_queue:
+      enabled: true
+      queue_size: 100
+
+service:
+  extensions: [bearertokenauth, health_check]
+  pipelines:
+    metrics:
+      receivers: [otlp]
+      processors: [memory_limiter, deltatocumulative, batch]
+      exporters: [prometheusremotewrite]
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [otlphttp/loki]

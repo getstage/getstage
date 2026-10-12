@@ -23,6 +23,10 @@ apps/user-application/playwright-report/
 # Accidental Vite/output at repo root (apps live under apps/, not ./app/)
 /app/
 
+# Browser test outputs
+**/test-results/
+**/playwright-report/
+
 # Logs
 *.log
 npm-debug.log*

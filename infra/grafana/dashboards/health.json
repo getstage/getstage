@@ -1,0 +1,61 @@
+{
+  "uid": "stage-health",
+  "title": "Stage · Health",
+  "description": "STA-31 phase-1 scaffold. Application panels show No data until the Worker and engine are instrumented. This is not a completed monitoring rollout.",
+  "schemaVersion": 40,
+  "version": 1,
+  "editable": false,
+  "tags": ["stage", "sta-31", "foundation"],
+  "timezone": "Europe/Amsterdam",
+  "time": { "from": "now-1h", "to": "now" },
+  "refresh": "30s",
+  "templating": {
+    "list": [
+      { "name": "channel", "label": "Channel", "type": "custom", "query": "testing,production", "current": { "text": "testing", "value": "testing" } },
+      { "name": "app_version", "label": "App version", "type": "query", "datasource": { "type": "prometheus", "uid": "stage-prometheus" }, "query": "label_values(stage_runs_total{channel=\"$channel\"}, app_version)", "refresh": 1, "multi": true, "includeAll": true, "allValue": ".*", "current": { "text": "All", "value": "$__all" } },
+      { "name": "module", "label": "Module", "type": "query", "datasource": { "type": "prometheus", "uid": "stage-prometheus" }, "query": "label_values(stage_runs_total{channel=\"$channel\"}, module)", "refresh": 1, "multi": true, "includeAll": true, "allValue": ".*", "current": { "text": "All", "value": "$__all" } },
+      { "name": "provider", "label": "Provider", "type": "query", "datasource": { "type": "prometheus", "uid": "stage-prometheus" }, "query": "label_values(stage_runs_total{channel=\"$channel\"}, provider)", "refresh": 1, "multi": true, "includeAll": true, "allValue": ".*", "current": { "text": "All", "value": "$__all" } }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1, "type": "stat", "title": "Collector smoke metric — not application traffic",
+      "datasource": { "type": "prometheus", "uid": "stage-prometheus" },
+      "gridPos": { "x": 0, "y": 0, "w": 6, "h": 4 },
+      "targets": [{ "refId": "A", "expr": "stage_observability_smoke_total{channel=\"$channel\"}", "instant": true }],
+      "fieldConfig": { "defaults": { "noValue": "Not verified", "unit": "short" }, "overrides": [] },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "colorMode": "none", "graphMode": "none" }
+    },
+    {
+      "id": 2, "type": "stat", "title": "Success rate by module",
+      "datasource": { "type": "prometheus", "uid": "stage-prometheus" },
+      "gridPos": { "x": 6, "y": 0, "w": 18, "h": 4 },
+      "targets": [{ "refId": "A", "expr": "sum by (module) (rate(stage_runs_total{outcome=\"succeeded\",channel=\"$channel\",app_version=~\"$app_version\",module=~\"$module\",provider=~\"$provider\"}[1h])) / sum by (module) (rate(stage_runs_total{outcome=~\"succeeded|failed\",channel=\"$channel\",app_version=~\"$app_version\",module=~\"$module\",provider=~\"$provider\"}[1h]))", "legendFormat": "{{module}}", "instant": true }],
+      "fieldConfig": { "defaults": { "unit": "percentunit", "noValue": "No data", "min": 0, "max": 1, "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 0.9 }] } }, "overrides": [] },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "colorMode": "value", "graphMode": "none" }
+    },
+    {
+      "id": 3, "type": "timeseries", "title": "Runs per hour by module",
+      "datasource": { "type": "prometheus", "uid": "stage-prometheus" },
+      "gridPos": { "x": 0, "y": 4, "w": 12, "h": 8 },
+      "targets": [{ "refId": "A", "expr": "sum by (module) (increase(stage_runs_total{channel=\"$channel\",app_version=~\"$app_version\",module=~\"$module\",provider=~\"$provider\"}[1h]))", "legendFormat": "{{module}}" }],
+      "fieldConfig": { "defaults": { "unit": "short", "min": 0, "noValue": "No data" }, "overrides": [] },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" } }
+    },
+    {
+      "id": 4, "type": "timeseries", "title": "p95 run duration by module — all app versions",
+      "datasource": { "type": "prometheus", "uid": "stage-prometheus" },
+      "gridPos": { "x": 12, "y": 4, "w": 12, "h": 8 },
+      "targets": [{ "refId": "A", "expr": "histogram_quantile(0.95, sum by (le, module) (rate(stage_run_duration_seconds_bucket{channel=\"$channel\",module=~\"$module\",provider=~\"$provider\"}[1h])))", "legendFormat": "{{module}}" }],
+      "fieldConfig": { "defaults": { "unit": "s", "min": 0, "noValue": "No data" }, "overrides": [] },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" } }
+    },
+    {
+      "id": 5, "type": "logs", "title": "Failed runs — version / module / provider filtered",
+      "datasource": { "type": "loki", "uid": "stage-loki" },
+      "gridPos": { "x": 0, "y": 12, "w": 24, "h": 9 },
+      "targets": [{ "refId": "A", "expr": "{source=\"engine\",channel=\"$channel\",event=\"run\",level=\"error\"} | json | outcome=\"failed\" | appVersion=~\"$app_version\" | module=~\"$module\" | provider=~\"$provider\"" }],
+      "options": { "showTime": true, "sortOrder": "Descending", "wrapLogMessage": true, "enableLogDetails": true }
+    }
+  ]
+}

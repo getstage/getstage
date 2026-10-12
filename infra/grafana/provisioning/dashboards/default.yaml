@@ -1,0 +1,12 @@
+apiVersion: 1
+providers:
+  - name: stage-health
+    orgId: 1
+    folder: Stage Operations
+    folderUid: stage-operations
+    type: file
+    disableDeletion: true
+    allowUiUpdates: false
+    updateIntervalSeconds: 30
+    options:
+      path: /etc/grafana/dashboards

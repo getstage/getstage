@@ -6,6 +6,7 @@ import type { Readable } from "node:stream";
 import { app } from "electron";
 import { augmentPathForProviderClis } from "./cli-path";
 import { shouldLogDesktopVerbose } from "./desktop-log";
+import { IS_TESTING_BUILD } from "./build-channel";
 import {
   ENGINE_DEFAULT_PORT,
   ENGINE_READINESS_ATTEMPTS,
@@ -57,6 +58,18 @@ export function getSidecarEnv(port: number): NodeJS.ProcessEnv {
     ...process.env,
     PATH: augmentPathForProviderClis(process.env.PATH),
     STAGE_ENGINE_PORT: String(port),
+    // Local Testing defaults on; explicit opt-out and packaged production stay off.
+    STAGE_TELEMETRY_ENABLED:
+      (process.env.STAGE_TELEMETRY_ENABLED ?? (app.isPackaged ? "0" : "1")) === "1" &&
+      (!app.isPackaged || IS_TESTING_BUILD) &&
+      convexUrl === "https://reliable-bullfrog-917.convex.cloud"
+        ? "1"
+        : "0",
+    STAGE_TELEMETRY_CHANNEL: "testing",
+    STAGE_APP_VERSION: app.getVersion(),
+    STAGE_TELEMETRY_OS: `${
+      process.platform === "darwin" ? "macOS" : process.platform === "win32" ? "Windows" : "Linux"
+    } ${process.getSystemVersion()}`,
     ...(convexUrl ? { CONVEX_URL: convexUrl } : {}),
     ...(r2PublicBaseUrl ? { R2_PUBLIC_BASE_URL: r2PublicBaseUrl } : {}),
   };

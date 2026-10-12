@@ -11,6 +11,7 @@ use crate::helpers::time::now_millis;
 use crate::models::errors::{EngineError, EngineErrorCode};
 use crate::models::research::{ProjectCategory, ResearchUiPatternProvider};
 use crate::models::runs::{RunEvent, RunStatus, StartRunRequest};
+use crate::observability::telemetry::TelemetryStep;
 use crate::providers::adapter::{ProviderRunContext, run_provider_collect};
 use crate::providers::process::{ProviderProcessError, ProviderProcessOutcome};
 use crate::providers::service::assert_provider_ready_for_run;
@@ -125,10 +126,12 @@ impl ResearchWorkflow {
                 .repository
                 .fetch_research_input(&auth_token, project_id)
                 .await?;
+            sink.telemetry_step_started(TelemetryStep::BriefFiles);
             let brief_images =
                 load_brief_files(&mut input, self.r2_public_base_url.as_deref())
                 .await
                 .map_err(WorkflowError::InvalidRequest)?;
+            sink.telemetry_step_completed(TelemetryStep::BriefFiles);
             request.attachments.extend(brief_images);
             tracing::info!(
                 run_id = %run_id,
@@ -277,6 +280,7 @@ impl ResearchWorkflow {
                 provider_elapsed_ms = provider_started.elapsed().as_millis(),
                 "provider run completed, parsing research artifact"
             );
+            sink.telemetry_step_started(TelemetryStep::Parse);
             let mut raw_artifact = extract_research_artifact(&final_text)?;
             apply_engine_ui_patterns(&mut raw_artifact, &bundle.refero_context, &image_keys);
             let refero_context = serde_json::to_value(&bundle.refero_context)?;
@@ -295,6 +299,8 @@ impl ResearchWorkflow {
             validate_complete_research_artifact(&parsed_artifact, &input)
                 .map_err(|error| WorkflowError::IncompleteArtifact(error.to_string()))?;
 
+            sink.telemetry_step_completed(TelemetryStep::Parse);
+            sink.telemetry_step_started(TelemetryStep::Save);
             self.repository
                 .complete_research_run(
                     &auth_token,
@@ -305,6 +311,7 @@ impl ResearchWorkflow {
                 )
                 .await?;
 
+            sink.telemetry_step_completed(TelemetryStep::Save);
             tracing::info!(
                 run_id = %run_id,
                 project_id,
@@ -466,9 +473,11 @@ impl ResearchWorkflow {
             .repository
             .fetch_research_input(auth_token, project_id)
             .await?;
+        sink.telemetry_step_started(TelemetryStep::BriefFiles);
         let brief_images = load_brief_files(&mut input, self.r2_public_base_url.as_deref())
             .await
             .map_err(WorkflowError::InvalidRequest)?;
+        sink.telemetry_step_completed(TelemetryStep::BriefFiles);
         request.attachments.extend(brief_images);
         request.prompt = if section == "opportunities" {
             build_opportunities_prompt(&artifact, &input)
@@ -487,6 +496,7 @@ impl ResearchWorkflow {
             return Ok(());
         };
 
+        sink.telemetry_step_started(TelemetryStep::Parse);
         let section_patch = if section == "opportunities" {
             extract_json_object(&final_text)?
                 .get("opportunities")
@@ -515,9 +525,12 @@ impl ResearchWorkflow {
             object.insert("generatedAt".to_string(), json!(now_millis()));
         }
 
+        sink.telemetry_step_completed(TelemetryStep::Parse);
+        sink.telemetry_step_started(TelemetryStep::Save);
         self.repository
             .update_research_artifact(auth_token, project_id, &artifact_id, &artifact)
             .await?;
+        sink.telemetry_step_completed(TelemetryStep::Save);
 
         sink.send(RunEvent::RunCompleted {
             api_version,
@@ -578,15 +591,20 @@ async fn collect_with_timeout(
         crate::models::providers::ProviderId::Codex => "codex",
     };
 
-    timeout(
+    sink.telemetry_step_started(TelemetryStep::Provider);
+    let result = timeout(
         RESEARCH_PROVIDER_TIMEOUT,
-        run_provider_collect(context, sink, cancel_rx),
+        run_provider_collect(context, sink.clone(), cancel_rx),
     )
     .await
     .map_err(|_| ProviderProcessError::Timeout {
         binary,
         seconds: RESEARCH_PROVIDER_TIMEOUT.as_secs(),
-    })?
+    })?;
+    if matches!(&result, Ok(ProviderProcessOutcome::Completed(_))) {
+        sink.telemetry_step_completed(TelemetryStep::Provider);
+    }
+    result
 }
 
 #[derive(Debug, thiserror::Error)]

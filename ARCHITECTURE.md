@@ -10,6 +10,7 @@
 apps/user-application   Desktop product (Electron + React + Vite)
 apps/stage-engine       Rust local engine (AI runs, files, exports orchestration)
 apps/web-application    Web (auth, billing, marketing, desktop handoff)
+apps/monitoring         Internal STA-31 rollout/audit portal (protected Cloudflare testing + local preview; not Grafana)
 packages/data-ops       Convex schema, functions, Zod contracts — see `packages/data-ops/convex/ARCHITECTURE.md`
 ```
 
@@ -46,6 +47,10 @@ Desktop → browser → web-application → deep link / callback → Electron ma
 | `main` | Legacy default on GitHub — not the active Stage desktop line |
 
 ---
+
+## Observability (STA-31, foundation only)
+
+`apps/monitoring` tracks rollout and implementation audit. Its Cloudflare testing frontend gates all assets through the approved `werner` Grafana testing admin login, with rate limiting, no-store and CSP; local preview remains available. Versioned stack configs are in `infra/`. The Railway Testing stack and telemetry-only Cloudflare intake are deployed. Local Research/section instrumentation now sends bounded metadata directly from Rust to the fixed Testing Worker using the run's existing bearer; Electron supplies version/OS/channel launch context and rejects production opt-in. Collection defaults on only for unpackaged local desktops targeting the exact Testing backend; `STAGE_TELEMETRY_ENABLED=0` opts out. Packaged Testing remains opt-in and packaged production stays disabled. Engine runtime disable aborts exports without cancelling runs; persistent desktop Settings opt-out and other workflow/desktop/cloud senders remain pending. Two real Research runs and the provisioned Research dashboard are verified on Testing. Runtime flow: Engine/Desktop → authenticated Worker → Collector → private Prometheus/Loki → Grafana. The portal does not receive telemetry or hold service credentials.
 
 ## Security baseline (desktop)
 

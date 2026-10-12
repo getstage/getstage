@@ -1,0 +1,24 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "stage-telemetry",
+  "main": "worker/telemetry/index.ts",
+  "compatibility_date": "2025-02-20",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": { "logs": { "enabled": true, "invocation_logs": true } },
+  "env": {
+    "testing": {
+      "name": "stage-telemetry-testing",
+      "workers_dev": true,
+      "routes": [{ "pattern": "testing.getstage.co/api/telemetry", "zone_name": "getstage.co" }],
+      "vars": {
+        "CONVEX_HTTP_ORIGIN": "https://reliable-bullfrog-917.convex.site",
+        "TELEMETRY_CHANNEL": "testing",
+        "TELEMETRY_APP_VERSIONS": "0.2.46,0.2.47,0.2.48"
+      },
+      "durable_objects": {
+        "bindings": [{ "name": "TELEMETRY_STATE", "class_name": "TelemetryState" }]
+      },
+      "migrations": [{ "tag": "sta31-v1", "new_sqlite_classes": ["TelemetryState"] }]
+    }
+  }
+}

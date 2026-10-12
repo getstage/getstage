@@ -1,3 +1,5 @@
+pub mod telemetry;
+
 use tracing_subscriber::{EnvFilter, fmt};
 
 pub fn init_tracing() {

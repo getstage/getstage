@@ -1,0 +1,115 @@
+{
+  "uid": "stage-research",
+  "title": "Stage · Research",
+  "description": "Recorded Testing Research runs, outcomes, durations and steps. Uses persisted engine logs so quiet push metrics do not hide completed runs. Other workflows and alert delivery are not yet accepted.",
+  "schemaVersion": 40,
+  "version": 1,
+  "editable": false,
+  "tags": ["stage", "sta-31", "research"],
+  "timezone": "Europe/Amsterdam",
+  "time": { "from": "now-24h", "to": "now" },
+  "refresh": "30s",
+  "links": [
+    { "title": "Rollout and audit", "type": "link", "url": "https://stage-monitoring-testing.steep-resonance-f13d.workers.dev", "targetBlank": true },
+    { "title": "Infrastructure scaffold", "type": "link", "url": "/d/stage-health/stage-health", "targetBlank": false }
+  ],
+  "templating": {
+    "list": [
+      { "name": "channel", "label": "Channel", "type": "custom", "query": "testing,production", "current": { "text": "testing", "value": "testing" } },
+      { "name": "run_id", "label": "Run ID (.* = all)", "type": "textbox", "query": ".*", "current": { "text": ".*", "value": ".*" } }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1, "type": "text", "title": "Research monitoring",
+      "gridPos": { "x": 0, "y": 0, "w": 24, "h": 3 },
+      "options": { "mode": "markdown", "content": "**Real Research events on Testing.** Cards use the selected time range (default: 24 hours). Click a Run ID below to inspect it; `.*` shows all runs.\n\n**Not live yet:** other workflows, production collection and alert delivery." }
+    },
+    {
+      "id": 2, "type": "stat", "title": "Recorded runs",
+      "description": "Terminal engine events in the selected time range, including successes, failures and cancellations. Not a lifetime cumulative counter.",
+      "datasource": { "type": "loki", "uid": "stage-loki" },
+      "gridPos": { "x": 0, "y": 3, "w": 6, "h": 4 },
+      "targets": [{ "refId": "A", "expr": "sum(count_over_time({source=\"engine\",channel=\"$channel\",event=\"run\"} | json | module=~\"research|research_section\" | runId=~\"$run_id\" | __error__=\"\" [$__range]))", "queryType": "instant" }],
+      "fieldConfig": { "defaults": { "unit": "short", "decimals": 0, "noValue": "No recorded runs", "color": { "mode": "fixed", "fixedColor": "purple" } }, "overrides": [] },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "colorMode": "value", "graphMode": "none" }
+    },
+    {
+      "id": 3, "type": "stat", "title": "Success rate",
+      "description": "Succeeded / (succeeded + failed), excluding cancellations. No matching completed runs means No data, not healthy.",
+      "datasource": { "type": "loki", "uid": "stage-loki" },
+      "gridPos": { "x": 6, "y": 3, "w": 6, "h": 4 },
+      "targets": [{ "refId": "A", "expr": "(sum(count_over_time({source=\"engine\",channel=\"$channel\",event=\"run\"} | json | module=~\"research|research_section\" | runId=~\"$run_id\" | outcome=\"succeeded\" | __error__=\"\" [$__range])) or (0 * sum(count_over_time({source=\"engine\",channel=\"$channel\",event=\"run\"} | json | module=~\"research|research_section\" | runId=~\"$run_id\" | outcome=~\"succeeded|failed\" | __error__=\"\" [$__range])))) / sum(count_over_time({source=\"engine\",channel=\"$channel\",event=\"run\"} | json | module=~\"research|research_section\" | runId=~\"$run_id\" | outcome=~\"succeeded|failed\" | __error__=\"\" [$__range]))", "queryType": "instant" }],
+      "fieldConfig": { "defaults": { "unit": "percentunit", "decimals": 0, "min": 0, "max": 1, "noValue": "No data", "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 0.9 }] } }, "overrides": [] },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "colorMode": "value", "graphMode": "none" }
+    },
+    {
+      "id": 4, "type": "stat", "title": "Average run duration",
+      "description": "Actual elapsed duration of recorded runs in the selected window. Select one Run ID to see its exact duration.",
+      "datasource": { "type": "loki", "uid": "stage-loki" },
+      "gridPos": { "x": 12, "y": 3, "w": 6, "h": 4 },
+      "targets": [{ "refId": "A", "expr": "sum(sum_over_time({source=\"engine\",channel=\"$channel\",event=\"run\"} | json | module=~\"research|research_section\" | runId=~\"$run_id\" | unwrap durationMs | __error__=\"\" [$__range])) / sum(count_over_time({source=\"engine\",channel=\"$channel\",event=\"run\"} | json | module=~\"research|research_section\" | runId=~\"$run_id\" | __error__=\"\" [$__range])) / 1000", "queryType": "instant" }],
+      "fieldConfig": { "defaults": { "unit": "dtdurations", "decimals": 1, "noValue": "No data", "color": { "mode": "fixed", "fixedColor": "blue" } }, "overrides": [] },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "colorMode": "value", "graphMode": "none" }
+    },
+    {
+      "id": 5, "type": "stat", "title": "Failed runs",
+      "description": "Zero is shown only when at least one terminal run event exists in this window. No recorded traffic is not reported as healthy.",
+      "datasource": { "type": "loki", "uid": "stage-loki" },
+      "gridPos": { "x": 18, "y": 3, "w": 6, "h": 4 },
+      "targets": [{ "refId": "A", "expr": "sum(count_over_time({source=\"engine\",channel=\"$channel\",event=\"run\"} | json | module=~\"research|research_section\" | runId=~\"$run_id\" | outcome=\"failed\" | __error__=\"\" [$__range])) or (0 * sum(count_over_time({source=\"engine\",channel=\"$channel\",event=\"run\"} | json | module=~\"research|research_section\" | runId=~\"$run_id\" | __error__=\"\" [$__range])))", "queryType": "instant" }],
+      "fieldConfig": { "defaults": { "unit": "short", "decimals": 0, "noValue": "No recorded runs", "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "red", "value": 1 }] } }, "overrides": [] },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "colorMode": "value", "graphMode": "none" }
+    },
+    {
+      "id": 6, "type": "table", "title": "Research runs — click a Run ID to inspect",
+      "datasource": { "type": "loki", "uid": "stage-loki" },
+      "gridPos": { "x": 0, "y": 7, "w": 24, "h": 7 },
+      "targets": [{ "refId": "A", "expr": "{source=\"engine\",channel=\"$channel\",event=\"run\"} | json | module=~\"research|research_section\" | runId=~\"$run_id\" | __error__=\"\"", "queryType": "range", "maxLines": 200 }],
+      "transformations": [
+        { "id": "extractFields", "options": { "source": "Line", "format": "json", "replace": true, "keepTime": true } },
+        { "id": "filterFieldsByName", "options": { "include": { "names": ["Time", "module", "outcome", "provider", "appVersion", "durationMs", "runId", "errorKind"] } } },
+        { "id": "merge", "options": {} },
+        { "id": "organize", "options": { "indexByName": { "Time": 0, "module": 1, "outcome": 2, "provider": 3, "appVersion": 4, "durationMs": 5, "runId": 6, "errorKind": 7 }, "renameByName": { "Time": "Completed at", "module": "Workflow", "outcome": "Result", "provider": "Provider", "appVersion": "App version", "durationMs": "Duration", "runId": "Run ID", "errorKind": "Error" } } }
+      ],
+      "fieldConfig": {
+        "defaults": { "noValue": "—", "custom": { "cellOptions": { "type": "auto" } } },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Duration" }, "properties": [{ "id": "unit", "value": "dtdurationms" }, { "id": "decimals", "value": 1 }] },
+          { "matcher": { "id": "byName", "options": "Result" }, "properties": [{ "id": "custom.cellOptions", "value": { "type": "color-text" } }, { "id": "mappings", "value": [{ "type": "value", "options": { "succeeded": { "text": "Succeeded", "color": "green" }, "failed": { "text": "Failed", "color": "red" }, "cancelled": { "text": "Cancelled", "color": "blue" } } }] }] },
+          { "matcher": { "id": "byName", "options": "Run ID" }, "properties": [{ "id": "links", "value": [{ "title": "Show this run", "url": "/d/stage-research/stage-research?${__url_time_range}&var-channel=${channel}&var-run_id=${__value.raw}" }] }] }
+        ]
+      },
+      "options": { "showHeader": true, "cellHeight": "sm", "sortBy": [{ "displayName": "Completed at", "desc": true }] }
+    },
+    {
+      "id": 8, "type": "table", "title": "Step results and durations",
+      "description": "stage-context includes brief-files; overlapping timings must not be added together.",
+      "datasource": { "type": "loki", "uid": "stage-loki" },
+      "gridPos": { "x": 0, "y": 14, "w": 24, "h": 8 },
+      "targets": [{ "refId": "A", "expr": "{source=\"engine\",channel=\"$channel\",event=\"step\"} | json | module=~\"research|research_section\" | runId=~\"$run_id\" | __error__=\"\"", "queryType": "range", "maxLines": 200 }],
+      "transformations": [
+        { "id": "extractFields", "options": { "source": "Line", "format": "json", "replace": true, "keepTime": true } },
+        { "id": "filterFieldsByName", "options": { "include": { "names": ["Time", "step", "outcome", "durationMs", "runId", "errorKind"] } } },
+        { "id": "merge", "options": {} },
+        { "id": "organize", "options": { "indexByName": { "Time": 0, "step": 1, "outcome": 2, "durationMs": 3, "runId": 4, "errorKind": 5 }, "renameByName": { "Time": "Completed at", "step": "Step", "outcome": "Result", "durationMs": "Duration", "runId": "Run ID", "errorKind": "Error" } } }
+      ],
+      "fieldConfig": {
+        "defaults": { "noValue": "—" },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Duration" }, "properties": [{ "id": "unit", "value": "ms" }, { "id": "decimals", "value": 2 }] },
+          { "matcher": { "id": "byName", "options": "Result" }, "properties": [{ "id": "custom.cellOptions", "value": { "type": "color-text" } }, { "id": "mappings", "value": [{ "type": "value", "options": { "succeeded": { "text": "Succeeded", "color": "green" }, "failed": { "text": "Failed", "color": "red" }, "skipped": { "text": "Skipped", "color": "blue" } } }] }] }
+        ]
+      },
+      "options": { "showHeader": true, "cellHeight": "sm", "sortBy": [{ "displayName": "Completed at", "desc": false }] }
+    },
+    {
+      "id": 9, "type": "logs", "title": "Recorded run and step logs",
+      "description": "Bounded metadata only. Run IDs correlate terminal results and steps; prompts and generated content are never collected.",
+      "datasource": { "type": "loki", "uid": "stage-loki" },
+      "gridPos": { "x": 0, "y": 22, "w": 24, "h": 9 },
+      "targets": [{ "refId": "A", "expr": "{source=\"engine\",channel=\"$channel\",event=~\"run|step\"} | json | module=~\"research|research_section\" | runId=~\"$run_id\" | __error__=\"\" | line_format \"{{.event}} · {{.module}} {{.step}} · {{.outcome}} · {{.durationMs}} ms · {{.runId}}\"", "queryType": "range", "maxLines": 200 }],
+      "options": { "showTime": true, "sortOrder": "Descending", "wrapLogMessage": true, "enableLogDetails": true, "prettifyLogMessage": false, "dedupStrategy": "none" }
+    }
+  ]
+}

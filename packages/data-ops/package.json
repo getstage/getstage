@@ -73,7 +73,8 @@
     "convex:deploy": "convex deploy",
     "convex:typecheck": "tsc -p convex/tsconfig.json --noEmit",
     "clean": "rm -rf dist",
-    "test:profiles": "vitest run tests/builderProfiles.test.ts tests/marketplaceRoutes.test.ts"
+    "test:profiles": "vitest run tests/builderProfiles.test.ts tests/marketplaceRoutes.test.ts",
+    "test:telemetry": "vitest run tests/telemetry.test.ts"
   },
   "dependencies": {
     "@auth/core": "0.37.0",

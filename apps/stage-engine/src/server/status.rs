@@ -29,6 +29,12 @@ pub async fn readiness(State(state): State<AppState>) -> Json<ReadinessResponse>
     })
 }
 
+/// Stop Testing diagnostics without cancelling runs. Enabling requires a new explicit launch.
+pub async fn disable_telemetry(State(state): State<AppState>) -> axum::http::StatusCode {
+    state.runs.disable_telemetry();
+    axum::http::StatusCode::NO_CONTENT
+}
+
 pub async fn version(State(state): State<AppState>) -> Json<VersionResponse> {
     Json(VersionResponse {
         api_version: state.api_version,

@@ -1,0 +1,20 @@
+apiVersion: 1
+datasources:
+  - name: Stage Prometheus
+    uid: stage-prometheus
+    type: prometheus
+    access: proxy
+    url: ${PROMETHEUS_URL}
+    isDefault: true
+    editable: false
+    jsonData:
+      httpMethod: POST
+      timeInterval: 30s
+  - name: Stage Loki
+    uid: stage-loki
+    type: loki
+    access: proxy
+    url: ${LOKI_URL}
+    editable: false
+    jsonData:
+      maxLines: 200

@@ -23,6 +23,7 @@ pub fn router(state: AppState) -> Router {
         .route("/v1/health", get(status::health))
         .route("/v1/readiness", get(status::readiness))
         .route("/v1/version", get(status::version))
+        .route("/v1/telemetry/disable", post(status::disable_telemetry))
         .route("/v1/events", get(events::events))
         .route("/v1/providers", get(providers::list_providers))
         .route("/v1/providers/refresh", post(providers::refresh_providers))
