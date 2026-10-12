@@ -4,11 +4,11 @@
 
 This document retains the original first-release checklist below; do not use its old release-asset or secret-location claims as current instructions.
 
-## Current release scope — 2026-10-10
+## Current release scope — 2026-10-12
 
-- Testing tag `v0.2.56` is pushed at commit `85fbe87f`, desktop package version `0.2.56`, branch `feat/sta-31-monitoring`. Include the STA-31 monitoring foundation, verified Research dashboard and thumbnail recovery; exclude unrelated plans, design sketches and agent tooling. Stage reviewed paths explicitly, not `git add .`.
-- `pnpm run dev` enables diagnostics only on unpackaged local Testing. Packaged Testing remains opt-in; packaged production is disabled. Publishing a Testing DMG does not enable production telemetry or deploy the web/Convex backend.
-- GitHub Actions: https://github.com/getstage/getstage/actions/runs/38043119051 (started for the exact tagged commit; DMG/feed completion still pending). Verify `.github/workflows/release-desktop.yml` against the exact pushed commit. Do not report downloadable DMGs until both architecture builds and `publish-testing-feed` succeed and `latest-mac.yml` advertises `0.2.56`.
+- Testing tag `v0.2.57`, desktop package version `0.2.57`, branch `feat/sta-56-styleguide-flows` (includes everything in `v0.2.56`). Adds the STA-56 collaborative Style Guide editor (per-section autosave, live presence, shadcn preview) and the Sitemap/Flows canvas with the shared project header.
+- Convex functions (`projectAi.editStyleGuide`, `presence.*`, presence component) were synced to Testing `reliable-bullfrog-917` before tagging; nothing deployed to production.
+- Checks before tagging: frozen lockfile install, data-ops build, desktop typecheck and build, `cargo check`, 206 engine tests, Style Guide unit tests. Do not report downloadable DMGs until both architecture builds and `publish-testing-feed` succeed and `latest-mac.yml` advertises `0.2.57`.
 
 ## 1. Check lokaal
 
