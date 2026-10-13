@@ -6,7 +6,7 @@ import type {
   StrategyArtifact,
   WireframesArtifact,
 } from "@stage/data-ops/contracts";
-import { mapReferenceToItem } from "@/types/project/moodboardTab";
+import { mapReferenceToItem } from "../../types/project/moodboardTab";
 import { resolveStyleGuideSpec, styleGuideDesignMarkdown } from "./styleGuideSpec";
 
 type AssetPathMap = ReadonlyMap<string, string>;

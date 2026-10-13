@@ -177,13 +177,13 @@ test("screen editing cancels locally, saves once and persists without altering t
   await node(page, "Home").focus();
   await page.keyboard.press("Enter");
   const dialog = page.getByRole("dialog", { name: "Homepage", exact: true });
-  await dialog.getByRole("button", { name: "Edit screen elements" }).click();
+  await dialog.getByRole("button", { name: "Edit screen" }).click();
   await dialog.getByRole("textbox", { name: "Key element 1", exact: true }).fill("Cancelled draft");
   await expect(dialog.getByRole("button", { name: "Save Changes" })).toHaveCSS("color", "rgb(255, 255, 255)");
   await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
   await expect(dialog.getByRole("listitem").first()).toHaveText("Sticky header with Primary CTA");
   expect(await page.evaluate(() => window.__screenSaves)).toBe(0);
-  await dialog.getByRole("button", { name: "Edit screen elements" }).click();
+  await dialog.getByRole("button", { name: "Edit screen" }).click();
   await dialog.getByRole("textbox", { name: "Key element 1", exact: true }).fill("Saved primary navigation");
   await page.screenshot({ path: testInfo.outputPath("screen-details-edit.png") });
   await dialog.getByRole("button", { name: "Save Changes" }).evaluate((button: HTMLButtonElement) => { button.click(); button.click(); });
@@ -206,12 +206,27 @@ test("screen editing cancels locally, saves once and persists without altering t
   expect(stored.screens[1].keyElements).toEqual(["Filterable feature list", "Feature comparison"]);
 });
 
+test("the node label can be renamed from the screen popup and persists", async ({ page }) => {
+  await node(page, "Features").dblclick();
+  const dialog = page.getByRole("dialog", { name: "Feature overview", exact: true });
+  await dialog.getByRole("button", { name: "Edit screen" }).click();
+  await dialog.getByRole("textbox", { name: "Node label" }).fill("Feature tour");
+  await dialog.getByRole("button", { name: "Save Changes" }).click();
+  await expect(dialog.getByRole("textbox", { name: "Node label" })).toHaveCount(0);
+  await page.keyboard.press("Escape");
+  await expect(node(page, "Feature tour")).toBeVisible();
+  await page.reload();
+  await expect(node(page, "Feature tour")).toBeVisible();
+  const stored = await page.evaluate(() => JSON.parse(localStorage.getItem("sta56.test.canvas") ?? "{}").artifact);
+  expect(stored.flows[0].steps[2]).toMatchObject({ id: "features", label: "Feature tour", screenId: "screen-features" });
+  expect(stored.screens[1].keyElements).toEqual(["Filterable feature list", "Feature comparison"]);
+});
+
 test("unlinked and missing screens show an honest empty card, never fabricated elements", async ({ page }) => {
   for (const label of ["About", "Pricing"]) {
     await node(page, label).dblclick();
     const dialog = page.getByRole("dialog", { name: label, exact: true });
     await expect(dialog.getByText("No saved screen is linked to this node.")).toBeVisible();
-    await expect(dialog.getByRole("button", { name: "Edit screen elements" })).toHaveCount(0);
     await expect(dialog.getByRole("listitem")).toHaveCount(0);
     await page.mouse.click(12, 12);
     await expect(dialog).toHaveCount(0);
@@ -223,7 +238,7 @@ test("failed screen saves retain the draft and show an error without changing sa
   await page.getByRole("button", { name: "Toggle failed saves" }).click();
   await node(page, "Home").dblclick();
   const dialog = page.getByRole("dialog", { name: "Homepage", exact: true });
-  await dialog.getByRole("button", { name: "Edit screen elements" }).click();
+  await dialog.getByRole("button", { name: "Edit screen" }).click();
   await dialog.getByRole("textbox", { name: "Key element 1", exact: true }).fill("Recoverable draft");
   await dialog.getByRole("button", { name: "Save Changes" }).click();
   await expect(dialog.getByRole("alert")).toHaveText("Simulated screen save failure");
@@ -233,7 +248,7 @@ test("failed screen saves retain the draft and show an error without changing sa
   await page.keyboard.press("Escape");
   await page.getByRole("button", { name: "Toggle failed saves" }).click();
   await node(page, "Home").dblclick();
-  await dialog.getByRole("button", { name: "Edit screen elements" }).click();
+  await dialog.getByRole("button", { name: "Edit screen" }).click();
   await dialog.getByRole("textbox", { name: "Key element 1", exact: true }).fill("Recovered save");
   await dialog.getByRole("button", { name: "Save Changes" }).click();
   await expect(dialog.getByRole("listitem").first()).toHaveText("Recovered save");
@@ -244,14 +259,14 @@ test("remote movement preserves the screen draft; same-screen edits reject stale
   await second.goto("/");
   await node(page, "Home").dblclick();
   const dialog = page.getByRole("dialog", { name: "Homepage", exact: true });
-  await dialog.getByRole("button", { name: "Edit screen elements" }).click();
+  await dialog.getByRole("button", { name: "Edit screen" }).click();
   const input = dialog.getByRole("textbox", { name: "Key element 1", exact: true });
   await input.fill("Local unsaved draft");
   await second.getByRole("button", { name: "Simulate remote move" }).click();
   await expect(node(page, "Home")).toHaveAttribute("style", /translate\(415px, 145px\)/);
   await expect(input).toHaveValue("Local unsaved draft");
   await node(second, "Home").dblclick();
-  await second.getByRole("button", { name: "Edit screen elements" }).click();
+  await second.getByRole("button", { name: "Edit screen" }).click();
   await second.getByRole("textbox", { name: "Key element 1", exact: true }).fill("Remote saved element");
   await second.getByRole("button", { name: "Save Changes" }).click();
   await expect(second.getByRole("dialog").getByRole("listitem").first()).toHaveText("Remote saved element");
@@ -267,11 +282,11 @@ test("saving one screen preserves another client's screen edit and diagram movem
   const second = await context.newPage();
   await second.goto("/");
   await node(page, "Home").dblclick();
-  await page.getByRole("button", { name: "Edit screen elements" }).click();
+  await page.getByRole("button", { name: "Edit screen" }).click();
   await page.getByRole("textbox", { name: "Key element 1", exact: true }).fill("Local home element");
   await second.getByRole("button", { name: "Simulate remote move" }).click();
   await node(second, "Features").dblclick();
-  await second.getByRole("button", { name: "Edit screen elements" }).click();
+  await second.getByRole("button", { name: "Edit screen" }).click();
   await second.getByRole("textbox", { name: "Key element 1", exact: true }).fill("Remote feature element");
   await second.getByRole("button", { name: "Save Changes" }).click();
   await expect(second.getByRole("dialog").getByRole("listitem").first()).toHaveText("Remote feature element");
@@ -292,7 +307,7 @@ test("paused editing remains readable and the popover fits a narrow viewport", a
   await page.setViewportSize({ width: 390, height: 500 });
   await node(page, "Home").dblclick();
   const dialog = page.getByRole("dialog", { name: "Homepage", exact: true });
-  await expect(dialog.getByRole("button", { name: "Edit screen elements" })).toBeDisabled();
+  await expect(dialog.getByRole("button", { name: "Edit screen" })).toBeDisabled();
   await expect(dialog.getByRole("listitem")).toHaveCount(8);
   const bounds = await dialog.boundingBox();
   if (!bounds) throw new Error("Missing dialog");

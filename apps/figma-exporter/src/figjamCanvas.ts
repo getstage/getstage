@@ -1,5 +1,5 @@
 import { figJamCanvasWritePlanSchema, type FigJamCanvasWritePlan } from "../../../packages/data-ops/src/contracts/figma-export";
-import { getFlowCanvasBoardSize, getFlowCanvasNodeWidth } from "../../../packages/data-ops/src/domain/flows-canvas";
+import { FLOW_CANVAS_NODE_WIDTH, getFlowCanvasBoardSize } from "../../../packages/data-ops/src/domain/flows-canvas";
 
 export async function executeFigJamCanvasWritePlan(input: FigJamCanvasWritePlan, created: SceneNode[]) {
   if (figma.editorType !== "figjam") throw new Error("Open a FigJam board before running this export.");
@@ -35,7 +35,7 @@ export async function executeFigJamCanvasWritePlan(input: FigJamCanvasWritePlan,
       node.name = step.label;
       node.setPluginData("stageStepId", step.id);
       node.shapeType = "ROUNDED_RECTANGLE";
-      const nodeWidth = getFlowCanvasNodeWidth(step.label);
+      const nodeWidth = FLOW_CANVAS_NODE_WIDTH;
       node.resize(nodeWidth, Math.max(38, Math.ceil(step.label.length * 7 / (nodeWidth - 24)) * 18 + 20));
       node.x = position.x;
       node.y = position.y;

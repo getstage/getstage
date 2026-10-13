@@ -4,11 +4,11 @@
 
 This document retains the original first-release checklist below; do not use its old release-asset or secret-location claims as current instructions.
 
-## Current release scope — 2026-10-12
+## Current release scope — 2026-10-13
 
-- Testing tag `v0.2.57`, desktop package version `0.2.57`, branch `feat/sta-56-styleguide-flows` (includes everything in `v0.2.56`). Adds the STA-56 collaborative Style Guide editor (per-section autosave, live presence, shadcn preview) and the Sitemap/Flows canvas with the shared project header.
-- Convex functions (`projectAi.editStyleGuide`, `presence.*`, presence component) were synced to Testing `reliable-bullfrog-917` before tagging; nothing deployed to production.
-- Checks before tagging: frozen lockfile install, data-ops build, desktop typecheck and build, `cargo check`, 206 engine tests, Style Guide unit tests. Do not report downloadable DMGs until both architecture builds and `publish-testing-feed` succeed and `latest-mac.yml` advertises `0.2.57`.
+- Testing tag `v0.2.58`, desktop package version `0.2.58`, branch `feat/sta-56-styleguide-flows`. On top of `v0.2.57` (build and testing feed green): Flows nodes no longer overlap (fixed 168px width, side connectors, screen name + 2-line action), shorter AI step labels, rename a node from the screen popup; Style Guide floats over the app with smaller type samples and a much larger shadcn preview (12 component groups + example screen).
+- No new Convex functions since `v0.2.57`; nothing deployed to production.
+- Checks before tagging: frozen lockfile install, data-ops build, desktop and FigJam plugin typecheck, desktop build, 206 engine tests, 37 canvas/FigJam tests, 17 canvas browser tests, Style Guide unit tests.
 
 ## 1. Check lokaal
 

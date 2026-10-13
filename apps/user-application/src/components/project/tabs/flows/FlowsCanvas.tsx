@@ -7,9 +7,9 @@ import {
   type Edge, type SmoothStepPathOptions, type Node, type NodeProps, type NodeChange,
 } from "@xyflow/react";
 import type { FlowsArtifact, FlowsCanvasEdit, ProjectCategory } from "@stage/data-ops/contracts";
-import { getFlowCanvasBoard, getFlowCanvasBoardSize, getFlowCanvasNodeWidth } from "@stage/data-ops/domain";
+import { FLOW_CANVAS_NODE_WIDTH, getFlowCanvasBoard, getFlowCanvasBoardSize } from "@stage/data-ops/domain";
 import { STAGE_CHAT_OPEN_REQUEST } from "@/lib/companion/shortcutEvents";
-import { ScreenDetailsDialog, type SaveScreenElements } from "./ScreenDetailsDialog";
+import { ScreenDetailsDialog, type ScreenDetailsChange } from "./ScreenDetailsDialog";
 import "@xyflow/react/dist/style.css";
 import "./flowsCanvas.css";
 
@@ -23,7 +23,7 @@ type Props = {
   projectCategory: ProjectCategory;
   disabled?: boolean;
   onAdd: () => void;
-  onSaveScreen: SaveScreenElements;
+  onSaveScreen: (flowId: string, stepId: string, change: ScreenDetailsChange) => Promise<void>;
   actions?: ReactNode;
   onEdit: (edit: FlowsCanvasEdit) => Promise<{ artifact: FlowsArtifact; updatedAt: number }>;
 };
@@ -41,7 +41,7 @@ function buildElements(artifact: FlowsArtifact, label: string) {
     for (const step of flow.steps) {
       const position = board.positions.find((entry) => entry.stepId === step.id);
       if (!position) continue;
-      nodes.push({ id: nodeId(flow.id, step.id), ariaLabel: step.label, type: "step", parentId, extent: "parent", position: { x: position.x, y: position.y }, data: { label: step.label, flowId: flow.id, stepId: step.id }, style: { width: getFlowCanvasNodeWidth(step.label) } });
+      nodes.push({ id: nodeId(flow.id, step.id), ariaLabel: step.label, type: "step", parentId, extent: "parent", position: { x: position.x, y: position.y }, data: { label: step.label, flowId: flow.id, stepId: step.id }, style: { width: FLOW_CANVAS_NODE_WIDTH } });
     }
     const labels = new Map(flow.steps.map((step) => [step.id, step.label]));
     for (const edge of board.edges) {
@@ -54,10 +54,19 @@ function buildElements(artifact: FlowsArtifact, label: string) {
 
 function CanvasStep({ data, selected }: NodeProps<StepNode>) {
   return <div className={`flows-canvas-step${selected || data.highlighted ? " is-selected" : ""}`}>
-    <Handle type="target" position={Position.Top} isConnectable={false} />
-    <span>{data.label}</span>
-    <Handle type="source" position={Position.Bottom} isConnectable={false} />
+    <Handle type="target" position={Position.Left} isConnectable={false} />
+    <StepLabel label={data.label} />
+    <Handle type="source" position={Position.Right} isConnectable={false} />
   </div>;
+}
+// Generated labels read "Screen → action". The node shows the screen name and a
+// two-line action; the full label stays in the tooltip and the screen dialog.
+function StepLabel({ label }: { label: string }) {
+  const [screen, action] = label.split(/\s*(?:→|->)\s*/, 2);
+  return <span title={label}>
+    <strong className="flows-canvas-step-title">{screen}</strong>
+    {action ? <span className="flows-canvas-step-action">{action}</span> : null}
+  </span>;
 }
 function CanvasBoard({ data }: NodeProps<BoardNode>) {
   return <div className="flows-canvas-board"><span className="flows-canvas-board-label">{data.label}</span></div>;
@@ -264,7 +273,7 @@ function CanvasWorkspace({ artifact, updatedAt, projectCategory, disabled = fals
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root> : null}
-    {details && detailsStep ? <ScreenDetailsDialog key={nodeId(details.flowId, details.stepId)} nodeLabel={detailsStep.label} screen={detailsScreen} disabled={busy} anchor={details.anchor} onClose={() => setDetails(undefined)} onSave={onSaveScreen} /> : null}
+    {details && detailsStep ? <ScreenDetailsDialog key={nodeId(details.flowId, details.stepId)} nodeLabel={detailsStep.label} screen={detailsScreen} disabled={busy} anchor={details.anchor} onClose={() => setDetails(undefined)} onSave={(change) => onSaveScreen(details.flowId, details.stepId, change)} /> : null}
   </div>;
 }
 

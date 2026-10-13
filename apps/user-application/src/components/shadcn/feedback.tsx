@@ -3,12 +3,16 @@ import type { ComponentProps } from "react";
 import { cn } from "@/lib/utils";
 
 // shadcn/ui Alert, Progress, Avatar and Table (new-york).
-export function Alert({ className, ...props }: ComponentProps<"div">) {
+export function Alert({ className, destructive = false, ...props }: ComponentProps<"div"> & { destructive?: boolean }) {
   return (
     <div
       role="alert"
       data-slot="alert"
-      className={cn("relative grid w-full gap-0.5 rounded-sg border border-sg-border bg-sg-card px-4 py-3 text-sm text-sg-card-foreground", className)}
+      className={cn(
+        "relative grid w-full gap-0.5 rounded-sg border border-sg-border bg-sg-card px-4 py-3 text-sm text-sg-card-foreground",
+        destructive && "border-sg-destructive/40 text-sg-destructive [&_[data-slot=alert-description]]:text-sg-destructive/80",
+        className,
+      )}
       {...props}
     />
   );

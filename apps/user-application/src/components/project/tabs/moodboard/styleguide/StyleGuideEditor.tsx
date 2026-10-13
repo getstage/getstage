@@ -103,7 +103,7 @@ function StyleGuideEditorView({ projectId, directionId, directionName, guide, re
       role="dialog"
       aria-modal="true"
       aria-label={`${spec.intent.name} style guide`}
-      className="fixed inset-0 z-40 flex items-center justify-center bg-black/10 p-4 backdrop-blur-[5px]"
+      className="fixed inset-0 z-40 flex items-center justify-center bg-black/10 px-[clamp(16px,4.6vw,67px)] py-[clamp(16px,6vh,65px)] backdrop-blur-[5px]"
       onMouseDown={(event) => event.target === event.currentTarget && onBack()}
     >
       <div className="flex h-full max-h-[894px] w-full max-w-[1306px] flex-col overflow-hidden rounded-[12px] border-[0.5px] border-neutral-300 bg-neutral-100 p-1 shadow-stage-control">

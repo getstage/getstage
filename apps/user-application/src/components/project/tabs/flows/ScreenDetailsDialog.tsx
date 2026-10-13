@@ -5,7 +5,13 @@ import { EditIcon, HomeIcon } from "./flowsIcons";
 import { ScreenElementList } from "./ScreenElementList";
 import { ScreenEditActions } from "./ScreenEditActions";
 
-export type SaveScreenElements = (screenId: string, elements: string[], original: string[]) => Promise<void>;
+export type ScreenDetailsChange = {
+  label: string;
+  originalLabel: string;
+  // Absent when the node has no linked screen: only the label is saved.
+  elements?: { screenId: string; next: string[]; original: string[] };
+};
+export type SaveScreenDetails = (change: ScreenDetailsChange) => Promise<void>;
 
 type Props = {
   nodeLabel: string;
@@ -13,25 +19,30 @@ type Props = {
   disabled: boolean;
   anchor: HTMLElement;
   onClose: () => void;
-  onSave: SaveScreenElements;
+  onSave: SaveScreenDetails;
 };
 
 export function ScreenDetailsDialog({ nodeLabel, screen, disabled, anchor, onClose, onSave }: Props) {
-  const [edit, setEdit] = useState<{ elements: string[]; original: string[] }>();
+  const [edit, setEdit] = useState<{ label: string; elements: string[]; original: string[] }>();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string>();
   const savingRef = useRef(false);
 
   async function save() {
-    if (!screen || !edit || disabled || savingRef.current) return;
+    const label = edit?.label.trim();
+    if (!edit || !label || disabled || savingRef.current) return;
     savingRef.current = true;
     setSaving(true);
     setError(undefined);
     try {
-      await onSave(screen.id, edit.elements.map((element) => element.trim()).filter(Boolean), edit.original);
+      await onSave({
+        label,
+        originalLabel: nodeLabel,
+        elements: screen ? { screenId: screen.id, next: edit.elements.map((element) => element.trim()).filter(Boolean), original: edit.original } : undefined,
+      });
       setEdit(undefined);
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Could not save screen elements.");
+      setError(caught instanceof Error ? caught.message : "Could not save this screen.");
     } finally {
       savingRef.current = false;
       setSaving(false);
@@ -49,14 +60,25 @@ export function ScreenDetailsDialog({ nodeLabel, screen, disabled, anchor, onClo
           <span className="flows-screen-icon"><HomeIcon /></span>
           <div className="min-w-0 flex-1">
             <div className="flows-screen-title-row">
-              <Dialog.Title>{screen?.title ?? nodeLabel}</Dialog.Title>
+              <Dialog.Title className={edit ? "flows-screen-hidden-title" : undefined}>{screen?.title ?? nodeLabel}</Dialog.Title>
+              {edit ? (
+                <input
+                  className="flows-screen-label-input"
+                  aria-label="Node label"
+                  value={edit.label}
+                  maxLength={160}
+                  autoFocus
+                  onChange={(event) => setEdit((current) => current ? { ...current, label: event.target.value } : current)}
+                />
+              ) : null}
               {screen ? <span>Appears in {screen.flowCount} {screen.flowCount === 1 ? "flow" : "flows"}</span> : null}
             </div>
             <Dialog.Description>{screen?.description ?? "No saved screen is linked to this node."}</Dialog.Description>
           </div>
-          {!edit && screen ? <button type="button" aria-label="Edit screen elements" disabled={disabled} onClick={() => {
+          {!edit ? <button type="button" aria-label="Edit screen" disabled={disabled} onClick={() => {
             setError(undefined);
-            setEdit({ elements: [...screen.keyElements], original: [...screen.keyElements] });
+            const elements = screen?.keyElements ?? [];
+            setEdit({ label: nodeLabel, elements: [...elements], original: [...elements] });
           }}><EditIcon /></button> : null}
         </header>
         <div className="flows-screen-body">
@@ -66,8 +88,8 @@ export function ScreenDetailsDialog({ nodeLabel, screen, disabled, anchor, onClo
               setEdit((current) => current ? { ...current, elements: current.elements.map((element, i) => i === index ? value : element) } : current);
             }} /> : <p className="flows-screen-empty">{screen ? "No elements have been saved for this screen." : "This step has no screen details to display."}</p>}
           </div>
-          {error || (edit && !screen) ? <p role="alert" className="flows-canvas-error">{error ?? "This screen is no longer available. Your edits have not been saved."}</p> : null}
-          {edit ? <div className="flows-screen-actions"><ScreenEditActions cancelLabel="Cancel" saving={saving} saveDisabled={disabled || !screen} onDiscard={() => { setEdit(undefined); setError(undefined); }} onSave={() => void save()} /></div> : null}
+          {error ? <p role="alert" className="flows-canvas-error">{error}</p> : null}
+          {edit ? <div className="flows-screen-actions"><ScreenEditActions cancelLabel="Cancel" saving={saving} saveDisabled={disabled || !edit.label.trim()} onDiscard={() => { setEdit(undefined); setError(undefined); }} onSave={() => void save()} /></div> : null}
         </div>
       </Dialog.Content>
     </Dialog.Portal>

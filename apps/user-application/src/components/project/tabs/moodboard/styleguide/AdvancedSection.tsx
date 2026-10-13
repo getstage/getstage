@@ -3,6 +3,7 @@ import { CaretDown, CaretUp, Cube, Layout, SlidersHorizontal, Waves } from "@pho
 import type { StyleGuideSpec } from "@stage/data-ops/contracts";
 import { ColorInput, Divider, Field, Icon, Range, Section, Segmented, Select, TextInput, TextLink, ValueChip } from "./fields";
 import { fontOptions, MODES, type SectionProps } from "./sections";
+import { specimenSize } from "./preview/specimenSize";
 
 const SAMPLE = "Build something people want.";
 
@@ -77,7 +78,7 @@ function Typescale({ spec, update }: SectionProps) {
             className="text-neutral-900"
             style={{
               fontFamily: `"${index < spec.typescale.length - 1 ? spec.fonts.heading : spec.fonts.body}", ui-sans-serif, system-ui`,
-              fontSize: row.size,
+              fontSize: specimenSize(row.size),
               lineHeight: `${row.lineHeight}%`,
               fontWeight: row.weight,
               letterSpacing: `${row.tracking}em`,

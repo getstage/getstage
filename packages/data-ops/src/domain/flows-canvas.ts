@@ -15,7 +15,8 @@ export function getFlowCanvasBoard(flow: Flow, canvas?: FlowsCanvas): FlowCanvas
   };
 }
 
-export const getFlowCanvasNodeWidth = (label: string) => Math.min(260, Math.max(70, label.length * 8 + 28));
+// Fixed so default columns (200px apart) never overlap, however long the label.
+export const FLOW_CANVAS_NODE_WIDTH = 168;
 export function getFlowCanvasBoardSize(board: FlowCanvasBoard) {
   return {
     width: Math.max(844, ...board.positions.map((position) => position.x + 308)),

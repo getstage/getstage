@@ -4,6 +4,7 @@ import { flowsArtifactSchema, type ProviderId, type ProjectCategory, type FlowsC
 import type { Id } from "@stage/data-ops/convex/data-model";
 import { api } from "@/lib/convexApi";
 import { FlowsCanvas } from "./FlowsCanvas";
+import type { ScreenDetailsChange } from "./ScreenDetailsDialog";
 import { GenerateStrategyRunDialog } from "@/components/project/GenerateStrategyRunDialog";
 import { UpstreamStaleBanner } from "@/components/project/UpstreamStaleBanner";
 import { getDefaultExpandedFlowId } from "@/data/fixtures/project/flowsTabFixtures";
@@ -281,15 +282,30 @@ export function FlowsTab({ project, projectCategory, onGoToResearch, onGoToStrat
     });
   }
 
-  async function saveCanvasScreen(screenId: string, elements: string[], original: string[]) {
+  async function saveCanvasScreen(flowId: string, stepId: string, change: ScreenDetailsChange) {
     if (!artifactRecord || flowRunBusy) throw new Error("Screen editing is paused while generation is running.");
     const current = artifactRecord.tabData;
-    const screen = current.screens.find((entry) => entry.id === screenId);
-    if (!screen) throw new Error("This screen is no longer available.");
-    if (JSON.stringify(screen.keyElements) !== JSON.stringify(original)) {
-      throw new Error("Screen elements changed elsewhere. Cancel and reopen the editor before saving.");
+    const artifactSteps = artifactRecord.artifact.flows.find((flow) => flow.id === flowId)?.steps ?? [];
+    const stepIndex = artifactSteps.findIndex((step) => step.id === stepId);
+    if (stepIndex < 0) throw new Error("This step is no longer available.");
+    if (artifactSteps[stepIndex].label !== change.originalLabel) {
+      throw new Error("This step changed elsewhere. Cancel and reopen the editor before saving.");
     }
-    await persist(current.flows, current.screens.map((entry) => entry.id === screenId ? { ...entry, keyElements: elements } : entry));
+    const elements = change.elements;
+    if (elements) {
+      const screen = current.screens.find((entry) => entry.id === elements.screenId);
+      if (!screen) throw new Error("This screen is no longer available.");
+      if (JSON.stringify(screen.keyElements) !== JSON.stringify(elements.original)) {
+        throw new Error("Screen elements changed elsewhere. Cancel and reopen the editor before saving.");
+      }
+    }
+    const nextFlows = current.flows.map((flow) =>
+      flow.id === flowId ? { ...flow, steps: (flow.steps ?? []).map((label, index) => (index === stepIndex ? change.label : label)) } : flow,
+    );
+    const nextScreens = elements
+      ? current.screens.map((entry) => (entry.id === elements.screenId ? { ...entry, keyElements: elements.next } : entry))
+      : current.screens;
+    await persist(nextFlows, nextScreens);
   }
 
   async function saveCanvasEdit(edit: FlowsCanvasEdit) {

@@ -61,14 +61,21 @@ function App() {
       if (from) commit({ type: "move", flowId: "sitemap", stepId: "home", from, to: { x: from.x + 25, y: from.y + 25 } });
     }}>Simulate remote move</button>
     <section className="flows-canvas-workspace" style={{ display: "flex", height: "calc(100dvh - 210px)", minHeight: 360 }}>
-    <FlowsCanvas artifact={state.artifact} updatedAt={state.updatedAt} projectCategory={category} disabled={paused} onAdd={() => setAdd(true)} onSaveScreen={async (screenId, elements, original) => {
+    <FlowsCanvas artifact={state.artifact} updatedAt={state.updatedAt} projectCategory={category} disabled={paused} onAdd={() => setAdd(true)} onSaveScreen={async (flowId, stepId, change) => {
       window.__screenSaves += 1;
       await new Promise((resolve) => setTimeout(resolve, 80));
       if (fail) throw new Error("Simulated screen save failure");
       const current = readState();
-      const screen = current.artifact.screens.find((entry) => entry.id === screenId);
-      if (!screen || JSON.stringify(screen.keyElements) !== JSON.stringify(original)) throw new Error("Screen elements changed elsewhere. Cancel and reopen the editor before saving.");
-      const next = { artifact: { ...current.artifact, screens: current.artifact.screens.map((entry) => entry.id === screenId ? { ...entry, keyElements: elements } : entry) }, updatedAt: Math.max(Date.now(), current.updatedAt + 1) };
+      const step = current.artifact.flows.find((flow) => flow.id === flowId)?.steps.find((entry) => entry.id === stepId);
+      if (!step || step.label !== change.originalLabel) throw new Error("This step changed elsewhere. Cancel and reopen the editor before saving.");
+      const elements = change.elements;
+      const screen = elements ? current.artifact.screens.find((entry) => entry.id === elements.screenId) : undefined;
+      if (elements && (!screen || JSON.stringify(screen.keyElements) !== JSON.stringify(elements.original))) throw new Error("Screen elements changed elsewhere. Cancel and reopen the editor before saving.");
+      const next = { artifact: {
+        ...current.artifact,
+        flows: current.artifact.flows.map((flow) => flow.id === flowId ? { ...flow, steps: flow.steps.map((entry) => entry.id === stepId ? { ...entry, label: change.label } : entry) } : flow),
+        screens: current.artifact.screens.map((entry) => elements && entry.id === elements.screenId ? { ...entry, keyElements: elements.next } : entry),
+      }, updatedAt: Math.max(Date.now(), current.updatedAt + 1) };
       localStorage.setItem(storeKey, JSON.stringify(next));
       setState(next);
     }} onEdit={async (edit) => {
