@@ -10,4 +10,5 @@ pub mod prompt;
 pub mod refero_assets;
 pub mod section;
 pub mod service;
+pub mod skills;
 pub mod workflow;

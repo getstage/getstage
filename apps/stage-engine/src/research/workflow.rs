@@ -27,6 +27,9 @@ use crate::research::section::{
     parse_research_section,
 };
 use crate::research::service::{ResearchPromptBundle, ResearchService};
+use crate::research::skills::{
+    build_skill_report_prompt, clean_skill_report, fetch_skills, skill_report_value,
+};
 use crate::runs::RunEventSink;
 use serde_json::json;
 use tokio::time::{Duration, timeout};
@@ -163,6 +166,25 @@ impl ResearchWorkflow {
                     .await;
             }
 
+            // Download uploaded skills before any research is spent, so a bad link fails fast.
+            let skills = if input.skill_urls.is_empty() {
+                Vec::new()
+            } else {
+                self.tool_started(
+                    api_version,
+                    &run_id,
+                    provider_id,
+                    &sink,
+                    "research-skills",
+                    "Download uploaded skills",
+                );
+                let skills = fetch_skills(&input.skill_urls)
+                    .await
+                    .map_err(WorkflowError::InvalidRequest)?;
+                self.tool_completed(api_version, &run_id, provider_id, &sink, "research-skills");
+                skills
+            };
+
             convex_run_id = self
                 .repository
                 .create_research_run(
@@ -284,7 +306,7 @@ impl ResearchWorkflow {
             let mut raw_artifact = extract_research_artifact(&final_text)?;
             apply_engine_ui_patterns(&mut raw_artifact, &bundle.refero_context, &image_keys);
             let refero_context = serde_json::to_value(&bundle.refero_context)?;
-            let artifact = enrich_research_artifact(
+            let mut artifact = enrich_research_artifact(
                 raw_artifact,
                 &input,
                 refero_context,
@@ -300,6 +322,49 @@ impl ResearchWorkflow {
                 .map_err(|error| WorkflowError::IncompleteArtifact(error.to_string()))?;
 
             sink.telemetry_step_completed(TelemetryStep::Parse);
+
+            if !skills.is_empty() {
+                // A failed skill report never discards Stage's own research; the error is
+                // stored with the report so the Research tab can show it.
+                self.tool_started(
+                    api_version,
+                    &run_id,
+                    provider_id,
+                    &sink,
+                    "research-skill-report",
+                    "Apply uploaded skills",
+                );
+                let mut skill_request = request.clone();
+                skill_request.prompt = build_skill_report_prompt(&skills, &input, &artifact);
+                skill_request.attachments.clear();
+                skill_request.context.source = Some("research-skill".to_string());
+                let skill_context = ProviderRunContext {
+                    api_version,
+                    run_id: run_id.clone(),
+                    request: skill_request,
+                };
+                let report = match collect_with_timeout(skill_context, sink.clone(), cancel_rx.clone()).await {
+                    Ok(ProviderProcessOutcome::Completed(text)) => clean_skill_report(&text),
+                    Ok(_) => {
+                        tracing::info!(run_id = %run_id, "research skill run cancelled");
+                        self.mark_research_cancelled(
+                            &auth_token,
+                            project_id,
+                            convex_run_id.as_deref(),
+                            &uploaded_research_asset_keys,
+                        )
+                        .await;
+                        return Ok(());
+                    }
+                    Err(error) => {
+                        tracing::warn!(run_id = %run_id, %error, "research skill report failed");
+                        Err(error.to_string())
+                    }
+                };
+                artifact["skillReport"] = skill_report_value(&skills, report);
+                self.tool_completed(api_version, &run_id, provider_id, &sink, "research-skill-report");
+            }
+
             sink.telemetry_step_started(TelemetryStep::Save);
             self.repository
                 .complete_research_run(

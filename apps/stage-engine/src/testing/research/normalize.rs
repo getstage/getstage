@@ -16,6 +16,7 @@ fn sample_input() -> ResearchInput {
         target_users: None,
         additional_notes: None,
         uploaded_asset_ids: vec![],
+        skill_urls: vec![],
     }
 }
 

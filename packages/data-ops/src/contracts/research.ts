@@ -169,6 +169,7 @@ export const researchInputSchema = z.object({
   website: z.string().min(1).optional(),
   projectBrief: z.string().min(1).optional(),
   competitorUrls: z.array(z.string().min(1)).default([]),
+  skillUrls: z.array(z.string().url()).max(3).default([]),
   detailsSections: z.array(detailsSectionSchema).min(1).default([...DEFAULT_DETAILS_SECTIONS]),
   targetUsers: z.string().min(1).optional(),
   additionalNotes: z.string().min(1).optional(),
@@ -261,6 +262,12 @@ export const researchSourceReferenceSchema = z.object({
   externalId: optionalText,
 });
 
+export const researchSkillReportSchema = z.object({
+  skills: z.array(z.object({ name: z.string().min(1), url: z.string().min(1) })).min(1),
+  markdown: z.string().min(1).optional(),
+  error: z.string().min(1).optional(),
+});
+
 export const researchArtifactSchema = z.object({
   apiVersion: z.literal("v1"),
   artifactKind: z.literal("researchArtifact"),
@@ -277,6 +284,8 @@ export const researchArtifactSchema = z.object({
   openQuestions: z.array(z.string().min(1)).default([]),
   sourceReferences: z.array(researchSourceReferenceSchema).default([]),
   referoContext: referoContextSchema.optional(),
+  // Output of user-uploaded research SKILLs, kept apart from Stage's own sections.
+  skillReport: researchSkillReportSchema.optional(),
   generatedAt: z.number().int().nonnegative(),
 });
 
@@ -291,6 +300,7 @@ export type ResearchMatrixScore = z.infer<typeof researchMatrixScoreSchema>;
 export type DetailsSection = z.infer<typeof detailsSectionSchema>;
 export type ResearchArtifactSection = z.infer<typeof researchArtifactSectionSchema>;
 export type ResearchInput = z.infer<typeof researchInputSchema>;
+export type ResearchSkillReport = z.infer<typeof researchSkillReportSchema>;
 export type ResearchCompanySnapshotRow = z.infer<typeof researchCompanySnapshotRowSchema>;
 export type ResearchCompetitor = z.infer<typeof researchCompetitorSchema>;
 export type ResearchCompetitiveMatrixCell = z.infer<typeof researchCompetitiveMatrixCellSchema>;

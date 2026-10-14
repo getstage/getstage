@@ -24,6 +24,7 @@ import {
 import { validateUploadFile } from "@/lib/r2Uploads";
 import { AiRunSettings } from "@/components/project/AiRunSettings";
 import { PlusIcon } from "./researchIcons";
+import { ResearchSkillsField } from "./ResearchSkillsField";
 
 const suggestedIndustries = "e.g. Fintech, E-commerce, SaaS, Health";
 
@@ -34,6 +35,7 @@ function draftHasContent(draft: Partial<ResearchConfigureFormValues>) {
     draft.projectBrief?.trim() ||
     draft.additionalNotes?.trim() ||
     (Array.isArray(draft.competitorUrls) && draft.competitorUrls.length > 0) ||
+    (Array.isArray(draft.skillUrls) && draft.skillUrls.length > 0) ||
     (Array.isArray(draft.briefAttachments) && draft.briefAttachments.length > 0)
   );
 }
@@ -113,6 +115,9 @@ export function ResearchConfigureStep({
         competitorUrls: Array.isArray(draft.competitorUrls)
           ? draft.competitorUrls.filter((url) => typeof url === "string")
           : base.competitorUrls,
+        skillUrls: Array.isArray(draft.skillUrls)
+          ? draft.skillUrls.filter((url) => typeof url === "string")
+          : base.skillUrls,
         briefAttachments: savedAttachments,
         briefFileNames: savedAttachments.map((file) => file.name),
       });
@@ -135,6 +140,7 @@ export function ResearchConfigureStep({
         projectBrief: values.projectBrief,
         additionalNotes: values.additionalNotes,
         competitorUrls: values.competitorUrls,
+        skillUrls: values.skillUrls,
         detailsSections: values.detailsSections,
         briefFileNames: values.briefAttachments.map((file) => file.name),
         briefAttachments: values.briefAttachments,
@@ -468,6 +474,14 @@ export function ResearchConfigureStep({
                   selected={values.detailsSections}
                   onChange={(detailsSections) => updateField("detailsSections", detailsSections)}
                 />
+              </FormField>
+
+              <FormField
+                label="Upload Skills"
+                hint="Optional. Stage applies each skill's SKILL.md after the research and adds the result as Research.md at the top."
+                error={fieldErrors.skillUrls}
+              >
+                <ResearchSkillsField skillUrls={values.skillUrls} onChange={(skillUrls) => updateField("skillUrls", skillUrls)} />
               </FormField>
 
               <FormField label="Additional notes" error={fieldErrors.additionalNotes}>

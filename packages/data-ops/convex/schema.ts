@@ -813,6 +813,8 @@ export default defineSchema({
     industry: v.optional(v.string()),
     clientWebsite: v.optional(v.string()),
     competitorUrls: v.array(v.string()),
+    // Public GitHub links to research SKILLs the engine applies after Stage's research.
+    skillUrls: v.optional(v.array(v.string())),
     detailsSections: v.optional(v.array(detailsSection)),
     referenceUrls: v.array(v.string()),
     brief: v.optional(v.string()),

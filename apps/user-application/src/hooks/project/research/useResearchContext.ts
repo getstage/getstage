@@ -37,6 +37,7 @@ export function useResearchContext(projectId: string | undefined) {
       projectBrief: record.brief?.startsWith("[Uploaded brief:") ? "" : (record.brief ?? ""),
       additionalNotes: record.notes ?? "",
       competitorUrls: record.competitorUrls ?? [],
+      skillUrls: record.skillUrls ?? [],
       detailsSections: record.detailsSections ?? DEFAULT_RESEARCH_CONFIGURE_FORM_VALUES.detailsSections,
       briefFileNames: attachments.map((file) => file.name),
       briefAttachments: attachments,

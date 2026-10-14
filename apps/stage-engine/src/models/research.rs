@@ -62,6 +62,8 @@ pub struct ResearchInput {
     pub additional_notes: Option<String>,
     #[serde(default)]
     pub uploaded_asset_ids: Vec<String>,
+    #[serde(default)]
+    pub skill_urls: Vec<String>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]

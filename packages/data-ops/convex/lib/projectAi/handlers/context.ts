@@ -60,6 +60,7 @@ export async function getContextHandler(
     clientWebsite: record?.clientWebsite ?? "",
     industry: record?.industry ?? "",
     competitorUrls: record?.competitorUrls ?? [],
+    skillUrls: record?.skillUrls ?? [],
     detailsSections:
       record?.detailsSections ??
       (projectCategory === "websites" ? defaultDetailsSections : defaultReferoSections),
@@ -96,6 +97,7 @@ export async function getResearchInputHandler(
     website: record?.clientWebsite ?? null,
     projectBrief: record?.brief ?? null,
     competitorUrls: record?.competitorUrls ?? [],
+    skillUrls: record?.skillUrls ?? [],
     detailsSections:
       record?.detailsSections ??
       (projectCategory === "websites" ? defaultDetailsSections : defaultReferoSections),
@@ -110,6 +112,7 @@ export const upsertContextArgs = {
   industry: v.optional(v.string()),
   clientWebsite: v.optional(v.string()),
   competitorUrls: v.array(v.string()),
+  skillUrls: v.optional(v.array(v.string())),
   detailsSections: v.optional(v.array(detailsSectionValidator)),
   referenceUrls: v.array(v.string()),
   brief: v.optional(v.string()),
@@ -133,6 +136,7 @@ export async function upsertContextHandler(
     industry?: string;
     clientWebsite?: string;
     competitorUrls: string[];
+    skillUrls?: string[];
     detailsSections?: DetailsSection[];
     referenceUrls: string[];
     brief?: string;
@@ -150,6 +154,7 @@ export async function upsertContextHandler(
     industry: args.industry,
     clientWebsite: args.clientWebsite,
     competitorUrls: args.competitorUrls,
+    skillUrls: args.skillUrls,
     detailsSections: args.detailsSections,
     referenceUrls: args.referenceUrls,
     brief: args.brief,

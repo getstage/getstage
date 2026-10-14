@@ -32,6 +32,7 @@ import { GenerateStrategyRunDialog } from "@/components/project/GenerateStrategy
 import { ResearchActions } from "./ResearchActions";
 import { ResearchConfigureStep } from "./ResearchConfigureStep";
 import { Divider } from "./ResearchPrimitives";
+import { ResearchSkillReport } from "./ResearchSkillReport";
 import { ResearchSummary } from "./ResearchSummary";
 import { TargetUsers } from "./TargetUsers";
 import { UiPatterns } from "./UiPatterns";
@@ -316,6 +317,7 @@ export function ResearchTab({
   return (
     <>
       <section className="rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
+        {research.data?.artifact.skillReport ? <ResearchSkillReport report={research.data.artifact.skillReport} /> : null}
         <div className="rounded-[8px] bg-white px-[clamp(24px,3.8vw,44px)] py-[44px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
           <div className="flex w-full flex-col gap-[44px]">
             {runError || research.error || saveError || notionExport.exportError ? (

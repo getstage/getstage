@@ -17,6 +17,7 @@ const MAX_INDUSTRY_LENGTH = 120;
 const MAX_BRIEF_LENGTH = 5000;
 const MAX_NOTES_LENGTH = 2000;
 export const MAX_COMPETITORS = 4;
+export const MAX_SKILLS = 3;
 export const MAX_BRIEF_FILES = 5;
 
 export type ResearchBriefAttachment = {
@@ -30,12 +31,13 @@ export type ResearchConfigureFormValues = {
   projectBrief: string;
   additionalNotes: string;
   competitorUrls: string[];
+  skillUrls: string[];
   detailsSections: DetailsSection[];
   briefFileNames: string[];
   briefAttachments: ResearchBriefAttachment[];
 };
 
-export type ResearchConfigureField = keyof ResearchConfigureFormValues | "competitorInput";
+export type ResearchConfigureField = keyof ResearchConfigureFormValues | "competitorInput" | "skillInput";
 
 export type ResearchConfigureFieldErrors = Partial<Record<ResearchConfigureField, string>>;
 
@@ -45,6 +47,7 @@ export const DEFAULT_RESEARCH_CONFIGURE_FORM_VALUES: ResearchConfigureFormValues
   projectBrief: "",
   additionalNotes: "",
   competitorUrls: [],
+  skillUrls: [],
   detailsSections: [...DEFAULT_DETAILS_SECTIONS],
   briefFileNames: [],
   briefAttachments: [],
@@ -127,6 +130,7 @@ export const validatedResearchConfigureInputSchema = z.object({
   // Empty when only brief files were uploaded; the engine reads the files.
   projectBrief: z.string().trim().max(MAX_BRIEF_LENGTH).optional(),
   competitorUrls: z.array(websiteValueSchema.transform(normalizeWebsite)).max(MAX_COMPETITORS),
+  skillUrls: z.array(z.string().url()).max(MAX_SKILLS).default([]),
   detailsSections: z.array(detailsSectionSchema).min(1),
   additionalNotes: z.string().trim().min(1).max(MAX_NOTES_LENGTH).optional(),
   uploadedAssetIds: z.array(z.string().min(1)).default([]),
@@ -135,6 +139,22 @@ export const validatedResearchConfigureInputSchema = z.object({
 export type ValidatedResearchConfigureInput = z.infer<typeof validatedResearchConfigureInputSchema> & {
   briefAttachments?: ResearchBriefAttachment[];
 };
+
+// A research SKILL is a public GitHub repository or folder containing SKILL.md.
+export function parseSkillUrl(value: string): { success: true; url: string } | { success: false; error: string } {
+  const trimmed = value.trim().replace(/\/+$/, "");
+  const withScheme = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+  try {
+    const url = new URL(withScheme);
+    const [owner, repo] = url.pathname.split("/").filter(Boolean);
+    if (url.protocol !== "https:" || !/^(www\.)?github\.com$/i.test(url.hostname) || !owner || !repo) {
+      return { success: false, error: "Paste a public GitHub repository link, e.g. github.com/owner/repo" };
+    }
+    return { success: true, url: `https://github.com${url.pathname}` };
+  } catch {
+    return { success: false, error: "Paste a public GitHub repository link, e.g. github.com/owner/repo" };
+  }
+}
 
 export function parseCompetitorWebsite(
   value: string,
@@ -202,6 +222,7 @@ export function validateResearchConfigureForm(
       website: websiteResult.data,
       projectBrief,
       competitorUrls: values.competitorUrls,
+      skillUrls: values.skillUrls,
       detailsSections: values.detailsSections,
       additionalNotes: notes || undefined,
       uploadedAssetIds: [],
@@ -254,6 +275,7 @@ export function buildResearchInput(
     website: input.website,
     projectBrief: input.projectBrief,
     competitorUrls: input.competitorUrls,
+    skillUrls: input.skillUrls,
     detailsSections: input.detailsSections,
     additionalNotes: input.additionalNotes,
     uploadedAssetIds: input.uploadedAssetIds,

@@ -46,6 +46,7 @@ export async function upsertContextRecord(
     industry?: string;
     clientWebsite?: string;
     competitorUrls: string[];
+    skillUrls?: string[];
     detailsSections?: DetailsSection[];
     referenceUrls: string[];
     brief?: string;
@@ -80,6 +81,7 @@ export async function upsertContextRecord(
     industry: normalizeOptional(args.industry),
     clientWebsite: normalizeOptional(args.clientWebsite),
     competitorUrls: normalizeList(args.competitorUrls),
+    skillUrls: args.skillUrls === undefined ? existing?.skillUrls : normalizeList(args.skillUrls).slice(0, 3),
     detailsSections:
       args.detailsSections === undefined
         ? existing?.detailsSections

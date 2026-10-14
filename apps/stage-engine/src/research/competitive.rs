@@ -515,6 +515,7 @@ mod tests {
             target_users: None,
             additional_notes: None,
             uploaded_asset_ids: vec![],
+            skill_urls: vec![],
         };
 
         assert_eq!(
@@ -538,6 +539,7 @@ mod tests {
             target_users: None,
             additional_notes: None,
             uploaded_asset_ids: vec![],
+            skill_urls: vec![],
         };
 
         assert_eq!(
@@ -587,6 +589,7 @@ mod tests {
             target_users: None,
             additional_notes: None,
             uploaded_asset_ids: vec![],
+            skill_urls: vec![],
         };
 
         filter_competitive_analysis(&mut object, &input);
@@ -637,6 +640,7 @@ mod tests {
             target_users: None,
             additional_notes: None,
             uploaded_asset_ids: vec![],
+            skill_urls: vec![],
         };
 
         filter_competitive_analysis(&mut object, &input);
@@ -694,6 +698,7 @@ mod tests {
             target_users: None,
             additional_notes: None,
             uploaded_asset_ids: vec![],
+            skill_urls: vec![],
         };
 
         let report = repair_competitive_analysis(&mut object, &input);
@@ -737,6 +742,7 @@ mod tests {
             target_users: None,
             additional_notes: None,
             uploaded_asset_ids: vec![],
+            skill_urls: vec![],
         };
 
         let report = repair_competitive_analysis(&mut object, &input);
@@ -786,6 +792,7 @@ mod tests {
             target_users: None,
             additional_notes: None,
             uploaded_asset_ids: vec![],
+            skill_urls: vec![],
         };
 
         validate_competitive_analysis(&object, &input).unwrap();
@@ -830,6 +837,7 @@ mod tests {
             target_users: None,
             additional_notes: None,
             uploaded_asset_ids: vec![],
+            skill_urls: vec![],
         };
 
         repair_competitive_analysis(&mut object, &input);

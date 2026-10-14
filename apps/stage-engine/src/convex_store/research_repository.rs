@@ -280,6 +280,8 @@ struct ConvexResearchInput {
     additional_notes: Option<String>,
     #[serde(default)]
     uploaded_asset_ids: Vec<String>,
+    #[serde(default)]
+    skill_urls: Vec<String>,
 }
 
 impl ConvexResearchInput {
@@ -297,6 +299,7 @@ impl ConvexResearchInput {
             target_users: self.target_users,
             additional_notes: self.additional_notes,
             uploaded_asset_ids: self.uploaded_asset_ids,
+            skill_urls: self.skill_urls,
         }
     }
 }
@@ -539,6 +542,7 @@ mod tests {
             target_users: Some("Designers".to_string()),
             additional_notes: None,
             uploaded_asset_ids: vec![],
+            skill_urls: vec![],
         }
     }
 
