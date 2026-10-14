@@ -1,40 +1,56 @@
 import { useState, type KeyboardEvent } from "react";
 import { useSkillHubPrefs } from "@/hooks/settings/useSkillHubPrefs";
-import { MAX_SKILLS, parseSkillUrl } from "@/lib/project/researchConfigureInput";
+import { MAX_SKILLS } from "@/lib/project/researchConfigureInput";
+import { resolveSkillUrl, type ResolvedSkill } from "@/lib/project/resolveSkillUrl";
 
-// "Upload Skills" in Configure Research (Figma 2294:5734). Each link is a public GitHub
-// repository whose SKILL.md the engine applies after Stage's research; the result
-// appears as Research.md at the top of the Research tab.
+// Chip label for a saved skill link: the skill's folder (or the repository) name.
+function skillLabel(url: string) {
+  const parts = url.replace("https://github.com/", "").split("/");
+  const file = parts.at(-1)?.toLowerCase() === "skill.md";
+  const folder = file ? parts.at(-2) : undefined;
+  return folder && !["blob", "tree", "HEAD", "main"].includes(folder) ? folder : (parts[1] ?? url);
+}
+
+// "Upload Skills" in Configure Research (Figma 2294:5734). A link is checked with GitHub
+// when added: Stage finds the SKILL.md (also in subfolders) and requires a real skill
+// header, then saves the exact file link the engine downloads.
 export function ResearchSkillsField({ skillUrls, onChange }: { skillUrls: string[]; onChange: (urls: string[]) => void }) {
   const [input, setInput] = useState("");
   const [error, setError] = useState<string>();
+  const [checking, setChecking] = useState(false);
+  const [added, setAdded] = useState<ResolvedSkill>();
   const skillHub = useSkillHubPrefs();
 
-  function addSkill() {
-    const parsed = parseSkillUrl(input);
-    if (!parsed.success) {
-      setError(input.trim() ? parsed.error : "Paste a GitHub repository link");
-      return;
-    }
-    if (skillUrls.includes(parsed.url)) {
-      setInput("");
+  async function addSkill() {
+    if (checking) return;
+    if (!input.trim()) {
+      setError("Paste a GitHub repository link");
       return;
     }
     if (skillUrls.length >= MAX_SKILLS) {
       setError(`Add up to ${MAX_SKILLS} skills`);
       return;
     }
-    onChange([...skillUrls, parsed.url]);
-    setInput("");
+    setChecking(true);
     setError(undefined);
-    // Also list it under Settings → Installed Skills; an existing entry is fine.
-    void skillHub.importFromGithub("skill", parsed.url).catch(() => undefined);
+    try {
+      const skill = await resolveSkillUrl(input);
+      if (!skillUrls.includes(skill.url)) onChange([...skillUrls, skill.url]);
+      setAdded(skill);
+      setInput("");
+      // Also list it under Settings → Installed Skills; an existing entry is fine.
+      void skillHub.importFromGithub("skill", skill.url).catch(() => undefined);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Couldn't check this skill.");
+    } finally {
+      setChecking(false);
+    }
   }
 
   function handleKeyDown(event: KeyboardEvent<HTMLInputElement>) {
     if (event.key === "Enter") {
       event.preventDefault();
-      addSkill();
+      void addSkill();
     }
   }
 
@@ -52,18 +68,25 @@ export function ResearchSkillsField({ skillUrls, onChange }: { skillUrls: string
             placeholder="URL to github repo"
             inputMode="url"
             aria-label="Skill GitHub URL"
+            disabled={checking}
             className="min-w-0 flex-1 bg-transparent text-[12px] font-medium text-[#171717] outline-none placeholder:text-[#525252]"
           />
           <button
             type="button"
-            onClick={addSkill}
-            className="inline-flex h-[32px] shrink-0 items-center gap-[6px] rounded-[6px] border border-[#525252] bg-gradient-to-b from-[#404040] to-[#0A0A0A] pr-3 pl-[10px] text-[12px] leading-none font-medium text-[#FAFAFA] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]"
+            onClick={() => void addSkill()}
+            disabled={checking}
+            className="inline-flex h-[32px] shrink-0 items-center gap-[6px] rounded-[6px] border border-[#525252] bg-gradient-to-b from-[#404040] to-[#0A0A0A] pr-3 pl-[10px] text-[12px] leading-none font-medium text-[#FAFAFA] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] disabled:opacity-60"
           >
             <img src="/logos/research/upload-skill.svg" width={16} height={16} alt="" aria-hidden="true" />
-            Upload SKILL
+            {checking ? "Checking…" : "Upload SKILL"}
           </button>
         </div>
-        {error ? <p className="text-[12px] leading-[1.4] font-medium text-[#DC2626]">{error}</p> : null}
+        {error ? <p role="alert" className="max-w-[385px] text-[12px] leading-[1.4] font-medium text-[#DC2626]">{error}</p> : null}
+        {added && !error ? (
+          <p className="max-w-[385px] text-[12px] leading-[1.4] font-medium text-[#737373]">
+            Added <span className="text-[#171717]">{added.name}</span>: {added.description}
+          </p>
+        ) : null}
       </div>
       {skillUrls.length > 0 ? (
         <div className="flex flex-wrap gap-2">
@@ -71,11 +94,12 @@ export function ResearchSkillsField({ skillUrls, onChange }: { skillUrls: string
             <button
               key={url}
               type="button"
-              aria-label={`Remove skill ${url}`}
+              title={url}
+              aria-label={`Remove skill ${skillLabel(url)}`}
               onClick={() => onChange(skillUrls.filter((item) => item !== url))}
               className="inline-flex items-center gap-2 rounded-full bg-[#F5F5F5] px-3 py-[6px] text-[12px] font-medium text-[#525252] shadow-[0_0.45px_1px_rgba(10,10,10,0.15)]"
             >
-              {url.replace("https://github.com/", "")}
+              {skillLabel(url)}
               <span className="text-[#A3A3A3]">x</span>
             </button>
           ))}

@@ -132,44 +132,164 @@ pub async fn fetch_skills(urls: &[String]) -> Result<Vec<SkillDocument>, String>
     Ok(skills)
 }
 
-async fn fetch_skill(client: &reqwest::Client, url: &str) -> Result<SkillDocument, String> {
-    let fallback_name = parse_github_url(url)?.repo;
-    for candidate in raw_candidates(url)? {
-        let response = client
-            .get(&candidate)
-            .send()
-            .await
-            .map_err(|_| format!("Could not reach GitHub to download the skill at {url}."))?;
-        if response.status() == reqwest::StatusCode::NOT_FOUND {
-            continue;
-        }
-        if !response.status().is_success() {
-            return Err(format!(
-                "GitHub refused the skill download for {url} ({}).",
-                response.status()
-            ));
-        }
-        let bytes = response
-            .bytes()
-            .await
-            .map_err(|_| format!("The skill download for {url} was interrupted."))?;
-        if bytes.len() > MAX_SKILL_BYTES {
-            return Err(format!("The SKILL.md at {url} is larger than 100 KB."));
-        }
-        let content = String::from_utf8(bytes.to_vec())
-            .map_err(|_| format!("The SKILL.md at {url} is not a text file."))?;
-        if content.trim().is_empty() {
-            return Err(format!("The SKILL.md at {url} is empty."));
-        }
-        return Ok(SkillDocument {
-            name: skill_name(&content, &fallback_name),
-            url: url.to_string(),
-            content,
-        });
+/// Downloads one raw file; `Ok(None)` when GitHub has no file at that path.
+async fn download(
+    client: &reqwest::Client,
+    raw_url: &str,
+    url: &str,
+) -> Result<Option<String>, String> {
+    let response = client
+        .get(raw_url)
+        .send()
+        .await
+        .map_err(|_| format!("Could not reach GitHub to download the skill at {url}."))?;
+    if response.status() == reqwest::StatusCode::NOT_FOUND {
+        return Ok(None);
     }
-    Err(format!(
-        "No SKILL.md found at {url}. Link a public repository or the folder that contains SKILL.md."
-    ))
+    if !response.status().is_success() {
+        return Err(format!(
+            "GitHub refused the skill download for {url} ({}).",
+            response.status()
+        ));
+    }
+    let bytes = response
+        .bytes()
+        .await
+        .map_err(|_| format!("The skill download for {url} was interrupted."))?;
+    if bytes.len() > MAX_SKILL_BYTES {
+        return Err(format!("The SKILL.md at {url} is larger than 100 KB."));
+    }
+    let content = String::from_utf8(bytes.to_vec())
+        .map_err(|_| format!("The SKILL.md at {url} is not a text file."))?;
+    if content.trim().is_empty() {
+        return Err(format!("The SKILL.md at {url} is empty."));
+    }
+    Ok(Some(content))
+}
+
+/// Skill repositories often keep SKILL.md in a subfolder (`skills/<name>/SKILL.md`).
+/// Picks the only one, else the one whose folder is named like the repository.
+fn pick_skill_file<'a>(
+    paths: &'a [String],
+    folder: &str,
+    repo: &str,
+) -> Result<&'a str, Vec<&'a str>> {
+    let prefix = if folder.is_empty() {
+        String::new()
+    } else {
+        format!("{}/", folder.trim_end_matches('/'))
+    };
+    let skills: Vec<&str> = paths
+        .iter()
+        .map(String::as_str)
+        .filter(|path| path.starts_with(&prefix) && path.to_ascii_lowercase().ends_with("skill.md"))
+        .filter(|path| {
+            path.len() == "skill.md".len() || path[..path.len() - "skill.md".len()].ends_with('/')
+        })
+        .collect();
+    let named: Vec<&str> = skills
+        .iter()
+        .copied()
+        .filter(|path| {
+            path.rsplit('/')
+                .nth(1)
+                .is_some_and(|parent| parent.eq_ignore_ascii_case(repo))
+        })
+        .collect();
+    match (skills.as_slice(), named.as_slice()) {
+        ([only], _) | (_, [only]) => Ok(only),
+        _ => Err(skills
+            .iter()
+            .map(|path| {
+                path.trim_end_matches("/SKILL.md")
+                    .trim_end_matches("/skill.md")
+            })
+            .collect()),
+    }
+}
+
+async fn find_skill_in_tree(
+    client: &reqwest::Client,
+    location: &GithubLocation,
+    url: &str,
+) -> Result<String, String> {
+    let api = format!(
+        "https://api.github.com/repos/{}/{}/git/trees/{}?recursive=1",
+        location.owner, location.repo, location.git_ref
+    );
+    let response = client
+        .get(&api)
+        .header(reqwest::header::USER_AGENT, "stage-engine")
+        .header(reqwest::header::ACCEPT, "application/vnd.github+json")
+        .send()
+        .await
+        .map_err(|_| format!("Could not reach GitHub to look for SKILL.md in {url}."))?;
+    if response.status() == reqwest::StatusCode::NOT_FOUND {
+        return Err(format!("{url} is private or doesn't exist."));
+    }
+    if !response.status().is_success() {
+        return Err(format!(
+            "GitHub didn't list the files of {url} ({}).",
+            response.status()
+        ));
+    }
+    let tree: JsonValue = response
+        .json()
+        .await
+        .map_err(|_| format!("GitHub sent an unreadable file list for {url}."))?;
+    let paths: Vec<String> = tree["tree"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter(|entry| entry["type"] == "blob")
+        .filter_map(|entry| entry["path"].as_str().map(str::to_string))
+        .collect();
+    match pick_skill_file(&paths, &location.path, &location.repo) {
+        Ok(path) => Ok(path.to_string()),
+        Err(choices) if choices.is_empty() => Err(format!(
+            "No SKILL.md found in {url}, so it isn't an agent skill."
+        )),
+        Err(choices) => Err(format!(
+            "{url} has {} skills ({}). Paste the link to the folder of the one you want.",
+            choices.len(),
+            choices
+                .iter()
+                .take(4)
+                .copied()
+                .collect::<Vec<_>>()
+                .join(", ")
+        )),
+    }
+}
+
+async fn fetch_skill(client: &reqwest::Client, url: &str) -> Result<SkillDocument, String> {
+    let location = parse_github_url(url)?;
+    let mut content = None;
+    for candidate in raw_candidates(url)? {
+        content = download(client, &candidate, url).await?;
+        if content.is_some() {
+            break;
+        }
+    }
+    let content = match content {
+        Some(content) => content,
+        None if !location.path.to_ascii_lowercase().ends_with(".md") => {
+            let file = find_skill_in_tree(client, &location, url).await?;
+            let raw = format!(
+                "https://raw.githubusercontent.com/{}/{}/{}/{file}",
+                location.owner, location.repo, location.git_ref
+            );
+            download(client, &raw, url)
+                .await?
+                .ok_or_else(|| format!("Couldn't download the SKILL.md in {url}."))?
+        }
+        None => return Err(format!("No SKILL.md found at {url}.")),
+    };
+    Ok(SkillDocument {
+        name: skill_name(&content, &location.repo),
+        url: url.to_string(),
+        content,
+    })
 }
 
 pub fn build_skill_report_prompt(
@@ -276,6 +396,33 @@ mod tests {
         ] {
             assert!(raw_candidates(url).is_err(), "{url} should be rejected");
         }
+    }
+
+    #[test]
+    fn subfolder_skills_prefer_the_only_one_or_the_one_named_like_the_repo() {
+        let paths: Vec<String> = [
+            "README.md",
+            "skill-data/core/SKILL.md",
+            "skill-data/slack/SKILL.md",
+            "skills/agent-browser/SKILL.md",
+            "docs/notaskill.md",
+        ]
+        .into_iter()
+        .map(String::from)
+        .collect();
+        assert_eq!(
+            pick_skill_file(&paths, "", "agent-browser"),
+            Ok("skills/agent-browser/SKILL.md")
+        );
+        assert_eq!(
+            pick_skill_file(&paths, "skill-data/slack", "agent-browser"),
+            Ok("skill-data/slack/SKILL.md")
+        );
+        assert_eq!(
+            pick_skill_file(&paths, "skill-data", "agent-browser"),
+            Err(vec!["skill-data/core", "skill-data/slack"])
+        );
+        assert_eq!(pick_skill_file(&paths[..1], "", "repo"), Err(vec![]));
     }
 
     #[test]

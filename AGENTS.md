@@ -34,6 +34,7 @@ stage_mvp/
 
 - `apps/user-application/docs/AI/desktop/2026-06-07!!!-DESKTOP_IDLE_ENERGY_PLAN.md`
 - `apps/user-application/docs/AI/desktop/2026-06-08!!!-PROJECT_OPERATING_PLAN.md`
+- `docs/2026-09-30!!!-AGENTIC_SIDEBAR_MCP_PLAN.md`
 
 ## Rules
 

@@ -4,11 +4,11 @@
 
 This document retains the original first-release checklist below; do not use its old release-asset or secret-location claims as current instructions.
 
-## Current release scope — 2026-10-14
+## Current release scope — 2026-10-14 (v0.2.60)
 
-- Testing tag `v0.2.59`, desktop package version `0.2.59`, branch `feat/sta-56-styleguide-flows`. On top of `v0.2.58` (build green): Research "Upload Skills" (Figma 2294:5734). Public GitHub SKILL.md links are saved with the research context; the engine downloads them before the run (github.com only, 100 KB cap), applies them after Stage's research, and stores the Markdown as `skillReport`, shown as the Research.md card (Figma 2346:9096). A failed skill step keeps Stage's research.
-- Convex: optional `projectAiContexts.skillUrls`, synced to Testing `reliable-bullfrog-917` by `convex dev`. Nothing deployed to production.
-- Checks before tagging: frozen lockfile install, data-ops build, desktop and Convex typecheck, desktop build, rustfmt, strict Clippy, 212 engine tests, 37 canvas/FigJam tests. A live end-to-end run with a real skill and provider is still pending.
+- Testing tag `v0.2.60`, desktop package version `0.2.60`, branch `feat/sta-56-styleguide-flows` (contains all STA-31 monitoring commits through `v0.2.56`). On top of `v0.2.59`: Upload Skills finds SKILL.md in subfolders (app on Upload SKILL and engine at run time), asks which skill when a repo has several, and rejects files without a `name`/`description` header. Verified live with `github.com/vercel-labs/agent-browser` and a full signed-in Research run that saved a Research.md report. Also carries the agentic-sidebar plan doc and the grafana-oss/opentelemetry agent skills from the main checkout.
+- No new Convex functions since `v0.2.59`; nothing deployed to production.
+- Checks before tagging: frozen lockfile install, data-ops build, desktop typecheck and build, rustfmt, strict Clippy, 213 engine tests, skill and Style Guide unit tests.
 
 ## 1. Check lokaal
 

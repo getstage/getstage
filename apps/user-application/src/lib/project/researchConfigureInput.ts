@@ -140,22 +140,6 @@ export type ValidatedResearchConfigureInput = z.infer<typeof validatedResearchCo
   briefAttachments?: ResearchBriefAttachment[];
 };
 
-// A research SKILL is a public GitHub repository or folder containing SKILL.md.
-export function parseSkillUrl(value: string): { success: true; url: string } | { success: false; error: string } {
-  const trimmed = value.trim().replace(/\/+$/, "");
-  const withScheme = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
-  try {
-    const url = new URL(withScheme);
-    const [owner, repo] = url.pathname.split("/").filter(Boolean);
-    if (url.protocol !== "https:" || !/^(www\.)?github\.com$/i.test(url.hostname) || !owner || !repo) {
-      return { success: false, error: "Paste a public GitHub repository link, e.g. github.com/owner/repo" };
-    }
-    return { success: true, url: `https://github.com${url.pathname}` };
-  } catch {
-    return { success: false, error: "Paste a public GitHub repository link, e.g. github.com/owner/repo" };
-  }
-}
-
 export function parseCompetitorWebsite(
   value: string,
 ): { ok: true; value: string } | { ok: false; error: string } {
