@@ -116,7 +116,7 @@ export function ProjectStepView({
   const stepLabels = { ...PROJECT_STEP_LABELS, flows: projectCategory === "websites" ? "Sitemap" : "Flows" };
 
   return (
-    <div className={activeTab === "flows" ? "flex min-h-0 w-full flex-1 flex-col" : "w-full px-[clamp(16px,7vw,100px)] pb-[120px] pt-7"}>
+    <div className={activeTab === "flows" && !blockedStep ? "flex min-h-0 w-full flex-1 flex-col" : "w-full px-[clamp(16px,7vw,100px)] pb-[120px] pt-7"}>
       <Suspense fallback={<TabLoadingState label={`Loading ${stepLabels[activeTab]}…`} />}>
         {blockedStep ? (
           <ProjectStepBlockedState
@@ -208,42 +208,38 @@ function ProjectStepBlockedState({
   const requiredLabel = labels[requiredTab];
 
   return (
-    <section className="rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
-      <div className="rounded-[8px] bg-white shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
-        <div className="flex w-full flex-col gap-1 rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
-          <div className="flex items-center justify-center p-4">
-            <div className="flex min-w-0 flex-1 flex-col gap-1">
-              <p className="text-[15px] font-medium leading-none text-[#171717]">
-                {currentLabel}
-              </p>
-              <p className="max-w-[460px] text-[12px] font-medium leading-[1.5] text-[#737373]">
-                This project moves step by step. Complete {requiredLabel} before proceeding to {currentLabel}.
-              </p>
-            </div>
+    <section className="flex w-full flex-col gap-1 rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
+      <div className="flex items-center justify-center p-4">
+        <div className="flex min-w-0 flex-1 flex-col gap-1">
+          <p className="text-[15px] font-medium leading-none text-[#171717]">
+            {currentLabel}
+          </p>
+          <p className="max-w-[460px] text-[12px] font-medium leading-[1.5] text-[#737373]">
+            This project moves step by step. Complete {requiredLabel} before proceeding to {currentLabel}.
+          </p>
+        </div>
+      </div>
+
+      <div className="rounded-[8px] bg-white px-11 py-11 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
+        <div className="flex max-w-[460px] flex-col gap-6">
+          <div className="flex flex-col gap-2">
+            <p className="text-[20px] font-semibold leading-[1.2] text-[#171717]">
+              Complete {requiredLabel} first
+            </p>
+            <p className="text-[13px] font-medium leading-[1.6] text-[#737373]">
+              {currentLabel} depends on the work from {requiredLabel}. Finish that step and this tab will become available.
+            </p>
           </div>
 
-          <div className="rounded-[8px] bg-white px-11 py-11 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
-            <div className="flex max-w-[460px] flex-col gap-6">
-              <div className="flex flex-col gap-2">
-                <p className="text-[20px] font-semibold leading-[1.2] text-[#171717]">
-                  Complete {requiredLabel} first
-                </p>
-                <p className="text-[13px] font-medium leading-[1.6] text-[#737373]">
-                  {currentLabel} depends on the work from {requiredLabel}. Finish that step and this tab will become available.
-                </p>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-2">
-                <button
-                  type="button"
-                  onClick={onGoToStep}
-                  className="inline-flex h-8 items-center justify-center gap-2 rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7B76DF] to-[#463FBA] px-3 text-[13px] font-medium leading-[1.25] text-[#FAFAFA] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-opacity hover:opacity-95"
-                >
-                  Go to {requiredLabel}
-                  <ArrowRightIconSmall />
-                </button>
-              </div>
-            </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={onGoToStep}
+              className="inline-flex h-8 items-center justify-center gap-2 rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7B76DF] to-[#463FBA] px-3 text-[13px] font-medium leading-[1.25] text-[#FAFAFA] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-opacity hover:opacity-95"
+            >
+              Go to {requiredLabel}
+              <ArrowRightIconSmall />
+            </button>
           </div>
         </div>
       </div>

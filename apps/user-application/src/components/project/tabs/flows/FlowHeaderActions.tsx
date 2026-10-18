@@ -21,15 +21,21 @@ export function FlowHeaderActions({
         <PlusIcon />
         Add a {diagramLabel.toLowerCase()} manually
       </button>
-      <button
-        type="button"
-        onClick={onSendToFigJam}
-        disabled={sendingToFigJam}
-        className="inline-flex h-[32px] items-center gap-2 rounded-[6px] bg-gradient-to-b from-[#262626] to-[#0A0A0A] px-3 text-[13px] font-medium leading-[1.25] text-white shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
-      >
-        <FigmaIcon />
-        {sendingToFigJam ? "Sending..." : "Send to FigJam"}
-      </button>
+      <SendToFigJamButton onClick={onSendToFigJam} sending={sendingToFigJam} />
     </div>
+  );
+}
+
+export function SendToFigJamButton({ onClick, sending }: { onClick: () => void; sending: boolean }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={sending}
+      className="inline-flex h-[32px] items-center gap-2 rounded-[6px] bg-gradient-to-b from-[#262626] to-[#0A0A0A] px-3 text-[13px] font-medium leading-[1.25] text-white shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+    >
+      <FigmaIcon />
+      {sending ? "Sending..." : "Send to FigJam"}
+    </button>
   );
 }

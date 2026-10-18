@@ -35,8 +35,8 @@ export function FlowRow({
 }) {
   return (
     <article className="overflow-hidden rounded-[8px] bg-[#FAFAFA] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
-      <div className={`flex justify-between gap-6 rounded-[8px] bg-white p-4 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] ${expanded ? "items-stretch" : "items-start"}`}>
-        <div className={`flex min-w-0 items-start gap-3 ${expanded ? "flex-1 flex-col justify-between self-stretch" : ""}`}>
+      <div className={`flex flex-wrap justify-between gap-6 rounded-[8px] bg-white p-4 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] ${expanded ? "items-stretch" : "items-start"}`}>
+        <div className={`flex min-w-0 items-start gap-3 ${expanded ? "flex-1 basis-[280px] flex-col justify-between self-stretch" : ""}`}>
           <div className="flex min-w-0 items-start gap-3">
             <FlowSummary
               flow={flow}

@@ -10,6 +10,7 @@ import type { FlowsArtifact, FlowsCanvasEdit, ProjectCategory } from "@stage/dat
 import { FLOW_CANVAS_NODE_WIDTH, getFlowCanvasBoard, getFlowCanvasBoardSize } from "@stage/data-ops/domain";
 import { STAGE_CHAT_OPEN_REQUEST } from "@/lib/companion/shortcutEvents";
 import { ScreenDetailsDialog, type ScreenDetailsChange } from "./ScreenDetailsDialog";
+import { findStepScreen } from "./stepScreen";
 import "@xyflow/react/dist/style.css";
 import "./flowsCanvas.css";
 
@@ -191,7 +192,7 @@ function CanvasWorkspace({ artifact, updatedAt, projectCategory, disabled = fals
     setDetails({ flowId: node.data.flowId, stepId: node.data.stepId, anchor });
   }
   const detailsStep = latest.current.flows.find((flow) => flow.id === details?.flowId)?.steps.find((step) => step.id === details?.stepId);
-  const detailsScreen = detailsStep?.screenId ? latest.current.screens.find((screen) => screen.id === detailsStep.screenId) : undefined;
+  const detailsScreen = detailsStep ? findStepScreen(detailsStep, latest.current.screens) : undefined;
   const busy = disabled || saving;
   return <div className="flows-canvas" aria-label={`${label} canvas`} onKeyDown={(event) => {
     if (event.key === "Escape") { setSource(undefined); setSelectedEdge(undefined); setTool("select"); }

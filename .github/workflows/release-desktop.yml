@@ -117,6 +117,8 @@ jobs:
       STAGE_DESKTOP_UPDATES_URL: ${{ needs.resolve-environment.outputs.environment == 'testing' && 'https://github.com/getstage/getstage/releases/download/desktop-testing-feed' || vars.STAGE_DESKTOP_UPDATES_URL }}
       # Testing release: login via testing.getstage.co (override with repo variable for prod later)
       STAGE_DESKTOP_AUTH_URL: ${{ vars.STAGE_DESKTOP_AUTH_URL != '' && vars.STAGE_DESKTOP_AUTH_URL || 'https://testing.getstage.co/auth/desktop' }}
+      # Client portal links must open the site that reads the same Convex deployment.
+      VITE_PUBLIC_SITE_URL: ${{ needs.resolve-environment.outputs.environment == 'testing' && 'https://testing.getstage.co' || 'https://getstage.co' }}
       # Testing builds become "Stage Testing" (own scheme, data folder, engine port).
       STAGE_DESKTOP_CHANNEL: ${{ needs.resolve-environment.outputs.environment }}
     steps:

@@ -4,7 +4,11 @@
 
 This document retains the original first-release checklist below; do not use its old release-asset or secret-location claims as current instructions.
 
-## Current release scope — 2026-10-18 (v0.2.63)
+## Current release scope — 2026-10-18 (v0.2.64)
+
+- Testing tag `v0.2.64`, desktop package version `0.2.64`, branch `feat/sta-56-styleguide-flows`. On top of `v0.2.63` (STA-57): locked Flows/Sitemap card spacing, Flows rows wrap on narrow windows, canvas key elements editable for unlinked steps, canvas "Send to FigJam" button style, and `VITE_PUBLIC_SITE_URL` set in the release workflow (testing portal links). Checks: desktop typecheck, 51 desktop unit tests, desktop build.
+
+## Previous release scope — 2026-10-18 (v0.2.63)
 
 - Testing tag `v0.2.63`, desktop package version `0.2.63`, branch `feat/sta-56-styleguide-flows`. On top of `v0.2.62`:
   - Research runs use structured output: Codex `--output-schema` / Claude `--json-schema` with `apps/stage-engine/src/research/output_schema.rs`. It enforces sections, field names and enum values (e.g. `sourceSection`), not item counts (forced counts made Codex stall on whitespace). Counts stay with post-run validation and the repair pass. An older CLI that rejects the flag is retried once without it.

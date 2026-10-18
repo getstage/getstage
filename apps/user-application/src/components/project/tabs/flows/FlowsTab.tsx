@@ -4,6 +4,7 @@ import { flowsArtifactSchema, type ProviderId, type ProjectCategory, type FlowsC
 import type { Id } from "@stage/data-ops/convex/data-model";
 import { api } from "@/lib/convexApi";
 import { FlowsCanvas } from "./FlowsCanvas";
+import { stepScreenTitle } from "./stepScreen";
 import type { ScreenDetailsChange } from "./ScreenDetailsDialog";
 import { GenerateStrategyRunDialog } from "@/components/project/GenerateStrategyRunDialog";
 import { UpstreamStaleBanner } from "@/components/project/UpstreamStaleBanner";
@@ -23,7 +24,7 @@ import {
 } from "@/types/project/flowsTab";
 import { AddFlowModal } from "./AddFlowModal";
 import { FigJamExportDialog } from "./FigJamExportDialog";
-import { FlowHeaderActions } from "./FlowHeaderActions";
+import { FlowHeaderActions, SendToFigJamButton } from "./FlowHeaderActions";
 import { FlowRow } from "./FlowRow";
 import { FlowIcon, ScreenIcon } from "./flowsIcons";
 import { ScreenFilter } from "./ScreenFilter";
@@ -292,7 +293,7 @@ export function FlowsTab({ project, projectCategory, onGoToResearch, onGoToStrat
       throw new Error("This step changed elsewhere. Cancel and reopen the editor before saving.");
     }
     const elements = change.elements;
-    if (elements) {
+    if (elements.screenId) {
       const screen = current.screens.find((entry) => entry.id === elements.screenId);
       if (!screen) throw new Error("This screen is no longer available.");
       if (JSON.stringify(screen.keyElements) !== JSON.stringify(elements.original)) {
@@ -302,9 +303,12 @@ export function FlowsTab({ project, projectCategory, onGoToResearch, onGoToStrat
     const nextFlows = current.flows.map((flow) =>
       flow.id === flowId ? { ...flow, steps: (flow.steps ?? []).map((label, index) => (index === stepIndex ? change.label : label)) } : flow,
     );
-    const nextScreens = elements
+    const title = stepScreenTitle(change.label);
+    const nextScreens = elements.screenId
       ? current.screens.map((entry) => (entry.id === elements.screenId ? { ...entry, keyElements: elements.next } : entry))
-      : current.screens;
+      : elements.next.length && title
+        ? [...current.screens, { id: `screen-${crypto.randomUUID()}`, title, description: change.label, flowCount: 1, keyElements: elements.next }]
+        : current.screens;
     await persist(nextFlows, nextScreens);
   }
 
@@ -418,7 +422,7 @@ export function FlowsTab({ project, projectCategory, onGoToResearch, onGoToStrat
             ) : null}
           </div>
 
-          <div className="flex items-start justify-between gap-4">
+          <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="flex items-start gap-1 rounded-[8px] bg-white p-[2px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
               <button
                 type="button"
@@ -465,7 +469,7 @@ export function FlowsTab({ project, projectCategory, onGoToResearch, onGoToStrat
               onAdd={() => setAddFlowOpen(true)}
               actions={<>
                 <button type="button" className="flows-canvas-action" onClick={() => setShowCanvas(false)}>View details</button>
-                <button type="button" className="flows-canvas-action" disabled={figJamExport.isExporting} onClick={() => void handleSendToFigJam()}>{figJamExport.isExporting ? "Sending…" : "Send to FigJam"}</button>
+                <SendToFigJamButton sending={figJamExport.isExporting} onClick={() => void handleSendToFigJam()} />
               </>}
               onEdit={saveCanvasEdit}
               onSaveScreen={saveCanvasScreen}

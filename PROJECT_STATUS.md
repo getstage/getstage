@@ -31,6 +31,10 @@
 - Production build and `pnpm --filter stage-app check:seo` pass: unique titles/descriptions, canonical URLs, one H1, valid JSON-LD, image files, and sitemap indexing consistency across all 48 indexable pages. Nine local Worker response checks also pass for public/private/staging routes, missing-page statuses, asset caching, and the unconfigured API response. No push or deployment performed.
 - GEO follows standard crawlability/content-quality guidance; no fabricated citations, reviews, freshness dates, or special AI markup. Existing Datafast tracking remains. Search Console/Bing sitemap submission, indexing checks, live Core Web Vitals, and organic/AI-referral monitoring require the approved deployment and account access. No search rankings or AI citations can be guaranteed.
 
+## STA-57 partner fixes — 2026-10-18 (v0.2.64)
+
+- Locked Flows/Sitemap tab uses the same padded single card as the other tabs. Flow rows wrap Steps under the summary on narrow windows instead of overflowing. Canvas step details find the screen by name when the model left no `screenId`, and key elements can always be added (a missing screen is created on save). Canvas "Send to FigJam" uses the dark Figma button. Release builds set `VITE_PUBLIC_SITE_URL` so testing portal links open `testing.getstage.co` (they opened production `getstage.co` → "Portal not found").
+
 ## Research structured output — 2026-10-18 (v0.2.63)
 
 - Research providers answer inside a strict JSON Schema (sections, fields, enums; not counts). stdout always wins over stderr-recovered JSON (fixed Research.md showing raw research JSON). Live provider checks: `pnpm test:providers`. Open: same structured output for Strategy, Moodboard, Flows and Wireframes; Claude model fallback; telemetry for non-Research workflows.

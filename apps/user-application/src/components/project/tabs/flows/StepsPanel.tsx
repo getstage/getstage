@@ -10,7 +10,7 @@ export function StepsPanel({
   onDraftStepChange: (stepIndex: number, value: string) => void;
 }) {
   return (
-    <div className="min-w-[360px] flex-1 rounded-[6px] bg-[#F5F5F5] p-3 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
+    <div className="min-w-0 flex-1 basis-[360px] rounded-[6px] bg-[#F5F5F5] p-3 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
       <div className="flex flex-col gap-3">
         <div className="flex items-center gap-2 pr-3 py-[6px] text-[13px] font-medium leading-[1.25] text-[#171717]">
           <StepsIcon />

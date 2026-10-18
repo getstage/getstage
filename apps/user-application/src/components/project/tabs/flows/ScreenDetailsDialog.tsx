@@ -8,8 +8,8 @@ import { ScreenEditActions } from "./ScreenEditActions";
 export type ScreenDetailsChange = {
   label: string;
   originalLabel: string;
-  // Absent when the node has no linked screen: only the label is saved.
-  elements?: { screenId: string; next: string[]; original: string[] };
+  // Without a screenId the step has no screen yet; saving elements creates one.
+  elements: { screenId?: string; next: string[]; original: string[] };
 };
 export type SaveScreenDetails = (change: ScreenDetailsChange) => Promise<void>;
 
@@ -38,7 +38,7 @@ export function ScreenDetailsDialog({ nodeLabel, screen, disabled, anchor, onClo
       await onSave({
         label,
         originalLabel: nodeLabel,
-        elements: screen ? { screenId: screen.id, next: edit.elements.map((element) => element.trim()).filter(Boolean), original: edit.original } : undefined,
+        elements: { screenId: screen?.id, next: edit.elements.map((element) => element.trim()).filter(Boolean), original: edit.original },
       });
       setEdit(undefined);
     } catch (caught) {
@@ -84,9 +84,10 @@ export function ScreenDetailsDialog({ nodeLabel, screen, disabled, anchor, onClo
         <div className="flows-screen-body">
           <h4>Key elements</h4>
           <div className={edit ? "flows-screen-element-editor" : undefined}>
-            {screen?.keyElements.length || edit?.elements.length ? <ScreenElementList elements={edit?.elements ?? screen?.keyElements ?? []} editing={!!edit} onDraftElementChange={(index, value) => {
-              setEdit((current) => current ? { ...current, elements: current.elements.map((element, i) => i === index ? value : element) } : current);
-            }} /> : <p className="flows-screen-empty">{screen ? "No elements have been saved for this screen." : "This step has no screen details to display."}</p>}
+            {edit ? <ScreenElementList elements={[...edit.elements, ""]} editing onDraftElementChange={(index, value) => {
+              // The trailing empty row adds a new element.
+              setEdit((current) => current ? { ...current, elements: index === current.elements.length ? [...current.elements, value] : current.elements.map((element, i) => i === index ? value : element) } : current);
+            }} /> : screen?.keyElements.length ? <ScreenElementList elements={screen.keyElements} /> : <p className="flows-screen-empty">{screen ? "No elements have been saved for this screen." : "This step has no screen details to display."}</p>}
           </div>
           {error ? <p role="alert" className="flows-canvas-error">{error}</p> : null}
           {edit ? <div className="flows-screen-actions"><ScreenEditActions cancelLabel="Cancel" saving={saving} saveDisabled={disabled || !edit.label.trim()} onDiscard={() => { setEdit(undefined); setError(undefined); }} onSave={() => void save()} /></div> : null}
