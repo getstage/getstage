@@ -11,6 +11,8 @@
     "convex:dev": "pnpm --filter @stage/data-ops run convex:dev",
     "convex:deploy": "pnpm --filter @stage/data-ops run convex:deploy",
     "convex:typecheck": "pnpm --filter @stage/data-ops run convex:typecheck",
+    "test": "cargo test --manifest-path apps/stage-engine/Cargo.toml --locked && pnpm --filter stage-user-application run test:unit",
+    "test:providers": "cargo test --manifest-path apps/stage-engine/Cargo.toml live_ -- --ignored --nocapture --test-threads=1",
     "desktop:dev": "pnpm --filter stage-user-application run dev",
     "desktop:build": "pnpm --filter stage-user-application run build",
     "desktop:typecheck": "pnpm --filter stage-user-application run typecheck",

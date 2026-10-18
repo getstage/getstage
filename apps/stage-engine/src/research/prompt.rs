@@ -192,7 +192,7 @@ opportunities rules:
 - Each opportunity must advise how {project_name} can win versus the allowed competitors or user needs.
 - title: 2-4 words.
 - description: exactly one sentence, max 25 words. State the gap and why it matters for this product.
-- sourceSection must be one of "summary", "companySnapshot", "competitiveAnalysis", "uiPatterns", "targetUsers", or "openQuestions".
+- sourceSection must be exactly one of "summary", "companySnapshot", "competitiveAnalysis", "uiPatterns", or "targetUsers" (no sub-views like "competitiveAnalysis.cardView").
 - Never invent facts, competitors, user needs, or evidence just to create an opportunity.
 - If you cannot generate at least 3 grounded opportunities, return no artifact; do not return an empty opportunities array.
 

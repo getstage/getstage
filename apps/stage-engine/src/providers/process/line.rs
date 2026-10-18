@@ -30,6 +30,10 @@ pub(super) struct ProcessLine {
 #[derive(Debug, Default)]
 pub(super) struct LineSink {
     pub final_text: String,
+    /// Artifact JSON recovered from stderr. Only a fallback: CLIs also echo the prompt on
+    /// stderr, and a prompt can contain artifact JSON (skill report, repair pass), so this
+    /// must never be mixed into a real stdout answer.
+    pub stderr_text: String,
     pub stderr_capture: StderrArtifactCapture,
     pub stderr_diag: StderrDiagnostics,
     pub emitted_stdout: bool,
@@ -63,7 +67,7 @@ impl LineSink {
 
                 self.stderr_capture.ingest(
                     &line.text,
-                    &mut self.final_text,
+                    &mut self.stderr_text,
                     capture_multiline_stderr,
                     expected_kind,
                 );
@@ -99,6 +103,15 @@ impl LineSink {
         }
     }
 
+    /// The provider's answer: stdout when it wrote one, else what stderr recovered.
+    pub(super) fn take_output(&mut self) -> String {
+        if self.final_text.trim().is_empty() {
+            std::mem::take(&mut self.stderr_text)
+        } else {
+            std::mem::take(&mut self.final_text)
+        }
+    }
+
     pub(super) fn flush_stderr(
         &mut self,
         context: &ProviderRunContext,
@@ -106,7 +119,7 @@ impl LineSink {
     ) {
         let expected_kind = expected_artifact_kind(context.request.mode);
         self.stderr_capture.flush(
-            &mut self.final_text,
+            &mut self.stderr_text,
             capture_multiline_stderr,
             expected_kind,
         );
@@ -173,5 +186,29 @@ pub(super) async fn terminate_child(child: &mut tokio::process::Child) {
 
     if let Err(error) = child.wait().await {
         tracing::debug!(%error, "failed to wait for cancelled provider process");
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::LineSink;
+
+    #[test]
+    fn stdout_answer_is_never_mixed_with_stderr_echo() {
+        let mut sink = LineSink {
+            final_text: "## Report".to_string(),
+            stderr_text: r#"{"artifactKind":"researchArtifact"}"#.to_string(),
+            ..LineSink::default()
+        };
+        assert_eq!(sink.take_output(), "## Report");
+    }
+
+    #[test]
+    fn stderr_artifact_is_used_when_stdout_is_empty() {
+        let mut sink = LineSink {
+            stderr_text: r#"{"artifactKind":"researchArtifact"}"#.to_string(),
+            ..LineSink::default()
+        };
+        assert_eq!(sink.take_output(), r#"{"artifactKind":"researchArtifact"}"#);
     }
 }

@@ -97,6 +97,11 @@ fn claude_args(context: &ProviderRunContext) -> Vec<String> {
         args.push(allowed_tools.join(","));
     }
 
+    if let Some(schema) = &context.request.output_schema {
+        args.push("--json-schema".to_string());
+        args.push(schema.to_string());
+    }
+
     apply_claude_run_options(&mut args, &context.request.model_options);
     args
 }
@@ -155,6 +160,7 @@ mod tests {
                 attachments: vec![],
                 model_options: vec![],
                 working_directory: None,
+                output_schema: None,
             },
         }
     }

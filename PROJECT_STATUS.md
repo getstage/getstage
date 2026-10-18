@@ -31,6 +31,10 @@
 - Production build and `pnpm --filter stage-app check:seo` pass: unique titles/descriptions, canonical URLs, one H1, valid JSON-LD, image files, and sitemap indexing consistency across all 48 indexable pages. Nine local Worker response checks also pass for public/private/staging routes, missing-page statuses, asset caching, and the unconfigured API response. No push or deployment performed.
 - GEO follows standard crawlability/content-quality guidance; no fabricated citations, reviews, freshness dates, or special AI markup. Existing Datafast tracking remains. Search Console/Bing sitemap submission, indexing checks, live Core Web Vitals, and organic/AI-referral monitoring require the approved deployment and account access. No search rankings or AI citations can be guaranteed.
 
+## Research structured output — 2026-10-18 (v0.2.63)
+
+- Research providers answer inside a strict JSON Schema (sections, fields, enums; not counts). stdout always wins over stderr-recovered JSON (fixed Research.md showing raw research JSON). Live provider checks: `pnpm test:providers`. Open: same structured output for Strategy, Moodboard, Flows and Wireframes; Claude model fallback; telemetry for non-Research workflows.
+
 ## Research reliability + Testing telemetry — 2026-10-18 (v0.2.62)
 
 - Partner Research failures on 2026-10-18 (from `projectAiRuns` on Testing): a missing `targetUsers` section, an invalid `sourceSection` value (`competitiveAnalysis.cardView`), and Codex runs on a retired `gpt-5.5` model whose error text was polluted by a Firecrawl MCP sign-in line and shown as "Codex is not logged in".

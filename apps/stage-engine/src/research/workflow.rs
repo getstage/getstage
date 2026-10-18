@@ -32,6 +32,8 @@ use crate::research::skills::{
 };
 use crate::runs::RunEventSink;
 use serde_json::{Value as JsonValue, json};
+
+use crate::research::output_schema::{drop_empty_values, research_output_schema};
 use tokio::time::{Duration, timeout};
 
 const RESEARCH_PROVIDER_TIMEOUT: Duration = Duration::from_secs(600);
@@ -274,6 +276,9 @@ impl ResearchWorkflow {
             uploaded_research_asset_keys = image_keys.values().cloned().collect();
 
             request.prompt = bundle.prompt;
+            // The provider is held to Stage's artifact format while it writes; the checks
+            // below remain as the second line of defence.
+            request.output_schema = Some(research_output_schema());
             let provider_context = ProviderRunContext {
                 api_version,
                 run_id: run_id.clone(),
@@ -306,6 +311,7 @@ impl ResearchWorkflow {
             let build_artifact = |text: &str| -> Result<JsonValue, WorkflowError> {
                 let invalid = |error: anyhow::Error| WorkflowError::IncompleteArtifact(error.to_string());
                 let mut raw_artifact = extract_research_artifact(text).map_err(invalid)?;
+                drop_empty_values(&mut raw_artifact);
                 apply_engine_ui_patterns(&mut raw_artifact, &bundle.refero_context, &image_keys);
                 let artifact = enrich_research_artifact(
                     raw_artifact,
@@ -386,6 +392,7 @@ impl ResearchWorkflow {
                 let mut skill_request = request.clone();
                 skill_request.prompt = build_skill_report_prompt(&skills, &input, &artifact);
                 skill_request.attachments.clear();
+                skill_request.output_schema = None;
                 skill_request.context.source = Some("research-skill".to_string());
                 let skill_context = ProviderRunContext {
                     api_version,

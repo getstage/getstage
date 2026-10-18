@@ -24,12 +24,7 @@ pub async fn run_codex(
         mode: context.request.mode,
     });
 
-    let spec = ProviderProcessSpec {
-        binary: "codex",
-        args: codex_args(&context),
-        stdin: Some(context.request.prompt.clone()),
-        working_directory: None,
-    };
+    let (spec, _schema_file) = codex_spec(&context);
 
     run_provider_process(context, spec, events, cancel).await;
 }
@@ -48,14 +43,47 @@ pub async fn run_codex_collect(
         mode: context.request.mode,
     });
 
+    let (spec, _schema_file) = codex_spec(&context);
+
+    run_provider_process_collect(&context, spec, events, cancel).await
+}
+
+fn codex_spec(context: &ProviderRunContext) -> (ProviderProcessSpec, Option<SchemaFile>) {
+    let mut args = codex_args(context);
+    let schema_file = context.request.output_schema.as_ref().and_then(|schema| {
+        SchemaFile::write(schema)
+            .inspect_err(|error| tracing::warn!(%error, "could not write Codex output schema"))
+            .ok()
+    });
+    if let Some(file) = &schema_file {
+        args.push("--output-schema".to_string());
+        args.push(file.0.to_string_lossy().into_owned());
+    }
     let spec = ProviderProcessSpec {
         binary: "codex",
-        args: codex_args(&context),
+        args,
         stdin: Some(context.request.prompt.clone()),
         working_directory: None,
     };
+    (spec, schema_file)
+}
 
-    run_provider_process_collect(&context, spec, events, cancel).await
+/// `codex exec --output-schema` takes a file; it lives only for the run.
+struct SchemaFile(std::path::PathBuf);
+
+impl SchemaFile {
+    fn write(schema: &serde_json::Value) -> std::io::Result<Self> {
+        let path =
+            std::env::temp_dir().join(format!("stage-output-schema-{}.json", uuid::Uuid::new_v4()));
+        std::fs::write(&path, serde_json::to_vec(schema)?)?;
+        Ok(Self(path))
+    }
+}
+
+impl Drop for SchemaFile {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_file(&self.0);
+    }
 }
 
 fn codex_args(context: &ProviderRunContext) -> Vec<String> {
@@ -194,6 +222,7 @@ mod tests {
                 attachments: vec![],
                 model_options: vec![],
                 working_directory: None,
+                output_schema: None,
             },
         }
     }

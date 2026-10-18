@@ -95,6 +95,10 @@ pub struct StartRunRequest {
     pub context: RunContext,
     #[serde(default)]
     pub attachments: Vec<RunAttachment>,
+    /// JSON Schema the provider must answer with. Set by engine workflows only; never
+    /// accepted from the desktop request.
+    #[serde(skip)]
+    pub output_schema: Option<serde_json::Value>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]

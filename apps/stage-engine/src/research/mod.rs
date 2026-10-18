@@ -6,6 +6,7 @@ pub mod brief_files;
 pub mod competitive;
 pub mod context;
 pub mod normalize;
+pub mod output_schema;
 pub mod prompt;
 pub mod refero_assets;
 pub mod section;

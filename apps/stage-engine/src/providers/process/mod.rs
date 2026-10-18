@@ -300,7 +300,7 @@ async fn drive_process_loop(
                         let _ = child.wait().await;
                         drain_pending_lines(context, events, line_rx, sink, capture_multiline_stderr).await;
                         sink.flush_stderr(context, capture_multiline_stderr);
-                        return Ok(ProviderProcessOutcome::Completed(std::mem::take(&mut sink.final_text)));
+                        return Ok(ProviderProcessOutcome::Completed(sink.take_output()));
                     }
                     Ok(Some(status)) => {
                         let _ = child.wait().await;

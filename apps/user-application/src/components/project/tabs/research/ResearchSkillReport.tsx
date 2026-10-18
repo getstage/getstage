@@ -3,6 +3,15 @@ import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { ResearchSkillReport as SkillReport } from "@stage/data-ops/contracts";
 
+// Reports saved before v0.2.63 can contain a pasted copy of Stage's artifact JSON.
+export function cleanSkillMarkdown(markdown: string): string {
+  return markdown
+    .split("\n")
+    .filter((line) => !(line.trim().startsWith("{") && line.includes('"artifactKind"')))
+    .join("\n")
+    .trim();
+}
+
 // Summary bullets from the report's "## Summary" section, else its first bullets.
 export function skillReportSummary(markdown: string): string[] {
   const lines = markdown.split("\n");
@@ -23,7 +32,8 @@ const markdownStyles =
 // (Figma 2346:9096). Read More expands the full Markdown document.
 export function ResearchSkillReport({ report }: { report: SkillReport }) {
   const [expanded, setExpanded] = useState(false);
-  const summary = report.markdown ? skillReportSummary(report.markdown) : [];
+  const markdown = report.markdown ? cleanSkillMarkdown(report.markdown) : "";
+  const summary = markdown ? skillReportSummary(markdown) : [];
   const names = report.skills.map((skill) => skill.name).join(", ");
 
   return (
@@ -31,7 +41,7 @@ export function ResearchSkillReport({ report }: { report: SkillReport }) {
       <header className="flex flex-col gap-0.5">
         <h2 className="text-[16px] font-medium text-neutral-900">Research.md</h2>
         <p className="text-[12px] text-neutral-500" title={names}>
-          Generated with uploaded SKILLS · {names}
+          Generated with uploaded SKILLS
         </p>
       </header>
 
@@ -39,13 +49,13 @@ export function ResearchSkillReport({ report }: { report: SkillReport }) {
         <p role="alert" className="text-[13px] leading-[1.5] font-medium text-red-600">
           The skill could not finish: {report.error} Stage's own research below is complete.
         </p>
-      ) : expanded && report.markdown ? (
+      ) : expanded && markdown ? (
         <div className={markdownStyles}>
           <Markdown
             remarkPlugins={[remarkGfm]}
             components={{ a: ({ href, children }) => <a href={href} target="_blank" rel="noreferrer">{children}</a> }}
           >
-            {report.markdown}
+            {markdown}
           </Markdown>
         </div>
       ) : (
@@ -63,7 +73,7 @@ export function ResearchSkillReport({ report }: { report: SkillReport }) {
         </div>
       )}
 
-      {report.markdown && !report.error ? (
+      {markdown && !report.error ? (
         <button
           type="button"
           aria-expanded={expanded}

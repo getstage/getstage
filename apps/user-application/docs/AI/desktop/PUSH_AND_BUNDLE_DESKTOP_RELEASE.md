@@ -4,18 +4,16 @@
 
 This document retains the original first-release checklist below; do not use its old release-asset or secret-location claims as current instructions.
 
-## Current release scope — 2026-10-18 (v0.2.62)
+## Current release scope — 2026-10-18 (v0.2.63)
 
-- Testing tag `v0.2.62`, desktop package version `0.2.62`, branch `feat/sta-56-styleguide-flows`. Research reliability on top of `v0.2.60`, from the failed runs of 2026-10-18 found in `projectAiRuns` on Testing:
-  - Installed Testing builds now send Research telemetry to Grafana (before, only local dev did). Production builds stay off; `STAGE_TELEMETRY_ENABLED=0` opts out.
-  - Codex runs switch off the user's Codex plugins and `config.toml` MCP servers for that run (`-c features.plugins=false`, `mcp_servers.<name>.enabled=false`); Claude runs use `--strict-mcp-config`. MCP sign-in noise (e.g. Firecrawl OAuth) is dropped from error text and never reported as "not logged in".
-  - A saved Codex model the account no longer offers (`gpt-5.5` on ChatGPT accounts) falls back to the Codex default instead of failing.
-  - An incomplete or slightly invalid Research artifact gets one repair pass (no web search) before failing; `opportunities[].sourceSection` like `competitiveAnalysis.cardView` is normalised.
-  - Grafana dashboards offer only the `testing` channel (needs a Grafana redeploy to apply).
-- Release CI now runs `cargo test` and the desktop typecheck plus `pnpm --filter stage-user-application run test:unit` before any DMG is built.
-- `v0.2.61` was tagged but the new Desktop tests gate stopped it before any DMG (`tsx` was not a declared dependency); fixed and shipped as `v0.2.62`.
+- Testing tag `v0.2.63`, desktop package version `0.2.63`, branch `feat/sta-56-styleguide-flows`. On top of `v0.2.62`:
+  - Research runs use structured output: Codex `--output-schema` / Claude `--json-schema` with `apps/stage-engine/src/research/output_schema.rs`. It enforces sections, field names and enum values (e.g. `sourceSection`), not item counts (forced counts made Codex stall on whitespace). Counts stay with post-run validation and the repair pass. An older CLI that rejects the flag is retried once without it.
+  - The prompt's allowed `sourceSection` values now match the parser (it listed `openQuestions`).
+  - A provider's stdout answer is never mixed with artifact JSON recovered from stderr (CLIs echo the prompt there). This fixed Research.md "Read More" showing the research JSON; already-saved reports are cleaned when shown.
+  - Research.md subtitle matches Figma 2346:9096 ("Generated with uploaded SKILLS").
+  - `pnpm test` runs engine + desktop unit tests; `pnpm test:providers` runs live Codex/Claude checks (needs both logins).
 - No new Convex functions; nothing deployed to production.
-- Checks before tagging: frozen lockfile install, desktop typecheck and build, rustfmt, strict Clippy, 219 engine tests, 50 desktop unit tests, and a live Codex run (`cargo test live_codex -- --ignored`) with a retired model and a Firecrawl plugin installed.
+- Checks before tagging: frozen lockfile install, desktop build, rustfmt, strict Clippy, 227 engine tests, 51 desktop unit tests, `pnpm test:providers` (Codex 19s, Claude 12s).
 
 ## 1. Check lokaal
 
