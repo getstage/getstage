@@ -65,8 +65,18 @@ function looksLikeTechnicalResearchFailure(text: string) {
   );
 }
 
+// An MCP server's sign-in challenge (e.g. Firecrawl's OAuth) is not the provider's login.
+function looksLikeMcpAuthNoise(text: string) {
+  return /resource_metadata=|rmcp::|AuthRequiredError|well-known\/oa/i.test(text);
+}
+
 function looksLikeProviderAuthFailure(text: string) {
-  if (looksLikeJsonDump(text) || looksLikeProviderSessionLimit(text) || looksLikeProviderSubscriptionDisabled(text)) {
+  if (
+    looksLikeJsonDump(text) ||
+    looksLikeMcpAuthNoise(text) ||
+    looksLikeProviderSessionLimit(text) ||
+    looksLikeProviderSubscriptionDisabled(text)
+  ) {
     return false;
   }
   return /auth|login|not authenticated|sign in|401|failed to authenticate|not logged in/i.test(

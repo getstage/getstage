@@ -31,6 +31,13 @@
 - Production build and `pnpm --filter stage-app check:seo` pass: unique titles/descriptions, canonical URLs, one H1, valid JSON-LD, image files, and sitemap indexing consistency across all 48 indexable pages. Nine local Worker response checks also pass for public/private/staging routes, missing-page statuses, asset caching, and the unconfigured API response. No push or deployment performed.
 - GEO follows standard crawlability/content-quality guidance; no fabricated citations, reviews, freshness dates, or special AI markup. Existing Datafast tracking remains. Search Console/Bing sitemap submission, indexing checks, live Core Web Vitals, and organic/AI-referral monitoring require the approved deployment and account access. No search rankings or AI citations can be guaranteed.
 
+## Research reliability + Testing telemetry — 2026-10-18 (v0.2.61)
+
+- Partner Research failures on 2026-10-18 (from `projectAiRuns` on Testing): a missing `targetUsers` section, an invalid `sourceSection` value (`competitiveAnalysis.cardView`), and Codex runs on a retired `gpt-5.5` model whose error text was polluted by a Firecrawl MCP sign-in line and shown as "Codex is not logged in".
+- Fixed in the engine: one repair pass for incomplete/invalid artifacts, lenient `sourceSection`, fallback to the Codex default model, user plugins/MCP servers switched off for Stage runs, MCP noise kept out of error text (engine and app).
+- Packaged Testing builds now send Research telemetry by default (reverses the earlier explicit opt-in); production stays off. Grafana dashboards are Testing-only (redeploy pending).
+- Release CI gates DMG builds on `cargo test`, desktop typecheck and desktop unit tests.
+
 ## STA-56 collaborative Style Guide editor — 2026-10-12
 
 - Style Guide P1–P5 built in this worktree: one editor per Direction with per-section autosave (`projectAi.editStyleGuide`), live presence (`@convex-dev/presence`), and a preview made of real shadcn/ui components themed from the guide. Old `StyleGuideView` removed. Desktop typecheck and 4 new unit tests pass; no Electron visual check, live collaboration test, commit, push or release yet. Open items and details: [`MOODBOARD_STYLEGUIDE_FIX_PLAN.md`](apps/user-application/docs/AI/moodboard/MOODBOARD_STYLEGUIDE_FIX_PLAN.md#sta-56--collaborative-style-guide-editor-2026-10-12).

@@ -81,6 +81,9 @@ fn claude_args(context: &ProviderRunContext) -> Vec<String> {
         "--output-format".to_string(),
         "text".to_string(),
         "--no-session-persistence".to_string(),
+        // Stage runs never use the user's own MCP servers; one that needs sign-in must
+        // not break or mislabel the run.
+        "--strict-mcp-config".to_string(),
         "--tools".to_string(),
         tools.join(","),
         "--permission-mode".to_string(),
@@ -107,6 +110,7 @@ fn research_web_tools_enabled(context: &ProviderRunContext) -> bool {
                     | "research-opportunities"
                     | "research-context"
                     | "research-synthesis"
+                    | "research-repair"
                     | "section:opportunities"
             )
         )
@@ -183,6 +187,7 @@ mod tests {
 
         assert!(!args.iter().any(|arg| arg.len() > 256));
         assert!(args.contains(&"--print".to_string()));
+        assert!(args.contains(&"--strict-mcp-config".to_string()));
         assert!(args.contains(&"sonnet".to_string()));
     }
 

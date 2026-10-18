@@ -1,7 +1,7 @@
 {
   "name": "stage-user-application",
   "private": true,
-  "version": "0.2.60",
+  "version": "0.2.61",
   "type": "commonjs",
   "main": "out/main/index.js",
   "scripts": {
@@ -19,6 +19,7 @@
     "pretypecheck": "pnpm --dir ../../packages/data-ops run build",
     "typecheck": "tsc --noEmit",
     "preview": "env -u ELECTRON_RUN_AS_NODE electron-vite preview",
+    "test:unit": "tsx --test \"src/**/*.test.ts\" \"shared/**/*.test.ts\" \"electron/**/*.test.ts\"",
     "test:canvas": "pnpm --dir ../../packages/data-ops run build && playwright test --config tests/flows-canvas/playwright.config.ts",
     "dev:canvas": "pnpm --dir ../../packages/data-ops run build && vite --config tests/flows-canvas/vite.config.ts --host 127.0.0.1 --port 4326 --strictPort"
   },

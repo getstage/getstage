@@ -379,6 +379,20 @@ mod tests {
     }
 
     #[test]
+    fn mcp_sign_in_challenge_is_not_reported_as_codex_logged_out() {
+        let error = ProviderProcessError::Io {
+            binary: "codex",
+            source: std::io::Error::other(
+                r#"process exited with status exit status: 1: ERROR rmcp::transport::worker: AuthRequired(AuthRequiredError { www_authenticate_header: "Bearer resource_metadata=\"https://mcp.firecrawl.dev/.well-known/oa"#,
+            ),
+        };
+
+        let message = error.to_engine_error(ProviderId::Codex).message;
+        assert!(!message.contains("not logged in"), "{message}");
+        assert!(!error.is_auth_failure());
+    }
+
+    #[test]
     fn is_auth_failure_detects_401_in_io_source() {
         let error = ProviderProcessError::Io {
             binary: "claude",

@@ -76,6 +76,7 @@ fn codex_args(context: &ProviderRunContext) -> Vec<String> {
     ]);
 
     // Config overrides and ephemeral belong on `codex exec`, not the parent command.
+    args.extend(codex_isolation_args(read_codex_user_config().as_deref()));
     apply_codex_run_options(&mut args, &context.request.model_options);
     if context.request.mode == crate::models::runs::RunMode::Research {
         args.push("--ephemeral".to_string());
@@ -104,6 +105,49 @@ fn codex_args(context: &ProviderRunContext) -> Vec<String> {
     args
 }
 
+/// Stage runs must not depend on the user's own Codex setup: a plugin or MCP server that
+/// needs sign-in (e.g. Firecrawl) prints auth errors that used to surface as "Codex is not
+/// logged in". Plugins are switched off and every `[mcp_servers.<name>]` in the user's
+/// config.toml is disabled for this run only; their config file is never modified.
+fn codex_isolation_args(user_config: Option<&str>) -> Vec<String> {
+    let mut args = vec!["-c".to_string(), "features.plugins=false".to_string()];
+    let mut names: Vec<&str> = Vec::new();
+    for line in user_config.unwrap_or_default().lines() {
+        let Some(name) = line
+            .trim()
+            .strip_prefix("[mcp_servers.")
+            .and_then(|rest| rest.split(['.', ']']).next())
+        else {
+            continue;
+        };
+        let safe = !name.is_empty()
+            && name.len() <= 64
+            && name
+                .bytes()
+                .all(|byte| byte.is_ascii_alphanumeric() || byte == b'_' || byte == b'-');
+        if safe && !names.contains(&name) {
+            names.push(name);
+        }
+    }
+    for name in names {
+        args.push("-c".to_string());
+        args.push(format!("mcp_servers.{name}.enabled=false"));
+    }
+    args
+}
+
+fn read_codex_user_config() -> Option<String> {
+    let home = std::env::var_os("CODEX_HOME")
+        .map(std::path::PathBuf::from)
+        .or_else(|| {
+            std::env::var_os("HOME")
+                .or_else(|| std::env::var_os("USERPROFILE"))
+                .map(|home| std::path::PathBuf::from(home).join(".codex"))
+        })?;
+    let text = std::fs::read_to_string(home.join("config.toml")).ok()?;
+    (text.len() <= 1024 * 1024).then_some(text)
+}
+
 fn research_web_search_enabled(context: &ProviderRunContext) -> bool {
     context.request.mode == crate::models::runs::RunMode::Research
         && !matches!(
@@ -113,6 +157,7 @@ fn research_web_search_enabled(context: &ProviderRunContext) -> bool {
                     | "research-opportunities"
                     | "research-context"
                     | "research-synthesis"
+                    | "research-repair"
                     | "section:opportunities"
             )
         )
@@ -128,7 +173,7 @@ fn codex_model_id(model_id: &str) -> Option<&str> {
 
 #[cfg(test)]
 mod tests {
-    use super::{codex_args, codex_model_id};
+    use super::{codex_args, codex_isolation_args, codex_model_id};
     use crate::models::providers::ProviderId;
     use crate::models::runs::{
         RunAttachment, RunAttachmentKind, RunMode, RunModelOptionSelection, RunModelOptionValue,
@@ -247,5 +292,33 @@ mod tests {
         context.request.context.source = Some("research-web-evidence".to_string());
         let args = codex_args(&context);
         assert!(args.contains(&"--search".to_string()));
+    }
+
+    #[test]
+    fn codex_runs_switch_off_plugins_and_user_mcp_servers() {
+        let config = "model = \"gpt-6\"\n[mcp_servers.firecrawl]\nurl = \"https://mcp.firecrawl.dev/v2/mcp\"\n[mcp_servers.railway]\ncommand = \"railway\"\n[mcp_servers.railway.env]\nA = \"1\"\n[mcp_servers.\"bad name\"]\n";
+        assert_eq!(
+            codex_isolation_args(Some(config)),
+            [
+                "-c",
+                "features.plugins=false",
+                "-c",
+                "mcp_servers.firecrawl.enabled=false",
+                "-c",
+                "mcp_servers.railway.enabled=false",
+            ]
+        );
+        assert_eq!(codex_isolation_args(None), ["-c", "features.plugins=false"]);
+    }
+
+    #[test]
+    fn codex_isolation_args_come_after_exec() {
+        let args = codex_args(&sample_context());
+        let exec = args.iter().position(|arg| arg == "exec").unwrap();
+        let plugins = args
+            .iter()
+            .position(|arg| arg == "features.plugins=false")
+            .unwrap();
+        assert!(plugins > exec);
     }
 }

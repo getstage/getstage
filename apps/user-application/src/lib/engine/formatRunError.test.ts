@@ -53,3 +53,14 @@ test("maps wireframes JSON dumps to the generic wireframes fallback", () => {
   );
   assert.equal(message, WIREFRAMES_RUN_FAILED_USER_MESSAGE);
 });
+
+test("an MCP server's sign-in challenge is not shown as Codex being logged out", () => {
+  const message = toEngineErrorUserMessage({
+    code: "provider_process_failed",
+    message:
+      'Codex failed: "Bearer resource_metadata=\\"https://mcp.firecrawl.dev/.well-known/oauth-protected-resource/v2/mcp-oauth\\""',
+    providerId: "codex",
+    retryable: true,
+  });
+  assert.doesNotMatch(message, /not logged in/);
+});

@@ -89,6 +89,16 @@ fn serialized(receiver: &mut mpsc::Receiver<Queued>) -> Vec<Value> {
 fn config_fails_closed_outside_explicit_testing_opt_in() {
     let convex = "https://reliable-bullfrog-917.convex.cloud";
     assert!(Metadata::testing("1", "testing", convex, "0.2.55", "macOS 26.0").is_some());
+    assert!(
+        Metadata::testing(
+            "1",
+            "testing",
+            &format!("{convex}/"),
+            "0.2.55",
+            "macOS 26.0"
+        )
+        .is_some()
+    );
     for (enabled, channel, url, version, os) in [
         ("0", "testing", convex, "0.2.55", "macOS 26.0"),
         ("1", "production", convex, "0.2.55", "macOS 26.0"),

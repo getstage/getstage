@@ -61,11 +61,42 @@ jobs:
       - name: Require warning-free Rust
         run: cargo clippy --manifest-path apps/stage-engine/Cargo.toml --all-targets --all-features --locked -- -D warnings
 
+      - name: Engine tests
+        run: cargo test --manifest-path apps/stage-engine/Cargo.toml --locked
+
+  test-desktop:
+    name: Desktop tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.26.1
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck desktop
+        run: pnpm --filter stage-user-application run typecheck
+
+      - name: Unit tests
+        run: pnpm --filter stage-user-application run test:unit
+
   build-macos:
     name: macOS ${{ matrix.arch }}
     needs:
       - resolve-environment
       - lint-stage-engine
+      - test-desktop
     environment: ${{ needs.resolve-environment.outputs.environment }}
     runs-on: macos-14
     strategy:

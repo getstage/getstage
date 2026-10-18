@@ -31,7 +31,7 @@ use crate::research::skills::{
     build_skill_report_prompt, clean_skill_report, fetch_skills, skill_report_value,
 };
 use crate::runs::RunEventSink;
-use serde_json::json;
+use serde_json::{Value as JsonValue, json};
 use tokio::time::{Duration, timeout};
 
 const RESEARCH_PROVIDER_TIMEOUT: Duration = Duration::from_secs(600);
@@ -303,23 +303,72 @@ impl ResearchWorkflow {
                 "provider run completed, parsing research artifact"
             );
             sink.telemetry_step_started(TelemetryStep::Parse);
-            let mut raw_artifact = extract_research_artifact(&final_text)?;
-            apply_engine_ui_patterns(&mut raw_artifact, &bundle.refero_context, &image_keys);
-            let refero_context = serde_json::to_value(&bundle.refero_context)?;
-            let mut artifact = enrich_research_artifact(
-                raw_artifact,
-                &input,
-                refero_context,
-                ui_pattern_provider,
-                now_millis(),
-            )?;
+            let build_artifact = |text: &str| -> Result<JsonValue, WorkflowError> {
+                let invalid = |error: anyhow::Error| WorkflowError::IncompleteArtifact(error.to_string());
+                let mut raw_artifact = extract_research_artifact(text).map_err(invalid)?;
+                apply_engine_ui_patterns(&mut raw_artifact, &bundle.refero_context, &image_keys);
+                let artifact = enrich_research_artifact(
+                    raw_artifact,
+                    &input,
+                    serde_json::to_value(&bundle.refero_context)?,
+                    ui_pattern_provider,
+                    now_millis(),
+                )
+                .map_err(invalid)?;
+                let parsed_artifact = serde_json::from_value::<
+                    crate::models::research::ResearchArtifact,
+                >(artifact.clone())?;
+                validate_complete_research_artifact(&parsed_artifact, &input)
+                    .map_err(|error| WorkflowError::IncompleteArtifact(error.to_string()))?;
+                let mut artifact = artifact;
+                normalize_source_sections(&mut artifact, &parsed_artifact);
+                Ok(artifact)
+            };
 
-            let parsed_artifact =
-                serde_json::from_value::<crate::models::research::ResearchArtifact>(
-                    artifact.clone(),
-                )?;
-            validate_complete_research_artifact(&parsed_artifact, &input)
-                .map_err(|error| WorkflowError::IncompleteArtifact(error.to_string()))?;
+            let mut artifact = match build_artifact(&final_text) {
+                Ok(artifact) => artifact,
+                // Models sometimes skip a section or misname a field. One repair pass
+                // (no web search) fixes that instead of failing a multi-minute run.
+                Err(first_error) if is_repairable(&first_error) => {
+                    tracing::warn!(run_id = %run_id, error = %first_error, "research artifact invalid; running one repair pass");
+                    self.tool_started(
+                        api_version,
+                        &run_id,
+                        provider_id,
+                        &sink,
+                        "research-repair",
+                        "Complete missing research sections",
+                    );
+                    let mut repair_request = request.clone();
+                    repair_request.prompt =
+                        build_repair_prompt(&request.prompt, &final_text, &first_error.to_string());
+                    repair_request.attachments.clear();
+                    repair_request.context.source = Some("research-repair".to_string());
+                    let repair_context = ProviderRunContext {
+                        api_version,
+                        run_id: run_id.clone(),
+                        request: repair_request,
+                    };
+                    let ProviderProcessOutcome::Completed(repaired_text) =
+                        collect_with_timeout(repair_context, sink.clone(), cancel_rx.clone())
+                            .await?
+                    else {
+                        tracing::info!(run_id = %run_id, "research repair run cancelled");
+                        self.mark_research_cancelled(
+                            &auth_token,
+                            project_id,
+                            convex_run_id.as_deref(),
+                            &uploaded_research_asset_keys,
+                        )
+                        .await;
+                        return Ok(());
+                    };
+                    let artifact = build_artifact(&repaired_text)?;
+                    self.tool_completed(api_version, &run_id, provider_id, &sink, "research-repair");
+                    artifact
+                }
+                Err(error) => return Err(error),
+            };
 
             sink.telemetry_step_completed(TelemetryStep::Parse);
 
@@ -644,6 +693,50 @@ impl ResearchWorkflow {
             status: RunStatus::Completed,
         });
     }
+}
+
+// Saves the leniently parsed sourceSection so the stored JSON matches the contract.
+fn normalize_source_sections(
+    artifact: &mut JsonValue,
+    parsed: &crate::models::research::ResearchArtifact,
+) {
+    let Some(opportunities) = artifact
+        .get_mut("opportunities")
+        .and_then(JsonValue::as_array_mut)
+    else {
+        return;
+    };
+    for (raw, parsed) in opportunities.iter_mut().zip(&parsed.opportunities) {
+        if let Some(object) = raw.as_object_mut() {
+            match parsed.source_section.map(serde_json::to_value) {
+                Some(Ok(section)) => {
+                    object.insert("sourceSection".to_string(), section);
+                }
+                _ => {
+                    object.remove("sourceSection");
+                }
+            }
+        }
+    }
+}
+
+fn is_repairable(error: &WorkflowError) -> bool {
+    matches!(
+        error,
+        WorkflowError::IncompleteArtifact(_) | WorkflowError::Serde(_)
+    )
+}
+
+const MAX_REPAIR_OUTPUT_CHARS: usize = 200_000;
+
+fn build_repair_prompt(original_prompt: &str, previous_output: &str, error: &str) -> String {
+    let previous: String = previous_output
+        .chars()
+        .take(MAX_REPAIR_OUTPUT_CHARS)
+        .collect();
+    format!(
+        "{original_prompt}\n\n---\nREPAIR PASS\nYour previous answer (below) could not be saved because: {error}\n\nReturn the complete research artifact again as a single JSON object that follows every rule above. Keep all correct content from the previous answer, fill every missing required section from the research you already did, and use only the allowed values for enum fields. Do not search the web again. Output only the JSON object.\n\nPrevious answer:\n{previous}"
+    )
 }
 
 async fn collect_with_timeout(

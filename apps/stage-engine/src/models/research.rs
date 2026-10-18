@@ -163,7 +163,25 @@ pub struct ResearchOpportunity {
     pub id: String,
     pub title: Option<String>,
     pub description: String,
+    #[serde(default, deserialize_with = "lenient_section")]
     pub source_section: Option<ResearchArtifactSection>,
+}
+
+/// Models sometimes cite a sub-view ("competitiveAnalysis.cardView") or an unknown name.
+/// That is only a hint for the UI, so keep the top-level section or drop it, never fail.
+fn lenient_section<'de, D>(deserializer: D) -> Result<Option<ResearchArtifactSection>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let value = Option::<serde_json::Value>::deserialize(deserializer)?;
+    Ok(value
+        .as_ref()
+        .and_then(serde_json::Value::as_str)
+        .and_then(|text| text.split(['.', ':', '/']).next())
+        .and_then(|name| {
+            serde_json::from_value::<ResearchArtifactSection>(serde_json::Value::from(name.trim()))
+                .ok()
+        }))
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
@@ -235,7 +253,36 @@ pub struct ResearchArtifactPatch {
 
 #[cfg(test)]
 mod tests {
-    use super::ProjectCategory;
+    use super::{ProjectCategory, ResearchArtifactSection, ResearchOpportunity};
+
+    #[test]
+    fn opportunity_source_section_is_lenient() {
+        let parse = |section: serde_json::Value| {
+            serde_json::from_value::<ResearchOpportunity>(serde_json::json!({
+                "id": "o1", "description": "d", "sourceSection": section
+            }))
+            .unwrap()
+            .source_section
+        };
+        assert!(matches!(
+            parse("competitiveAnalysis.cardView".into()),
+            Some(ResearchArtifactSection::CompetitiveAnalysis)
+        ));
+        assert!(matches!(
+            parse("targetUsers".into()),
+            Some(ResearchArtifactSection::TargetUsers)
+        ));
+        assert!(parse("somethingElse".into()).is_none());
+        assert!(parse(serde_json::Value::Null).is_none());
+        assert!(
+            serde_json::from_value::<ResearchOpportunity>(
+                serde_json::json!({"id": "o1", "description": "d"})
+            )
+            .unwrap()
+            .source_section
+            .is_none()
+        );
+    }
 
     #[test]
     fn project_category_serializes_with_canonical_ids() {

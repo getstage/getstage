@@ -90,6 +90,10 @@ pub(super) fn looks_like_provider_auth_failure(text: &str) -> bool {
     }
 
     let lower = text.to_lowercase();
+    // An MCP server's sign-in challenge is not the provider's own login.
+    if lower.contains("resource_metadata=") || lower.contains("rmcp::") {
+        return false;
+    }
     lower.contains("not authenticated")
         || lower.contains("invalid authentication")
         || lower.contains("failed to authenticate")

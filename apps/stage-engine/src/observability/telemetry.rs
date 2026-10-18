@@ -49,7 +49,7 @@ impl Metadata {
         let os_parts: Vec<_> = os_parts.split('.').collect();
         if enabled != "1"
             || channel != "testing"
-            || convex != "https://reliable-bullfrog-917.convex.cloud"
+            || convex.trim().trim_end_matches('/') != "https://reliable-bullfrog-917.convex.cloud"
             || version_parts.len() != 3
             || !version_parts.iter().all(|part| numeric(part))
             || !(1..=4).contains(&os_parts.len())

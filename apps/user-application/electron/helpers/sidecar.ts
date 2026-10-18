@@ -7,6 +7,7 @@ import { app } from "electron";
 import { augmentPathForProviderClis } from "./cli-path";
 import { shouldLogDesktopVerbose } from "./desktop-log";
 import { IS_TESTING_BUILD } from "./build-channel";
+import { TESTING_CONVEX_URL, telemetryEnabled } from "./telemetry-policy";
 import {
   ENGINE_DEFAULT_PORT,
   ENGINE_READINESS_ATTEMPTS,
@@ -48,7 +49,7 @@ export function getSidecarEnv(port: number): NodeJS.ProcessEnv {
   const convexUrl =
     process.env.CONVEX_URL ??
     process.env.VITE_CONVEX_URL ??
-    (app.isPackaged ? undefined : "https://reliable-bullfrog-917.convex.cloud");
+    (app.isPackaged ? undefined : TESTING_CONVEX_URL);
 
   const r2PublicBaseUrl =
     process.env.R2_PUBLIC_BASE_URL ??
@@ -58,13 +59,14 @@ export function getSidecarEnv(port: number): NodeJS.ProcessEnv {
     ...process.env,
     PATH: augmentPathForProviderClis(process.env.PATH),
     STAGE_ENGINE_PORT: String(port),
-    // Local Testing defaults on; explicit opt-out and packaged production stay off.
-    STAGE_TELEMETRY_ENABLED:
-      (process.env.STAGE_TELEMETRY_ENABLED ?? (app.isPackaged ? "0" : "1")) === "1" &&
-      (!app.isPackaged || IS_TESTING_BUILD) &&
-      convexUrl === "https://reliable-bullfrog-917.convex.cloud"
-        ? "1"
-        : "0",
+    STAGE_TELEMETRY_ENABLED: telemetryEnabled({
+      explicit: process.env.STAGE_TELEMETRY_ENABLED,
+      isPackaged: app.isPackaged,
+      isTestingBuild: IS_TESTING_BUILD,
+      convexUrl,
+    })
+      ? "1"
+      : "0",
     STAGE_TELEMETRY_CHANNEL: "testing",
     STAGE_APP_VERSION: app.getVersion(),
     STAGE_TELEMETRY_OS: `${

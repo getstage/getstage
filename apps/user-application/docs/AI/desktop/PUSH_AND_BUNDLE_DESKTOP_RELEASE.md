@@ -4,11 +4,17 @@
 
 This document retains the original first-release checklist below; do not use its old release-asset or secret-location claims as current instructions.
 
-## Current release scope — 2026-10-14 (v0.2.60)
+## Current release scope — 2026-10-18 (v0.2.61)
 
-- Testing tag `v0.2.60`, desktop package version `0.2.60`, branch `feat/sta-56-styleguide-flows` (contains all STA-31 monitoring commits through `v0.2.56`). On top of `v0.2.59`: Upload Skills finds SKILL.md in subfolders (app on Upload SKILL and engine at run time), asks which skill when a repo has several, and rejects files without a `name`/`description` header. Verified live with `github.com/vercel-labs/agent-browser` and a full signed-in Research run that saved a Research.md report. Also carries the agentic-sidebar plan doc and the grafana-oss/opentelemetry agent skills from the main checkout.
-- No new Convex functions since `v0.2.59`; nothing deployed to production.
-- Checks before tagging: frozen lockfile install, data-ops build, desktop typecheck and build, rustfmt, strict Clippy, 213 engine tests, skill and Style Guide unit tests.
+- Testing tag `v0.2.61`, desktop package version `0.2.61`, branch `feat/sta-56-styleguide-flows`. Research reliability on top of `v0.2.60`, from the failed runs of 2026-10-18 found in `projectAiRuns` on Testing:
+  - Installed Testing builds now send Research telemetry to Grafana (before, only local dev did). Production builds stay off; `STAGE_TELEMETRY_ENABLED=0` opts out.
+  - Codex runs switch off the user's Codex plugins and `config.toml` MCP servers for that run (`-c features.plugins=false`, `mcp_servers.<name>.enabled=false`); Claude runs use `--strict-mcp-config`. MCP sign-in noise (e.g. Firecrawl OAuth) is dropped from error text and never reported as "not logged in".
+  - A saved Codex model the account no longer offers (`gpt-5.5` on ChatGPT accounts) falls back to the Codex default instead of failing.
+  - An incomplete or slightly invalid Research artifact gets one repair pass (no web search) before failing; `opportunities[].sourceSection` like `competitiveAnalysis.cardView` is normalised.
+  - Grafana dashboards offer only the `testing` channel (needs a Grafana redeploy to apply).
+- Release CI now runs `cargo test` and the desktop typecheck plus `pnpm --filter stage-user-application run test:unit` before any DMG is built.
+- No new Convex functions; nothing deployed to production.
+- Checks before tagging: frozen lockfile install, desktop typecheck and build, rustfmt, strict Clippy, 219 engine tests, 50 desktop unit tests, and a live Codex run (`cargo test live_codex -- --ignored`) with a retired model and a Firecrawl plugin installed.
 
 ## 1. Check lokaal
 

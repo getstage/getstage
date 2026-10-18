@@ -24,6 +24,14 @@ pub(super) fn stderr_diag_max_chars() -> usize {
     STDERR_DIAG_MAX_CHARS
 }
 
+fn is_mcp_noise(line: &str) -> bool {
+    let lower = line.to_lowercase();
+    lower.contains("rmcp::")
+        || lower.contains("resource_metadata=")
+        || lower.contains("authrequirederror")
+        || (lower.contains("mcp") && (lower.contains("client") || lower.contains("server")))
+}
+
 #[derive(Debug, Default)]
 pub(super) struct StderrDiagnostics {
     lines: Vec<String>,
@@ -31,6 +39,11 @@ pub(super) struct StderrDiagnostics {
 
 impl StderrDiagnostics {
     pub(super) fn record(&mut self, line: &str) {
+        // MCP connection noise (e.g. a plugin that needs sign-in) is never why a run
+        // failed; keeping it would hide the real error and read as a provider login issue.
+        if is_mcp_noise(line) {
+            return;
+        }
         let trimmed = truncate_line(line.trim(), STDERR_DIAG_MAX_CHARS);
         if trimmed.is_empty() {
             return;
@@ -191,6 +204,21 @@ mod tests {
         assert_eq!(
             diag.summary(),
             Some("Failed to authenticate. API Error: 401".to_string())
+        );
+    }
+
+    #[test]
+    fn mcp_auth_noise_is_not_recorded_as_the_failure() {
+        let mut diag = StderrDiagnostics::default();
+        diag.record(r#"2026-10-18T10:42:52Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when AuthRequired(AuthRequiredError { www_authenticate_header: "Bearer resource_metadata=\"https://mcp.firecrawl.dev/.well-known/oauth-protected-resource/v2/mcp-oauth\", error=\"invalid_token\"" })"#);
+        diag.record(
+            "ERROR codex_core::mcp_connection_manager: MCP client for `firecrawl` failed to start",
+        );
+        assert_eq!(diag.summary(), None);
+        diag.record("ERROR: stream disconnected before completion");
+        assert_eq!(
+            diag.summary().as_deref(),
+            Some("ERROR: stream disconnected before completion")
         );
     }
 }

@@ -325,7 +325,7 @@ test("every exported project section uses curated readable Markdown", () => {
   );
 
   assert.match(content["moodboard.md"] ?? "", /## Creative directions/);
-  assert.match(content["style-guide.md"] ?? "", /### Colour palettes/);
+  assert.match(content["style-guide.md"] ?? "", /### Colour tokens/);
   assert.match(content["flows.md"] ?? "", /## User flows[\s\S]*1\. Open signup/);
   assert.match(content["wireframes.md"] ?? "", /\*\*Fidelity:\*\* Lo-Fi/);
   assert.match(content["wireframes.md"] ?? "", /Collect account details/);

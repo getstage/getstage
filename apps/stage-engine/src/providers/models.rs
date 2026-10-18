@@ -326,6 +326,15 @@ async fn fetch_codex_models(binary: &str) -> Vec<ProviderModel> {
     fetch_codex_cached_models().await
 }
 
+/// Model ids the installed Codex offers right now; empty when it can't be determined.
+pub(crate) async fn current_codex_model_ids() -> Vec<String> {
+    fetch_codex_models("codex")
+        .await
+        .into_iter()
+        .map(|model| model.id)
+        .collect()
+}
+
 async fn fetch_codex_cached_models() -> Vec<ProviderModel> {
     let Some(path) = codex_models_cache_path() else {
         return Vec::new();

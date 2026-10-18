@@ -67,6 +67,15 @@ pub struct RunEventSink {
 }
 
 impl RunEventSink {
+    #[cfg(test)]
+    pub(crate) fn detached() -> Self {
+        Self {
+            events: broadcast::channel(64).0,
+            history: Arc::new(Mutex::new(Vec::new())),
+            diagnostics: None,
+        }
+    }
+
     pub fn telemetry_step_started(&self, step: TelemetryStep) {
         if let Some(diagnostics) = &self.diagnostics {
             diagnostics.step_started(step);
