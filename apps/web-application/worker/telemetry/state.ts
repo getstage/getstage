@@ -1,10 +1,11 @@
 import type { DurableObjectState } from "@cloudflare/workers-types";
 import { z } from "zod";
-import { TELEMETRY_EVENTS_PER_HOUR, TELEMETRY_MAX_EVENTS, telemetryEventSchema } from "@stage/data-ops/contracts/telemetry";
+import { TELEMETRY_EVENTS_PER_HOUR, TELEMETRY_MAX_EVENTS, telemetryChannelSchema, telemetryEventSchema } from "@stage/data-ops/contracts/telemetry";
 import { accumulate, logPayload, metricKey, metricPayload, metricStateSchema, observations, type MetricState, type Observation } from "./otlp";
 import type { TelemetryEnv } from "./index";
 
 const intakeSchema = z.object({
+  channel: telemetryChannelSchema,
   userId: z.string().regex(/^[a-z0-9]{16,64}$/),
   receivedCount: z.number().int().min(1).max(TELEMETRY_MAX_EVENTS),
   events: z.array(telemetryEventSchema).max(TELEMETRY_MAX_EVENTS),
@@ -51,11 +52,11 @@ export class TelemetryState {
     if (request.method !== "POST" || new URL(request.url).pathname !== "/ingest") return new Response(null, { status: 404 });
     const origin = collectorOrigin(this.env.OTEL_COLLECTOR_URL);
     const token = this.env.OTEL_COLLECTOR_TOKEN;
-    if (this.env.TELEMETRY_CHANNEL !== "testing" || !origin || !token || token.length < 32) return new Response(null, { status: 503 });
+    if (!origin || !token || token.length < 32) return new Response(null, { status: 503 });
     const input = intakeSchema.safeParse(await request.json().catch(() => undefined));
-    if (!input.success || input.data.events.some(event => event.channel !== "testing")) return new Response(null, { status: 400 });
+    if (!input.success || input.data.events.some(event => event.channel !== input.data.channel)) return new Response(null, { status: 400 });
     if (this.queuedEvents + input.data.events.length > 500 || this.queuedBatches >= 20) return new Response(null, { status: 503 });
-    const { userId, events, receivedCount, dropped } = input.data;
+    const { channel, userId, events, receivedCount, dropped } = input.data;
     const userHash = [...new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(userId)))]
       .map(byte => byte.toString(16).padStart(2, "0")).join("");
     if (this.queuedEvents + events.length > 500 || this.queuedBatches >= 20) return new Response(null, { status: 503 });
@@ -64,7 +65,7 @@ export class TelemetryState {
       .filter(value => /^\d{1,4}\.\d{1,4}\.\d{1,4}(?:-(?:alpha|beta|rc)\.\d{1,4})?$/.test(value));
     const updates: Observation[] = events.flatMap(event => observations(event, allowedVersions.includes(event.appVersion) ? event.appVersion : "other"));
     for (const [result, value] of Object.entries({ accepted: events.length, ...dropped })) {
-      if (value > 0) updates.push({ name: "stage_telemetry_ingestion_events_total", labels: { channel: "testing", result }, value });
+      if (value > 0) updates.push({ name: "stage_telemetry_ingestion_events_total", labels: { channel, result }, value });
     }
     const states = new Map<string, MetricState>();
     const sql = this.ctx.storage.sql;

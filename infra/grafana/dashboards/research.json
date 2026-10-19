@@ -15,7 +15,7 @@
   ],
   "templating": {
     "list": [
-      { "name": "channel", "label": "Channel", "type": "custom", "query": "testing", "current": { "text": "testing", "value": "testing" } },
+      { "name": "channel", "label": "Channel", "type": "custom", "query": "testing,production", "current": { "text": "testing", "value": "testing" } },
       { "name": "run_id", "label": "Run ID (.* = all)", "type": "textbox", "query": ".*", "current": { "text": ".*", "value": ".*" } }
     ]
   },
@@ -23,7 +23,7 @@
     {
       "id": 1, "type": "text", "title": "Research monitoring",
       "gridPos": { "x": 0, "y": 0, "w": 24, "h": 3 },
-      "options": { "mode": "markdown", "content": "**Real Research events on Testing.** Cards use the selected time range (default: 24 hours). Click a Run ID below to inspect it; `.*` shows all runs.\n\n**Not live yet:** other workflows, production collection and alert delivery. Channel is Testing only." }
+      "options": { "mode": "markdown", "content": "**Real Research events.** Pick Testing or Production under Channel. Cards use the selected time range (default: 24 hours). Click a Run ID below to inspect it; `.*` shows all runs.\n\n**Not live yet:** other workflows and alert delivery." }
     },
     {
       "id": 2, "type": "stat", "title": "Recorded runs",

@@ -69,7 +69,7 @@ async function main() {
     const persist = await mkdtemp(path.join(tmpdir(), "stage-telemetry-smoke-"));
     const create = () => new Miniflare({ modules: true, script, compatibilityDate: "2025-02-20", compatibilityFlags: ["nodejs_compat"],
       durableObjects: { TELEMETRY_STATE: { className: "TelemetryState", useSQLite: true } }, durableObjectsPersist: persist,
-      bindings: { CONVEX_HTTP_ORIGIN: issuer, TELEMETRY_CHANNEL: "testing", TELEMETRY_APP_VERSIONS: "0.2.46",
+      bindings: { CONVEX_HTTP_ORIGIN: issuer, TELEMETRY_APP_VERSIONS: "0.2.46",
         OTEL_COLLECTOR_URL: collector, OTEL_COLLECTOR_TOKEN: collectorToken },
       outboundService: async (incoming: MFRequest) => {
         const url = new URL(incoming.url);

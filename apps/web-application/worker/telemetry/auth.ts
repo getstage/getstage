@@ -5,7 +5,8 @@ const keySets = new Map<string, ReturnType<typeof createRemoteJWKSet>>();
 export function authOrigin(value: string | undefined): string | undefined {
   try {
     const url = new URL(value ?? "");
-    if (url.protocol !== "https:" || !url.hostname.endsWith(".convex.site")
+    // Convex Auth issuers: a deployment's .convex.site or Production's auth.getstage.co.
+    if (url.protocol !== "https:" || !(url.hostname.endsWith(".convex.site") || url.hostname === "auth.getstage.co")
       || url.username || url.password || url.search || url.hash || url.pathname !== "/") return;
     return url.origin;
   } catch { return; }

@@ -31,6 +31,12 @@
 - Production build and `pnpm --filter stage-app check:seo` pass: unique titles/descriptions, canonical URLs, one H1, valid JSON-LD, image files, and sitemap indexing consistency across all 48 indexable pages. Nine local Worker response checks also pass for public/private/staging routes, missing-page statuses, asset caching, and the unconfigured API response. No push or deployment performed.
 - GEO follows standard crawlability/content-quality guidance; no fabricated citations, reviews, freshness dates, or special AI markup. Existing Datafast tracking remains. Search Console/Bing sitemap submission, indexing checks, live Core Web Vitals, and organic/AI-referral monitoring require the approved deployment and account access. No search rankings or AI citations can be guaranteed.
 
+## Production release + Production telemetry — 2026-10-19 (prod-v0.2.65)
+
+- First production release since `prod-v0.2.55`: everything through v0.2.64 (Upload Skills, structured Research output, Flows/Sitemap canvas, STA-57 fixes) plus Production Research telemetry.
+- Research telemetry now covers Production as well: the app reports on the channel of the backend it talks to (Testing `reliable-bullfrog-917`, Production `quirky-snail-763`, nothing otherwise). The single endpoint `testing.getstage.co/api/telemetry` (Worker `stage-telemetry-testing`) verifies the login per backend (Production issuer `auth.getstage.co`) and only accepts events of that login's channel. Grafana: pick Channel = production. Still Research only; still metadata only (no prompts or artifacts).
+- FigJam export in Production needs the new Stage Exporter plugin published to the Figma Community (pending).
+
 ## STA-57 partner fixes — 2026-10-18 (v0.2.64)
 
 - Locked Flows/Sitemap tab uses the same padded single card as the other tabs. Flow rows wrap Steps under the summary on narrow windows instead of overflowing. Canvas step details find the screen by name when the model left no `screenId`, and key elements can always be added (a missing screen is created on save). Canvas "Send to FigJam" uses the dark Figma button. Release builds set `VITE_PUBLIC_SITE_URL` so testing portal links open `testing.getstage.co` (they opened production `getstage.co` → "Portal not found").

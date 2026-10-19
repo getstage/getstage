@@ -6,8 +6,7 @@ import type { Readable } from "node:stream";
 import { app } from "electron";
 import { augmentPathForProviderClis } from "./cli-path";
 import { shouldLogDesktopVerbose } from "./desktop-log";
-import { IS_TESTING_BUILD } from "./build-channel";
-import { TESTING_CONVEX_URL, telemetryEnabled } from "./telemetry-policy";
+import { TESTING_CONVEX_URL, telemetryChannel } from "./telemetry-policy";
 import {
   ENGINE_DEFAULT_PORT,
   ENGINE_READINESS_ATTEMPTS,
@@ -55,19 +54,14 @@ export function getSidecarEnv(port: number): NodeJS.ProcessEnv {
     process.env.R2_PUBLIC_BASE_URL ??
     (app.isPackaged ? undefined : "https://assets-testing.getstage.co");
 
+  const telemetry = telemetryChannel({ explicit: process.env.STAGE_TELEMETRY_ENABLED, convexUrl });
+
   return {
     ...process.env,
     PATH: augmentPathForProviderClis(process.env.PATH),
     STAGE_ENGINE_PORT: String(port),
-    STAGE_TELEMETRY_ENABLED: telemetryEnabled({
-      explicit: process.env.STAGE_TELEMETRY_ENABLED,
-      isPackaged: app.isPackaged,
-      isTestingBuild: IS_TESTING_BUILD,
-      convexUrl,
-    })
-      ? "1"
-      : "0",
-    STAGE_TELEMETRY_CHANNEL: "testing",
+    STAGE_TELEMETRY_ENABLED: telemetry ? "1" : "0",
+    STAGE_TELEMETRY_CHANNEL: telemetry ?? "",
     STAGE_APP_VERSION: app.getVersion(),
     STAGE_TELEMETRY_OS: `${
       process.platform === "darwin" ? "macOS" : process.platform === "win32" ? "Windows" : "Linux"

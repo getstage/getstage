@@ -3,13 +3,14 @@ import {
   TELEMETRY_MAX_BYTES, TELEMETRY_MAX_EVENTS, telemetryBatchSchema, telemetryEventSchema,
   type TelemetryEvent,
 } from "@stage/data-ops/contracts/telemetry";
+import { decodeJwt } from "jose";
 import { authOrigin, verifySession } from "./auth";
 import { collectorOrigin } from "./state";
 
 export { TelemetryState } from "./state";
 export interface TelemetryEnv {
   CONVEX_HTTP_ORIGIN?: string;
-  TELEMETRY_CHANNEL?: string;
+  CONVEX_HTTP_ORIGIN_PRODUCTION?: string;
   TELEMETRY_STATE?: DurableObjectNamespace;
   OTEL_COLLECTOR_URL?: string;
   OTEL_COLLECTOR_TOKEN?: string;
@@ -52,14 +53,18 @@ async function boundedBody(request: Request): Promise<string> {
 
 export async function handleTelemetry(request: Request, env: TelemetryEnv): Promise<Response> {
   if (request.method !== "POST") return new Response(null, { status: 405, headers: { Allow: "POST", "Cache-Control": "no-store" } });
-  const issuer = authOrigin(env.CONVEX_HTTP_ORIGIN);
-  // Production collection is deliberately disabled until the remaining release gates pass.
-  if (env.TELEMETRY_CHANNEL !== "testing" || !issuer || !env.TELEMETRY_STATE
+  const issuers = { testing: authOrigin(env.CONVEX_HTTP_ORIGIN), production: authOrigin(env.CONVEX_HTTP_ORIGIN_PRODUCTION) };
+  if (!issuers.testing || !env.TELEMETRY_STATE
     || !collectorOrigin(env.OTEL_COLLECTOR_URL) || (env.OTEL_COLLECTOR_TOKEN?.length ?? 0) < 32) {
     return reply(503, "telemetry_not_configured");
   }
   const token = /^Bearer ([A-Za-z0-9_.-]{1,8192})$/.exec(request.headers.get("Authorization") ?? "")?.[1];
   if (!token) return reply(401, "unauthorized");
+  // The signing backend decides the channel: a Testing login can only report Testing runs.
+  let issuer: string | undefined;
+  try { issuer = decodeJwt(token).iss; } catch { return reply(401, "unauthorized"); }
+  const channel = issuer && issuer === issuers.testing ? "testing" : issuer && issuer === issuers.production ? "production" : undefined;
+  if (!issuer || !channel) return reply(401, "unauthorized");
   let userId: string;
   try { userId = await verifySession(token, issuer); }
   catch { return reply(401, "unauthorized"); }
@@ -83,15 +88,15 @@ export async function handleTelemetry(request: Request, env: TelemetryEnv): Prom
   for (const input of batch.data.events) {
     const parsed = telemetryEventSchema.safeParse(input);
     if (!parsed.success) dropped.invalid++;
-    else if (parsed.data.channel !== env.TELEMETRY_CHANNEL) dropped.channel_mismatch++;
+    else if (parsed.data.channel !== channel) dropped.channel_mismatch++;
     else if (parsed.data.ts < now - 3_600_000 || parsed.data.ts > now + 300_000) dropped.stale++;
     else events.push(parsed.data);
   }
   try {
-    const state = env.TELEMETRY_STATE.get(env.TELEMETRY_STATE.idFromName("testing"));
+    const state = env.TELEMETRY_STATE.get(env.TELEMETRY_STATE.idFromName(channel));
     const response = await state.fetch("https://telemetry.internal/ingest", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ events, userId, receivedCount: batch.data.events.length, dropped }),
+      body: JSON.stringify({ channel, events, userId, receivedCount: batch.data.events.length, dropped }),
     });
     return reply(response.status, response.status === 204 ? undefined
       : response.status === 429 ? "rate_limited" : response.status === 400 ? "no_valid_events" : "telemetry_unavailable",
@@ -99,7 +104,8 @@ export async function handleTelemetry(request: Request, env: TelemetryEnv): Prom
   } catch { return reply(503, "telemetry_unavailable"); }
 }
 
-// Standalone testing entrypoint avoids replacing the shared website's assets.
+// Standalone entrypoint (testing.getstage.co/api/telemetry) avoids replacing the shared
+// website's assets. It serves Testing and Production apps.
 export default {
   async fetch(request: Request, env: TelemetryEnv): Promise<Response> {
     return new URL(request.url).pathname === "/api/telemetry" ? handleTelemetry(request, env) : reply(404, "not_found");

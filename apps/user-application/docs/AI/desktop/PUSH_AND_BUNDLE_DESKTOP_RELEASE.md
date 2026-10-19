@@ -4,7 +4,11 @@
 
 This document retains the original first-release checklist below; do not use its old release-asset or secret-location claims as current instructions.
 
-## Current release scope — 2026-10-18 (v0.2.64)
+## Current release scope — 2026-10-19 (prod-v0.2.65)
+
+- Production tag `prod-v0.2.65`, desktop package version `0.2.65`, branch `feat/sta-56-styleguide-flows`. Same app as `v0.2.64` plus Research telemetry on the Production channel. Order: deploy the telemetry Worker, `npx convex deploy` (Production), then push the tag. Checks: engine fmt/Clippy/227 tests, desktop typecheck + unit tests + build, telemetry Worker tests.
+
+## Previous release scope — 2026-10-18 (v0.2.64)
 
 - Testing tag `v0.2.64`, desktop package version `0.2.64`, branch `feat/sta-56-styleguide-flows`. On top of `v0.2.63` (STA-57): locked Flows/Sitemap card spacing, Flows rows wrap on narrow windows, canvas key elements editable for unlinked steps, canvas "Send to FigJam" button style, and `VITE_PUBLIC_SITE_URL` set in the release workflow (testing portal links). Checks: desktop typecheck, 51 desktop unit tests, desktop build.
 

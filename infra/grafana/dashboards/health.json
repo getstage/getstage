@@ -11,7 +11,7 @@
   "refresh": "30s",
   "templating": {
     "list": [
-      { "name": "channel", "label": "Channel", "type": "custom", "query": "testing", "current": { "text": "testing", "value": "testing" } },
+      { "name": "channel", "label": "Channel", "type": "custom", "query": "testing,production", "current": { "text": "testing", "value": "testing" } },
       { "name": "app_version", "label": "App version", "type": "query", "datasource": { "type": "prometheus", "uid": "stage-prometheus" }, "query": "label_values(stage_runs_total{channel=\"$channel\"}, app_version)", "refresh": 1, "multi": true, "includeAll": true, "allValue": ".*", "current": { "text": "All", "value": "$__all" } },
       { "name": "module", "label": "Module", "type": "query", "datasource": { "type": "prometheus", "uid": "stage-prometheus" }, "query": "label_values(stage_runs_total{channel=\"$channel\"}, module)", "refresh": 1, "multi": true, "includeAll": true, "allValue": ".*", "current": { "text": "All", "value": "$__all" } },
       { "name": "provider", "label": "Provider", "type": "query", "datasource": { "type": "prometheus", "uid": "stage-prometheus" }, "query": "label_values(stage_runs_total{channel=\"$channel\"}, provider)", "refresh": 1, "multi": true, "includeAll": true, "allValue": ".*", "current": { "text": "All", "value": "$__all" } }

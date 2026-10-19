@@ -1,4 +1,4 @@
-//! Testing-only, metadata-only Research diagnostics. Never serialize a RunEvent.
+//! Metadata-only Research diagnostics for Testing and Production. Never serialize a RunEvent.
 use std::collections::BTreeMap;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
@@ -15,7 +15,12 @@ use crate::models::providers::ProviderId;
 use crate::models::runs::{RunEvent, RunMode, RunStatus, StartRunRequest};
 use crate::research::section::parse_research_section;
 
+// One collector serves both channels; the channel comes from the backend the app uses.
 const ENDPOINT: &str = "https://testing.getstage.co/api/telemetry";
+const CHANNELS: [(&str, &str); 2] = [
+    ("testing", "https://reliable-bullfrog-917.convex.cloud"),
+    ("production", "https://quirky-snail-763.convex.cloud"),
+];
 const QUEUE_CAPACITY: usize = 500;
 const BATCH_SIZE: usize = 50;
 const BATCH_DELAY: Duration = Duration::from_secs(10);
@@ -32,13 +37,7 @@ struct Metadata {
 }
 
 impl Metadata {
-    fn testing(
-        enabled: &str,
-        channel: &str,
-        convex: &str,
-        version: &str,
-        os: &str,
-    ) -> Option<Self> {
+    fn new(enabled: &str, channel: &str, convex: &str, version: &str, os: &str) -> Option<Self> {
         let numeric = |value: &str| {
             !value.is_empty() && value.len() <= 4 && value.bytes().all(|byte| byte.is_ascii_digit())
         };
@@ -47,9 +46,11 @@ impl Metadata {
             .iter()
             .find_map(|prefix| os.strip_prefix(prefix))?;
         let os_parts: Vec<_> = os_parts.split('.').collect();
+        let convex = convex.trim().trim_end_matches('/');
+        let (channel, _) = CHANNELS
+            .into_iter()
+            .find(|(name, url)| *name == channel && *url == convex)?;
         if enabled != "1"
-            || channel != "testing"
-            || convex.trim().trim_end_matches('/') != "https://reliable-bullfrog-917.convex.cloud"
             || version_parts.len() != 3
             || !version_parts.iter().all(|part| numeric(part))
             || !(1..=4).contains(&os_parts.len())
@@ -59,7 +60,7 @@ impl Metadata {
         }
         Some(Self {
             app_version: version.to_string(),
-            channel: "testing",
+            channel,
             os: os.to_string(),
             session_id: Uuid::new_v4().to_string(),
         })
@@ -147,7 +148,7 @@ impl Drop for TelemetryClient {
 impl TelemetryClient {
     pub fn from_env() -> Option<Arc<Self>> {
         let env = |key| std::env::var(key).unwrap_or_default();
-        let metadata = Metadata::testing(
+        let metadata = Metadata::new(
             &env("STAGE_TELEMETRY_ENABLED"),
             &env("STAGE_TELEMETRY_CHANNEL"),
             &env("CONVEX_URL"),

@@ -13,6 +13,7 @@ import { collectorOrigin } from "./state";
 import { telemetryEventSchema } from "@stage/data-ops/contracts/telemetry";
 
 const issuer = "https://reliable-bullfrog-917.convex.site";
+const productionIssuer = "https://auth.getstage.co";
 const userId = "j1234567890123456789012345678901";
 const sessionId = "44a9023e-8f22-4cee-8be7-fec93ca586be";
 const runId = "cb572955-559b-4c7f-bf8c-9827da761a09";
@@ -73,6 +74,7 @@ test("OTLP mapping and privacy", () => {
 
 test("endpoint origins fail closed", () => {
   assert.equal(authOrigin(issuer), issuer);
+  assert.equal(authOrigin(productionIssuer), productionIssuer);
   assert.equal(collectorOrigin("https://otel-testing.example.com"), "https://otel-testing.example.com");
   for (const invalid of ["http://reliable-bullfrog-917.convex.site", "https://private.example.com", `${issuer}/private`, `${issuer}?secret=1`, `https://secret@reliable-bullfrog-917.convex.site`]) assert.equal(authOrigin(invalid), undefined);
   for (const invalid of ["http://otel-testing.example.com", "https://otel.example.com", "https://otel-testing.example.com/private", "https://secret@otel-testing.example.com", "https://otel-testing.example.com?secret=1"]) assert.equal(collectorOrigin(invalid), undefined);
@@ -98,12 +100,12 @@ test("real workerd intake, JWT verification, SQLite limits and cumulative export
   const options = {
     modules: true, script, compatibilityDate: "2025-02-20", compatibilityFlags: ["nodejs_compat"],
     durableObjects: { TELEMETRY_STATE: { className: "TelemetryState", useSQLite: true } }, durableObjectsPersist: persist,
-    bindings: { CONVEX_HTTP_ORIGIN: issuer, TELEMETRY_CHANNEL: "testing", TELEMETRY_APP_VERSIONS: "0.2.46",
+    bindings: { CONVEX_HTTP_ORIGIN: issuer, CONVEX_HTTP_ORIGIN_PRODUCTION: productionIssuer, TELEMETRY_APP_VERSIONS: "0.2.46",
       OTEL_COLLECTOR_URL: "https://otel-testing.example.com", OTEL_COLLECTOR_TOKEN: "local-test-secret-never-used-remotely" },
   };
   const create = () => new Miniflare({ ...options, outboundService: async (request: MFRequest) => {
     const url = new URL(request.url);
-    if (url.origin === issuer && url.pathname === "/.well-known/jwks.json") return MFResponse.json({ keys: [jwk] });
+    if ((url.origin === issuer || url.origin === productionIssuer) && url.pathname === "/.well-known/jwks.json") return MFResponse.json({ keys: [jwk] });
     assert.equal(url.origin, "https://otel-testing.example.com", "Unexpected outbound request.");
     captured.push({ path: url.pathname, body: await request.json(), authorization: request.headers.get("Authorization") });
     if (holdExports) await holdExports();
@@ -235,5 +237,16 @@ test("real workerd intake, JWT verification, SQLite limits and cumulative export
     assert.equal((await send([run()])).status, 204);
     await until(() => metricPoints("stage_runs_total").at(-1)?.asDouble === (previous.asDouble ?? 0) + 1);
     assert.equal(metricPoints("stage_runs_total").at(-1)?.startTimeUnixNano, previous.startTimeUnixNano);
+  });
+  await t.test("production logins report only production runs", async () => {
+    const production = await sign({ issuer: productionIssuer });
+    const before = captured.filter(entry => entry.path === "/v1/logs").length;
+    assert.equal((await send([run({ channel: "production" }), run()], production)).status, 204);
+    await until(() => captured.filter(entry => entry.path === "/v1/logs").length > before);
+    const logs = logsSchema.parse(captured.filter(entry => entry.path === "/v1/logs").at(-1)?.body);
+    const records = logs.resourceLogs.flatMap(resource => resource.scopeLogs.flatMap(scope => scope.logRecords));
+    assert.equal(records.length, 1);
+    assert.match(records[0]?.body.stringValue ?? "", /"channel":"production"/);
+    assert.equal((await send([run()], production)).status, 400);
   });
 });

@@ -86,11 +86,14 @@ fn serialized(receiver: &mut mpsc::Receiver<Queued>) -> Vec<Value> {
 }
 
 #[test]
-fn config_fails_closed_outside_explicit_testing_opt_in() {
+fn config_fails_closed_outside_known_channels() {
     let convex = "https://reliable-bullfrog-917.convex.cloud";
-    assert!(Metadata::testing("1", "testing", convex, "0.2.55", "macOS 26.0").is_some());
+    let production = "https://quirky-snail-763.convex.cloud";
+    let metadata = Metadata::new("1", "production", production, "0.2.65", "macOS 26.0").unwrap();
+    assert_eq!(metadata.channel, "production");
+    assert!(Metadata::new("1", "testing", convex, "0.2.55", "macOS 26.0").is_some());
     assert!(
-        Metadata::testing(
+        Metadata::new(
             "1",
             "testing",
             &format!("{convex}/"),
@@ -102,6 +105,7 @@ fn config_fails_closed_outside_explicit_testing_opt_in() {
     for (enabled, channel, url, version, os) in [
         ("0", "testing", convex, "0.2.55", "macOS 26.0"),
         ("1", "production", convex, "0.2.55", "macOS 26.0"),
+        ("1", "testing", production, "0.2.55", "macOS 26.0"),
         (
             "1",
             "testing",
@@ -112,7 +116,7 @@ fn config_fails_closed_outside_explicit_testing_opt_in() {
         ("1", "testing", convex, "private-version", "macOS 26.0"),
         ("1", "testing", convex, "0.2.55", "private OS /Users/name"),
     ] {
-        assert!(Metadata::testing(enabled, channel, url, version, os).is_none());
+        assert!(Metadata::new(enabled, channel, url, version, os).is_none());
     }
 }
 

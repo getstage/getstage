@@ -1,18 +1,15 @@
 export const TESTING_CONVEX_URL = "https://reliable-bullfrog-917.convex.cloud";
+export const PRODUCTION_CONVEX_URL = "https://quirky-snail-763.convex.cloud";
 
-type TelemetryPolicyInput = {
-  // STAGE_TELEMETRY_ENABLED from the environment; "0" opts out, anything else is ignored.
-  explicit: string | undefined;
-  isPackaged: boolean;
-  isTestingBuild: boolean;
-  convexUrl: string | undefined;
-};
+export type TelemetryChannel = "testing" | "production";
 
-// Research telemetry goes to the Testing Grafana only. It is on for local dev and every
-// installed Testing build (so partner runs show up), off for production builds and for
-// anything not pointed at the Testing backend. "0" always opts out.
-export function telemetryEnabled({ explicit, isPackaged, isTestingBuild, convexUrl }: TelemetryPolicyInput) {
-  if (explicit?.trim() === "0") return false;
-  if (isPackaged && !isTestingBuild) return false;
-  return convexUrl?.trim().replace(/\/$/, "") === TESTING_CONVEX_URL;
+// Research telemetry goes to Grafana, labelled with the backend the app talks to:
+// Testing (local dev and Testing builds) or Production. Any other backend sends nothing,
+// and STAGE_TELEMETRY_ENABLED="0" always opts out.
+export function telemetryChannel({ explicit, convexUrl }: { explicit: string | undefined; convexUrl: string | undefined }): TelemetryChannel | undefined {
+  if (explicit?.trim() === "0") return undefined;
+  const url = convexUrl?.trim().replace(/\/$/, "");
+  if (url === TESTING_CONVEX_URL) return "testing";
+  if (url === PRODUCTION_CONVEX_URL) return "production";
+  return undefined;
 }
