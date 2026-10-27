@@ -1,3 +1,5 @@
+import { captureEvent } from "./analytics";
+
 type DatafastCheckoutMetadata = {
   datafastVisitorId?: string;
   datafastSessionId?: string;
@@ -67,6 +69,7 @@ function sanitizeDatafastMetadata(metadata?: DatafastGoalMetadata) {
 }
 
 export function trackDatafastGoal(goalName: string, metadata?: DatafastGoalMetadata) {
+  captureEvent(goalName, metadata);
   if (typeof window === "undefined" || typeof window.datafast !== "function") {
     return false;
   }

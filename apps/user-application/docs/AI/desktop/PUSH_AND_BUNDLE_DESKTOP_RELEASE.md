@@ -4,7 +4,11 @@
 
 This document retains the original first-release checklist below; do not use its old release-asset or secret-location claims as current instructions.
 
-## Current release scope — 2026-10-19 (prod-v0.2.65)
+## Current release scope — 2026-10-27 (prod-v0.2.66)
+
+- Production tag `prod-v0.2.66`, desktop package version `0.2.66`, branch `feat/sta-56-styleguide-flows`. Same app as `prod-v0.2.65` plus PostHog product analytics (needs GitHub secret `DESKTOP_VITE_POSTHOG_KEY` in the `production` environment). Order: deploy the telemetry Worker (allows 0.2.66), then push the tag. No Convex changes. Checks: desktop typecheck + unit tests, web typecheck + telemetry Worker tests.
+
+## Previous release scope — 2026-10-19 (prod-v0.2.65)
 
 - Production tag `prod-v0.2.65`, desktop package version `0.2.65`, branch `feat/sta-56-styleguide-flows`. Same app as `v0.2.64` plus Research telemetry on the Production channel. Order: deploy the telemetry Worker, `npx convex deploy` (Production), then push the tag. Checks: engine fmt/Clippy/227 tests, desktop typecheck + unit tests + build, telemetry Worker tests.
 

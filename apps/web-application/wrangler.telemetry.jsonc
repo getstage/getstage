@@ -13,7 +13,7 @@
       "vars": {
         "CONVEX_HTTP_ORIGIN": "https://reliable-bullfrog-917.convex.site",
         "CONVEX_HTTP_ORIGIN_PRODUCTION": "https://auth.getstage.co",
-        "TELEMETRY_APP_VERSIONS": "0.2.63,0.2.64,0.2.65"
+        "TELEMETRY_APP_VERSIONS": "0.2.63,0.2.64,0.2.65,0.2.66"
       },
       "durable_objects": {
         "bindings": [{ "name": "TELEMETRY_STATE", "class_name": "TelemetryState" }]

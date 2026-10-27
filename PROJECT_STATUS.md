@@ -31,6 +31,12 @@
 - Production build and `pnpm --filter stage-app check:seo` pass: unique titles/descriptions, canonical URLs, one H1, valid JSON-LD, image files, and sitemap indexing consistency across all 48 indexable pages. Nine local Worker response checks also pass for public/private/staging routes, missing-page statuses, asset caching, and the unconfigured API response. No push or deployment performed.
 - GEO follows standard crawlability/content-quality guidance; no fabricated citations, reviews, freshness dates, or special AI markup. Existing Datafast tracking remains. Search Console/Bing sitemap submission, indexing checks, live Core Web Vitals, and organic/AI-referral monitoring require the approved deployment and account access. No search rankings or AI citations can be guaranteed.
 
+## Product analytics — 2026-10-27 (prod-v0.2.66)
+
+- Mac app: PostHog (EU) with autocapture, session replay (inputs masked), users identified by Stage user ID + email, and `run_started` / `run_completed` / `run_failed` / `run_cancelled` per workflow mode. Existing DataFast goals (`checkout_started`, ...) are sent to PostHog too. Key `VITE_POSTHOG_KEY` comes from the GitHub secret `DESKTOP_VITE_POSTHOG_KEY`, set only in the `production` environment, so testing builds send nothing.
+- Website worker: DataFast AI crawler tracking (`@datafast/ai-crawl`). Active only where the Cloudflare secret `DATAFAST_WEBSITE_ID` is set (`stage-app-production`).
+- Telemetry Worker allows app version 0.2.66.
+
 ## Production release + Production telemetry — 2026-10-19 (prod-v0.2.65)
 
 - First production release since `prod-v0.2.55`: everything through v0.2.64 (Upload Skills, structured Research output, Flows/Sitemap canvas, STA-57 fixes) plus Production Research telemetry.

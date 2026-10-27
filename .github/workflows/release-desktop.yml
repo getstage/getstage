@@ -109,6 +109,7 @@ jobs:
             rust_target: x86_64-apple-darwin
     env:
       VITE_CONVEX_URL: ${{ secrets.DESKTOP_VITE_CONVEX_URL }}
+      VITE_POSTHOG_KEY: ${{ secrets.DESKTOP_VITE_POSTHOG_KEY }}
       # Public Brandfetch Logo Link client id (baked into the bundle at build time).
       VITE_BRANDFETCH_CLIENT_ID: ${{ secrets.VITE_BRANDFETCH_CLIENT_ID }}
       # Read-only PAT for in-app updates (private GitHub repo). Fine-grained: Contents read on getstage.

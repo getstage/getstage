@@ -1,10 +1,11 @@
-import React from "react";
+import React, { useEffect } from "react";
 import ReactDOM from "react-dom/client";
-import { ConvexProviderWithAuth } from "convex/react";
+import { ConvexProviderWithAuth, useQuery } from "convex/react";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { RouterProvider } from "@tanstack/react-router";
 import { DesktopAuthProvider, ElectronAuthProvider, useElectronAuthForConvex } from "./lib/auth";
-import { convex } from "./lib/convex";
+import { api, convex } from "./lib/convex";
+import { identifyUser } from "./lib/analytics";
 import { queryClient } from "./lib/queryClient";
 import { router } from "./router";
 import { useRecordAppOpened } from "./hooks/useRecordAppOpened";
@@ -30,6 +31,15 @@ function RecordAppOpenedOnAuth() {
   return null;
 }
 
+// Links PostHog events to the signed-in Stage account; signing out starts a new anonymous profile.
+function IdentifyAnalyticsUser() {
+  const viewer = useQuery(api.viewer.getIdentity);
+  useEffect(() => {
+    if (viewer !== undefined) identifyUser(viewer ? { id: viewer.id, email: viewer.email } : null);
+  }, [viewer?.id, viewer?.email]);
+  return null;
+}
+
 ReactDOM.createRoot(rootEl).render(
   <React.StrictMode>
     <ElectronAuthProvider>
@@ -37,6 +47,7 @@ ReactDOM.createRoot(rootEl).render(
         <QueryClientProvider client={queryClient}>
           <DesktopAuthProvider>
             <RecordAppOpenedOnAuth />
+            <IdentifyAnalyticsUser />
             <RouterProvider router={router} />
           </DesktopAuthProvider>
         </QueryClientProvider>

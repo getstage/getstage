@@ -1,11 +1,15 @@
 import { metaForPath } from "../src/marketing/pageMeta";
 import { getWebRouteLockRedirect } from "../src/lib/webRoutePolicy";
 import { handleTelemetry, type TelemetryEnv } from "./telemetry/index";
+import { trackAICrawlerResponse, type WaitUntilContext } from "@datafast/ai-crawl";
 export { TelemetryState } from "./telemetry/state";
 interface Env extends TelemetryEnv {
   ASSETS: { fetch: (request: Request) => Promise<Response> };
   CONVEX_HTTP_ORIGIN?: string;
+  DATAFAST_WEBSITE_ID?: string;
 }
+
+const PRODUCTION_HOSTS = ["getstage.co", "www.getstage.co"];
 
 const PROXY_PREFIXES = ["/api/", "/stripe/", "/integrations/"] as const;
 
@@ -22,7 +26,18 @@ function buildProxyUrl(requestUrl: URL, backendOrigin: string) {
 }
 
 export default {
-  async fetch(request: Request, env: Env): Promise<Response> {
+  async fetch(request: Request, env: Env, ctx: WaitUntilContext): Promise<Response> {
+    const response = await handleRequest(request, env);
+    // AI crawlers skip the browser DataFast script, so the worker reports them.
+    // Only the production worker has DATAFAST_WEBSITE_ID set.
+    if (env.DATAFAST_WEBSITE_ID) {
+      trackAICrawlerResponse(request, response, ctx, { websiteId: env.DATAFAST_WEBSITE_ID });
+    }
+    return response;
+  },
+};
+
+async function handleRequest(request: Request, env: Env): Promise<Response> {
     const requestUrl = new URL(request.url);
     const backendOrigin = normalizeOrigin(env.CONVEX_HTTP_ORIGIN);
 
@@ -55,7 +70,7 @@ export default {
     const assetResponse = await env.ASSETS.fetch(privatePage ? new Request(assetUrl, request) : request);
     const headers=new Headers(assetResponse.headers);
     const publicMeta=metaForPath(pathname);
-    const production=['getstage.co','www.getstage.co'].includes(requestUrl.hostname);
+    const production=PRODUCTION_HOSTS.includes(requestUrl.hostname);
     if(!production||privatePage)headers.set('X-Robots-Tag','noindex, nofollow');
     // Unknown page URLs fall back to the SPA's index.html; real files (e.g. /blog/<id>.jpg) are served as-is.
     // A URL the app would send back to "/" (getWebRouteLockRedirect) is a missing page, so answer 404.
@@ -81,5 +96,4 @@ export default {
       });
     }
     return new Response(assetResponse.body,{status:assetResponse.status,statusText:assetResponse.statusText,headers});
-  },
-};
+}
