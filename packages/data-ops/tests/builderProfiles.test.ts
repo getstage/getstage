@@ -190,3 +190,23 @@ test("all nine new component libraries can be saved and reloaded", async () => {
   for (const itemId of ids) await user.mutation(setSaved, { itemId, saved: true });
   expect((await user.query(mine, {})).items).toEqual(ids);
 });
+
+test.each(["component-libraries/arc", "skills/logo-design", "component-libraries/hairline"])("%s saves idempotently, survives a new session and appears on a published profile", async (itemId) => {
+  const { t, id, user } = await setup();
+  await user.mutation(save, { ...input, published: true });
+  await user.mutation(setSaved, { itemId, saved: true });
+  await user.mutation(setSaved, { itemId, saved: true });
+  const nextSession = t.withIdentity({ subject: `${id}|next_session` });
+  expect((await nextSession.query(mine, {})).items).toEqual([itemId]);
+  expect((await t.query(byHandle, { handle: input.handle })).items).toEqual([itemId]);
+  await nextSession.mutation(setSaved, { itemId, saved: false });
+  expect((await user.query(mine, {})).items).toEqual([]);
+});
+
+test.each(["component-libraries/arc", "skills/logo-design", "component-libraries/hairline"])("%s can be selected during profile setup", async (itemId) => {
+  const { user } = await setup();
+  const saveStep = makeFunctionReference<"mutation">("builderProfiles:saveSetupStep");
+  const items = [itemId];
+  await user.mutation(saveStep, { profile: input, step: 1, items });
+  expect((await user.query(mine, {})).items).toEqual(items);
+});

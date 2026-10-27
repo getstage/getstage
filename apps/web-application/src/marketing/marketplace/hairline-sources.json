@@ -1,0 +1,11 @@
+{
+  "officialUrl": "https://hairline.lucasmarkes.com/",
+  "documentation": "https://hairline.lucasmarkes.com/docs",
+  "reviewedOn": "2026-10-06",
+  "assets": {
+    "icon": "https://hairline.lucasmarkes.com/icon.svg",
+    "preview": "https://hairline.lucasmarkes.com/og.png",
+    "previewWidth": 2400,
+    "previewHeight": 1260
+  }
+}

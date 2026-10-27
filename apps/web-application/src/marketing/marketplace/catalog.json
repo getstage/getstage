@@ -824,5 +824,47 @@
     "bannerTitle": null,
     "bannerWidth": null,
     "bannerHeight": null
+  },
+  {
+    "id": "component-libraries/arc",
+    "name": "Arc",
+    "type": "Components",
+    "category": "Animated UI",
+    "description": "Animated React components and blocks with shadcn CLI and AI tooling.",
+    "icon": "/marketplace-assets/libraries/arc.svg",
+    "banner": null,
+    "url": "/component-libraries/arc/",
+    "officialUrl": "https://uiarc.dev/",
+    "bannerTitle": null,
+    "bannerWidth": null,
+    "bannerHeight": null
+  },
+  {
+    "id": "skills/logo-design",
+    "name": "Logo Design",
+    "type": "Skills",
+    "category": "Brand design",
+    "description": "From brand brief to tested SVG logos and identity guidelines",
+    "icon": "/marketplace-assets/resources/diamond.svg",
+    "banner": "/marketplace-assets/skill-banners/banner-2.png",
+    "url": "/skills/logo-design/",
+    "officialUrl": "https://github.com/kaankiziltug/logo-design-skill",
+    "bannerTitle": "Logo Design",
+    "bannerWidth": 1200,
+    "bannerHeight": 675
+  },
+  {
+    "id": "component-libraries/hairline",
+    "name": "Hairline",
+    "type": "Components",
+    "category": "Animated UI",
+    "description": "Interactive isometric SVG figures for React and plain JavaScript.",
+    "icon": "/marketplace-assets/libraries/hairline.svg",
+    "banner": null,
+    "url": "/component-libraries/hairline/",
+    "officialUrl": "https://hairline.lucasmarkes.com/",
+    "bannerTitle": null,
+    "bannerWidth": null,
+    "bannerHeight": null
   }
 ]
