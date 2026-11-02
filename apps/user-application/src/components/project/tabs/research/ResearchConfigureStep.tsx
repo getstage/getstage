@@ -1,4 +1,11 @@
-import { useEffect, useRef, useState, type ChangeEvent, type KeyboardEvent } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type DragEvent,
+  type KeyboardEvent,
+} from "react";
 import {
   DETAILS_PAGE_SECTIONS,
   DETAILS_STRUCTURE_SECTIONS,
@@ -151,6 +158,7 @@ export function ResearchConfigureStep({
   const [fieldErrors, setFieldErrors] = useState<ResearchConfigureFieldErrors>({});
   const [providerError, setProviderError] = useState<string | null>(null);
   const [pendingBriefs, setPendingBriefs] = useState<File[]>([]);
+  const [isDraggingBrief, setIsDraggingBrief] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const draftReady = useRef(false);
   const editingDraft = useRef(false);
@@ -240,6 +248,35 @@ export function ResearchConfigureStep({
   function handleBriefUpload(event: ChangeEvent<HTMLInputElement>) {
     const selected = Array.from(event.target.files ?? []);
     event.target.value = "";
+    addBriefFiles(selected);
+  }
+
+  // Drag and drop onto the Project Brief box adds files exactly like the
+  // Upload Brief button (same type, size and count checks).
+  function hasDraggedFiles(event: DragEvent<HTMLDivElement>) {
+    return Array.from(event.dataTransfer.types).includes("Files");
+  }
+
+  function handleBriefDragOver(event: DragEvent<HTMLDivElement>) {
+    if (!hasDraggedFiles(event)) return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "copy";
+    if (!isDraggingBrief) setIsDraggingBrief(true);
+  }
+
+  function handleBriefDragLeave(event: DragEvent<HTMLDivElement>) {
+    if (event.currentTarget.contains(event.relatedTarget as Node | null)) return;
+    setIsDraggingBrief(false);
+  }
+
+  function handleBriefDrop(event: DragEvent<HTMLDivElement>) {
+    if (!hasDraggedFiles(event)) return;
+    event.preventDefault();
+    setIsDraggingBrief(false);
+    addBriefFiles(Array.from(event.dataTransfer.files));
+  }
+
+  function addBriefFiles(selected: File[]) {
     if (selected.length === 0) return;
 
     const kept = [...pendingBriefs];
@@ -363,7 +400,14 @@ export function ResearchConfigureStep({
                 hint="Be specific — what the product does, who it's for, and what makes it different. The clearer this is, the more tailored (and less generic) your research references will be."
                 error={fieldErrors.projectBrief}
               >
-                <div className="flex h-[114px] w-full flex-col justify-between rounded-[6px] bg-[#F5F5F5] px-3 py-[10px] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
+                <div
+                  onDragOver={handleBriefDragOver}
+                  onDragLeave={handleBriefDragLeave}
+                  onDrop={handleBriefDrop}
+                  className={`flex h-[114px] w-full flex-col justify-between rounded-[6px] bg-[#F5F5F5] px-3 py-[10px] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] transition-shadow ${
+                    isDraggingBrief ? "ring-2 ring-[#7B76DF]" : ""
+                  }`}
+                >
                   <textarea
                     value={values.projectBrief}
                     onChange={(event) => updateField("projectBrief", event.target.value)}
