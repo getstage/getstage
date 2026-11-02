@@ -11,13 +11,23 @@ use crate::models::refero::{
 use crate::refero::parse::{infer_image_mime, looks_like_image_bytes};
 use crate::refero::service::{ReferoService, infer_refero_file_name};
 
+use super::ui_pattern_insights::{
+    UiPatternScreenshot, save_ui_pattern_screenshots, take_ui_pattern_insights,
+};
+
+/// Uploaded image keys plus the local screenshots shown to the Research AI.
+pub struct PersistedContextImages {
+    pub image_keys: HashMap<String, String>,
+    pub pattern_screenshots: Vec<UiPatternScreenshot>,
+}
+
 pub async fn persist_refero_context_images(
     refero: &ReferoService,
     uploader: &ConvexAssetUploader,
     auth_token: &str,
     project_id: &str,
     context: &mut ReferoContext,
-) -> anyhow::Result<HashMap<String, String>> {
+) -> anyhow::Result<PersistedContextImages> {
     refero
         .hydrate_category_screen_images(&mut context.category_searches)
         .await
@@ -31,7 +41,7 @@ pub async fn persist_prepared_context_images(
     auth_token: &str,
     project_id: &str,
     context: &mut ReferoContext,
-) -> anyhow::Result<HashMap<String, String>> {
+) -> anyhow::Result<PersistedContextImages> {
     persist_context_images(uploader, auth_token, project_id, context).await
 }
 
@@ -40,7 +50,9 @@ async fn persist_context_images(
     auth_token: &str,
     project_id: &str,
     context: &mut ReferoContext,
-) -> anyhow::Result<HashMap<String, String>> {
+) -> anyhow::Result<PersistedContextImages> {
+    // Before the upload below takes the image bytes.
+    let pattern_screenshots = save_ui_pattern_screenshots(context);
     sync_category_bytes_to_flat_references(context);
 
     let mut uploaded_keys = HashMap::new();
@@ -60,18 +72,31 @@ async fn persist_context_images(
 
     sync_category_image_urls_to_flat_references(context);
 
-    Ok(uploaded_keys)
+    Ok(PersistedContextImages {
+        image_keys: uploaded_keys,
+        pattern_screenshots,
+    })
 }
 
 pub fn build_ui_patterns_from_refero(
     context: &ReferoContext,
     image_keys: &HashMap<String, String>,
 ) -> Value {
+    build_ui_patterns_with_insights(context, image_keys, &HashMap::new())
+}
+
+/// `insights` holds the AI-recognized patterns per section id that passed the
+/// standard; a section without them falls back to the previous behaviour.
+pub fn build_ui_patterns_with_insights(
+    context: &ReferoContext,
+    image_keys: &HashMap<String, String>,
+    insights: &HashMap<String, Vec<String>>,
+) -> Value {
     let groups = context
         .category_searches
         .iter()
         .filter(|bucket| !bucket.references.is_empty())
-        .map(|bucket| build_ui_pattern_group(bucket, image_keys))
+        .map(|bucket| build_ui_pattern_group(bucket, image_keys, insights.get(&bucket.row_id())))
         .collect::<Vec<_>>();
 
     json!(groups)
@@ -82,7 +107,8 @@ pub fn apply_engine_ui_patterns(
     context: &ReferoContext,
     image_keys: &HashMap<String, String>,
 ) {
-    let ui_patterns = build_ui_patterns_from_refero(context, image_keys);
+    let insights = take_ui_pattern_insights(artifact);
+    let ui_patterns = build_ui_patterns_with_insights(context, image_keys, &insights);
     if let Some(object) = artifact.as_object_mut() {
         object.insert("uiPatterns".to_string(), ui_patterns);
     }
@@ -93,8 +119,11 @@ pub fn apply_engine_ui_patterns(
 fn build_ui_pattern_group(
     bucket: &ReferoCategorySearch,
     image_keys: &HashMap<String, String>,
+    recognized_by_ai: Option<&Vec<String>>,
 ) -> Value {
-    let recognized_patterns = if bucket.category == ReferoUiPatternCategory::WebsiteSection {
+    let recognized_patterns = if let Some(patterns) = recognized_by_ai {
+        patterns.clone()
+    } else if bucket.category == ReferoUiPatternCategory::WebsiteSection {
         Vec::new()
     } else {
         collect_recognized_patterns(bucket.category, &bucket.references)

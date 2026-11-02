@@ -90,6 +90,7 @@ pub fn research_output_schema() -> JsonValue {
         "opportunities": { "type": "array", "items": opportunity },
         "openQuestions": texts(),
         "sourceReferences": { "type": "array", "items": source_reference },
+        "uiPatternInsights": super::ui_pattern_insights::ui_pattern_insights_schema(),
     }))
 }
 

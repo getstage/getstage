@@ -157,3 +157,56 @@ fn uses_refero_thumbnail_when_r2_image_key_is_missing() {
         "https://images.refero.design/screenshots/uuid-onboard.png"
     );
 }
+
+#[test]
+fn ai_recognized_patterns_replace_the_fallback_per_section() {
+    let context = ReferoContext {
+        query: "marketing website".to_string(),
+        references: vec![],
+        category_searches: vec![
+            ReferoCategorySearch {
+                category: ReferoUiPatternCategory::WebsiteSection,
+                section: Some("Hero".to_string()),
+                query: "hero".to_string(),
+                references: vec![sample_screen(
+                    "uuid-hero",
+                    ReferoUiPatternCategory::WebsiteSection,
+                    "Phive",
+                )],
+            },
+            ReferoCategorySearch {
+                category: ReferoUiPatternCategory::Pricing,
+                section: None,
+                query: "pricing".to_string(),
+                references: vec![sample_screen("uuid-p", ReferoUiPatternCategory::Pricing, "Wix")],
+            },
+        ],
+        fetched_at: 1,
+    };
+    let mut artifact = serde_json::json!({
+        "uiPatternInsights": [{
+            "sectionId": "ui-patterns-hero",
+            "patterns": [
+                { "title": "Oversized Type Hero", "description": "Phive lets the headline fill the full first screen." },
+                { "title": "Full-bleed Photo", "description": "Phive runs an athlete photo edge to edge behind the type." },
+            ],
+        }],
+    });
+
+    apply_engine_ui_patterns(&mut artifact, &context, &HashMap::new());
+
+    assert!(artifact.get("uiPatternInsights").is_none());
+    let groups = artifact["uiPatterns"].as_array().expect("ui patterns");
+    assert_eq!(
+        groups[0]["recognizedPatterns"][0],
+        "Oversized Type Hero — Phive lets the headline fill the full first screen."
+    );
+    assert_eq!(groups[0]["recognizedPatterns"].as_array().unwrap().len(), 2);
+    // Pricing got no usable AI answer, so it keeps the template patterns.
+    assert!(
+        groups[1]["recognizedPatterns"][0]
+            .as_str()
+            .unwrap()
+            .starts_with("Comparison-first plan grid — ")
+    );
+}
