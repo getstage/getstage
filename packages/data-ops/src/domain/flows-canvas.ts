@@ -79,6 +79,13 @@ export function applyFlowsCanvasEdit(artifact: FlowsArtifact, input: FlowsCanvas
   if (!flow) throw new Error("This diagram no longer exists. Reload and try again.");
   const board = getFlowCanvasBoard(flow, artifact.canvas);
   const steps = new Set(flow.steps.map((step) => step.id));
+  if (edit.type === "addStep") return addStep(artifact, flow, board, edit);
+  if (edit.type === "arrange") {
+    const arranged = arrangeFlowBoard(flow, board, edit.direction);
+    const next = { ...artifact, canvas: { version: 1 as const, boards: [...(artifact.canvas?.boards ?? []).filter((candidate) => candidate.flowId !== flow.id), arranged] } };
+    validateFlowsCanvas(next);
+    return next;
+  }
   let nextBoard: FlowCanvasBoard;
   if (edit.type === "move") {
     const current = board.positions.find((position) => position.stepId === edit.stepId);
@@ -103,4 +110,109 @@ export function applyFlowsCanvasEdit(artifact: FlowsArtifact, input: FlowsCanvas
   const next = { ...artifact, canvas };
   validateFlowsCanvas(next);
   return next;
+}
+
+// Adds a page/screen node with its own screen so the details dialog can describe it.
+function addStep(
+  artifact: FlowsArtifact,
+  flow: Flow,
+  board: FlowCanvasBoard,
+  edit: Extract<FlowsCanvasEdit, { type: "addStep" }>,
+): FlowsArtifact {
+  if (flow.steps.some((step) => step.id === edit.stepId)) return artifact;
+  if (edit.after && !flow.steps.some((step) => step.id === edit.after)) throw new Error("This node no longer exists.");
+  const screenId = `screen-${edit.stepId}`;
+  if (artifact.screens.some((screen) => screen.id === screenId)) throw new Error("This node already exists.");
+  const order = Math.max(-1, ...flow.steps.map((step) => step.order)) + 1;
+  const nextFlow: Flow = {
+    ...flow,
+    screenCount: flow.screenCount + 1,
+    steps: [...flow.steps, { id: edit.stepId, order, label: edit.label, screenId }],
+  };
+  const nextBoard: FlowCanvasBoard = {
+    ...board,
+    positions: [...board.positions, { stepId: edit.stepId, ...edit.position }],
+    edges: edit.after ? [...board.edges, { source: edit.after, target: edit.stepId }] : board.edges,
+  };
+  const next: FlowsArtifact = {
+    ...artifact,
+    flows: artifact.flows.map((candidate) => (candidate.id === flow.id ? nextFlow : candidate)),
+    screens: [...artifact.screens, { id: screenId, title: edit.label, description: edit.label, flowCount: 1, keyElements: [] }],
+    canvas: { version: 1, boards: [...(artifact.canvas?.boards ?? []).filter((candidate) => candidate.flowId !== flow.id), nextBoard] },
+  };
+  validateFlowsCanvas(next);
+  return next;
+}
+
+// Sitemaps read top-down as a page tree; app screens read left to right as a journey.
+export type FlowLayoutDirection = "vertical" | "horizontal";
+export function flowLayoutDirection(category: string): FlowLayoutDirection {
+  return category === "websites" ? "vertical" : "horizontal";
+}
+
+const LAYOUT_ORIGIN = { x: 48, y: 72 };
+const LAYOUT_GAP = { vertical: { across: 208, down: 120 }, horizontal: { across: 136, down: 248 } };
+
+// Layered layout from the board's connections: each node sits one level below (or right
+// of) the first node that links to it, siblings side by side in step order, and every
+// level centred on the widest one. Nodes nobody links to start new trees at level 0.
+export function arrangeFlowBoard(flow: Flow, board: FlowCanvasBoard, direction: FlowLayoutDirection): FlowCanvasBoard {
+  const order = new Map(flow.steps.map((step) => [step.id, step.order]));
+  const byOrder = (a: string, b: string) => (order.get(a) ?? 0) - (order.get(b) ?? 0);
+  const ids = board.positions.map((position) => position.stepId).sort(byOrder);
+  const children = new Map(ids.map((id) => [id, [] as string[]]));
+  const hasParent = new Set<string>();
+  for (const edge of board.edges) {
+    children.get(edge.source)?.push(edge.target);
+    hasParent.add(edge.target);
+  }
+  for (const list of children.values()) list.sort(byOrder);
+
+  const level = new Map<string, number>();
+  const levels: string[][] = [];
+  const queue = ids.filter((id) => !hasParent.has(id));
+  if (queue.length === 0 && ids[0]) queue.push(ids[0]);
+  const place = (id: string, depth: number) => {
+    level.set(id, depth);
+    (levels[depth] ??= []).push(id);
+  };
+  for (const id of queue) place(id, 0);
+  for (let index = 0; index < queue.length; index += 1) {
+    const id = queue[index];
+    if (id === undefined) break;
+    for (const child of children.get(id) ?? []) {
+      if (level.has(child)) continue;
+      place(child, (level.get(id) ?? 0) + 1);
+      queue.push(child);
+    }
+    // A cycle with no entry point: start the next unplaced node as its own tree.
+    if (index === queue.length - 1) {
+      const next = ids.find((candidate) => !level.has(candidate));
+      if (next) {
+        place(next, 0);
+        queue.push(next);
+      }
+    }
+  }
+
+  const gap = LAYOUT_GAP[direction];
+  const widest = Math.max(...levels.map((row) => row.length));
+  const positions = levels.flatMap((row, depth) => {
+    const offset = ((widest - row.length) * gap.across) / 2;
+    return row.map((stepId, index) => {
+      const across = Math.round(offset + index * gap.across);
+      const down = depth * gap.down;
+      return direction === "vertical"
+        ? { stepId, x: LAYOUT_ORIGIN.x + across, y: LAYOUT_ORIGIN.y + down }
+        : { stepId, x: LAYOUT_ORIGIN.x + down, y: LAYOUT_ORIGIN.y + across };
+    });
+  });
+  return { ...board, positions };
+}
+
+export function arrangeFlowsCanvas(artifact: FlowsArtifact, direction: FlowLayoutDirection): FlowsCanvas {
+  return {
+    version: 1,
+    boards: artifact.flows.map((flow) => arrangeFlowBoard(flow, getFlowCanvasBoard(flow, artifact.canvas), direction)),
+  };
 }
