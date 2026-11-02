@@ -5,14 +5,16 @@ import {
   type StyleGuideSection,
   type StyleGuideSpec,
 } from "@stage/data-ops/contracts";
-import { BUNDLED_FONTS } from "@/lib/systemFonts";
+import type { UploadedFont } from "@/lib/fonts/uploadedFonts";
 import type { ThemeMode } from "@/lib/project/styleGuideSpec";
 import type { MoodboardItem } from "@/types/project/moodboardTab";
 import { cn } from "@/lib/utils";
+import { FontPicker } from "./FontPicker";
 import { AddButton, ColorInput, Field, Icon, Range, RemovableRow, Section, Segmented, Select, TextArea, TextInput, TextLink, ValueChip } from "./fields";
 
 export type SpecUpdate = <S extends StyleGuideSection>(section: S, value: StyleGuideSpec[S]) => void;
 export type SectionProps = { spec: StyleGuideSpec; update: SpecUpdate };
+export type FontSectionProps = SectionProps & { uploadFont: (file: File) => Promise<UploadedFont> };
 
 export const MODES = [
   { value: "light", label: "Light" },
@@ -136,26 +138,45 @@ const FONT_SIZES = [
   { value: "large", label: "Large" },
 ] as const;
 
-export function fontOptions(spec: StyleGuideSpec) {
-  return [...new Set([...BUNDLED_FONTS, spec.fonts.heading, spec.fonts.body, spec.fonts.mono])].sort();
+type FontRole = "heading" | "body" | "mono";
+
+// Picking a font sets one role; uploading a file adds it to the guide's fonts and
+// selects it for that role in the same edit.
+export function FontField({ label, role, spec, update, uploadFont }: FontSectionProps & { label: string; role: FontRole }) {
+  const uploads = spec.fonts.uploads ?? [];
+  return (
+    <FontPicker
+      label={label}
+      value={spec.fonts[role]}
+      uploads={uploads}
+      onChange={(family) => update("fonts", { ...spec.fonts, [role]: family })}
+      onUpload={async (file) => {
+        const font = await uploadFont(file);
+        update("fonts", {
+          ...spec.fonts,
+          uploads: [...uploads.filter((upload) => upload.family !== font.family), font],
+          [role]: font.family,
+        });
+      }}
+    />
+  );
 }
 
-export function FontsSection({ spec, update }: SectionProps) {
-  const set = (patch: Partial<StyleGuideSpec["fonts"]>) => update("fonts", { ...spec.fonts, ...patch });
-  const options = fontOptions(spec);
+export function FontsSection(props: FontSectionProps) {
+  const { spec, update } = props;
   return (
     <Section icon={<Icon name="fonts" size={16} />} title="Fonts" description="A heading font, a body font and a size.">
       <div className="flex flex-col gap-3">
         <div className="flex gap-1">
           <Field label="Headings">
-            <Select label="Headings" value={spec.fonts.heading} options={options} onChange={(heading) => set({ heading })} />
+            <FontField {...props} label="Headings" role="heading" />
           </Field>
           <Field label="Body">
-            <Select label="Body" value={spec.fonts.body} options={options} onChange={(body) => set({ body })} />
+            <FontField {...props} label="Body" role="body" />
           </Field>
         </div>
         <Field label="Size">
-          <Segmented label="Font size" value={spec.fonts.size} options={FONT_SIZES} onChange={(size) => set({ size })} />
+          <Segmented label="Font size" value={spec.fonts.size} options={FONT_SIZES} onChange={(size) => update("fonts", { ...spec.fonts, size })} />
         </Field>
       </div>
     </Section>

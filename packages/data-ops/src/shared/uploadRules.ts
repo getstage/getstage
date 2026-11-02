@@ -13,7 +13,8 @@ export type UploadPurpose =
   | "moodboard-refero"
   | "moodboard-figma"
   | "moodboard-url"
-  | "wireframe-brand-kit";
+  | "wireframe-brand-kit"
+  | "styleguide-font";
 
 type UploadRule = {
   allowedMimeTypes: string[];
@@ -22,6 +23,11 @@ type UploadRule = {
 };
 
 export const UPLOAD_RULES: Record<UploadPurpose, UploadRule> = {
+  "styleguide-font": {
+    allowedMimeTypes: ["font/ttf", "font/otf", "font/woff", "font/woff2", "application/font-sfnt", "application/octet-stream"],
+    allowedExtensions: [".ttf", ".otf", ".woff", ".woff2"],
+    maxBytes: 5 * 1024 * 1024,
+  },
   "task-attachment": {
     allowedMimeTypes: [
       "image/jpeg",

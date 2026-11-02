@@ -2,8 +2,10 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useQuery } from "convex/react";
 import type { MoodboardStyleGuide } from "@stage/data-ops/contracts";
 import { useStyleGuideEditor, type StyleGuideSaveState } from "@/hooks/project/moodboard/useStyleGuideEditor";
+import { useStyleGuideFontUpload } from "@/hooks/project/moodboard/useStyleGuideFontUpload";
 import { useRoomPresence, type RoomMember } from "@/hooks/project/useRoomPresence";
 import { api } from "@/lib/convexApi";
+import { ensureStyleGuideFonts } from "@/lib/fonts/uploadedFonts";
 import { resolveStyleGuideSpec, styleGuideDesignMarkdown, type ThemeMode } from "@/lib/project/styleGuideSpec";
 import type { MoodboardItem } from "@/types/project/moodboardTab";
 import { cn } from "@/lib/utils";
@@ -80,7 +82,11 @@ function StyleGuideEditorView({ projectId, directionId, directionName, guide, re
   const [mode, setMode] = useState<ThemeMode>(spec.layout.theme);
   const [tab, setTab] = useState<"screen" | "markdown">("screen");
   const markdown = useMemo(() => styleGuideDesignMarkdown(spec, references), [spec, references]);
+  const uploadFont = useStyleGuideFontUpload(projectId);
   const section = { spec, update };
+  const fontSection = { ...section, uploadFont };
+
+  useEffect(() => ensureStyleGuideFonts(spec.fonts), [spec.fonts]);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => event.key === "Escape" && onBack();
@@ -92,10 +98,10 @@ function StyleGuideEditorView({ projectId, directionId, directionName, guide, re
     ["intent", <IntentSection {...section} />],
     ["references", <ReferencesSection {...section} images={references} />],
     ["colors", <ColorsSection {...section} mode={mode} onModeChange={setMode} />],
-    ["fonts", <FontsSection {...section} />],
+    ["fonts", <FontsSection {...fontSection} />],
     ["shape", <ShapeSection {...section} />],
     ["rules", <RulesSection {...section} />],
-    ["advanced", <AdvancedSection {...section} />],
+    ["advanced", <AdvancedSection {...fontSection} />],
   ] as const;
 
   return (

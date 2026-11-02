@@ -68,6 +68,8 @@ function buildObjectKey(
       return projectScopedKey("moodboard", "urls");
     case "wireframe-brand-kit":
       return projectScopedKey("wireframes", "brand-kit");
+    case "styleguide-font":
+      return projectScopedKey("moodboard", "fonts");
   }
 }
 

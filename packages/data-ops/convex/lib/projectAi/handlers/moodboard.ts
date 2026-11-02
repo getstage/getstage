@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import type { Id } from "../../../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../../../_generated/server";
 import { requireProjectAccess } from "../../../_helpers";
+import { attachTrackedR2Asset, resolveAssetUrl } from "../../../r2";
 import { decryptSecret } from "../../../lib/credentialVault";
 import { createArtifactRecord } from "../domain/artifactStore";
 import { attachTrackedR2AssetsFromContentJson } from "../domain/attachArtifactAssets";
@@ -16,7 +17,7 @@ import { normalizeOptional } from "../domain/normalize";
 import { now } from "../domain/time";
 import type { AiModule } from "../domain/validators";
 import { CREDIT_COSTS, recordUsage, requireCredits } from "../../credits/service";
-import { parseStyleGuideSection, styleGuideEditSchema } from "../../../../src/contracts/styleGuideSpec";
+import { parseStyleGuideSection, styleGuideEditSchema, type StyleGuideSpec } from "../../../../src/contracts/styleGuideSpec";
 
 /**
  * Save the moodboard board structure (references + directions + uploaded files)
@@ -117,13 +118,32 @@ export async function editStyleGuideHandler(
     delete guide.spec;
   } else {
     const spec = (guide.spec ?? {}) as Record<string, unknown>;
-    spec[edit.section] = parseStyleGuideSection(edit.section, edit.value);
+    const value = parseStyleGuideSection(edit.section, edit.value);
+    if (edit.section === "fonts") {
+      await resolveUploadedFonts(ctx, args.projectId, value as StyleGuideSpec["fonts"]);
+    }
+    spec[edit.section] = value;
     guide.spec = spec;
   }
 
   const updatedAt = now();
   await ctx.db.patch(record._id, { contentJson: JSON.stringify(artifact), updatedAt });
   return { updatedAt };
+}
+
+// Uploaded font files must live under this project's R2 prefix. Their public URL is
+// stored with the guide so the preview, exports and AI runs can load them, and the
+// upload is attached so the stale-upload cron keeps it.
+async function resolveUploadedFonts(ctx: MutationCtx, projectId: Id<"projects">, fonts: StyleGuideSpec["fonts"]) {
+  for (const upload of fonts.uploads ?? []) {
+    if (!upload.key.startsWith(`moodboard/projects/${projectId}/`)) {
+      throw new Error("This font file does not belong to this project.");
+    }
+    const url = await resolveAssetUrl(upload.key);
+    if (!url) throw new Error(`Could not load the font file for ${upload.family}.`);
+    upload.url = url;
+    await attachTrackedR2Asset(ctx, { key: upload.key });
+  }
 }
 
 /**

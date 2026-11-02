@@ -55,3 +55,18 @@ test("DESIGN.md lists references with their image so Claude Code can open them",
   assert.match(markdown, /!\[Linear\]\(https:\/\/assets\/ref-1\.jpg\)/);
   assert.match(markdown, /Look at it when building: Everything/);
 });
+
+test("DESIGN.md says where each font loads from: Google Fonts or the uploaded file", () => {
+  const spec = resolveStyleGuideSpec(guide, "Bold", references);
+  spec.fonts = {
+    ...spec.fonts,
+    heading: "Fraunces",
+    body: "Brand Sans",
+    mono: "Fraunces",
+    uploads: [{ family: "Brand Sans", key: "moodboard/projects/p1/users/u1/fonts/a.woff2", url: "https://assets/a.woff2" }],
+  };
+  const markdown = styleGuideDesignMarkdown(spec, references);
+  assert.match(markdown, /- Fraunces: Google Fonts, https:\/\/fonts\.googleapis\.com\/css2\?family=Fraunces:wght@/);
+  assert.match(markdown, /- Brand Sans: uploaded font file, https:\/\/assets\/a\.woff2/);
+  assert.equal(markdown.match(/- Fraunces: Google Fonts/g)?.length, 1);
+});

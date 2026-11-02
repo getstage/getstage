@@ -2,7 +2,7 @@ import { useState } from "react";
 import { CaretDown, CaretUp, Cube, Layout, SlidersHorizontal, Waves } from "@phosphor-icons/react";
 import type { StyleGuideSpec } from "@stage/data-ops/contracts";
 import { ColorInput, Divider, Field, Icon, Range, Section, Segmented, Select, TextInput, TextLink, ValueChip } from "./fields";
-import { fontOptions, MODES, type SectionProps } from "./sections";
+import { FontField, MODES, type FontSectionProps, type SectionProps } from "./sections";
 import { specimenSize } from "./preview/specimenSize";
 
 const SAMPLE = "Build something people want.";
@@ -64,13 +64,14 @@ function RolesTable({ spec, update }: SectionProps) {
   );
 }
 
-function Typescale({ spec, update }: SectionProps) {
+function Typescale(props: FontSectionProps) {
+  const { spec, update } = props;
   const set = (index: number, patch: Partial<StyleGuideSpec["typescale"][number]>) =>
     update("typescale", spec.typescale.map((row, i) => (i === index ? { ...row, ...patch } : row)));
   return (
     <Section icon={<Icon name="fonts" size={16} />} title="Typescale">
       <Field label="Mono (numbers, code)">
-        <Select label="Mono font" value={spec.fonts.mono} options={fontOptions(spec)} onChange={(mono) => update("fonts", { ...spec.fonts, mono })} />
+        <FontField {...props} label="Mono font" role="mono" />
       </Field>
       {spec.typescale.map((row, index) => (
         <div key={row.id} className="flex flex-col gap-1.5">
@@ -178,7 +179,7 @@ function LayoutMotionComponents({ spec, update }: SectionProps) {
   );
 }
 
-export function AdvancedSection(props: SectionProps) {
+export function AdvancedSection(props: FontSectionProps) {
   const [open, setOpen] = useState(false);
   return (
     <div className="flex flex-col gap-8">

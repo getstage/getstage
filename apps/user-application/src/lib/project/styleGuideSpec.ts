@@ -1,4 +1,5 @@
 import type { CSSProperties } from "react";
+import { findGoogleFont, googleFontCssUrl } from "../fonts/googleFonts";
 import type { MoodboardStyleGuide, StyleGuideSpec } from "@stage/data-ops/contracts";
 import type { MoodboardItem } from "@/types/project/moodboardTab";
 
@@ -159,6 +160,18 @@ function colorTable(spec: StyleGuideSpec) {
   ];
 }
 
+// Where each font comes from, so whoever builds from DESIGN.md loads the real files.
+function fontSourceLines(spec: StyleGuideSpec) {
+  const uploads = new Map((spec.fonts.uploads ?? []).map((upload) => [upload.family, upload.url]));
+  const lines = [...new Set([spec.fonts.heading, spec.fonts.body, spec.fonts.mono])].flatMap((family) => {
+    const uploadedUrl = uploads.get(family);
+    if (uploadedUrl) return [`- ${family}: uploaded font file, ${uploadedUrl}`];
+    const google = findGoogleFont(family);
+    return google ? [`- ${family}: Google Fonts, ${googleFontCssUrl(google)}`] : [];
+  });
+  return lines.length ? ["", "Load the fonts from:", "", ...lines] : [];
+}
+
 // DESIGN.md is derived from the same spec as the preview, so the two never drift.
 export function styleGuideDesignMarkdown(spec: StyleGuideSpec, references: MoodboardItem[]) {
   const lines = [`# ${spec.intent.name} — DESIGN.md`, "", spec.intent.line, "", "## Colours", "", ...colorTable(spec)];
@@ -170,6 +183,7 @@ export function styleGuideDesignMarkdown(spec: StyleGuideSpec, references: Moodb
     `- Body: ${spec.fonts.body}`,
     `- Mono (numbers, code): ${spec.fonts.mono}`,
     `- Size: ${spec.fonts.size}`,
+    ...fontSourceLines(spec),
     "",
     "| Style | Size | Line height | Weight | Tracking |",
     "|---|---:|---:|---:|---:|",

@@ -47,6 +47,11 @@ export const styleGuideSpecSchema = z.object({
     body: z.string().min(1).max(80),
     mono: z.string().min(1).max(80),
     size: z.enum(["compact", "default", "large"]),
+    // Font files the team uploaded. `url` is filled in by the backend from the R2 key.
+    uploads: z
+      .array(z.object({ family: z.string().min(1).max(80), key: z.string().min(1).max(300), url: z.string().url().max(1000).optional() }))
+      .max(12)
+      .optional(),
   }),
   shape: z.object({
     corners: z.number().int().min(0).max(24),

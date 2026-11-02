@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { StyleGuideSpec } from "@stage/data-ops/contracts";
+import { ensureStyleGuideFonts } from "@/lib/fonts/uploadedFonts";
 import { shadcnThemeVars, type ThemeMode } from "@/lib/project/styleGuideSpec";
 import { ExampleScreen } from "./preview/ExampleScreen";
 import { Gallery } from "./preview/Gallery";
@@ -30,6 +31,7 @@ function useFitLayout() {
 // variables so every edit recolours and reshapes it live.
 export function StyleGuidePreview({ spec, mode }: { spec: StyleGuideSpec; mode: ThemeMode }) {
   const { ref, width, scale } = useFitLayout();
+  useEffect(() => ensureStyleGuideFonts(spec.fonts), [spec.fonts]);
   return (
     <div ref={ref}>
       <div
