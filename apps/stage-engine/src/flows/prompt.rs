@@ -264,3 +264,23 @@ fn pretty_json(raw: &str) -> String {
 fn pretty_json_value(value: &Value) -> String {
     serde_json::to_string_pretty(value).unwrap_or_else(|_| value.to_string())
 }
+
+/// Adds the pages/screens the user picked in the Create Flow / Create Sitemap dialog.
+/// They are a must-have list: every one becomes a step, and the model may only add
+/// what the flow needs to connect them.
+pub fn with_requested_steps(prompt: String, requested: &[String], category: ProjectCategory) -> String {
+    let steps: Vec<&str> = requested
+        .iter()
+        .map(|step| step.trim())
+        .filter(|step| !step.is_empty())
+        .take(30)
+        .collect();
+    if steps.is_empty() {
+        return prompt;
+    }
+    let noun = if category == ProjectCategory::Websites { "pages" } else { "screens" };
+    let list = steps.iter().map(|step| format!("- {step}")).collect::<Vec<_>>().join("\n");
+    format!(
+        "{prompt}\n\nThe user chose these {noun} before generating. Include every one of them as a step with exactly this label, keep them in this order where the structure allows, and only add other {noun} needed to connect them:\n{list}\n"
+    )
+}

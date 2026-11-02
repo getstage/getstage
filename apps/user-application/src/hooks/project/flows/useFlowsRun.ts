@@ -131,7 +131,7 @@ export function useFlowsRun(projectId: string) {
   }, [activeRunId, failRun, hasTerminalEvent, queryClient, runEnded]);
 
   const startFlows = useCallback(
-    async (providerId: ProviderId, source?: string) => {
+    async (providerId: ProviderId, source?: string, requestedSteps: string[] = []) => {
       if (isRunning || providerRun.startRun.isPending) return;
 
       const lockKey = source ? `${projectId}:${source}` : projectId;
@@ -161,7 +161,11 @@ export function useFlowsRun(projectId: string) {
           modelId: resolveRunModelId(providerId, chatDefaults.defaults.modelId),
           prompt: FLOWS_PROMPT,
           mode: "flows",
-          context: source ? { projectId, source } : { projectId },
+          context: {
+            projectId,
+            ...(source ? { source } : {}),
+            ...(requestedSteps.length ? { requestedSteps } : {}),
+          },
           attachments: [],
           modelOptions: buildRunModelOptions(chatDefaults.defaults),
         });

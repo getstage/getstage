@@ -6,7 +6,7 @@ use crate::flows::normalize::{
     normalize_flows_artifact,
 };
 use crate::flows::prompt::{
-    build_flow_regenerate_prompt, build_flows_prompt, build_screen_regenerate_prompt,
+    build_flow_regenerate_prompt, build_flows_prompt, build_screen_regenerate_prompt, with_requested_steps,
 };
 use crate::flows::screen::{FlowsRegenerateTarget, parse_flows_regenerate_target};
 use crate::helpers::provider_json::{extract_flows_artifact, extract_json_object};
@@ -101,7 +101,8 @@ impl FlowsWorkflow {
                 )
                 .await?;
 
-            request.prompt = build_flows_prompt(&input);
+            let requested = request.context.requested_steps.clone().unwrap_or_default();
+            request.prompt = with_requested_steps(build_flows_prompt(&input), &requested, input.project_category);
             let provider_context = ProviderRunContext {
                 api_version,
                 run_id: run_id.clone(),

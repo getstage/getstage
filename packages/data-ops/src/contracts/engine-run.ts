@@ -39,6 +39,8 @@ export const runContextSchema = z.object({
   // The engine resolves these to public URLs, downloads them, and attaches them so
   // the model derives palette/typography/logo from the real brand kit.
   brandKitKeys: z.array(z.string().min(1)).optional(),
+  // Pages (websites) or screens (apps) picked in the Create Flow / Create Sitemap dialog.
+  requestedSteps: z.array(z.string().trim().min(1).max(80)).max(30).optional(),
 });
 
 export const runModelOptionSelectionSchema = z.object({

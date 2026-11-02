@@ -3,10 +3,10 @@ import { useMutation } from "convex/react";
 import { flowsArtifactSchema, type ProviderId, type ProjectCategory, type FlowsCanvasEdit } from "@stage/data-ops/contracts";
 import type { Id } from "@stage/data-ops/convex/data-model";
 import { api } from "@/lib/convexApi";
+import { CreateFlowsDialog } from "./CreateFlowsDialog";
 import { FlowsCanvas } from "./FlowsCanvas";
 import { stepScreenTitle } from "./stepScreen";
 import type { ScreenDetailsChange } from "./ScreenDetailsDialog";
-import { GenerateStrategyRunDialog } from "@/components/project/GenerateStrategyRunDialog";
 import { UpstreamStaleBanner } from "@/components/project/UpstreamStaleBanner";
 import { getDefaultExpandedFlowId } from "@/data/fixtures/project/flowsTabFixtures";
 import {
@@ -263,12 +263,12 @@ export function FlowsTab({ project, projectCategory, onGoToResearch, onGoToStrat
     }
   }
 
-  async function generateFlows(providerId: ProviderId) {
+  async function generateFlows(providerId: ProviderId, requestedSteps: string[] = []) {
     if (flowRunBusy) return;
 
     setUiError(null);
     try {
-      await flowsRun.startFlows(providerId);
+      await flowsRun.startFlows(providerId, undefined, requestedSteps);
       setGenerateDialogOpen(false);
     } catch (error) {
       setUiError(error instanceof Error ? error.message : "Could not generate flows.");
@@ -355,17 +355,14 @@ export function FlowsTab({ project, projectCategory, onGoToResearch, onGoToStrat
             error={uiError ?? visibleRunError ?? (flowsTab.parseError ? "Saved flows could not be loaded." : null)}
             onGenerate={() => setGenerateDialogOpen(true)}
           />
-          <GenerateStrategyRunDialog
+          <CreateFlowsDialog
             open={generateDialogOpen}
             onOpenChange={setGenerateDialogOpen}
-            title={`Generate ${label}`}
-            description={`Turn your research, strategy and moodboard direction into editable project ${label.toLowerCase()}.`}
-            confirmLabel={`Generate ${label}`}
+            isWebsite={projectCategory === "websites"}
             isSubmitting={flowRunBusy}
             providerOptions={aiProvider.providerOptions}
             selectedProviderId={aiProvider.resolvedProviderId}
-            onSelectProvider={aiProvider.selectProvider}
-            onConfirm={(providerId) => void generateFlows(providerId)}
+            onConfirm={(providerId, steps) => void generateFlows(providerId, steps)}
           />
         </>
       ) : null}

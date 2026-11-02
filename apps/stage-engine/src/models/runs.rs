@@ -43,6 +43,9 @@ pub struct RunContext {
     pub source: Option<String>,
     #[serde(default)]
     pub brand_kit_keys: Option<Vec<String>>,
+    /// Pages (websites) or screens (apps) the user picked before generating Flows.
+    #[serde(default)]
+    pub requested_steps: Option<Vec<String>>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
