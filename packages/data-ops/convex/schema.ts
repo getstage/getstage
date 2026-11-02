@@ -435,6 +435,14 @@ export default defineSchema({
     onboardingCompletedAt: v.optional(v.number()),
     onboardingProjectCreatedAt: v.optional(v.number()),
     onboardingPaywallSeenAt: v.optional(v.number()),
+    // Onboarding answers (STA-64): where they found Stage and how they work.
+    discoverySource: v.optional(v.string()),
+    discoveryHandle: v.optional(v.string()),
+    workMode: v.optional(v.union(v.literal("solo"), v.literal("team"))),
+    buildFor: v.optional(v.union(v.literal("client"), v.literal("own"))),
+    workspaceName: v.optional(v.string()),
+    // Teammates entered before a plan exists; invited once the workspace is paid.
+    pendingInviteEmails: v.optional(v.array(v.string())),
     firstPaymentEmailSentAt: v.optional(v.number()),
     // Email drip engine: platform detection + app-download state + opt-out.
     datafastVisitorId: v.optional(v.string()),

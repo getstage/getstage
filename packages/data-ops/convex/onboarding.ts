@@ -32,6 +32,9 @@ export const getState = query({
       projectCreatedAt: user.onboardingProjectCreatedAt ?? null,
       paywallSeenAt: user.onboardingPaywallSeenAt ?? null,
       isCompleted: Boolean(user.onboardingCompletedAt),
+      // Answered on the web already, so the Mac onboarding can skip the questions.
+      hasAnswers: Boolean(user.workMode && user.buildFor),
+      workspaceName: user.workspaceName ?? null,
     };
   },
 });
@@ -105,5 +108,35 @@ export const completeOnboarding = mutation({
       completedAt: timestamp,
       workCategory: args.workCategory ?? user.workCategory ?? null,
     };
+  },
+});
+
+const trimmed = (value: string | undefined, max: number) => value?.trim().slice(0, max) || undefined;
+
+export const saveAnswers = mutation({
+  args: {
+    discoverySource: v.optional(v.string()),
+    discoveryHandle: v.optional(v.string()),
+    workMode: v.optional(v.union(v.literal("solo"), v.literal("team"))),
+    buildFor: v.optional(v.union(v.literal("client"), v.literal("own"))),
+    workspaceName: v.optional(v.string()),
+    inviteEmails: v.optional(v.array(v.string())),
+  },
+  handler: async (ctx, args) => {
+    const user = await requireAuthUser(ctx);
+    const emails = (args.inviteEmails ?? [])
+      .map((email) => email.trim().toLowerCase())
+      .filter((email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
+      .slice(0, 20);
+    await ctx.db.patch(user._id, {
+      ...(args.discoverySource !== undefined ? { discoverySource: trimmed(args.discoverySource, 40) } : {}),
+      ...(args.discoveryHandle !== undefined ? { discoveryHandle: trimmed(args.discoveryHandle, 120) } : {}),
+      ...(args.workMode ? { workMode: args.workMode } : {}),
+      ...(args.buildFor ? { buildFor: args.buildFor } : {}),
+      ...(args.workspaceName !== undefined ? { workspaceName: trimmed(args.workspaceName, 80) } : {}),
+      ...(args.inviteEmails !== undefined ? { pendingInviteEmails: [...new Set(emails)] } : {}),
+      updatedAt: now(),
+    });
+    return null;
   },
 });

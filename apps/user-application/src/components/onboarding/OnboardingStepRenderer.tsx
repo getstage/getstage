@@ -12,6 +12,8 @@ import { AlmostSetupPreview, ProSuccessCard } from "@/components/onboarding/Onbo
 import { ONBOARDING_ICON_SRC } from "@/components/onboarding/constants";
 import { OnboardingMethodStep } from "@/components/onboarding/steps/OnboardingMethodStep";
 import { OnboardingPhaseSelectStep } from "@/components/onboarding/steps/OnboardingPhaseSelectStep";
+import { FirstProjectStep, QuestionsStep, WelcomeBackStep, WorkspaceStep } from "@/components/onboarding/steps/OnboardingSetupSteps";
+import type { OnboardingAnswers } from "@/features/onboarding/model";
 import { PROJECT_CATEGORIES, PROJECT_TYPES, PROJECT_TYPE_ICONS } from "@/lib/constants";
 import { AVATAR_ACCEPT, PROJECT_MARKER_ACCEPT } from "@/lib/r2Uploads";
 import { cn } from "@/lib/utils";
@@ -28,6 +30,9 @@ type OnboardingStepRendererProps = {
   fieldOfWork: ProjectType[];
   onSelectField: (value: ProjectType) => void;
   draftState: UseProjectDraftResult;
+  answers: OnboardingAnswers;
+  onAnswersChange: (patch: Partial<OnboardingAnswers>) => void;
+  skipQuestions: boolean;
   stepError: string | null;
   creationReady: boolean;
   isCheckoutLoading: boolean;
@@ -48,6 +53,9 @@ export function OnboardingStepRenderer({
   fieldOfWork,
   onSelectField,
   draftState,
+  answers,
+  onAnswersChange,
+  skipQuestions,
   stepError,
   isCheckoutLoading,
   checkoutError,
@@ -62,7 +70,26 @@ export function OnboardingStepRenderer({
     case "welcome":
       return (
         <OnboardingStepMotion motionKey="welcome">
-          <WelcomeSlide userName={userName} />
+          {skipQuestions ? <WelcomeBackStep userName={userName} /> : <WelcomeSlide userName={userName} />}
+        </OnboardingStepMotion>
+      );
+    case "questions":
+      return (
+        <OnboardingStepMotion motionKey="questions">
+          <QuestionsStep answers={answers} onChange={onAnswersChange} />
+        </OnboardingStepMotion>
+      );
+    case "workspace":
+      return (
+        <OnboardingStepMotion motionKey="workspace">
+          <WorkspaceStep answers={answers} onChange={onAnswersChange} />
+        </OnboardingStepMotion>
+      );
+    case "project":
+      return (
+        <OnboardingStepMotion motionKey="project">
+          <FirstProjectStep answers={answers} onChange={onAnswersChange} draftState={draftState} />
+          {stepError ? <p role="alert" className="mt-3 text-[12px] text-red-600">{stepError}</p> : null}
         </OnboardingStepMotion>
       );
     case "personalise":

@@ -22,23 +22,20 @@ type ValidationContext = {
   endDate: string;
 };
 
+// STA-64: questions → workspace → first project → plan → tools. People who answered
+// the questions on the web skip straight to the workspace.
 export function getFlowSteps({
-  setProjectLater,
+  skipQuestions = false,
 }: {
   method: Method;
   setProjectLater: boolean;
+  skipQuestions?: boolean;
 }): OnboardingStepId[] {
-  if (setProjectLater) {
-    return ["welcome", "details", "paywall", "celebrating", "integrations", "claude"];
-  }
-
   return [
     "welcome",
-    "details",
-    "project-type",
-    "method",
-    "timeline",
-    "preview",
+    ...(skipQuestions ? [] : (["questions"] as const)),
+    "workspace",
+    "project",
     "paywall",
     "celebrating",
     "integrations",
@@ -68,7 +65,11 @@ export function canContinue({
 }: ValidationContext) {
   switch (step) {
     case "welcome":
+    case "questions":
+    case "workspace":
       return true;
+    case "project":
+      return projectBasicsSchema.safeParse({ projectName }).success && projectTypeSchema.safeParse(projectType).success;
     case "claude":
       return true;
     case "details":
@@ -112,6 +113,12 @@ export function getStepValidationError({
 }: ValidationContext) {
   switch (step) {
     case "welcome":
+    case "questions":
+    case "workspace":
+      return null;
+    case "project":
+      if (!projectBasicsSchema.safeParse({ projectName }).success) return "Give your project a name.";
+      if (!projectTypeSchema.safeParse(projectType).success) return "Choose what you're building.";
       return null;
     case "claude":
       return null;

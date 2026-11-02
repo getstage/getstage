@@ -4,7 +4,7 @@ import stageLogo from "@/assets/logos/stage-logo-light.png";
 import { cn } from "@/lib/utils";
 import type { OnboardingStepId } from "@/features/onboarding/model";
 
-const SETUP_PROGRESS_STEPS = ["details", "project-type", "method", "timeline"] as const;
+const SETUP_PROGRESS_STEPS = ["questions", "workspace", "project", "paywall"] as const;
 
 function getProgressIndex(step: OnboardingStepId) {
   if (step === "phase-select") {

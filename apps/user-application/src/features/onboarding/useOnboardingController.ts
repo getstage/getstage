@@ -13,7 +13,7 @@ import {
   getFlowSteps,
   getStepValidationError,
 } from "@/features/onboarding/flow";
-import type { OnboardingStepId, OnboardingSubmission } from "@/features/onboarding/model";
+import type { OnboardingAnswers, OnboardingStepId, OnboardingSubmission } from "@/features/onboarding/model";
 import { AI_ROADMAPS } from "@/lib/constants";
 import { api } from "@/lib/convex";
 import {
@@ -28,6 +28,17 @@ import type { ClaudeConnectionSummary } from "@/types/settings";
 import type { ProjectType } from "@/types";
 
 const CLAUDE_INSTALL_COMMAND = "npx skills add getstage/agent-mode";
+
+const EMPTY_ANSWERS: OnboardingAnswers = {
+  discoverySource: null,
+  discoveryHandle: "",
+  workMode: "solo",
+  buildFor: "client",
+  workspaceName: "",
+  inviteEmails: [],
+  startFrom: "idea",
+  projectDescription: "",
+};
 
 type UseOnboardingControllerInput = {
   open: boolean;
@@ -54,6 +65,7 @@ export function useOnboardingController({
   const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [creationReady, setCreationReady] = useState(false);
+  const [answers, setAnswers] = useState<OnboardingAnswers>(EMPTY_ANSWERS);
   const completionTimeoutRef = useRef<number | null>(null);
   const resetDraftRef = useRef<(() => void) | null>(null);
   const stripeConnected = false;
@@ -77,14 +89,20 @@ export function useOnboardingController({
   const connectSheet = useConvexMutation(api.integrations.googleSheets.connectSheet);
   const r2GenerateUploadUrl = useConvexMutation(api.r2.generateUploadUrl);
   const r2SyncMetadata = useConvexMutation(api.r2.syncMetadata);
+  const saveAnswers = useConvexMutation(api.onboarding.saveAnswers);
+  const upsertProjectContext = useConvexMutation(api.projectAi.upsertContext);
+  const onboardingState = useConvexQuery(api.onboarding.getState, shouldUseAuthenticatedConvex ? {} : "skip");
+  const viewer = useConvexQuery(api.viewer.getIdentity, shouldUseAuthenticatedConvex ? {} : "skip");
+  const skipQuestions = Boolean(onboardingState?.hasAnswers);
 
   const flowSteps = useMemo(
     () =>
       getFlowSteps({
         method: draft.method,
         setProjectLater,
+        skipQuestions,
       }),
-    [draft.method, setProjectLater],
+    [draft.method, setProjectLater, skipQuestions],
   );
   const currentIndex = flowSteps.indexOf(getCurrentStepForProgress(step));
   const continueEnabled = canContinue({
@@ -124,6 +142,7 @@ export function useOnboardingController({
     setIsCheckoutLoading(false);
     setCheckoutError(null);
     setCreationReady(false);
+    setAnswers(EMPTY_ANSWERS);
     resetDraftRef.current?.();
 
     if (startingStep === "welcome") {
@@ -182,7 +201,7 @@ export function useOnboardingController({
     async function runCreation() {
       try {
         if (submission.createProject && isConvexAuthenticated) {
-          await createProjectFromDraft({
+          const created = await createProjectFromDraft({
             draft,
             activePhases,
             createProject,
@@ -190,6 +209,7 @@ export function useOnboardingController({
             syncMetadata: r2SyncMetadata,
             aiRoadmaps: AI_ROADMAPS,
           });
+          await saveProjectStart(created.id);
           await markProjectCreated({});
           trackDatafastGoalOnce("first_project_created", "first_project_created", {
             source: "onboarding_creation",
@@ -293,6 +313,24 @@ export function useOnboardingController({
     }, 720);
   }
 
+  // "Start from" on the first project becomes the Research brief (idea or client
+  // brief) or the client website (existing site), so Research starts from it.
+  async function saveProjectStart(projectId: string) {
+    const text = answers.projectDescription.trim();
+    if (!text) return;
+    const isSite = answers.startFrom === "site";
+    await upsertProjectContext({
+      projectId: projectId as never,
+      competitorUrls: [],
+      referenceUrls: [],
+      ...(isSite ? { clientWebsite: text } : { brief: text }),
+    }).catch(() => undefined);
+  }
+
+  function updateAnswers(patch: Partial<OnboardingAnswers>) {
+    setAnswers((current) => ({ ...current, ...patch }));
+  }
+
   function handleContinue() {
     const validationError = getStepValidationError({
       step,
@@ -317,8 +355,30 @@ export function useOnboardingController({
 
     switch (step) {
       case "welcome":
-        setStep("details");
+        setStep(skipQuestions ? "workspace" : "questions");
         return;
+      case "questions":
+        void saveAnswers({
+          discoverySource: answers.discoverySource ?? undefined,
+          discoveryHandle: answers.discoveryHandle,
+          workMode: answers.workMode,
+          buildFor: answers.buildFor,
+        }).catch(() => undefined);
+        setStep("workspace");
+        return;
+      case "workspace":
+        void saveAnswers({ workspaceName: answers.workspaceName, inviteEmails: answers.inviteEmails }).catch(() => undefined);
+        setStep("project");
+        return;
+      case "project": {
+        // The first project needs a client; it defaults to the workspace itself.
+        const owner = answers.workspaceName.trim() || viewer?.name || "My workspace";
+        if (!draft.clientName.trim()) draftState.setClientName(owner);
+        if (!draft.clientEmail.trim() && viewer?.email) draftState.setClientEmail(viewer.email);
+        if (!draft.method) draftState.setMethod("ai");
+        setStep("paywall");
+        return;
+      }
       case "personalise":
         setStep("details");
         return;
@@ -518,6 +578,9 @@ export function useOnboardingController({
     claudeConnectionId: claudeState?.connection?.id ?? null,
     draftState,
     handleSelectField,
+    answers,
+    updateAnswers,
+    skipQuestions,
     handleContinue,
     handlePaywallUpgrade,
     goBack,

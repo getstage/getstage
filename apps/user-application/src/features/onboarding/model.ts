@@ -2,6 +2,9 @@ import type { ProjectCategory, ProjectType } from "@/types";
 
 export type OnboardingStepId =
   | "welcome"
+  | "questions"
+  | "workspace"
+  | "project"
   | "personalise"
   | "claude"
   | "details"
@@ -35,4 +38,16 @@ export type OnboardingSubmission = {
   csvConnected: boolean;
   csvImported: boolean;
   stripeConnected: boolean;
+};
+
+// STA-64 answers on the first screens of the Mac onboarding.
+export type OnboardingAnswers = {
+  discoverySource: string | null;
+  discoveryHandle: string;
+  workMode: "solo" | "team";
+  buildFor: "client" | "own";
+  workspaceName: string;
+  inviteEmails: string[];
+  startFrom: "idea" | "brief" | "site";
+  projectDescription: string;
 };

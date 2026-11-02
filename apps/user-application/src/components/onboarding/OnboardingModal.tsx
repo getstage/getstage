@@ -11,10 +11,9 @@ import { cn } from "@/lib/utils";
 export type { OnboardingSubmission } from "@/features/onboarding/model";
 
 const SETUP_PROGRESS_STEPS: OnboardingStepId[] = [
-  "details",
-  "client",
-  "method",
-  "timeline",
+  "questions",
+  "workspace",
+  "project",
 ];
 
 type OnboardingModalProps = {
@@ -163,6 +162,9 @@ export function OnboardingModal({
                     fieldOfWork={controller.fieldOfWork}
                     onSelectField={controller.handleSelectField}
                     draftState={controller.draftState}
+                    answers={controller.answers}
+                    onAnswersChange={controller.updateAnswers}
+                    skipQuestions={controller.skipQuestions}
                     stepError={controller.stepError}
                     creationReady={controller.creationReady}
                     isCheckoutLoading={controller.isCheckoutLoading}
@@ -197,10 +199,10 @@ export function OnboardingModal({
                     onClick={controller.handleContinue}
                   >
                     <span>
-                      {controller.step === "welcome"
+                      {controller.step === "welcome" && !controller.skipQuestions
                         ? "Start Setup"
-                        : controller.step === "celebrating"
-                          ? "Continue"
+                        : controller.step === "project"
+                          ? "Create project"
                           : controller.step === "integrations"
                             ? "Get Started"
                             : "Continue"}
