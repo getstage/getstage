@@ -35,6 +35,7 @@ export const getState = query({
       // Answered on the web already, so the Mac onboarding can skip the questions.
       hasAnswers: Boolean(user.workMode && user.buildFor),
       workspaceName: user.workspaceName ?? null,
+      usageChoice: user.usageChoice ?? null,
     };
   },
 });
@@ -137,6 +138,16 @@ export const saveAnswers = mutation({
       ...(args.inviteEmails !== undefined ? { pendingInviteEmails: [...new Set(emails)] } : {}),
       updatedAt: now(),
     });
+    return null;
+  },
+});
+
+// Web sign-up: the choice is asked once; returning users go straight to it.
+export const saveUsageChoice = mutation({
+  args: { choice: v.union(v.literal("mac"), v.literal("ai-tool")) },
+  handler: async (ctx, args) => {
+    const user = await requireAuthUser(ctx);
+    await ctx.db.patch(user._id, { usageChoice: args.choice, updatedAt: now() });
     return null;
   },
 });

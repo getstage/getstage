@@ -1,5 +1,6 @@
 import { PageLoading } from "@/components/shared/PageLoading";
 import { UserCircle } from "@phosphor-icons/react";
+import { useEffect } from "react";
 import { Navigate, createFileRoute } from "@tanstack/react-router";
 import { Helmet } from "react-helmet-async";
 import { useAuth } from "@/lib/auth";
@@ -21,6 +22,11 @@ function DownloadMacPage() {
   const { isLoading, isAuthenticated, user } = useAuth();
   const preview = import.meta.env.DEV && new URLSearchParams(window.location.search).get("preview") === "1";
   const ctaEmail = user?.email ?? "your email";
+  // STA-63 3a: arriving from "Download Stage for Mac" starts the download right away.
+  const started = new URLSearchParams(window.location.search).get("started") === "1";
+  useEffect(() => {
+    if (started && isAuthenticated) window.location.assign(resolveMacDownloadUrl());
+  }, [started, isAuthenticated]);
 
   if (isLoading && !preview) {
     return <PageLoading />;
@@ -53,7 +59,7 @@ function DownloadMacPage() {
                 <img src={stageLogo} alt="Stage" className="mb-5 h-[23px] w-auto" />
                 <h1 className="text-[21px] font-semibold leading-[1.2] text-[#0A0A0A]">
                   <span className="lg:hidden">Stage lives on your Mac.</span>
-                  <span className="hidden lg:inline">Download Stage for Mac</span>
+                  <span className="hidden lg:inline">{started ? "Your download has started" : "Download Stage for Mac"}</span>
                 </h1>
                 <div className="mt-1.5 w-full max-w-[320px] text-[15px] font-medium leading-[1.5] text-[#525252] lg:hidden">
                   <p>On your Mac, download Stage and sign in with {ctaEmail}</p>
@@ -78,6 +84,23 @@ function DownloadMacPage() {
                     Using an Intel Mac? Download the Intel version
                   </a>
                 </div>
+                {started ? (
+                  <div className="mt-6 hidden w-full flex-col gap-3 text-[13px] font-medium text-[#525252] lg:flex">
+                    <ol className="flex flex-col gap-2">
+                      {["Open the downloaded file.", "Drag Stage to Applications.", `Open Stage and log in with ${ctaEmail}.`].map((text, index) => (
+                        <li key={text} className="flex items-center gap-2.5">
+                          <span className="flex size-5 shrink-0 items-center justify-center rounded-[4px] bg-[#F5F5F5] text-[11px] text-[#171717]">{index + 1}</span>
+                          {text}
+                        </li>
+                      ))}
+                    </ol>
+                    <p>
+                      Download didn't start?{" "}
+                      <a href={resolveMacDownloadUrl()} className="text-[#463FBA] underline underline-offset-4">Try again</a>
+                    </p>
+                    <a href="/dashboard" className="text-[#525252] underline underline-offset-4">Connect your AI tool instead</a>
+                  </div>
+                ) : null}
                 <a href={profileHref()} className="mt-5 inline-flex items-center gap-1.5 text-[13px] font-medium text-[#525252]"><UserCircle size={16} weight="regular" aria-hidden="true" className="shrink-0"/><span className="underline underline-offset-4">View your profile</span></a>
               </div>
             </section>

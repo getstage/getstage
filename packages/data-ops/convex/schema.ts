@@ -443,6 +443,8 @@ export default defineSchema({
     workspaceName: v.optional(v.string()),
     // Teammates entered before a plan exists; invited once the workspace is paid.
     pendingInviteEmails: v.optional(v.array(v.string())),
+    // STA-63: what the user picked on the web "Choose how to use Stage" screen.
+    usageChoice: v.optional(v.union(v.literal("mac"), v.literal("ai-tool"))),
     firstPaymentEmailSentAt: v.optional(v.number()),
     // Email drip engine: platform detection + app-download state + opt-out.
     datafastVisitorId: v.optional(v.string()),

@@ -40,8 +40,10 @@ function continueAfterAuth(
     return;
   }
 
-  if (redirectTo === DEFAULT_POST_AUTH_PATH || redirectTo.split("?")[0] === "/profile") {
-    window.location.assign(`/setup-profile?next=${encodeURIComponent(redirectTo)}`);
+  // STA-63: sign-up no longer asks the public profile questions; new users choose how
+  // to use Stage first. The public profile is set up later from Profile.
+  if (redirectTo === DEFAULT_POST_AUTH_PATH) {
+    window.location.assign("/start");
     return;
   }
 
