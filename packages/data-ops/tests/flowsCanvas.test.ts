@@ -7,7 +7,7 @@ import { flowsMarkdown } from "../../../apps/user-application/src/lib/project/pr
 import { getEnabledProjectTabs } from "../../../apps/user-application/src/lib/project/projectTabs";
 import { flowsArtifactSchema, type FlowsArtifact } from "../src/contracts/flows";
 import { flowsCanvasEditSchema } from "../src/contracts/flows-canvas";
-import { applyFlowsCanvasEdit, getFlowCanvasBoard, validateFlowsCanvas } from "../src/domain/flows-canvas";
+import { applyFlowsCanvasEdit, arrangeFlowBoard, getFlowCanvasBoard, validateFlowsCanvas } from "../src/domain/flows-canvas";
 
 const modules = import.meta.glob("../convex/**/*.ts");
 const edit = makeFunctionReference<"mutation">("projectAi:editFlowsCanvas");
@@ -24,6 +24,34 @@ function artifact(projectId = "project"): FlowsArtifact {
 const connect = { type: "connect" as const, flowId: "checkout", source: "cart", target: "payment" };
 
 describe("canvas contracts and operations", () => {
+  test("arranges a sitemap as a top-down tree and screens left to right", () => {
+    const value = artifact();
+    const flow = value.flows[0];
+    const tree = { ...getFlowCanvasBoard(flow), edges: [{ source: "cart", target: "address" }, { source: "cart", target: "payment" }] };
+    const vertical = arrangeFlowBoard(flow, tree, "vertical");
+    const at = (board: typeof tree, id: string) => board.positions.find((position) => position.stepId === id)!;
+    expect(at(vertical, "address").y).toBe(at(vertical, "payment").y);
+    expect(at(vertical, "address").y).toBeGreaterThan(at(vertical, "cart").y);
+    expect(at(vertical, "payment").x).toBeGreaterThan(at(vertical, "address").x);
+    expect(at(vertical, "cart").x).toBe((at(vertical, "address").x + at(vertical, "payment").x) / 2);
+    const horizontal = arrangeFlowBoard(flow, getFlowCanvasBoard(flow), "horizontal");
+    expect(new Set(horizontal.positions.map((position) => position.y)).size).toBe(1);
+    expect(at(horizontal, "payment").x).toBeGreaterThan(at(horizontal, "address").x);
+    const arranged = applyFlowsCanvasEdit(value, { type: "arrange", flowId: "checkout", direction: "vertical" });
+    expect(() => validateFlowsCanvas(arranged)).not.toThrow();
+  });
+  test("adds a step with its own screen, linked from the chosen node, idempotently", () => {
+    const value = artifact();
+    const addStep = { type: "addStep" as const, flowId: "checkout", stepId: "review", label: "Review order", position: { x: 700, y: 100 }, after: "payment" };
+    const added = applyFlowsCanvasEdit(value, addStep);
+    expect(applyFlowsCanvasEdit(added, addStep)).toBe(added);
+    expect(added.flows[0].steps.at(-1)).toEqual({ id: "review", order: 3, label: "Review order", screenId: "screen-review" });
+    expect(added.flows[0].screenCount).toBe(4);
+    expect(added.screens.at(-1)).toMatchObject({ id: "screen-review", title: "Review order", keyElements: [] });
+    expect(added.canvas?.boards[0].positions).toContainEqual({ stepId: "review", x: 700, y: 100 });
+    expect(added.canvas?.boards[0].edges).toContainEqual({ source: "payment", target: "review" });
+    expect(() => applyFlowsCanvasEdit(value, { ...addStep, stepId: "other", after: "missing" })).toThrow();
+  });
   test("adapts legacy steps deterministically without mutating or migrating on read", () => {
     const value = artifact();
     expect(value.canvas).toBeUndefined();

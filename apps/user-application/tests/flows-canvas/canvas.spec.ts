@@ -22,8 +22,8 @@ test.afterEach(() => expect(errors).toEqual([]));
 test("canvas fills its workspace and keeps the approved controls visible with desktop styles", async ({ page }, testInfo) => {
   const canvas = page.getByLabel("Sitemap canvas", { exact: true });
   await expect(page.locator(".flows-canvas-board-label")).toHaveText("SITEMAP");
-  await expect(page.getByRole("toolbar", { name: "Diagram tools" }).getByRole("button")).toHaveCount(3);
-  await expect(page.getByRole("group", { name: "Zoom and chat" }).getByRole("button")).toHaveCount(3);
+  await expect(page.getByRole("toolbar", { name: "Diagram tools" }).getByRole("button")).toHaveCount(5);
+  await expect(page.getByRole("group", { name: "Zoom and chat" }).getByRole("button")).toHaveCount(5);
   const bounds = await canvas.boundingBox();
   const workspace = await page.locator(".flows-canvas-workspace").boundingBox();
   if (!bounds || !workspace) throw new Error("Missing workspace");
@@ -143,7 +143,7 @@ test("zoom, chat request and add entry work; narrow-screen controls do not overl
   const controls = await page.locator(".flows-canvas-controls").boundingBox();
   if (!toolbar || !controls) throw new Error("Missing controls");
   expect(toolbar.x + toolbar.width).toBeLessThanOrEqual(controls.x);
-  for (const label of ["Select nodes", "Connect nodes", "Add diagram", "Zoom in", "Zoom out", "Open Stage chat"]) {
+  for (const label of ["Select nodes", "Connect nodes", "Add page", "Arrange automatically", "Add diagram", "Zoom in", "Zoom out", "Open Stage chat"]) {
     const bounds = await page.getByRole("button", { name: label, exact: true }).boundingBox();
     if (!bounds) throw new Error(`Missing ${label}`);
     expect(bounds.x).toBeGreaterThanOrEqual(0);
@@ -332,4 +332,31 @@ test("remote edits preserve viewport and reach a second client", async ({ page, 
   await expect(node(page, "Home")).not.toHaveAttribute("style", original ?? "");
   await expect.poll(() => node(second, "Home").getAttribute("style")).toBe(await node(page, "Home").getAttribute("style"));
   await second.close();
+});
+
+test("adds a page under the selected one, linked to it, and opens it for editing", async ({ page }) => {
+  await node(page, "Features").click();
+  const edges = await page.locator(".react-flow__edge").count();
+  await page.getByRole("button", { name: "Add page", exact: true }).click();
+  await expect(page.locator(".react-flow__node-step")).toHaveCount(5);
+  await expect(page.locator(".react-flow__edge")).toHaveCount(edges + 1);
+  const dialog = page.getByRole("dialog");
+  await expect(dialog.getByRole("textbox", { name: "Node label" })).toHaveValue("New page");
+  const element = dialog.getByRole("textbox", { name: "Add an element" });
+  await element.fill("Hero");
+  await element.press("Enter");
+  await expect(dialog.getByRole("textbox", { name: "Add an element" })).toBeFocused();
+  const added = await page.evaluate(() => window.__canvasEdits.at(-1));
+  expect(added).toMatchObject({ type: "addStep", label: "New page" });
+  const features = await node(page, "Features").boundingBox();
+  const fresh = await node(page, "New page").boundingBox();
+  if (!features || !fresh) throw new Error("Missing nodes");
+  expect(fresh.y).toBeGreaterThan(features.y);
+});
+
+test("arranges the sitemap top-down and shows a tooltip on hover", async ({ page }) => {
+  await page.getByRole("button", { name: "Arrange automatically", exact: true }).hover();
+  await expect(page.getByRole("button", { name: "Arrange automatically", exact: true })).toHaveAttribute("data-tooltip", "Arrange automatically");
+  await page.getByRole("button", { name: "Arrange automatically", exact: true }).click();
+  await expect.poll(() => page.evaluate(() => window.__canvasEdits.at(-1)?.type)).toBe("arrange");
 });

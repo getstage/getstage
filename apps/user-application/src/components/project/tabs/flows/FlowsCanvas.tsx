@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Graph, LinkBreak } from "@phosphor-icons/react";
+import { Graph, LinkBreak, PlusSquare, TreeStructure } from "@phosphor-icons/react";
 import * as Dialog from "@radix-ui/react-dialog";
 import {
   Background, BackgroundVariant, Handle, MarkerType, Panel, Position, ReactFlow,
@@ -7,7 +7,7 @@ import {
   type Edge, type SmoothStepPathOptions, type Node, type NodeProps, type NodeChange,
 } from "@xyflow/react";
 import type { FlowsArtifact, FlowsCanvasEdit, ProjectCategory } from "@stage/data-ops/contracts";
-import { FLOW_CANVAS_NODE_WIDTH, getFlowCanvasBoard, getFlowCanvasBoardSize } from "@stage/data-ops/domain";
+import { FLOW_CANVAS_NODE_WIDTH, flowLayoutDirection, getFlowCanvasBoard, getFlowCanvasBoardSize } from "@stage/data-ops/domain";
 import { STAGE_CHAT_OPEN_REQUEST } from "@/lib/companion/shortcutEvents";
 import { ScreenDetailsDialog, type ScreenDetailsChange } from "./ScreenDetailsDialog";
 import { findStepScreen } from "./stepScreen";
@@ -84,20 +84,22 @@ export function FlowsCanvas(props: Props) {
 
 function CanvasWorkspace({ artifact, updatedAt, projectCategory, disabled = false, onAdd, actions, onEdit, onSaveScreen }: Props) {
   const label = projectCategory === "websites" ? "Sitemap" : "Flows";
+  const stepNoun = projectCategory === "websites" ? "page" : "screen";
+  const direction = flowLayoutDirection(projectCategory);
   const [nodes, setNodes] = useState(() => buildElements(artifact, label).nodes);
   const [edges, setEdges] = useState(() => buildElements(artifact, label).edges);
   const [tool, setTool] = useState<"select" | "connect">("select");
   const [source, setSource] = useState<StepNode | undefined>();
   const [selectedEdge, setSelectedEdge] = useState<CanvasEdge | undefined>();
   const [unlinkMenu, setUnlinkMenu] = useState<{ x: number; y: number; anchor: SVGElement }>();
-  const [details, setDetails] = useState<{ flowId: string; stepId: string; anchor: HTMLElement }>();
+  const [details, setDetails] = useState<{ flowId: string; stepId: string; anchor: HTMLElement; isNew?: boolean }>();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string>();
   const savingRef = useRef(false);
   const committedAt = useRef(updatedAt);
   const latest = useRef(artifact);
   const dragStarts = useRef(new Map<string, { x: number; y: number }>());
-  const { zoomIn, zoomOut } = useReactFlow<CanvasNode, CanvasEdge>();
+  const { zoomIn, zoomOut, fitView } = useReactFlow<CanvasNode, CanvasEdge>();
 
   function hydrate(next: FlowsArtifact) {
     const elements = buildElements(next, label);
@@ -125,7 +127,7 @@ function CanvasWorkspace({ artifact, updatedAt, projectCategory, disabled = fals
   }, [artifact, updatedAt, label]);
 
   async function save(edit: FlowsCanvasEdit) {
-    if (disabled || savingRef.current) return;
+    if (disabled || savingRef.current) return false;
     savingRef.current = true;
     setSaving(true);
     setError(undefined);
@@ -139,9 +141,11 @@ function CanvasWorkspace({ artifact, updatedAt, projectCategory, disabled = fals
           setSelectedEdge(elements.edges.find((edge) => edge.id === id));
         }
       }
+      return true;
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Could not save the diagram.");
       hydrate(latest.current);
+      return false;
     } finally {
       savingRef.current = false;
       setSaving(false);
@@ -185,6 +189,33 @@ function CanvasWorkspace({ artifact, updatedAt, projectCategory, disabled = fals
     void save({ type: "disconnect", ...selectedEdge.data });
     setUnlinkMenu(undefined);
     setSelectedEdge(undefined);
+  }
+  // A new node goes after the selected one (below it in a sitemap, to its right for
+  // screens) and is linked from it; with nothing selected it starts a new branch.
+  async function addStep() {
+    if (busy) return;
+    const selected = nodes.find((node): node is StepNode => node.type === "step" && !!node.selected);
+    const flow = latest.current.flows.find((entry) => entry.id === selected?.data.flowId) ?? latest.current.flows[0];
+    if (!flow) return;
+    const board = getFlowCanvasBoard(flow, latest.current.canvas);
+    const anchorPosition = selected ? board.positions.find((entry) => entry.stepId === selected.data.stepId) : undefined;
+    const lowest = board.positions.reduce((max, entry) => Math.max(max, entry.y), 0);
+    const position = anchorPosition
+      ? direction === "vertical" ? { x: anchorPosition.x, y: anchorPosition.y + 120 } : { x: anchorPosition.x + 248, y: anchorPosition.y }
+      : { x: 48, y: board.positions.length ? lowest + 120 : 72 };
+    const stepId = `${stepNoun}-${crypto.randomUUID().slice(0, 8)}`;
+    const added = await save({ type: "addStep", flowId: flow.id, stepId, label: `New ${stepNoun}`, position: { x: Math.min(position.x, 9800), y: Math.min(position.y, 9800) }, ...(selected ? { after: selected.data.stepId } : {}) });
+    if (!added) return;
+    requestAnimationFrame(() => {
+      const element = document.querySelector<HTMLElement>(`.react-flow__node[data-id="${CSS.escape(nodeId(flow.id, stepId))}"]`);
+      if (element) setDetails({ flowId: flow.id, stepId, anchor: element, isNew: true });
+    });
+  }
+  async function arrange() {
+    for (const flow of latest.current.flows) {
+      if (!(await save({ type: "arrange", flowId: flow.id, direction }))) return;
+    }
+    void fitView({ padding: 0.22, maxZoom: 0.75, duration: 200 });
   }
   function openDetails(node: CanvasNode, anchor: HTMLElement) {
     if (node.type !== "step" || tool !== "select") return;
@@ -246,14 +277,17 @@ function CanvasWorkspace({ artifact, updatedAt, projectCategory, disabled = fals
       <Background variant={BackgroundVariant.Dots} gap={24} size={1} color="#C4C4C4" />
       {actions ? <Panel position="top-right" className="flows-canvas-actions">{actions}</Panel> : null}
       <Panel position="top-left" className={`flows-canvas-message${!saving && !disabled && tool === "select" && !error && !selectedEdge ? " is-idle" : ""}`}>
-        <p role="status">{saving ? "Saving diagram…" : disabled ? "Generation in progress — editing paused" : tool === "connect" ? source ? "Choose the node to connect to. Escape cancels." : "Choose the first node, then the second." : "Select and drag nodes. Use the toolbar to connect them."}</p>
+        <p role="status">{saving ? "Saving diagram…" : disabled ? "Generation in progress — editing paused" : tool === "connect" ? source ? "Choose the node to connect to. Escape cancels." : "Choose the first node, then the second." : `Select and drag nodes. Use the toolbar to connect them or add a ${stepNoun}.`}</p>
         {error ? <p role="alert" className="flows-canvas-error">{error}</p> : null}
         {selectedEdge?.data ? <button type="button" disabled={busy} className="flows-canvas-remove" onClick={unlinkSelected}>Remove selected connection</button> : null}
       </Panel>
       <Panel position="bottom-center" className="flows-canvas-toolbar" role="toolbar" aria-label="Diagram tools">
         <CanvasButton label="Select nodes" icon="select" active={tool === "select"} disabled={busy} onClick={() => { setTool("select"); setSource(undefined); }} />
         <span className="flows-canvas-toolbar-divider" />
-        <button type="button" title="Connect nodes" aria-label="Connect nodes" aria-pressed={tool === "connect"} disabled={busy} className={`flows-canvas-tool${tool === "connect" ? " is-active" : ""}`} onClick={() => { setTool("connect"); setSource(undefined); setError(undefined); }}><Graph size={20} aria-hidden="true" /></button>
+        <button type="button" data-tooltip="Connect nodes" aria-label="Connect nodes" aria-pressed={tool === "connect"} disabled={busy} className={`flows-canvas-tool${tool === "connect" ? " is-active" : ""}`} onClick={() => { setTool("connect"); setSource(undefined); setError(undefined); }}><Graph size={20} aria-hidden="true" /></button>
+        <button type="button" data-tooltip={`Add ${stepNoun}`} aria-label={`Add ${stepNoun}`} disabled={busy} className="flows-canvas-tool" onClick={() => void addStep()}><PlusSquare size={20} aria-hidden="true" /></button>
+        <button type="button" data-tooltip="Arrange automatically" aria-label="Arrange automatically" disabled={busy} className="flows-canvas-tool" onClick={() => void arrange()}><TreeStructure size={20} aria-hidden="true" className={direction === "horizontal" ? "-rotate-90" : undefined} /></button>
+        <span className="flows-canvas-toolbar-divider" />
         <CanvasButton label="Add diagram" icon="add" disabled={busy} onClick={onAdd} />
       </Panel>
       <Panel position="bottom-right" className="flows-canvas-controls" role="group" aria-label="Zoom and chat">
@@ -274,10 +308,10 @@ function CanvasWorkspace({ artifact, updatedAt, projectCategory, disabled = fals
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root> : null}
-    {details && detailsStep ? <ScreenDetailsDialog key={nodeId(details.flowId, details.stepId)} nodeLabel={detailsStep.label} screen={detailsScreen} disabled={busy} anchor={details.anchor} onClose={() => setDetails(undefined)} onSave={(change) => onSaveScreen(details.flowId, details.stepId, change)} /> : null}
+    {details && detailsStep ? <ScreenDetailsDialog key={nodeId(details.flowId, details.stepId)} nodeLabel={detailsStep.label} startEditing={details.isNew} screen={detailsScreen} disabled={busy} anchor={details.anchor} onClose={() => setDetails(undefined)} onSave={(change) => onSaveScreen(details.flowId, details.stepId, change)} /> : null}
   </div>;
 }
 
 function CanvasButton({ label, icon, active, disabled, onClick }: { label: string; icon: string; active?: boolean; disabled?: boolean; onClick: () => void }) {
-  return <button type="button" title={label} aria-label={label} aria-pressed={active} disabled={disabled} onClick={onClick} className={`flows-canvas-tool${active ? " is-active" : ""}${icon === "chat" ? " is-chat" : ""}`}><img src={`/logos/flows/${icon}.svg`} alt="" aria-hidden="true" /></button>;
+  return <button type="button" data-tooltip={label} aria-label={label} aria-pressed={active} disabled={disabled} onClick={onClick} className={`flows-canvas-tool${active ? " is-active" : ""}${icon === "chat" ? " is-chat" : ""}`}><img src={`/logos/flows/${icon}.svg`} alt="" aria-hidden="true" /></button>;
 }

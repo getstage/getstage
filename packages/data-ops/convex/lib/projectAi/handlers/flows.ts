@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { flowsArtifactSchema } from "../../../../src/contracts/flows";
-import { assertFlowsCanvasIdentity, validateFlowsCanvas } from "../../../../src/domain/flows-canvas";
+import { arrangeFlowsCanvas, assertFlowsCanvasIdentity, flowLayoutDirection, validateFlowsCanvas } from "../../../../src/domain/flows-canvas";
 import type { Id } from "../../../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../../../_generated/server";
 import { requireProjectAccess } from "../../../_helpers";
@@ -153,7 +153,7 @@ export async function completeFlowsRunHandler(
     providerId?: "claude" | "codex";
   },
 ) {
-  const { user } = await requireProjectAccess(ctx, args.projectId);
+  const { user, project } = await requireProjectAccess(ctx, args.projectId);
 
   if (args.runId) {
     const run = await getRunRecord(ctx, args.runId);
@@ -174,6 +174,10 @@ export async function completeFlowsRunHandler(
     }
     assertFlowsCanvasIdentity(previousArtifact, next);
     parsed.canvas = previousArtifact.canvas;
+  } else {
+    // A fresh diagram: lay it out from its connections instead of the model's positions.
+    const direction = flowLayoutDirection(resolveProjectCategory(project.type));
+    parsed.canvas = arrangeFlowsCanvas(flowsArtifactSchema.parse(parsed), direction);
   }
   if (args.researchArtifactId) parsed.researchArtifactId = args.researchArtifactId;
   if (args.strategyArtifactId) parsed.strategyArtifactId = args.strategyArtifactId;

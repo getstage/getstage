@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import type { Screen } from "@stage/data-ops/contracts";
 import { EditIcon, HomeIcon } from "./flowsIcons";
-import { ScreenElementList } from "./ScreenElementList";
+import { ScreenElementEditor, ScreenElementList } from "./ScreenElementList";
 import { ScreenEditActions } from "./ScreenEditActions";
 
 export type ScreenDetailsChange = {
@@ -15,6 +15,8 @@ export type SaveScreenDetails = (change: ScreenDetailsChange) => Promise<void>;
 
 type Props = {
   nodeLabel: string;
+  /** Opens straight into editing, e.g. for a node that was just added. */
+  startEditing?: boolean;
   screen?: Screen;
   disabled: boolean;
   anchor: HTMLElement;
@@ -22,8 +24,9 @@ type Props = {
   onSave: SaveScreenDetails;
 };
 
-export function ScreenDetailsDialog({ nodeLabel, screen, disabled, anchor, onClose, onSave }: Props) {
-  const [edit, setEdit] = useState<{ label: string; elements: string[]; original: string[] }>();
+export function ScreenDetailsDialog({ nodeLabel, startEditing = false, screen, disabled, anchor, onClose, onSave }: Props) {
+  const [edit, setEdit] = useState<{ label: string; elements: string[]; original: string[] } | undefined>(() =>
+    startEditing ? { label: nodeLabel, elements: [...(screen?.keyElements ?? [])], original: [...(screen?.keyElements ?? [])] } : undefined);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string>();
   const savingRef = useRef(false);
@@ -84,10 +87,7 @@ export function ScreenDetailsDialog({ nodeLabel, screen, disabled, anchor, onClo
         <div className="flows-screen-body">
           <h4>Key elements</h4>
           <div className={edit ? "flows-screen-element-editor" : undefined}>
-            {edit ? <ScreenElementList elements={[...edit.elements, ""]} editing onDraftElementChange={(index, value) => {
-              // The trailing empty row adds a new element.
-              setEdit((current) => current ? { ...current, elements: index === current.elements.length ? [...current.elements, value] : current.elements.map((element, i) => i === index ? value : element) } : current);
-            }} /> : screen?.keyElements.length ? <ScreenElementList elements={screen.keyElements} /> : <p className="flows-screen-empty">{screen ? "No elements have been saved for this screen." : "This step has no screen details to display."}</p>}
+            {edit ? <ScreenElementEditor elements={edit.elements} onChange={(elements) => setEdit((current) => current ? { ...current, elements } : current)} /> : screen?.keyElements.length ? <ScreenElementList elements={screen.keyElements} /> : <p className="flows-screen-empty">{screen ? "No elements have been saved for this screen." : "This step has no screen details to display."}</p>}
           </div>
           {error ? <p role="alert" className="flows-canvas-error">{error}</p> : null}
           {edit ? <div className="flows-screen-actions"><ScreenEditActions cancelLabel="Cancel" saving={saving} saveDisabled={disabled || !edit.label.trim()} onDiscard={() => { setEdit(undefined); setError(undefined); }} onSave={() => void save()} /></div> : null}

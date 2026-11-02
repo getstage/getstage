@@ -30,7 +30,16 @@
 .flows-canvas-controls { display: flex; align-items: center; gap: 6px; }
 .flows-canvas-controls .flows-canvas-tool { width: 40px; height: 40px; border: 1px solid #d4d4d4; border-radius: 9px; background: #fff; box-shadow: 0 1px 2px #0a0a0a26; }
 .flows-canvas-controls .flows-canvas-tool.is-chat { border-color: #5147b3; background: linear-gradient(#7b76df, #463fba); }
-.flows-canvas-tool:hover { opacity: .85; }
+.flows-canvas-tool { position: relative; }
+.flows-canvas-toolbar .flows-canvas-tool:not(.is-active):not(:disabled):hover { background: #404040; color: #fff; }
+.flows-canvas-toolbar .flows-canvas-tool:not(.is-active):not(:disabled):hover img { filter: brightness(1.6); }
+.flows-canvas-controls .flows-canvas-tool:not(:disabled):hover { background: #f5f5f5; }
+.flows-canvas-controls .flows-canvas-tool.is-chat:not(:disabled):hover { background: linear-gradient(#8984e6, #5149c7); }
+/* Figma 2176:14342: a dark label above the hovered tool. */
+.flows-canvas-tool[data-tooltip]:hover::after,
+.flows-canvas-tool[data-tooltip]:focus-visible::after { content: attr(data-tooltip); position: absolute; bottom: calc(100% + 10px); left: 50%; transform: translateX(-50%); padding: 4px 8px; border: 1px solid #404040; border-radius: 6px; background: #0a0a0a; color: #fff; font-size: 12px; font-weight: 500; line-height: 16px; white-space: nowrap; pointer-events: none; box-shadow: 0 2px 4px #0a0a0a26; }
+.flows-canvas-controls .flows-canvas-tool[data-tooltip]:hover::after,
+.flows-canvas-controls .flows-canvas-tool[data-tooltip]:focus-visible::after { left: auto; right: 0; transform: none; }
 .flows-canvas-tool:disabled { cursor: not-allowed; opacity: .45; }
 .flows-canvas :focus-visible { outline: 2px solid #6155ff !important; outline-offset: 3px; }
 .flows-canvas-unlink-menu { position: fixed; z-index: 81; width: 180px; padding: 4px; border: 1px solid #e5e5e5; border-radius: 8px; background: #fff; box-shadow: 0 4px 16px #0a0a0a26; outline: none; }
@@ -54,11 +63,19 @@
 .flows-screen-body h4 { margin: 4px 8px 2px; color: #737373; font-size: 12px; font-weight: 500; line-height: 1.25; text-transform: uppercase; }
 .flows-screen-body ul { padding-left: 28px; }
 .flows-screen-body li { padding-top: 4px; padding-bottom: 4px; }
-.flows-screen-element-editor { margin-top: 8px; padding: 8px 0; border: 1px solid #e5e5e5; border-radius: 6px; background: #f5f5f5; }
+.flows-screen-element-editor { margin-top: 8px; padding: 4px 0; border: 1px solid #e5e5e5; border-radius: 6px; background: #f5f5f5; }
+.flows-screen-element-row { display: flex; align-items: center; gap: 4px; }
+.flows-screen-element-input { flex: 1; min-width: 0; height: 26px; padding: 0 6px; border: 1px solid transparent; border-radius: 4px; background: transparent; color: #262626; font-size: 12px; font-weight: 500; outline: none !important; }
+.flows-screen-element-input:hover { background: #fafafa; }
+.flows-screen-element-input:focus { border-color: #c7c3ff; background: #fff; }
+.flows-screen-element-input::placeholder { color: #a3a3a3; }
+.flows-screen-element-remove { display: inline-flex; width: 22px; height: 22px; align-items: center; justify-content: center; border-radius: 4px; color: #a3a3a3; opacity: 0; }
+.flows-screen-element-row:hover .flows-screen-element-remove, .flows-screen-element-remove:focus-visible { opacity: 1; }
+.flows-screen-element-remove:hover { background: #e5e5e5; color: #525252; }
 .flows-screen-empty { margin: 12px 8px; font-size: 12px; color: #737373; }
 .flows-screen-actions { margin-top: 12px; }
 .flows-screen-actions > div { justify-content: space-between; }
 .flows-screen-actions button:last-child { border-color: #9e99f8; background: linear-gradient(#7b76df, #463fba); color: #fff; }
 .flows-screen-dialog button:disabled { opacity: .45; cursor: not-allowed; }
 .flows-screen-dialog :focus-visible { outline: 2px solid #6155ff !important; outline-offset: 3px; }
-@media (max-width: 680px) { .flows-canvas .react-flow__panel.flows-canvas-toolbar { left: 0; transform: none; } .flows-canvas .react-flow__panel { margin: 10px; } .flows-canvas-actions { max-width: calc(100% - 20px); flex-wrap: wrap; justify-content: flex-end; } }
+@media (max-width: 680px) { .flows-canvas .react-flow__panel.flows-canvas-toolbar { left: 0; transform: none; } .flows-canvas-toolbar .flows-canvas-tool { width: 32px; height: 32px; } .flows-canvas-toolbar .flows-canvas-toolbar-divider { display: none; } .flows-canvas-toolbar .flows-canvas-tool { width: 32px; height: 32px; } .flows-canvas-toolbar .flows-canvas-toolbar-divider { display: none; } .flows-canvas .react-flow__panel { margin: 10px; } .flows-canvas-actions { max-width: calc(100% - 20px); flex-wrap: wrap; justify-content: flex-end; } }

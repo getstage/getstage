@@ -38,6 +38,21 @@ export const flowsCanvasEditSchema = z.discriminatedUnion("type", [
     source: identifier,
     target: identifier,
   }),
+  // A new page or screen. The client picks the id so it can select the node right away;
+  // `after` links it from an existing step.
+  z.object({
+    type: z.literal("addStep"),
+    flowId: identifier,
+    stepId: identifier,
+    label: z.string().trim().min(1).max(120),
+    position: canvasPositionSchema,
+    after: identifier.optional(),
+  }),
+  z.object({
+    type: z.literal("arrange"),
+    flowId: identifier,
+    direction: z.enum(["vertical", "horizontal"]),
+  }),
 ]);
 export type FlowCanvasBoard = z.infer<typeof flowCanvasBoardSchema>;
 export type FlowsCanvas = z.infer<typeof flowsCanvasSchema>;
