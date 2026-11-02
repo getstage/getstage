@@ -30,6 +30,7 @@ use crate::research::service::{ResearchPromptBundle, ResearchService};
 use crate::research::skills::{
     build_skill_report_prompt, clean_skill_report, fetch_skills, skill_report_value,
 };
+use crate::research::ui_pattern_insights::{screenshot_attachments, ui_pattern_prompt_section};
 use crate::runs::RunEventSink;
 use serde_json::{Value as JsonValue, json};
 
@@ -203,7 +204,7 @@ impl ResearchWorkflow {
             } else {
                 ResearchUiPatternProvider::Refero
             };
-            let (bundle, image_keys) = if input.project_category == ProjectCategory::Websites {
+            let (bundle, image_keys, pattern_screenshots) = if input.project_category == ProjectCategory::Websites {
                 self.tool_started(
                     api_version,
                     &run_id,
@@ -216,13 +217,14 @@ impl ResearchWorkflow {
                 let details_started = std::time::Instant::now();
                 let details = self.resolve_details(&auth_token).await?;
                 let mut context = details.research_context(&input).await?;
-                let image_keys = persist_prepared_context_images(
+                let persisted = persist_prepared_context_images(
                     &uploader,
                     &auth_token,
                     project_id,
                     &mut context,
                 )
                 .await?;
+                let image_keys = persisted.image_keys;
                 tracing::info!(
                     run_id = %run_id,
                     project_id,
@@ -239,6 +241,7 @@ impl ResearchWorkflow {
                         prompt,
                     },
                     image_keys,
+                    persisted.pattern_screenshots,
                 )
             } else {
                 self.tool_started(
@@ -254,7 +257,7 @@ impl ResearchWorkflow {
                 let refero = self.resolve_refero(&auth_token).await?;
                 let research = ResearchService::new(refero.clone());
                 let mut bundle = research.build_prompt_bundle(input.clone()).await?;
-                let image_keys = persist_refero_context_images(
+                let persisted = persist_refero_context_images(
                     &refero,
                     &uploader,
                     &auth_token,
@@ -262,6 +265,7 @@ impl ResearchWorkflow {
                     &mut bundle.refero_context,
                 )
                 .await?;
+                let image_keys = persisted.image_keys;
                 tracing::info!(
                     run_id = %run_id,
                     project_id,
@@ -271,11 +275,25 @@ impl ResearchWorkflow {
                     "Refero images persisted to R2"
                 );
                 self.tool_completed(api_version, &run_id, provider_id, &sink, "refero-context");
-                (bundle, image_keys)
+                (bundle, image_keys, persisted.pattern_screenshots)
             };
             uploaded_research_asset_keys = image_keys.values().cloned().collect();
 
-            request.prompt = bundle.prompt;
+            // UI pattern recognition: the AI sees the section screenshots and names
+            // the patterns in uiPatternInsights (checked in apply_engine_ui_patterns).
+            tracing::info!(
+                run_id = %run_id,
+                pattern_screenshots = pattern_screenshots.len(),
+                "attaching UI pattern screenshots"
+            );
+            request
+                .attachments
+                .extend(screenshot_attachments(&pattern_screenshots));
+            request.prompt = format!(
+                "{}\n\n{}",
+                bundle.prompt,
+                ui_pattern_prompt_section(&pattern_screenshots)
+            );
             // The provider is held to Stage's artifact format while it writes; the checks
             // below remain as the second line of defence.
             request.output_schema = Some(research_output_schema());
