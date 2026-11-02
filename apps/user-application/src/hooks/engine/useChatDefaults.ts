@@ -49,7 +49,8 @@ export const responseSpeeds: ResponseSpeedOption[] = [
 ];
 
 export const DEFAULT_CHAT_DEFAULTS: ChatDefaultsState = {
-  modelId: "gpt-5.5",
+  // The provider picks its own default model; no model name is hardcoded.
+  modelId: "codex-default",
   reasoningEffort: "medium",
   responseSpeed: "default",
 };

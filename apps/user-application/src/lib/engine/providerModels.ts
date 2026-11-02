@@ -83,5 +83,5 @@ export function getDefaultModelIdFromProviders(
   }
 
   const models = chatModelsFromProviders(providers);
-  return models.find((model) => model.id === "gpt-5.5")?.id ?? models[0]?.id ?? null;
+  return models[0]?.id ?? null;
 }
