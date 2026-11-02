@@ -9,8 +9,7 @@ import {
 } from "../../../_helpers";
 import { attachTrackedR2Asset, deleteOldR2Asset } from "../../../r2";
 import { buildApiProjectSummary } from "../../../domain/projects/apiReadModel";
-import { resolveWorkspaceContext } from "../../../domain/collaborators/service";
-import { getCurrentSubscriptionSnapshot } from "../../../billing";
+import { resolveSpaceContext } from "../../../domain/collaborators/service";
 import { assertProjectCreationAllowed } from "../../../domain/projects/entitlement";
 import {
   buildProject,
@@ -18,7 +17,6 @@ import {
   recomputeProjectState,
 } from "../../../domain/projects/readModel";
 import { requireProjectAccessForUserId } from "../../../helpers/access/projectAccess";
-import { listActiveMembershipsForUser } from "../../../helpers/access/seatEntitlement";
 import { now } from "../../../helpers/time";
 
 export { requireProjectAccessForUserId };
@@ -152,33 +150,6 @@ export async function listProjectSummariesForUser(
   return Promise.all(projects.map(({ project }) => buildApiProjectSummary(project)));
 }
 
-async function resolveProjectOwnerForCreate(
-  ctx: ReaderCtx,
-  actorId: Id<"users">,
-  spaceOwnerId?: Id<"users">,
-) {
-  if (!spaceOwnerId) {
-    return resolveWorkspaceContext(ctx, actorId);
-  }
-
-  if (spaceOwnerId === actorId) {
-    return {
-      ownerUserId: actorId,
-      subscription: await getCurrentSubscriptionSnapshot(ctx, String(actorId)),
-    };
-  }
-
-  const memberships = await listActiveMembershipsForUser(ctx, actorId);
-  if (!memberships.some((membership) => membership.ownerUserId === spaceOwnerId)) {
-    throw new Error("You do not have access to that workspace.");
-  }
-
-  return {
-    ownerUserId: spaceOwnerId,
-    subscription: await getCurrentSubscriptionSnapshot(ctx, String(spaceOwnerId)),
-  };
-}
-
 export async function createProjectForUser(
   ctx: MutationCtx,
   args: {
@@ -199,7 +170,7 @@ export async function createProjectForUser(
   },
 ) {
   const user = await requireActorUser(ctx, args.userId);
-  const workspace = await resolveProjectOwnerForCreate(ctx, user._id, args.spaceOwnerId);
+  const workspace = await resolveSpaceContext(ctx, user._id, args.spaceOwnerId);
   const ownerUserId = workspace.ownerUserId;
   const plan = workspace.subscription?.plan ?? user.plan ?? "free";
   const projectName = requireNonEmptyTrimmedString(args.name, "Project name");

@@ -4,6 +4,8 @@ import { convexQuery } from "@convex-dev/react-query";
 import { z } from "zod";
 import { useDesktopAuth } from "@/lib/auth";
 import { api } from "@/lib/convexApi";
+import type { Id } from "@stage/data-ops/convex/data-model";
+import { useActiveSpace } from "@/hooks/workspace/useActiveSpace";
 
 const creditSummarySchema = z.object({
   total: z.number(),
@@ -21,12 +23,17 @@ const creditSummarySchema = z.object({
 
 export type CreditSummary = z.infer<typeof creditSummarySchema>;
 
-// Credit balance for the signed-in user's workspace. `data` is undefined while
-// loading (tri-state) so the widget can distinguish loading from an empty wallet.
+// Credit balance for the active space, the same wallet runs in that space are
+// charged to. `data` is undefined while loading (tri-state) so the widget can
+// distinguish loading from an empty wallet.
 export function useCreditSummaryQuery() {
   const { isAuthenticated, isLoading: isAuthLoading } = useDesktopAuth();
+  const { activeId } = useActiveSpace();
   const { data: summary, isPending } = useQuery(
-    convexQuery(api.credits.getCreditSummary, isAuthenticated ? {} : "skip"),
+    convexQuery(
+      api.credits.getCreditSummary,
+      isAuthenticated ? (activeId ? { spaceOwnerId: activeId as Id<"users"> } : {}) : "skip",
+    ),
   );
   const data = useMemo<CreditSummary | undefined>(
     () => (summary === undefined ? undefined : creditSummarySchema.parse(summary)),

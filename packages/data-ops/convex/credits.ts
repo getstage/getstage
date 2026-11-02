@@ -2,7 +2,7 @@ import { internalMutation, internalQuery, mutation, query } from "./_generated/s
 import { v } from "convex/values";
 import { components } from "./_generated/api";
 import { requireAuthUser, requireProjectAccess } from "./_helpers";
-import { resolveWorkspaceContext } from "./domain/collaborators/service";
+import { resolveSpaceContext, resolveWorkspaceContext } from "./domain/collaborators/service";
 import {
   CREDIT_COSTS,
   capTrialWalletTo150Once,
@@ -30,13 +30,13 @@ function monthlyAllowanceForSubscription(subscription: {
   return subscription.plan ? monthlyCreditsForTier(subscription.plan) : 0;
 }
 
-// Credit balance for the signed-in user's own workspace. Loading is undefined
+// Credit balance for the active space (own or team workspace). Loading is undefined
 // (tri-state) on the client; this always resolves to a concrete summary.
 export const getCreditSummary = query({
-  args: {},
-  handler: async (ctx) => {
+  args: { spaceOwnerId: v.optional(v.id("users")) },
+  handler: async (ctx, args) => {
     const user = await requireAuthUser(ctx);
-    const workspace = await resolveWorkspaceContext(ctx, user._id);
+    const workspace = await resolveSpaceContext(ctx, user._id, args.spaceOwnerId);
     const monthlyAllowance = monthlyAllowanceForSubscription(workspace.subscription);
     return getCreditSummaryForOwner(ctx, workspace.ownerUserId, monthlyAllowance);
   },

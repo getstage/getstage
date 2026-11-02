@@ -52,6 +52,35 @@ export async function resolveWorkspaceContext(ctx: ReaderCtx, userId: Id<"users"
   };
 }
 
+// The space the user is working in: their own, or a workspace they are an active
+// member of. Without a chosen space, falls back to resolveWorkspaceContext.
+export async function resolveSpaceContext(
+  ctx: ReaderCtx,
+  userId: Id<"users">,
+  spaceOwnerId?: Id<"users">,
+) {
+  if (!spaceOwnerId) {
+    return resolveWorkspaceContext(ctx, userId);
+  }
+
+  if (spaceOwnerId === userId) {
+    return {
+      ownerUserId: userId,
+      subscription: await getCurrentSubscriptionSnapshot(ctx, String(userId)),
+    };
+  }
+
+  const memberships = await listActiveMembershipsForUser(ctx, userId);
+  if (!memberships.some((membership) => membership.ownerUserId === spaceOwnerId)) {
+    throw new Error("You do not have access to that workspace.");
+  }
+
+  return {
+    ownerUserId: spaceOwnerId,
+    subscription: await getCurrentSubscriptionSnapshot(ctx, String(spaceOwnerId)),
+  };
+}
+
 const inviteEmailSchema = z
   .string()
   .trim()
