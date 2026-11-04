@@ -357,6 +357,38 @@ async function handleChargeRefunded(ctx: WebhookCtx, event: Stripe.Event) {
   });
 }
 
+// invoice.payment_failed — a renewal or plan charge failed. Stripe moves the
+// subscription to past_due, and customer.subscription.updated then revokes credits and
+// the app shows "update payment". This records which user it was, so failed renewals
+// show up in the logs per user instead of as an unhandled event (STA-59).
+async function handleInvoicePaymentFailed(ctx: WebhookCtx, event: Stripe.Event) {
+  const invoice = event.data.object as Stripe.Invoice;
+  const subscriptionId = subscriptionIdFromInvoice(invoice);
+  const synced = subscriptionId
+    ? await ctx.runQuery(components.stripe.public.getSubscription, { stripeSubscriptionId: subscriptionId })
+    : null;
+  console.warn("invoice.payment_failed", {
+    eventId: event.id,
+    userId: synced?.userId ?? null,
+    subscriptionId,
+    attempt: invoice.attempt_count,
+    amountDue: invoice.amount_due,
+    nextAttempt: invoice.next_payment_attempt,
+  });
+}
+
+// payment_intent.payment_failed — a one-off charge (top-up or first invoice) failed.
+// Nothing was granted, so there is nothing to undo; logged for the same reason.
+async function handlePaymentIntentFailed(_ctx: WebhookCtx, event: Stripe.Event) {
+  const intent = event.data.object as Stripe.PaymentIntent;
+  console.warn("payment_intent.payment_failed", {
+    eventId: event.id,
+    userId: intent.metadata?.userId ?? null,
+    amount: intent.amount,
+    reason: intent.last_payment_error?.code ?? null,
+  });
+}
+
 export const creditWebhookEvents = {
   "checkout.session.completed": handleCheckoutCompleted,
   "invoice.paid": handleInvoicePaid,
@@ -364,4 +396,6 @@ export const creditWebhookEvents = {
   "customer.subscription.updated": handleSubscriptionUpdated,
   "customer.subscription.deleted": handleSubscriptionDeleted,
   "charge.refunded": handleChargeRefunded,
+  "invoice.payment_failed": handleInvoicePaymentFailed,
+  "payment_intent.payment_failed": handlePaymentIntentFailed,
 } as const;

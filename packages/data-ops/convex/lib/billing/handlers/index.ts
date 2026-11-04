@@ -121,7 +121,13 @@ async function loadSubscriptionByUserId(
     userId,
   })) as StripeSubscriptionSummary[];
 
-  const sorted = [...subscriptions].sort((a, b) => b.currentPeriodEnd - a.currentPeriodEnd);
+  // A subscription that is being paid wins over one with a failed payment, newest first.
+  // Otherwise an old Studio trial left past_due outranks the Solo plan the user pays for
+  // (STA bug: app showed Studio while Stripe billed Solo).
+  const unpaidRank = (status: string) => (status === "active" || status === "trialing" ? 0 : 1);
+  const sorted = [...subscriptions].sort(
+    (a, b) => unpaidRank(a.status) - unpaidRank(b.status) || b.currentPeriodEnd - a.currentPeriodEnd,
+  );
   // Pick the newest active subscription whose price maps to a known tier. A leftover
   // subscription from a reset/switched Stripe account (unknown price) must NOT mask a
   // valid current one — otherwise the workspace stays gated after a real payment.
