@@ -18,4 +18,6 @@ export const PUBLIC_WEB_PATHS: ReadonlySet<string> = new Set([
   "/tools",
   "/profile",
   "/setup-profile",
+  // STA-63: "Choose how to use Stage" after sign-up; sends signed-out visitors to /auth.
+  "/start",
 ]);

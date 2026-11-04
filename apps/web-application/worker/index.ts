@@ -64,7 +64,7 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
     }
 
     const pathname = requestUrl.pathname;
-    const privatePage = !/\.[^/]+$/.test(pathname) && (/^\/(auth|profile|builders|setup-profile|billing|invite|dashboard|settings|project|new-project|portal)(\/|$)/.test(pathname) || pathname === '/download/mac' || pathname === '/download/mac/');
+    const privatePage = !/\.[^/]+$/.test(pathname) && (/^\/(auth|profile|builders|setup-profile|start|billing|invite|dashboard|settings|project|new-project|portal)(\/|$)/.test(pathname) || pathname === '/download/mac' || pathname === '/download/mac/');
     const assetUrl = new URL(requestUrl);
     if (privatePage) assetUrl.pathname = "/app-shell";
     const assetResponse = await env.ASSETS.fetch(privatePage ? new Request(assetUrl, request) : request);
