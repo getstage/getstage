@@ -42,6 +42,8 @@ export function captureRunEvent(event: RunEvent) {
     mode: run?.mode,
     provider: event.providerId,
     duration_seconds: run ? Math.round((event.createdAt - run.startedAt) / 1000) : undefined,
-    ...(event.type === "run_failed" ? { error_code: event.error.code } : {}),
+    // The engine's real cause (e.g. which Convex call failed) so failures like STA-60 can be
+    // traced; users only ever see the friendly message.
+    ...(event.type === "run_failed" ? { error_code: event.error.code, error_detail: event.error.detail?.slice(0, 300) } : {}),
   });
 }
