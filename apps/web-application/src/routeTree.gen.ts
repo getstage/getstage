@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TermsRouteImport } from './routes/terms'
+import { Route as StartRouteImport } from './routes/start'
 import { Route as SetupProfileRouteImport } from './routes/setup-profile'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as PrivacyRouteImport } from './routes/privacy'
@@ -53,6 +54,11 @@ import { Route as AuthedProjectIdTaskTaskIdRouteImport } from './routes/_authed/
 const TermsRoute = TermsRouteImport.update({
   id: '/terms',
   path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StartRoute = StartRouteImport.update({
+  id: '/start',
+  path: '/start',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SetupProfileRoute = SetupProfileRouteImport.update({
@@ -263,6 +269,7 @@ export interface FileRoutesByFullPath {
   '/privacy': typeof PrivacyRoute
   '/profile': typeof ProfileRoute
   '/setup-profile': typeof SetupProfileRoute
+  '/start': typeof StartRoute
   '/terms': typeof TermsRoute
   '/dashboard': typeof AuthedDashboardRoute
   '/new-project': typeof AuthedNewProjectRoute
@@ -303,6 +310,7 @@ export interface FileRoutesByTo {
   '/privacy': typeof PrivacyRoute
   '/profile': typeof ProfileRoute
   '/setup-profile': typeof SetupProfileRoute
+  '/start': typeof StartRoute
   '/terms': typeof TermsRoute
   '/dashboard': typeof AuthedDashboardRoute
   '/new-project': typeof AuthedNewProjectRoute
@@ -346,6 +354,7 @@ export interface FileRoutesById {
   '/privacy': typeof PrivacyRoute
   '/profile': typeof ProfileRoute
   '/setup-profile': typeof SetupProfileRoute
+  '/start': typeof StartRoute
   '/terms': typeof TermsRoute
   '/_authed/dashboard': typeof AuthedDashboardRoute
   '/_authed/new-project': typeof AuthedNewProjectRoute
@@ -389,6 +398,7 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/profile'
     | '/setup-profile'
+    | '/start'
     | '/terms'
     | '/dashboard'
     | '/new-project'
@@ -429,6 +439,7 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/profile'
     | '/setup-profile'
+    | '/start'
     | '/terms'
     | '/dashboard'
     | '/new-project'
@@ -471,6 +482,7 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/profile'
     | '/setup-profile'
+    | '/start'
     | '/terms'
     | '/_authed/dashboard'
     | '/_authed/new-project'
@@ -514,6 +526,7 @@ export interface RootRouteChildren {
   PrivacyRoute: typeof PrivacyRoute
   ProfileRoute: typeof ProfileRoute
   SetupProfileRoute: typeof SetupProfileRoute
+  StartRoute: typeof StartRoute
   TermsRoute: typeof TermsRoute
   BillingReturnRoute: typeof BillingReturnRoute
   BlogSlugRoute: typeof BlogSlugRoute
@@ -539,6 +552,13 @@ declare module '@tanstack/react-router' {
       path: '/terms'
       fullPath: '/terms'
       preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/start': {
+      id: '/start'
+      path: '/start'
+      fullPath: '/start'
+      preLoaderRoute: typeof StartRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/setup-profile': {
@@ -911,6 +931,7 @@ const rootRouteChildren: RootRouteChildren = {
   PrivacyRoute: PrivacyRoute,
   ProfileRoute: ProfileRoute,
   SetupProfileRoute: SetupProfileRoute,
+  StartRoute: StartRoute,
   TermsRoute: TermsRoute,
   BillingReturnRoute: BillingReturnRoute,
   BlogSlugRoute: BlogSlugRoute,
