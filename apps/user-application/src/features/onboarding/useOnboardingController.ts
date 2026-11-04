@@ -5,6 +5,7 @@ import {
   useMutation as useConvexMutation,
   useQuery as useConvexQuery,
 } from "convex/react";
+import { useAiToolConnected } from "@/hooks/settings/useToolConnections";
 import { createProjectFromDraft } from "@/features/project-creation/createProjectFromDraft";
 import { useProjectDraft } from "@/features/project-creation/useProjectDraft";
 import {
@@ -94,6 +95,7 @@ export function useOnboardingController({
   const onboardingState = useConvexQuery(api.onboarding.getState, shouldUseAuthenticatedConvex ? {} : "skip");
   const viewer = useConvexQuery(api.viewer.getIdentity, shouldUseAuthenticatedConvex ? {} : "skip");
   const skipQuestions = Boolean(onboardingState?.hasAnswers);
+  const aiToolConnected = useAiToolConnected();
 
   const flowSteps = useMemo(
     () =>
@@ -107,6 +109,7 @@ export function useOnboardingController({
   const currentIndex = flowSteps.indexOf(getCurrentStepForProgress(step));
   const continueEnabled = canContinue({
     step,
+    aiToolConnected,
     setProjectLater,
     method: draft.method,
     projectName: draft.projectName,
@@ -334,6 +337,7 @@ export function useOnboardingController({
   function handleContinue() {
     const validationError = getStepValidationError({
       step,
+      aiToolConnected,
       setProjectLater,
       method: draft.method,
       projectName: draft.projectName,
@@ -355,6 +359,9 @@ export function useOnboardingController({
 
     switch (step) {
       case "welcome":
+        setStep("tech-stack");
+        return;
+      case "tech-stack":
         setStep(skipQuestions ? "workspace" : "questions");
         return;
       case "questions":
@@ -503,6 +510,12 @@ export function useOnboardingController({
     setStep("paywall");
   }
 
+  // "Skip for now" on the workspace step: nothing is saved, invites can be sent later.
+  function skipWorkspace() {
+    setStepError(null);
+    setStep("project");
+  }
+
   function handleToggleCsvConnection() {
     const next = !csvConnected;
     setCsvConnected(next);
@@ -585,6 +598,7 @@ export function useOnboardingController({
     handlePaywallUpgrade,
     goBack,
     handleDoLater,
+    skipWorkspace,
     handleToggleCsvConnection,
     handleLinkSheetUrl,
     setSheetUrl,

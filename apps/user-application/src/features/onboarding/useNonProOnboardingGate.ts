@@ -8,6 +8,8 @@ import {
 import { coveringPlan } from "@/models/settings/settings";
 import { useDesktopSession } from "@/hooks/engine/useDesktopSession";
 
+type SessionProgress = { userId: string; completed: boolean; checkoutReturned: boolean };
+
 /**
  * Product-tier gate for authenticated desktop users. The welcome flow is only for
  * free workspaces without projects; any free workspace that already has one or more
@@ -20,14 +22,13 @@ export function useNonProOnboardingGate() {
   const session = useDesktopSession();
   const [onboardingOpen, setOnboardingOpen] = useState(false);
   const [onboardingInitialStep, setOnboardingInitialStep] = useState<OnboardingStepId>("welcome");
-  const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState(false);
-  const [checkoutReturned, setCheckoutReturned] = useState(false);
-
-  useEffect(() => {
-    if (onboardingStateQuery.data?.isCompleted) {
-      setHasCompletedOnboarding(true);
-    }
-  }, [onboardingStateQuery.data?.isCompleted]);
+  // What happened in this app session, tied to the account it happened for. Signing in
+  // with another account (or a re-created one) starts clean instead of inheriting it.
+  const [sessionProgress, setSessionProgress] = useState<SessionProgress>();
+  const userId = session.data?.userId;
+  const progress = sessionProgress?.userId === userId ? sessionProgress : undefined;
+  const hasCompletedOnboarding = progress?.completed === true;
+  const checkoutReturned = progress?.checkoutReturned === true;
 
   useEffect(() => {
     if (session.isLoading || !session.data?.hasAccessToken) {
@@ -74,14 +75,17 @@ export function useNonProOnboardingGate() {
     onboardingStateQuery.data,
   ]);
 
-  const onOnboardingComplete = useCallback((_submission: OnboardingSubmission) => {
-    setHasCompletedOnboarding(true);
-    setOnboardingOpen(false);
-  }, []);
+  const onOnboardingComplete = useCallback(
+    (_submission: OnboardingSubmission) => {
+      if (userId) setSessionProgress({ userId, completed: true, checkoutReturned });
+      setOnboardingOpen(false);
+    },
+    [userId, checkoutReturned],
+  );
 
   const notifyCheckoutReturned = useCallback(() => {
-    setCheckoutReturned(true);
-  }, []);
+    if (userId) setSessionProgress({ userId, completed: hasCompletedOnboarding, checkoutReturned: true });
+  }, [userId, hasCompletedOnboarding]);
 
   return {
     onboardingOpen,

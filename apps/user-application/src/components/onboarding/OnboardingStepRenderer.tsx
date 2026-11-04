@@ -12,7 +12,13 @@ import { AlmostSetupPreview, ProSuccessCard } from "@/components/onboarding/Onbo
 import { ONBOARDING_ICON_SRC } from "@/components/onboarding/constants";
 import { OnboardingMethodStep } from "@/components/onboarding/steps/OnboardingMethodStep";
 import { OnboardingPhaseSelectStep } from "@/components/onboarding/steps/OnboardingPhaseSelectStep";
-import { FirstProjectStep, QuestionsStep, WelcomeBackStep, WorkspaceStep } from "@/components/onboarding/steps/OnboardingSetupSteps";
+import {
+  FirstProjectStep,
+  QuestionsStep,
+  TechStackStep,
+  WelcomeStep,
+  WorkspaceStep,
+} from "@/components/onboarding/steps/OnboardingSetupSteps";
 import type { OnboardingAnswers } from "@/features/onboarding/model";
 import { PROJECT_CATEGORIES, PROJECT_TYPES, PROJECT_TYPE_ICONS } from "@/lib/constants";
 import { AVATAR_ACCEPT, PROJECT_MARKER_ACCEPT } from "@/lib/r2Uploads";
@@ -21,7 +27,6 @@ import type { UseProjectDraftResult } from "@/features/project-creation/useProje
 import type { OnboardingStepId } from "@/features/onboarding/model";
 import type { ProjectType } from "@/types";
 import type { ClaudeConnectionSummary } from "@/types/settings";
-import { WelcomeSlide } from "./OnboardingAnimations";
 import { OnboardingStepMotion, StepShell } from "./OnboardingPrimitives";
 
 type OnboardingStepRendererProps = {
@@ -33,6 +38,8 @@ type OnboardingStepRendererProps = {
   answers: OnboardingAnswers;
   onAnswersChange: (patch: Partial<OnboardingAnswers>) => void;
   skipQuestions: boolean;
+  continueEnabled: boolean;
+  onSkipWorkspace: () => void;
   stepError: string | null;
   creationReady: boolean;
   isCheckoutLoading: boolean;
@@ -56,6 +63,8 @@ export function OnboardingStepRenderer({
   answers,
   onAnswersChange,
   skipQuestions,
+  continueEnabled,
+  onSkipWorkspace,
   stepError,
   isCheckoutLoading,
   checkoutError,
@@ -65,31 +74,37 @@ export function OnboardingStepRenderer({
   onClaudeActivated,
 }: OnboardingStepRendererProps) {
   const { draft } = draftState;
+  const footer = { continueEnabled, onContinue, error: stepError };
 
   switch (step) {
     case "welcome":
       return (
-        <OnboardingStepMotion motionKey="welcome">
-          {skipQuestions ? <WelcomeBackStep userName={userName} /> : <WelcomeSlide userName={userName} />}
+        <OnboardingStepMotion motionKey="welcome" className="w-full">
+          <WelcomeStep userName={userName} returning={skipQuestions} onContinue={onContinue} />
+        </OnboardingStepMotion>
+      );
+    case "tech-stack":
+      return (
+        <OnboardingStepMotion motionKey="tech-stack" className="w-full">
+          <TechStackStep footer={footer} />
         </OnboardingStepMotion>
       );
     case "questions":
       return (
-        <OnboardingStepMotion motionKey="questions">
-          <QuestionsStep answers={answers} onChange={onAnswersChange} />
+        <OnboardingStepMotion motionKey="questions" className="w-full">
+          <QuestionsStep answers={answers} onChange={onAnswersChange} footer={footer} />
         </OnboardingStepMotion>
       );
     case "workspace":
       return (
-        <OnboardingStepMotion motionKey="workspace">
-          <WorkspaceStep answers={answers} onChange={onAnswersChange} />
+        <OnboardingStepMotion motionKey="workspace" className="w-full">
+          <WorkspaceStep answers={answers} onChange={onAnswersChange} footer={footer} onSkip={onSkipWorkspace} />
         </OnboardingStepMotion>
       );
     case "project":
       return (
-        <OnboardingStepMotion motionKey="project">
-          <FirstProjectStep answers={answers} onChange={onAnswersChange} draftState={draftState} />
-          {stepError ? <p role="alert" className="mt-3 text-[12px] text-red-600">{stepError}</p> : null}
+        <OnboardingStepMotion motionKey="project" className="w-full">
+          <FirstProjectStep answers={answers} onChange={onAnswersChange} draftState={draftState} footer={footer} />
         </OnboardingStepMotion>
       );
     case "personalise":

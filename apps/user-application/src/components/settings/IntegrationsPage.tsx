@@ -1,40 +1,19 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import * as Dialog from "@radix-ui/react-dialog";
-import {
-  useAction as useConvexAction,
-  useConvexAuth,
-  useMutation as useConvexMutation,
-  useQuery as useConvexQuery,
-} from "convex/react";
-import { useProviderRefresh, useProviderStatus } from "@/hooks/engine/useProviderStatus";
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import {
   getChatModelById,
   reasoningEfforts,
   responseSpeeds,
   useChatDefaults,
 } from "@/hooks/engine/useChatDefaults";
-import { useProviderPreferences } from "@/hooks/engine/useProviderPreferences";
-import { api } from "@/lib/convex";
+import { useToolConnections } from "@/hooks/settings/useToolConnections";
 import {
   hasMissingProviderCli,
   PROVIDER_CLI_RESTART_BANNER,
 } from "@/lib/settings/providerCliHints";
-import type { ProviderId } from "@stage/data-ops/contracts";
-import {
-  googleSheetsIntegrationToRow,
-  nativeIntegrationToRow,
-  paperIntegrationToRow,
-  providerToIntegrationRow,
-} from "@/lib/settings/providerIntegrationRows";
-import { isProviderCliReady } from "@/lib/settings/providerCliSetup";
-import { openExternalLink } from "@/lib/settings/openExternalLink";
-import { FIGMA_COMMUNITY_PLUGIN_URL } from "@/lib/settings/figmaPlugin";
 import type { IntegrationRowModel } from "@/types/settings/integrations";
-import type { PaperConnectionStatusResponse } from "@stage/data-ops/contracts";
-import { SetupStepsDialog } from "@/components/ui/SetupStepsDialog";
-import { ProviderCliSetupDialog } from "./ProviderCliSetupDialog";
 import { ProviderUpdatesBanner } from "./ProviderUpdatesBanner";
 import { SettingsIcon } from "./SettingsIcons";
+import { ToolConnectionDialogs } from "./ToolConnectionDialogs";
 import {
   ComponentsHubPanel,
   MarketplaceHubPanel,
@@ -44,105 +23,28 @@ import type { IntegrationsHubTab } from "@/lib/settings/skillsCatalog";
 import { HUB_TAB_ICON_PATHS } from "@/lib/settings/skillsCatalog";
 
 export function IntegrationsPage() {
-  const { isAuthenticated } = useConvexAuth();
-  const providers = useProviderStatus();
-  const providerRefresh = useProviderRefresh();
-  const providerPreferences = useProviderPreferences();
+  const connections = useToolConnections();
   const chatDefaults = useChatDefaults();
   const [hubTab, setHubTab] = useState<IntegrationsHubTab>("tools");
-  const [busyIntegrationId, setBusyIntegrationId] = useState<string | null>(null);
-  const [setupDialogProviderId, setSetupDialogProviderId] = useState<ProviderId | null>(null);
   const [aiDefaultsOpen, setAiDefaultsOpen] = useState(false);
-  const [figmaSetupOpen, setFigmaSetupOpen] = useState(false);
-  const [paperSetupMessage, setPaperSetupMessage] = useState<string | null>(null);
   const [modelMenuOpen, setModelMenuOpen] = useState(false);
-  const [paperStatus, setPaperStatus] = useState<PaperConnectionStatusResponse | null>(null);
-  const [paperStatusPending, setPaperStatusPending] = useState(false);
   const modelMenuRef = useRef<HTMLDivElement>(null);
-
-  const nativeConnectionStatus = useConvexQuery(
-    api.integrations.contentPlatforms.getNativeConnectionStatus,
-    isAuthenticated ? {} : "skip",
-  );
-  const sheetConnectionStatus = useConvexQuery(
-    api.integrations.googleSheets.getSheetConnectionStatus,
-    isAuthenticated ? {} : "skip",
-  );
-
-  const startOAuthConnect = useConvexAction(
-    api.integrations.contentPlatforms.startOAuthConnect,
-  );
-  const disconnectNativeConnection = useConvexMutation(
-    api.integrations.contentPlatforms.disconnectConnection,
-  );
-  const connectSheet = useConvexMutation(api.integrations.googleSheets.connectSheet);
-  const disconnectSheet = useConvexMutation(api.integrations.googleSheets.disconnectSheet);
-
-  const providerRows = useMemo(
-    () =>
-      providers.providerList.providers.map((provider) =>
-        providerToIntegrationRow(
-          provider,
-          providerPreferences.isProviderEnabled(provider.id),
-        ),
-      ),
-    [providerPreferences, providers.providerList.providers],
-  );
-  const nativeIntegrationRows = useMemo(
-    () => [
-      nativeIntegrationToRow("figma", nativeConnectionStatus?.figma ?? null),
-      nativeIntegrationToRow("notion", nativeConnectionStatus?.notion ?? null),
-      paperIntegrationToRow(paperStatus, paperStatusPending),
-      googleSheetsIntegrationToRow(sheetConnectionStatus?.googleSheet ?? null),
-    ],
-    [
-      nativeConnectionStatus?.figma,
-      nativeConnectionStatus?.notion,
-      paperStatus,
-      paperStatusPending,
-      sheetConnectionStatus?.googleSheet,
-    ],
-  );
+  const {
+    providers,
+    providerRows,
+    nativeIntegrationRows,
+    isRefreshing,
+    busyIntegrationId,
+    handleIntegrationAction,
+    refreshIntegrations,
+    setFigmaSetupOpen,
+  } = connections;
 
   const integrationRows = [...providerRows, ...nativeIntegrationRows];
   const connectedIntegrations = integrationRows.filter((integration) => integration.connected);
   const availableIntegrations = integrationRows.filter((integration) => !integration.connected);
   const showProviderCliRestartHint = hasMissingProviderCli(providers.providerList.providers);
-  const isRefreshing = providerRefresh.isPending || paperStatusPending;
   const selectedDefaultModel = chatDefaults.selectedModel;
-
-  async function refreshPaperStatus(showSetupOnFailure = false) {
-    if (!window.stageDesktop?.engine?.getPaperStatus) return;
-
-    setPaperStatusPending(true);
-    try {
-      const status = await window.stageDesktop.engine.getPaperStatus();
-      setPaperStatus(status);
-      if (showSetupOnFailure && !status.ready) {
-        setPaperSetupMessage(status.message);
-      }
-    } catch (error) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : "Could not check Paper Desktop.";
-      setPaperStatus({
-        apiVersion: "v1",
-        ready: false,
-        status: "not-ready",
-        message,
-      });
-      if (showSetupOnFailure) {
-        setPaperSetupMessage(message);
-      }
-    } finally {
-      setPaperStatusPending(false);
-    }
-  }
-
-  async function refreshIntegrations() {
-    await Promise.all([providerRefresh.mutateAsync(), refreshPaperStatus()]);
-  }
 
   useEffect(() => {
     if (!modelMenuOpen) {
@@ -172,98 +74,7 @@ export function IntegrationsPage() {
     };
   }, [modelMenuOpen]);
 
-  useEffect(() => {
-    void refreshPaperStatus();
-  }, []);
 
-  useEffect(() => {
-    if (!window.stageDesktop?.integrations?.onOAuthCompleted) {
-      return;
-    }
-
-    return window.stageDesktop.integrations.onOAuthCompleted((result) => {
-      if (!result.ok) {
-        window.alert(result.error);
-        return;
-      }
-
-      if (result.status === "error") {
-        window.alert(`Could not connect ${result.provider === "figma" ? "Figma" : "Notion"}.`);
-        return;
-      }
-
-      if (result.provider === "figma") {
-        setFigmaSetupOpen(true);
-      }
-    });
-  }, []);
-
-  async function handleIntegrationAction(integration: IntegrationRowModel) {
-    try {
-      setBusyIntegrationId(integration.id);
-
-      if (integration.providerId) {
-        if (integration.connected) {
-          providerPreferences.setProviderEnabled(integration.providerId, false);
-          return;
-        }
-
-        if (integration.status === "checking" || integration.status === "error") {
-          await providerRefresh.mutateAsync();
-          return;
-        }
-
-        const provider = providers.providerList.providers.find(
-          (entry) => entry.id === integration.providerId,
-        );
-        if (!isProviderCliReady(provider)) {
-          setSetupDialogProviderId(integration.providerId);
-          return;
-        }
-
-        providerPreferences.setProviderEnabled(integration.providerId, true);
-        return;
-      }
-
-      if (integration.nativeIntegrationId === "figma" || integration.nativeIntegrationId === "notion") {
-        if (integration.connected) {
-          await disconnectNativeConnection({ provider: integration.nativeIntegrationId });
-          return;
-        }
-
-        const returnUrl = await window.stageDesktop.integrations.getOAuthReturnUrl(
-          integration.nativeIntegrationId,
-        );
-        const result = await startOAuthConnect({
-          provider: integration.nativeIntegrationId,
-          returnUrl,
-        });
-        await openExternalLink(result.url);
-        return;
-      }
-
-      if (integration.nativeIntegrationId === "paper") {
-        await refreshPaperStatus(true);
-        return;
-      }
-
-      if (integration.nativeIntegrationId === "google-sheets") {
-        if (integration.connected) {
-          await disconnectSheet({ sourceType: "google_sheet" });
-          return;
-        }
-
-        const sheetUrl = window.prompt("Paste your Google Sheets URL");
-        if (!sheetUrl) return;
-        await connectSheet({ sheetUrl });
-      }
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Integration action failed.";
-      window.alert(message);
-    } finally {
-      setBusyIntegrationId(null);
-    }
-  }
 
   return (
     <div className="relative flex min-h-full flex-1 justify-center overflow-x-hidden bg-white px-[clamp(16px,7vw,100px)] py-[clamp(20px,4vw,44px)]">
@@ -419,32 +230,7 @@ export function IntegrationsPage() {
         ) : null}
       </div>
 
-      {setupDialogProviderId ? (
-        <ProviderCliSetupDialog
-          providerId={setupDialogProviderId}
-          provider={providers.providerList.providers.find((entry) => entry.id === setupDialogProviderId)}
-          isRefreshing={isRefreshing}
-          onClose={() => setSetupDialogProviderId(null)}
-          onRefresh={() => void providerRefresh.mutateAsync()}
-          onConnect={() => {
-            providerPreferences.setProviderEnabled(setupDialogProviderId, true);
-            setSetupDialogProviderId(null);
-          }}
-        />
-      ) : null}
-
-      <FigmaExporterSetupDialog
-        open={figmaSetupOpen}
-        onOpenChange={setFigmaSetupOpen}
-      />
-
-      <PaperSetupDialog
-        open={paperSetupMessage !== null}
-        message={paperSetupMessage}
-        onOpenChange={(open) => {
-          if (!open) setPaperSetupMessage(null);
-        }}
-      />
+      <ToolConnectionDialogs connections={connections} />
     </div>
   );
 }
@@ -501,115 +287,6 @@ function HubTabIcon({ tab }: { tab: IntegrationsHubTab }) {
   );
 }
 
-function FigmaExporterSetupDialog({
-  open,
-  onOpenChange,
-}: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-}) {
-  const steps = [
-    "Open the Stage plugin on Figma Community (approved listing).",
-    "In Figma, install or run it once (Open in Figma / Try it out).",
-    "When you export from Stage, run Plugins → Stage and enter the pairing code.",
-  ];
-
-  return (
-    <Dialog.Root open={open} onOpenChange={onOpenChange}>
-      <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-50 bg-[rgba(10,10,10,0.22)]" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[calc(100svh-32px)] w-[calc(100vw-32px)] max-w-[640px] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25),0_18px_55px_rgba(10,10,10,0.22)] outline-none">
-          <div className="p-3">
-            <div className="flex items-start gap-3">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[8px] bg-white shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
-                <img
-                  src="/logos/integrations/figma.svg"
-                  alt=""
-                  aria-hidden="true"
-                  className="h-5 w-[14px]"
-                />
-              </span>
-              <div className="min-w-0">
-                <Dialog.Title className="text-[15px] font-medium leading-[1.25] text-[#0A0A0A]">
-                  Set up Stage for Figma
-                </Dialog.Title>
-                <Dialog.Description className="mt-1 text-[13px] font-medium leading-[1.45] text-[#525252]">
-                  Install the official Community plugin once, then use the pairing code shown during export.
-                </Dialog.Description>
-              </div>
-            </div>
-          </div>
-
-          <div className="grid gap-4 rounded-[8px] bg-white p-3 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] sm:grid-cols-[minmax(0,0.95fr)_minmax(240px,1.05fr)]">
-            <ol className="grid content-start gap-3">
-              {steps.map((step, index) => (
-                <li key={step} className="grid grid-cols-[24px_minmax(0,1fr)] gap-3">
-                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#F5F5F5] text-[12px] font-semibold leading-none text-[#171717]">
-                    {index + 1}
-                  </span>
-                  <span className="pt-[3px] text-[13px] font-medium leading-[1.45] text-[#404040]">
-                    {step}
-                  </span>
-                </li>
-              ))}
-            </ol>
-
-            <img
-              src="/images/integrations/figma-integration.webp"
-              alt="Stage Figma Community plugin"
-              className="aspect-[1.36] w-full rounded-[8px] border border-[#E5E5E5] object-cover"
-            />
-          </div>
-
-          <div className="flex flex-col gap-2 p-3 sm:flex-row sm:items-center sm:justify-between">
-            <button
-              type="button"
-              onClick={() => {
-                void openExternalLink(FIGMA_COMMUNITY_PLUGIN_URL);
-              }}
-              className="inline-flex h-[34px] items-center justify-center rounded-[6px] bg-[#171717] px-3 text-[13px] font-medium leading-none text-white shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#2A2A2A]"
-            >
-              Open in Figma Community
-            </button>
-            <Dialog.Close asChild>
-              <button
-                type="button"
-                className="inline-flex h-[34px] items-center justify-center rounded-[6px] bg-white px-3 text-[13px] font-medium leading-none text-[#525252] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#FAFAFA]"
-              >
-                Done
-              </button>
-            </Dialog.Close>
-          </div>
-        </Dialog.Content>
-      </Dialog.Portal>
-    </Dialog.Root>
-  );
-}
-
-function PaperSetupDialog({
-  open,
-  message,
-  onOpenChange,
-}: {
-  open: boolean;
-  message: string | null;
-  onOpenChange: (open: boolean) => void;
-}) {
-  return (
-    <SetupStepsDialog
-      open={open}
-      onOpenChange={onOpenChange}
-      title="Connect Paper Desktop first"
-      description="First, please install the app and log in. Stage exports into the Paper file you have open."
-      steps={[
-        "Install Paper Desktop.",
-        "Log in to the Paper account you want to export into.",
-        "Open the target Paper file, then come back to Stage and refresh.",
-      ]}
-      note={message}
-    />
-  );
-}
 
 function ProviderCliRestartBanner({ message }: { message: string }) {
   return (

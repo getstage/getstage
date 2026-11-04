@@ -10,6 +10,7 @@ import type { ProjectCategory } from "@/types";
 
 type ValidationContext = {
   step: OnboardingStepId;
+  aiToolConnected: boolean;
   setProjectLater: boolean;
   method: Method;
   projectName: string;
@@ -22,8 +23,16 @@ type ValidationContext = {
   endDate: string;
 };
 
-// STA-64: questions → workspace → first project → plan → tools. People who answered
-// the questions on the web skip straight to the workspace.
+// The four bars in the setup screens' header.
+export const SETUP_PROGRESS_STEPS: OnboardingStepId[] = ["tech-stack", "questions", "workspace", "project"];
+
+// Steps that draw their own full-page frame and Continue button.
+export function isSetupScreen(step: OnboardingStepId) {
+  return step === "welcome" || SETUP_PROGRESS_STEPS.includes(step);
+}
+
+// STA-64 (Figma "mac - new onboarding"): welcome → tech stack → questions → workspace →
+// first project → plan. People who answered the questions on the web skip them.
 export function getFlowSteps({
   skipQuestions = false,
 }: {
@@ -33,6 +42,7 @@ export function getFlowSteps({
 }): OnboardingStepId[] {
   return [
     "welcome",
+    "tech-stack",
     ...(skipQuestions ? [] : (["questions"] as const)),
     "workspace",
     "project",
@@ -53,6 +63,7 @@ export function getCurrentStepForProgress(step: OnboardingStepId) {
 
 export function canContinue({
   step,
+  aiToolConnected,
   setProjectLater,
   method,
   projectName,
@@ -68,6 +79,8 @@ export function canContinue({
     case "questions":
     case "workspace":
       return true;
+    case "tech-stack":
+      return aiToolConnected;
     case "project":
       return projectBasicsSchema.safeParse({ projectName }).success && projectTypeSchema.safeParse(projectType).success;
     case "claude":
@@ -101,6 +114,7 @@ export function canContinue({
 
 export function getStepValidationError({
   step,
+  aiToolConnected,
   setProjectLater,
   method,
   projectName,
@@ -116,6 +130,8 @@ export function getStepValidationError({
     case "questions":
     case "workspace":
       return null;
+    case "tech-stack":
+      return aiToolConnected ? null : "Connect Codex or Claude to continue.";
     case "project":
       if (!projectBasicsSchema.safeParse({ projectName }).success) return "Give your project a name.";
       if (!projectTypeSchema.safeParse(projectType).success) return "Choose what you're building.";

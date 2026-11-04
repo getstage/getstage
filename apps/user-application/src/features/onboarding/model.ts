@@ -2,6 +2,7 @@ import type { ProjectCategory, ProjectType } from "@/types";
 
 export type OnboardingStepId =
   | "welcome"
+  | "tech-stack"
   | "questions"
   | "workspace"
   | "project"

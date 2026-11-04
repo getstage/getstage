@@ -4,17 +4,12 @@ import { ArrowRight } from "@phosphor-icons/react";
 import stageLogo from "@/assets/logos/stage-logo-light.png";
 import { OnboardingStepRenderer } from "@/components/onboarding/OnboardingStepRenderer";
 import { StepDots } from "@/components/onboarding/OnboardingPrimitives";
+import { isSetupScreen, SETUP_PROGRESS_STEPS } from "@/features/onboarding/flow";
 import type { OnboardingStepId, OnboardingSubmission } from "@/features/onboarding/model";
 import { useOnboardingController } from "@/features/onboarding/useOnboardingController";
 import { cn } from "@/lib/utils";
 
 export type { OnboardingSubmission } from "@/features/onboarding/model";
-
-const SETUP_PROGRESS_STEPS: OnboardingStepId[] = [
-  "questions",
-  "workspace",
-  "project",
-];
 
 type OnboardingModalProps = {
   open: boolean;
@@ -69,7 +64,9 @@ export function OnboardingModal({
   const showChrome = false;
   const setupProgressIndex = SETUP_PROGRESS_STEPS.indexOf(controller.step);
   const showStepDots = setupProgressIndex >= 0;
+  const setupScreen = isSetupScreen(controller.step);
   const showContinueBar =
+    !setupScreen &&
     controller.step !== "creating" &&
     controller.step !== "preview" &&
     controller.step !== "claude" &&
@@ -148,13 +145,20 @@ export function OnboardingModal({
                 isFullscreenStep &&
                   cn(
                     "mx-auto flex w-full flex-col items-center justify-center overflow-visible",
-                    controller.step !== "preview"
-                      ? "min-h-[calc(100dvh-16px)] px-4 py-10 sm:py-[72px]"
-                      : "h-full",
+                    controller.step === "preview" && "h-full",
+                    setupScreen && "min-h-dvh",
+                    controller.step !== "preview" && !setupScreen && "min-h-[calc(100dvh-16px)] px-4 py-10 sm:py-[72px]",
                   ),
               )}
             >
-              <div className={cn("relative z-10 w-full", controller.step === "preview" ? "h-full" : "flex flex-col items-center justify-center")}>
+              <div
+                className={cn(
+                  "relative z-10 w-full",
+                  controller.step === "preview" && "h-full",
+                  setupScreen && "flex min-h-dvh",
+                  controller.step !== "preview" && !setupScreen && "flex flex-col items-center justify-center",
+                )}
+              >
                 <AnimatePresence mode="wait" initial={false}>
                   <OnboardingStepRenderer
                     step={controller.step}
@@ -165,6 +169,8 @@ export function OnboardingModal({
                     answers={controller.answers}
                     onAnswersChange={controller.updateAnswers}
                     skipQuestions={controller.skipQuestions}
+                    continueEnabled={controller.continueEnabled}
+                    onSkipWorkspace={controller.skipWorkspace}
                     stepError={controller.stepError}
                     creationReady={controller.creationReady}
                     isCheckoutLoading={controller.isCheckoutLoading}
@@ -199,13 +205,7 @@ export function OnboardingModal({
                     onClick={controller.handleContinue}
                   >
                     <span>
-                      {controller.step === "welcome" && !controller.skipQuestions
-                        ? "Start Setup"
-                        : controller.step === "project"
-                          ? "Create project"
-                          : controller.step === "integrations"
-                            ? "Get Started"
-                            : "Continue"}
+                      {controller.step === "integrations" ? "Get Started" : "Continue"}
                     </span>
                     <ArrowRight size={16} weight="bold" />
                   </button>
