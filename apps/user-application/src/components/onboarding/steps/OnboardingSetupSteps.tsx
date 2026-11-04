@@ -67,7 +67,7 @@ function ContinueButton({ label = "Continue", enabled, onClick }: { label?: stri
   );
 }
 
-// The page frame shared by the setup screens: grey edge, white card, dashed 516px column.
+// The page frame shared by the setup screens: grey edge, white card, centered 516px column.
 function SetupScreen({
   step,
   title,
@@ -86,7 +86,7 @@ function SetupScreen({
   return (
     <div className="flex min-h-dvh w-full bg-[#F5F5F5] p-1">
       <div className="flex flex-1 rounded-[8px] border border-[#F5F5F5] bg-white p-2">
-        <div className="mx-auto flex w-[min(516px,100%)] flex-col justify-center border-x border-dashed border-[#E5E5E5] py-[100px]">
+        <div className="mx-auto flex w-[min(516px,100%)] flex-col justify-center py-[100px]">
           <div className="flex flex-col gap-8 py-[22px]">
             <img src={stageLogo} alt="Stage" className="h-[23px] w-fit" />
             <div className="flex flex-col gap-6">
@@ -177,7 +177,7 @@ export function WelcomeStep({ userName, returning, onContinue }: { userName?: st
     <div className="flex min-h-dvh w-full bg-[#F5F5F5] p-1">
       <div className="flex flex-1 rounded-[8px] border border-[#F5F5F5] bg-white p-2">
         <div className="flex flex-1 px-6 lg:px-[72px]">
-          <div className="flex flex-1 flex-col justify-center border-x border-dashed border-[#E5E5E5]">
+          <div className="flex flex-1 flex-col justify-center">
             <div className="flex flex-col gap-8 py-[22px]">
               <img src={stageLogo} alt="Stage" className="h-[23px] w-fit" />
               <div className="flex flex-col gap-2.5">
