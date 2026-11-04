@@ -101,20 +101,24 @@ function topupConfig(size: "small" | "medium" | "large"): PriceConfig {
 
 function buildMap(): Record<string, PriceConfig> {
   const map: Record<string, PriceConfig> = {};
+  // First mapping wins. The current names (SOLO/STUDIO/AGENCY, listed first per tier)
+  // are read before the old aliases (START/PRO/TEAM), so a price that moved from the old
+  // "Stage Pro" setup to Solo can't be turned back into Studio by a leftover alias.
   const add = (priceId: string | undefined, cfg: PriceConfig) => {
-    if (priceId) {
+    if (priceId && !map[priceId]) {
       map[priceId] = cfg;
     }
   };
 
-  (["start", "pro", "team"] as Tier[]).forEach((tier) => {
-    TIER_PRICE_ENVS[tier].monthly.forEach((env) => {
-      add(getEnv(env), subscriptionConfig(tier, "monthly"));
+  const maxAliases = Math.max(
+    ...Object.values(TIER_PRICE_ENVS).flatMap((cycles) => [cycles.monthly.length, cycles.yearly.length]),
+  );
+  for (let alias = 0; alias < maxAliases; alias += 1) {
+    (["start", "pro", "team"] as Tier[]).forEach((tier) => {
+      add(getEnv(TIER_PRICE_ENVS[tier].monthly[alias] ?? ""), subscriptionConfig(tier, "monthly"));
+      add(getEnv(TIER_PRICE_ENVS[tier].yearly[alias] ?? ""), subscriptionConfig(tier, "yearly"));
     });
-    TIER_PRICE_ENVS[tier].yearly.forEach((env) => {
-      add(getEnv(env), subscriptionConfig(tier, "yearly"));
-    });
-  });
+  }
 
   (["small", "medium", "large"] as const).forEach((size) => {
     add(getEnv(TOPUP_ENV[size]), topupConfig(size));
