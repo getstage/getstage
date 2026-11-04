@@ -31,6 +31,12 @@
 - Production build and `pnpm --filter stage-app check:seo` pass: unique titles/descriptions, canonical URLs, one H1, valid JSON-LD, image files, and sitemap indexing consistency across all 48 indexable pages. Nine local Worker response checks also pass for public/private/staging routes, missing-page statuses, asset caching, and the unconfigured API response. No push or deployment performed.
 - GEO follows standard crawlability/content-quality guidance; no fabricated citations, reviews, freshness dates, or special AI markup. Existing Datafast tracking remains. Search Console/Bing sitemap submission, indexing checks, live Core Web Vitals, and organic/AI-referral monitoring require the approved deployment and account access. No search rankings or AI citations can be guaranteed.
 
+## Production release — 2026-11-04 (prod-v0.2.70)
+
+- Everything from `docs/2026-11-02!!!-WORK_PLAN.md` that was built and tested on testing v0.2.67–v0.2.70: credits per space, all Google Fonts + font upload (STA-65), sitemap/flow toolbar, add page, key element editing, Arrange (STA-66), Create Flow/Sitemap modal (STA-67), new Mac onboarding from Figma (STA-64: Welcome → Tech Stack → Questions → Workspace → Project), web `/start` + download page (STA-63), STA-59 failed-payment logging, STA-60 run failure detail, hardcoded gpt-5.5 removed.
+- Billing: a price ID listed under both the current tier name and an old alias resolves to the current tier (Solo wins over old Pro). Production Stripe price settings and `billing:backfillSubscriptionMirrors` for affected users (Théo) are still open, Werner checks first.
+- Production Convex (`quirky-snail-763`) deployed before the app; getstage.co shipped from `website` at the same commit.
+
 ## Product analytics — 2026-10-27 (prod-v0.2.66)
 
 - Mac app: PostHog (EU) with autocapture, session replay (inputs masked), users identified by Stage user ID + email, and `run_started` / `run_completed` / `run_failed` / `run_cancelled` per workflow mode. Existing DataFast goals (`checkout_started`, ...) are sent to PostHog too. Key `VITE_POSTHOG_KEY` comes from the GitHub secret `DESKTOP_VITE_POSTHOG_KEY`, set only in the `production` environment, so testing builds send nothing.
