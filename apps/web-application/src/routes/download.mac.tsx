@@ -98,7 +98,6 @@ function DownloadMacPage() {
                       Download didn't start?{" "}
                       <a href={resolveMacDownloadUrl()} className="text-[#463FBA] underline underline-offset-4">Try again</a>
                     </p>
-                    <a href="/dashboard" className="text-[#525252] underline underline-offset-4">Connect your AI tool instead</a>
                   </div>
                 ) : null}
                 <a href={profileHref()} className="mt-5 inline-flex items-center gap-1.5 text-[13px] font-medium text-[#525252]"><UserCircle size={16} weight="regular" aria-hidden="true" className="shrink-0"/><span className="underline underline-offset-4">View your profile</span></a>
