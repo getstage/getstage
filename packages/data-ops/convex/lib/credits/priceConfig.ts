@@ -99,31 +99,35 @@ function topupConfig(size: "small" | "medium" | "large"): PriceConfig {
   };
 }
 
+const TIERS: Tier[] = ["start", "pro", "team"];
+const BILLING_CYCLES: BillingCycle[] = ["monthly", "yearly"];
+const TOPUP_SIZES = ["small", "medium", "large"] as const;
+
+type PriceEnv = { env: string; config: PriceConfig };
+
+// Current names (SOLO/STUDIO/AGENCY, listed first per tier) come before the old aliases
+// (START/PRO/TEAM), so a price that moved from the old "Stage Pro" setup to Solo can't be
+// turned back into Studio by a leftover alias. The sort is stable: same rank keeps tier order.
+function subscriptionEnvsByPriority(): PriceEnv[] {
+  return TIERS.flatMap((tier) =>
+    BILLING_CYCLES.flatMap((cycle) =>
+      TIER_PRICE_ENVS[tier][cycle].map((env, rank) => ({ env, rank, config: subscriptionConfig(tier, cycle) })),
+    ),
+  )
+    .sort((a, b) => a.rank - b.rank)
+    .map(({ env, config }) => ({ env, config }));
+}
+
 function buildMap(): Record<string, PriceConfig> {
+  const topups = TOPUP_SIZES.map((size) => ({ env: TOPUP_ENV[size], config: topupConfig(size) }));
   const map: Record<string, PriceConfig> = {};
-  // First mapping wins. The current names (SOLO/STUDIO/AGENCY, listed first per tier)
-  // are read before the old aliases (START/PRO/TEAM), so a price that moved from the old
-  // "Stage Pro" setup to Solo can't be turned back into Studio by a leftover alias.
-  const add = (priceId: string | undefined, cfg: PriceConfig) => {
-    if (priceId && !map[priceId]) {
-      map[priceId] = cfg;
+  // First mapping wins.
+  for (const { env, config } of [...subscriptionEnvsByPriority(), ...topups]) {
+    const priceId = getEnv(env);
+    if (priceId && !(priceId in map)) {
+      map[priceId] = config;
     }
-  };
-
-  const maxAliases = Math.max(
-    ...Object.values(TIER_PRICE_ENVS).flatMap((cycles) => [cycles.monthly.length, cycles.yearly.length]),
-  );
-  for (let alias = 0; alias < maxAliases; alias += 1) {
-    (["start", "pro", "team"] as Tier[]).forEach((tier) => {
-      add(getEnv(TIER_PRICE_ENVS[tier].monthly[alias] ?? ""), subscriptionConfig(tier, "monthly"));
-      add(getEnv(TIER_PRICE_ENVS[tier].yearly[alias] ?? ""), subscriptionConfig(tier, "yearly"));
-    });
   }
-
-  (["small", "medium", "large"] as const).forEach((size) => {
-    add(getEnv(TOPUP_ENV[size]), topupConfig(size));
-  });
-
   return map;
 }
 

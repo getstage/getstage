@@ -4,13 +4,21 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 // old Pro setting as well as the Solo one, Stage must read it as Solo, never Studio.
 const SOLO_PRICE = "price_old_pro_now_solo";
 
+// Convex throws on an invalid setting name (e.g. ""); the test env must do the same.
+const VALID_ENV_NAME = /^[A-Za-z][A-Za-z0-9_]*$/;
+
 async function loadWith(env: Record<string, string>) {
   vi.resetModules();
-  for (const [key, value] of Object.entries(env)) vi.stubEnv(key, value);
+  vi.doMock("../convex/helpers/env", () => ({
+    getEnv: (name: string) => {
+      if (!VALID_ENV_NAME.test(name)) throw new Error(`The environment variable name ${name} is invalid.`);
+      return env[name];
+    },
+  }));
   return import("../convex/lib/credits/priceConfig");
 }
 
-afterEach(() => vi.unstubAllEnvs());
+afterEach(() => vi.doUnmock("../convex/helpers/env"));
 
 describe("price to plan", () => {
   test("a price in both the Solo and an old Pro setting is Solo", async () => {
