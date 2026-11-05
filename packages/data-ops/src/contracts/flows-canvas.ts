@@ -48,6 +48,12 @@ export const flowsCanvasEditSchema = z.discriminatedUnion("type", [
     position: canvasPositionSchema,
     after: identifier.optional(),
   }),
+  // Deletes a page or screen node with its connections.
+  z.object({
+    type: z.literal("removeStep"),
+    flowId: identifier,
+    stepId: identifier,
+  }),
   z.object({
     type: z.literal("arrange"),
     flowId: identifier,

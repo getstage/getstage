@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Graph, LinkBreak, PlusSquare, TreeStructure } from "@phosphor-icons/react";
+import { Graph, LinkBreak, PlusSquare, Trash, TreeStructure } from "@phosphor-icons/react";
 import * as Dialog from "@radix-ui/react-dialog";
 import {
   Background, BackgroundVariant, Handle, MarkerType, Panel, Position, ReactFlow,
@@ -18,6 +18,7 @@ type StepNode = Node<{ label: string; flowId: string; stepId: string; highlighte
 type BoardNode = Node<{ label: string }, "board">;
 type CanvasNode = StepNode | BoardNode;
 type CanvasEdge = Edge<{ flowId: string; source: string; target: string }, "smoothstep"> & { pathOptions?: SmoothStepPathOptions };
+type CanvasMenu = { x: number; y: number; anchor: HTMLElement | SVGElement; target: { kind: "edge"; edge: CanvasEdge } | { kind: "node"; node: StepNode } };
 type Props = {
   artifact: FlowsArtifact;
   updatedAt: number;
@@ -74,8 +75,8 @@ function CanvasBoard({ data }: NodeProps<BoardNode>) {
 }
 const nodeTypes = { step: CanvasStep, board: CanvasBoard };
 const ariaLabelConfig = {
-  "node.a11yDescription.default": "Double-click or press Enter to open screen details. Use arrow keys to move it. Activate Connect nodes, then press Enter on the source and target. Escape cancels.",
-  "edge.a11yDescription.default": "Press Enter to select a connection, then activate Remove selected connection to delete it. Escape clears selection.",
+  "node.a11yDescription.default": "Double-click or press Enter to open screen details. Press Delete to delete it. Use arrow keys to move it. Activate Connect nodes, then press Enter on the source and target. Escape cancels.",
+  "edge.a11yDescription.default": "Press Enter to select a connection, then press Delete to delete it. Escape clears selection.",
 };
 
 export function FlowsCanvas(props: Props) {
@@ -91,7 +92,7 @@ function CanvasWorkspace({ artifact, updatedAt, projectCategory, disabled = fals
   const [tool, setTool] = useState<"select" | "connect">("select");
   const [source, setSource] = useState<StepNode | undefined>();
   const [selectedEdge, setSelectedEdge] = useState<CanvasEdge | undefined>();
-  const [unlinkMenu, setUnlinkMenu] = useState<{ x: number; y: number; anchor: SVGElement }>();
+  const [menu, setMenu] = useState<CanvasMenu>();
   const [details, setDetails] = useState<{ flowId: string; stepId: string; anchor: HTMLElement; isNew?: boolean }>();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string>();
@@ -121,7 +122,7 @@ function CanvasWorkspace({ artifact, updatedAt, projectCategory, disabled = fals
       return { ...node, position: previous?.dragging ? previous.position : node.position, dragging: previous?.dragging, selected: previous?.selected ?? false };
     }));
     setEdges(elements.edges);
-    setUnlinkMenu(undefined);
+    setMenu(undefined);
     setSource((current) => current && elements.nodes.some((node) => node.id === current.id) ? current : undefined);
     setSelectedEdge((current) => current && elements.edges.some((edge) => edge.id === current.id) ? current : undefined);
   }, [artifact, updatedAt, label]);
@@ -187,8 +188,14 @@ function CanvasWorkspace({ artifact, updatedAt, projectCategory, disabled = fals
   function unlinkSelected() {
     if (!selectedEdge?.data || disabled || savingRef.current) return;
     void save({ type: "disconnect", ...selectedEdge.data });
-    setUnlinkMenu(undefined);
+    setMenu(undefined);
     setSelectedEdge(undefined);
+  }
+  function deleteNode(node: StepNode) {
+    if (busy) return;
+    setMenu(undefined);
+    setDetails(undefined);
+    void save({ type: "removeStep", flowId: node.data.flowId, stepId: node.data.stepId });
   }
   // A new node goes after the selected one (below it in a sitemap, to its right for
   // screens) and is linked from it; with nothing selected it starts a new branch.
@@ -225,12 +232,19 @@ function CanvasWorkspace({ artifact, updatedAt, projectCategory, disabled = fals
   const detailsStep = latest.current.flows.find((flow) => flow.id === details?.flowId)?.steps.find((step) => step.id === details?.stepId);
   const detailsScreen = detailsStep ? findStepScreen(detailsStep, latest.current.screens) : undefined;
   const busy = disabled || saving;
+  const menuNode = menu?.target.kind === "node" ? menu.target.node : undefined;
   return <div className="flows-canvas" aria-label={`${label} canvas`} onKeyDown={(event) => {
     if (event.key === "Escape") { setSource(undefined); setSelectedEdge(undefined); setTool("select"); }
-    if ((event.key === "Delete" || event.key === "Backspace") && selectedEdge?.data && !busy) {
+    if ((event.key === "Delete" || event.key === "Backspace") && !busy && !details) {
       if (event.target instanceof HTMLElement && (event.target.isContentEditable || event.target.closest("input, textarea, select"))) return;
-      event.preventDefault();
-      unlinkSelected();
+      const selectedNode = nodes.find((node): node is StepNode => node.type === "step" && !!node.selected);
+      if (selectedEdge?.data) {
+        event.preventDefault();
+        unlinkSelected();
+      } else if (selectedNode) {
+        event.preventDefault();
+        deleteNode(selectedNode);
+      }
     }
     if (event.key === "Enter") {
       const anchor = (event.target as HTMLElement).closest<HTMLElement>(".react-flow__node-step");
@@ -252,13 +266,21 @@ function CanvasWorkspace({ artifact, updatedAt, projectCategory, disabled = fals
       onNodeClick={(_, node) => chooseNode(node)}
       onNodeDoubleClick={(event, node) => { if (event.currentTarget instanceof HTMLElement) openDetails(node, event.currentTarget); }}
       zoomOnDoubleClick={false}
-      onEdgeClick={(_, edge) => { setUnlinkMenu(undefined); setSelectedEdge(edge); setSource(undefined); }}
+      onEdgeClick={(_, edge) => { setMenu(undefined); setSelectedEdge(edge); setSource(undefined); }}
       onEdgeContextMenu={(event, edge) => {
         event.preventDefault();
         if (busy || !(event.currentTarget instanceof SVGElement)) return;
         setSelectedEdge(edge);
         setSource(undefined);
-        setUnlinkMenu({ x: event.clientX, y: event.clientY, anchor: event.currentTarget });
+        setMenu({ x: event.clientX, y: event.clientY, anchor: event.currentTarget, target: { kind: "edge", edge } });
+      }}
+      onNodeContextMenu={(event, node) => {
+        event.preventDefault();
+        if (busy || node.type !== "step" || !(event.currentTarget instanceof HTMLElement)) return;
+        setSelectedEdge(undefined);
+        setSource(undefined);
+        setNodes((current) => current.map((entry) => ({ ...entry, selected: entry.id === node.id })));
+        setMenu({ x: event.clientX, y: event.clientY, anchor: event.currentTarget, target: { kind: "node", node } });
       }}
       onEdgesChange={(changes) => {
         if (busy) return;
@@ -296,15 +318,21 @@ function CanvasWorkspace({ artifact, updatedAt, projectCategory, disabled = fals
         <CanvasButton label="Open Stage chat" icon="chat" onClick={() => window.dispatchEvent(new CustomEvent(STAGE_CHAT_OPEN_REQUEST))} />
       </Panel>
     </ReactFlow>
-    {unlinkMenu && selectedEdge?.data ? <Dialog.Root open modal={false} onOpenChange={(open) => { if (!open) setUnlinkMenu(undefined); }}>
+    {menu ? <Dialog.Root open modal={false} onOpenChange={(open) => { if (!open) setMenu(undefined); }}>
       <Dialog.Portal>
-        <Dialog.Content className="flows-canvas-unlink-menu" style={{ left: Math.max(8, Math.min(unlinkMenu.x, window.innerWidth - 188)), top: Math.max(8, Math.min(unlinkMenu.y, window.innerHeight - 52)) }} onEscapeKeyDown={(event) => event.stopPropagation()} onCloseAutoFocus={(event) => {
+        <Dialog.Content className="flows-canvas-unlink-menu" style={{ left: Math.max(8, Math.min(menu.x, window.innerWidth - 188)), top: Math.max(8, Math.min(menu.y, window.innerHeight - 52)) }} onEscapeKeyDown={(event) => event.stopPropagation()} onCloseAutoFocus={(event) => {
           event.preventDefault();
-          if (unlinkMenu.anchor.isConnected) unlinkMenu.anchor.focus({ preventScroll: true });
+          if (menu.anchor.isConnected) menu.anchor.focus({ preventScroll: true });
         }}>
-          <Dialog.Title className="sr-only">Connection actions</Dialog.Title>
-          <Dialog.Description className="sr-only">{selectedEdge.ariaLabel}. Unlink removes only this connection, not either page or step.</Dialog.Description>
-          <button type="button" disabled={busy} onClick={unlinkSelected}><LinkBreak size={16} aria-hidden="true" />Unlink</button>
+          {menu.target.kind === "edge" ? <>
+            <Dialog.Title className="sr-only">Connection actions</Dialog.Title>
+            <Dialog.Description className="sr-only">{`${menu.target.edge.ariaLabel}. Deleting the link keeps both ${stepNoun}s.`}</Dialog.Description>
+            <button type="button" disabled={busy} onClick={unlinkSelected}><LinkBreak size={16} aria-hidden="true" />Delete link</button>
+          </> : <>
+            <Dialog.Title className="sr-only">{`${menu.target.node.data.label} actions`}</Dialog.Title>
+            <Dialog.Description className="sr-only">{`Deletes this ${stepNoun} and its links.`}</Dialog.Description>
+            <button type="button" disabled={busy} onClick={() => { if (menuNode) deleteNode(menuNode); }}><Trash size={16} aria-hidden="true" />{`Delete ${stepNoun}`}</button>
+          </>}
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root> : null}

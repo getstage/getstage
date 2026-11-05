@@ -52,6 +52,18 @@ describe("canvas contracts and operations", () => {
     expect(added.canvas?.boards[0].edges).toContainEqual({ source: "payment", target: "review" });
     expect(() => applyFlowsCanvasEdit(value, { ...addStep, stepId: "other", after: "missing" })).toThrow();
   });
+  test("removes a step with its connections and its screen, idempotently", () => {
+    const value = artifact();
+    const removeStep = { type: "removeStep" as const, flowId: "checkout", stepId: "address" };
+    const removed = applyFlowsCanvasEdit(value, removeStep);
+    expect(applyFlowsCanvasEdit(removed, removeStep)).toBe(removed);
+    expect(removed.flows[0].steps.map((step) => step.id)).toEqual(["cart", "payment"]);
+    expect(removed.flows[0].screenCount).toBe(2);
+    expect(removed.screens.map((screen) => screen.id)).toEqual(["screen-cart", "screen-payment"]);
+    expect(removed.canvas?.boards[0].positions.map((position) => position.stepId)).toEqual(["cart", "payment"]);
+    expect(removed.canvas?.boards[0].edges).toEqual([]);
+    expect(() => validateFlowsCanvas(removed)).not.toThrow();
+  });
   test("adapts legacy steps deterministically without mutating or migrating on read", () => {
     const value = artifact();
     expect(value.canvas).toBeUndefined();

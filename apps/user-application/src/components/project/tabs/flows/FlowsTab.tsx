@@ -367,8 +367,8 @@ export function FlowsTab({ project, projectCategory, onGoToResearch, onGoToStrat
         </>
       ) : null}
       {artifactRecord ? (
-      <section className={canvasVisible ? "flows-canvas-workspace flex min-h-0 flex-1 flex-col" : "min-h-0 flex-1 overflow-auto bg-[#F5F5F5] p-1"}>
-        <div className={canvasVisible ? "flex min-h-0 flex-1 flex-col" : "flex flex-col gap-4 p-4"}>
+      <section className={canvasVisible ? "flows-canvas-workspace flex min-h-0 flex-1 flex-col" : "min-h-0 flex-1 overflow-auto px-[clamp(16px,7vw,100px)] pb-[120px] pt-7"}>
+        <div className={canvasVisible ? "flex min-h-0 flex-1 flex-col" : "flex flex-col gap-4 rounded-[12px] bg-[#F5F5F5] p-4 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]"}>
           {uiError || figJamExport.error ? (
             <div className={`rounded-[8px] px-3 py-2 text-[12px] font-medium leading-[1.5] ${
               "bg-[#FEF2F2] text-[#991B1B]"
