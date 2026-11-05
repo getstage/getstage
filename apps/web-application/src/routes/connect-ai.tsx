@@ -89,7 +89,7 @@ function ApproveConnection({ request, mcpOrigin }: { request: ConnectRequest; mc
     <>
       <h1 className="text-[21px] font-semibold leading-[1.2] text-[#0A0A0A]">Allow {request.client} to use Stage?</h1>
       <p className="mt-2.5 text-[13px] font-medium leading-[1.5] text-[#525252]">
-        {request.client} will be able to read your Stage projects and save work to them. You can remove this connection anytime in Settings → API keys.
+        {request.client} will be able to read your Stage projects and save work to them.
       </p>
       <dl className="mt-5 w-full rounded-[8px] bg-[#F5F5F5] p-3 text-[12px] font-medium leading-[1.5] text-[#525252]">
         <div className="flex justify-between gap-3"><dt>App</dt><dd className="truncate text-[#171717]">{request.domain ?? `${request.client} (name not verified)`}</dd></div>
