@@ -145,9 +145,11 @@ export async function requireTaskAccessForUserId(
 export async function listProjectSummariesForUser(
   ctx: ReaderCtx,
   userId: Id<"users">,
+  workspaceIds?: Id<"users">[],
 ) {
   const projects = await listAccessibleProjectDocsForUser(ctx, userId);
-  return Promise.all(projects.map(({ project }) => buildApiProjectSummary(project)));
+  const inScope = workspaceIds ? projects.filter(({ project }) => workspaceIds.includes(project.userId)) : projects;
+  return Promise.all(inScope.map(({ project }) => buildApiProjectSummary(project)));
 }
 
 export async function createProjectForUser(

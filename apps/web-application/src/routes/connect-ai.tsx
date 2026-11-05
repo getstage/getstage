@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Check, CopySimple, Warning } from "@phosphor-icons/react";
 import { Navigate, createFileRoute } from "@tanstack/react-router";
 import { Helmet } from "react-helmet-async";
-import { useMutation } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { PageLoading } from "@/components/shared/PageLoading";
 import { useAuth } from "@/lib/auth";
 import { api } from "@/lib/convex";
@@ -66,7 +66,16 @@ function ConnectAiPage() {
 
 function ApproveConnection({ request, mcpOrigin }: { request: ConnectRequest; mcpOrigin: string }) {
   const createCode = useMutation(api.developer.mcpConnect.createConnectCode);
+  const spaces = useQuery(api.workspaceMembers.listSpaces);
+  const [picked, setPicked] = useState<Set<string>>();
+  const [access, setAccess] = useState<"read" | "write">("write");
   const [status, setStatus] = useState<{ kind: "idle" } | { kind: "connecting" } | { kind: "error"; message: string }>({ kind: "idle" });
+  const workspaceIds = picked ?? new Set(spaces?.filter((space) => space.role === "owner").map((space) => space.ownerUserId));
+  const toggleWorkspace = (id: string) => {
+    const next = new Set(workspaceIds);
+    if (!next.delete(id)) next.add(id);
+    setPicked(next);
+  };
 
   const finish = (params: Record<string, string>) => {
     const callback = new URL("/callback", mcpOrigin);
@@ -78,7 +87,12 @@ function ApproveConnection({ request, mcpOrigin }: { request: ConnectRequest; mc
   const approve = async () => {
     setStatus({ kind: "connecting" });
     try {
-      const { code } = await createCode({ codeChallenge: request.challenge, clientName: request.client });
+      const { code } = await createCode({
+        codeChallenge: request.challenge,
+        clientName: request.client,
+        workspaceIds: [...workspaceIds],
+        access,
+      });
       finish({ code });
     } catch (error) {
       setStatus({ kind: "error", message: error instanceof Error ? error.message : "Could not connect. Try again." });
@@ -89,8 +103,26 @@ function ApproveConnection({ request, mcpOrigin }: { request: ConnectRequest; mc
     <>
       <h1 className="text-[21px] font-semibold leading-[1.2] text-[#0A0A0A]">Allow {request.client} to use Stage?</h1>
       <p className="mt-2.5 text-[13px] font-medium leading-[1.5] text-[#525252]">
-        {request.client} will be able to read your Stage projects and save work to them.
+        {request.client} will {access === "write" ? "read and save work to" : "only read"} the projects in the workspaces you choose.
       </p>
+      <fieldset className="mt-5 w-full">
+        <legend className="mb-2 text-[12px] font-semibold text-[#171717]">Workspaces</legend>
+        {spaces?.map((space) => (
+          <label key={space.ownerUserId} className="flex items-center gap-2 py-1 text-[13px] font-medium text-[#404040]">
+            <input type="checkbox" checked={workspaceIds.has(space.ownerUserId)} onChange={() => toggleWorkspace(space.ownerUserId)} className="accent-[#463FBA]" />
+            {space.role === "owner" ? `${space.name} (yours)` : space.name}
+          </label>
+        ))}
+      </fieldset>
+      <fieldset className="mt-4 w-full">
+        <legend className="mb-2 text-[12px] font-semibold text-[#171717]">Access</legend>
+        {([["write", "Read and edit"], ["read", "Read only"]] as const).map(([value, label]) => (
+          <label key={value} className="flex items-center gap-2 py-1 text-[13px] font-medium text-[#404040]">
+            <input type="radio" name="access" checked={access === value} onChange={() => setAccess(value)} className="accent-[#463FBA]" />
+            {label}
+          </label>
+        ))}
+      </fieldset>
       <dl className="mt-5 w-full rounded-[8px] bg-[#F5F5F5] p-3 text-[12px] font-medium leading-[1.5] text-[#525252]">
         <div className="flex justify-between gap-3"><dt>App</dt><dd className="truncate text-[#171717]">{request.domain ?? `${request.client} (name not verified)`}</dd></div>
         <div className="flex justify-between gap-3"><dt>Access goes to</dt><dd className="truncate text-[#171717]">{request.redirectHost}</dd></div>
@@ -113,7 +145,7 @@ function ApproveConnection({ request, mcpOrigin }: { request: ConnectRequest; mc
         </button>
         <button
           type="button"
-          disabled={status.kind === "connecting"}
+          disabled={status.kind === "connecting" || workspaceIds.size === 0}
           onClick={() => void approve()}
           className="h-[38px] flex-1 rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7b76df] to-[#463fba] text-[13px] font-medium text-[#FAFAFA] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] hover:opacity-95 disabled:opacity-60"
         >

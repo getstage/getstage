@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { mutation, query, internalQuery, internalMutation } from "../_generated/server";
 import { requireAuthUser } from "../_helpers";
 import { getCurrentSubscriptionSnapshot } from "../billing";
+import type { Doc } from "../_generated/dataModel";
 
 const KEY_PREFIX = "stg_";
 const KEY_BYTE_LENGTH = 32;
@@ -123,6 +124,12 @@ export const revoke = mutation({
 
 // --- Internal functions (for API auth in HTTP actions) ---
 
+// An MCP key without a stored scope never acts: the user has to connect again and choose.
+function mcpScope(apiKey: Doc<"apiKeys">) {
+  if (!apiKey.mcpAccess || !apiKey.mcpWorkspaceIds || apiKey.mcpWorkspaceIds.length === 0) return undefined;
+  return { access: apiKey.mcpAccess, workspaceIds: apiKey.mcpWorkspaceIds };
+}
+
 export const getUserByHashedKey = internalQuery({
   args: {
     hashedKey: v.string(),
@@ -177,11 +184,16 @@ export const authenticateByHashedKey = internalMutation({
       return null;
     }
 
+    const mcp = apiKey.kind === "mcp" ? mcpScope(apiKey) : undefined;
+    if (apiKey.kind === "mcp" && !mcp) {
+      return null;
+    }
+
     await ctx.db.patch(apiKey._id, {
       lastUsedAt: Date.now(),
     });
 
-    return { apiKeyId: apiKey._id, userId: user._id };
+    return { apiKeyId: apiKey._id, userId: user._id, mcp };
   },
 });
 

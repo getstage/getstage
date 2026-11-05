@@ -24,6 +24,7 @@ export function createProjectRoutes() {
     const auth = await authenticateApiKey(c);
     const projects = await c.env.runQuery(internal.domain.projects.service.listProjectsForApi, {
       userId: auth.userId,
+      workspaceIds: auth.mcp?.workspaceIds,
     });
 
     return c.json({ projects });

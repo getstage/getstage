@@ -1,8 +1,10 @@
 import { v } from "convex/values";
-import { httpAction, internalMutation, mutation } from "../_generated/server";
+import { httpAction, internalMutation, internalQuery, mutation } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { requireAuthUser } from "../_helpers";
 import { getCurrentSubscriptionSnapshot } from "../billing";
+import { listActiveMembershipsForUser } from "../helpers/access/seatEntitlement";
+import type { Id } from "../_generated/dataModel";
 import { generateRawKey, hashKey, planAllowsKey } from "./apiKeys";
 
 // Connecting an AI tool (Claude, Cursor, …) over MCP:
@@ -15,8 +17,15 @@ function base64Url(bytes: ArrayBuffer) {
   return btoa(String.fromCharCode(...new Uint8Array(bytes))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
+const mcpAccessValidator = v.union(v.literal("read"), v.literal("write"));
+
 export const createConnectCode = mutation({
-  args: { codeChallenge: v.string(), clientName: v.string() },
+  args: {
+    codeChallenge: v.string(),
+    clientName: v.string(),
+    workspaceIds: v.array(v.string()),
+    access: mcpAccessValidator,
+  },
   handler: async (ctx, args) => {
     const user = await requireAuthUser(ctx);
     const subscription = await getCurrentSubscriptionSnapshot(ctx, String(user._id));
@@ -27,6 +36,17 @@ export const createConnectCode = mutation({
     if (!/^[A-Za-z0-9_-]{43}$/.test(args.codeChallenge)) {
       throw new Error("This connect link is invalid. Start connecting again from your AI tool.");
     }
+    const memberships = await listActiveMembershipsForUser(ctx, user._id);
+    const allowedWorkspaces = new Map<string, Id<"users">>([[String(user._id), user._id]]);
+    for (const membership of memberships) allowedWorkspaces.set(String(membership.ownerUserId), membership.ownerUserId);
+    const workspaceIds: Id<"users">[] = [];
+    for (const id of new Set(args.workspaceIds)) {
+      const workspaceId = allowedWorkspaces.get(id);
+      if (!workspaceId) throw new Error("You don't have access to one of the chosen workspaces.");
+      workspaceIds.push(workspaceId);
+    }
+    if (workspaceIds.length === 0) throw new Error("Choose at least one workspace.");
+
     const clientName = args.clientName.trim().slice(0, 48) || "AI tool";
     const code = generateRawKey();
     await ctx.db.insert("mcpConnectCodes", {
@@ -34,6 +54,8 @@ export const createConnectCode = mutation({
       hashedCode: await hashKey(code),
       codeChallenge: args.codeChallenge,
       clientName,
+      workspaceIds,
+      access: args.access,
       expiresAt: Date.now() + CODE_LIFETIME_MS,
     });
     return { code };
@@ -59,9 +81,20 @@ export const redeemConnectCode = internalMutation({
       hashedKey: await hashKey(apiKey),
       name: `MCP · ${record.clientName}`,
       kind: "mcp",
+      mcpWorkspaceIds: record.workspaceIds,
+      mcpAccess: record.access,
       createdAt: Date.now(),
     });
     return { ok: true as const, apiKey, userId: String(record.userId) };
+  },
+});
+
+export const getProjectWorkspace = internalQuery({
+  args: { projectId: v.string() },
+  handler: async (ctx, args) => {
+    const projectId = ctx.db.normalizeId("projects", args.projectId);
+    const project = projectId ? await ctx.db.get(projectId) : null;
+    return project ? project.userId : null;
   },
 });
 

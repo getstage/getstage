@@ -1064,6 +1064,9 @@ export default defineSchema({
     name: v.string(),
     // "mcp": created when the user connects an AI tool over MCP (one key per connection).
     kind: v.optional(v.literal("mcp")),
+    // MCP keys only: the workspaces (owner user ids) and access level the user allowed at sign-in.
+    mcpWorkspaceIds: v.optional(v.array(v.id("users"))),
+    mcpAccess: v.optional(v.union(v.literal("read"), v.literal("write"))),
     createdAt: v.number(),
     lastUsedAt: v.optional(v.number()),
     revokedAt: v.optional(v.number()),
@@ -1077,6 +1080,8 @@ export default defineSchema({
     hashedCode: v.string(),
     codeChallenge: v.string(),
     clientName: v.string(),
+    workspaceIds: v.array(v.id("users")),
+    access: v.union(v.literal("read"), v.literal("write")),
     expiresAt: v.number(),
     usedAt: v.optional(v.number()),
   }).index("by_hashed_code", ["hashedCode"]),
