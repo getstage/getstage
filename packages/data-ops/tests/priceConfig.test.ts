@@ -1,9 +1,5 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
 
-// The old $29 "Stage Pro — Monthly" price became Stage Solo. If that price is still in an
-// old Pro setting as well as the Solo one, Stage must read it as Solo, never Studio.
-const SOLO_PRICE = "price_old_pro_now_solo";
-
 // Convex throws on an invalid setting name (e.g. ""); the test env must do the same.
 const VALID_ENV_NAME = /^[A-Za-z][A-Za-z0-9_]*$/;
 
@@ -20,19 +16,57 @@ async function loadWith(env: Record<string, string>) {
 
 afterEach(() => vi.doUnmock("../convex/helpers/env"));
 
-describe("price to plan", () => {
-  test("a price in both the Solo and an old Pro setting is Solo", async () => {
-    const { resolveTier } = await loadWith({ STRIPE_SOLO_MONTHLY_PRICE_ID: SOLO_PRICE, STRIPE_PRO_MONTHLY_PRICE_ID: SOLO_PRICE });
-    expect(resolveTier(SOLO_PRICE)).toBe("start");
+const CURRENT = {
+  STRIPE_SOLO_MONTHLY_PRICE_ID: "price_solo",
+  STRIPE_STUDIO_BASE_MONTHLY_PRICE_ID: "price_studio",
+  STRIPE_AGENCY_MONTHLY_PRICE_ID: "price_agency",
+};
+
+describe("checkout price", () => {
+  test("uses the plan's own price", async () => {
+    const { priceIdForTier } = await loadWith(CURRENT);
+    expect(priceIdForTier("start", "monthly")).toBe("price_solo");
+    expect(priceIdForTier("pro", "monthly")).toBe("price_studio");
+    expect(priceIdForTier("team", "monthly")).toBe("price_agency");
   });
 
-  test("Studio and Agency prices keep their plan", async () => {
-    const { resolveTier } = await loadWith({
-      STRIPE_SOLO_MONTHLY_PRICE_ID: SOLO_PRICE,
-      STRIPE_STUDIO_BASE_MONTHLY_PRICE_ID: "price_studio",
-      STRIPE_AGENCY_MONTHLY_PRICE_ID: "price_agency",
+  test("fails when the plan's price is missing, even if old settings exist", async () => {
+    const { priceIdForTier } = await loadWith({
+      STRIPE_PRO_MONTHLY_PRICE_ID: "price_old_pro",
+      STRIPE_PRICE_ID: "price_old",
+      STRIPE_STUDIO_BASE_MONTHLY_OLD_PRICE_IDS: "price_old_studio",
     });
-    expect(resolveTier("price_studio")).toBe("pro");
-    expect(resolveTier("price_agency")).toBe("team");
+    expect(() => priceIdForTier("pro", "monthly")).toThrow("Studio monthly checkout is not configured (STRIPE_STUDIO_BASE_MONTHLY_PRICE_ID).");
+  });
+});
+
+describe("price to plan", () => {
+  test("current prices map to their plan", async () => {
+    const { tierForPriceId } = await loadWith(CURRENT);
+    expect(tierForPriceId("price_solo")).toBe("start");
+    expect(tierForPriceId("price_studio")).toBe("pro");
+    expect(tierForPriceId("price_agency")).toBe("team");
+  });
+
+  test("old prices count only for the plan they are listed under", async () => {
+    const { tierForPriceId, billingCycleForPriceId } = await loadWith({
+      ...CURRENT,
+      STRIPE_SOLO_MONTHLY_OLD_PRICE_IDS: "price_old_pro_29, price_older",
+    });
+    expect(tierForPriceId("price_old_pro_29")).toBe("start");
+    expect(tierForPriceId("price_older")).toBe("start");
+    expect(billingCycleForPriceId("price_old_pro_29")).toBe("monthly");
+  });
+
+  test("old setting names are never read", async () => {
+    const { tierForPriceId } = await loadWith({ ...CURRENT, STRIPE_PRO_MONTHLY_PRICE_ID: "price_old_pro_29", STRIPE_PRICE_ID: "price_old" });
+    expect(tierForPriceId("price_old_pro_29")).toBeNull();
+    expect(tierForPriceId("price_old")).toBeNull();
+  });
+
+  test("a price set for two plans is unknown instead of guessed", async () => {
+    const { tierForPriceId } = await loadWith({ ...CURRENT, STRIPE_STUDIO_BASE_MONTHLY_OLD_PRICE_IDS: "price_solo" });
+    expect(tierForPriceId("price_solo")).toBeNull();
+    expect(tierForPriceId("price_studio")).toBe("pro");
   });
 });

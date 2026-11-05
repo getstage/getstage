@@ -13,7 +13,7 @@ import {
   billingCycleForPriceId,
   configForPriceId,
   priceIdForTier,
-  resolveTier,
+  tierForPriceId,
 } from "../../credits/priceConfig";
 import {
   cancelReasonFromStripeSubscription,
@@ -131,7 +131,7 @@ async function loadSubscriptionByUserId(
     if (!ACTIVE_SUBSCRIPTION_STATUSES.has(subscription.status)) {
       continue;
     }
-    const tier = resolveTier(subscription.priceId);
+    const tier = tierForPriceId(subscription.priceId);
     if (tier) {
       preferred = subscription;
       plan = tier;
