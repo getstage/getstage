@@ -13,9 +13,9 @@ export const Route = createFileRoute("/start")({
 });
 
 // STA-63 path 1, screen 2 (Figma 2478:4533): asked once after the first web login.
-// The Mac route goes to the download page. "Connect Stage to your AI tool" needs the MCP
-// setup page, which isn't built yet, so it shows as coming soon until then.
+// The Mac route goes to the download page; "Connect Stage to your AI tool" starts the web onboarding at /app.
 const MAC_PATH = "/download/mac?started=1";
+const RETURN_PATHS = { mac: "/download/mac", "ai-tool": "/app" } as const;
 
 function StartPage() {
   const { isLoading, isAuthenticated } = useAuth();
@@ -24,15 +24,15 @@ function StartPage() {
 
   // Returning users skip the choice.
   useEffect(() => {
-    if (state?.usageChoice === "mac") window.location.replace("/download/mac");
+    if (state?.usageChoice) window.location.replace(RETURN_PATHS[state.usageChoice]);
   }, [state?.usageChoice]);
 
-  if (isLoading || (isAuthenticated && (state === undefined || state.usageChoice === "mac"))) return <PageLoading />;
+  if (isLoading || (isAuthenticated && (state === undefined || state.usageChoice))) return <PageLoading />;
   if (!isAuthenticated) return <Navigate to="/auth" search={{ redirect: "/start" }} replace />;
 
-  const chooseMac = () => {
-    void saveChoice({ choice: "mac" }).catch(() => undefined);
-    window.location.assign(MAC_PATH);
+  const choose = (choice: "mac" | "ai-tool") => {
+    void saveChoice({ choice }).catch(() => undefined);
+    window.location.assign(choice === "mac" ? MAC_PATH : RETURN_PATHS["ai-tool"]);
   };
 
   return (
@@ -54,7 +54,7 @@ function StartPage() {
                 <div className="mt-8 flex w-full flex-col gap-1.5">
                   <button
                     type="button"
-                    onClick={chooseMac}
+                    onClick={() => choose("mac")}
                     className="inline-flex h-[38px] w-full items-center justify-center gap-2 rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7b76df] to-[#463fba] text-[13px] font-medium text-[#FAFAFA] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] hover:opacity-95"
                   >
                     <DownloadSimple size={16} aria-hidden="true" />
@@ -63,11 +63,10 @@ function StartPage() {
                   <p className="px-1 text-[12px] text-[#737373]">The full experience: canvas, project memory and exports.</p>
                   <button
                     type="button"
-                    disabled
-                    className="mt-2 inline-flex h-[38px] w-full cursor-not-allowed items-center justify-center gap-2 rounded-[6px] border border-[#D4D4D4] bg-gradient-to-b from-[#FAFAFA] to-[#E5E5E5] text-[13px] font-medium text-[#737373] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]"
+                    onClick={() => choose("ai-tool")}
+                    className="mt-2 inline-flex h-[38px] w-full items-center justify-center gap-2 rounded-[6px] border border-[#D4D4D4] bg-gradient-to-b from-[#FAFAFA] to-[#E5E5E5] text-[13px] font-medium text-[#404040] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] hover:opacity-95"
                   >
                     Connect Stage to your AI tool
-                    <span className="rounded-full bg-[#E7E6FD] px-2 py-0.5 text-[11px] text-[#463FBA]">Coming soon</span>
                   </button>
                   <p className="px-1 text-[12px] text-[#737373]">Use Stage inside Claude, Codex, ChatGPT or Cursor.</p>
                 </div>

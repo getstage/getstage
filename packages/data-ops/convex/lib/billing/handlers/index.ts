@@ -107,9 +107,9 @@ function getBillingUrls(platform?: "web" | "desktop") {
     };
   }
   return {
-    successUrl: `${siteUrl}/dashboard?billing=success`,
-    cancelUrl: `${siteUrl}/dashboard?billing=cancel`,
-    returnUrl: `${siteUrl}/settings?tab=billing`,
+    successUrl: `${siteUrl}/app?billing=success`,
+    cancelUrl: `${siteUrl}/app?billing=cancel`,
+    returnUrl: `${siteUrl}/app`,
   };
 }
 

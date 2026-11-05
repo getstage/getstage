@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { httpAction, internalMutation, internalQuery, mutation } from "../_generated/server";
+import { httpAction, internalMutation, internalQuery, mutation, query } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { requireAuthUser } from "../_helpers";
 import { getCurrentSubscriptionSnapshot } from "../billing";
@@ -86,6 +86,21 @@ export const redeemConnectCode = internalMutation({
       createdAt: Date.now(),
     });
     return { ok: true as const, apiKey, userId: String(record.userId) };
+  },
+});
+
+// The user's connected AI tools. A tool counts as connected once it has called Stage (`lastUsedAt`).
+export const listConnections = query({
+  args: {},
+  handler: async (ctx) => {
+    const user = await requireAuthUser(ctx);
+    const keys = await ctx.db
+      .query("apiKeys")
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .collect();
+    return keys
+      .filter((key) => key.kind === "mcp" && !key.revokedAt)
+      .map((key) => ({ clientName: key.name.replace(/^MCP · /, ""), lastUsedAt: key.lastUsedAt }));
   },
 });
 

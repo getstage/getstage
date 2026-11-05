@@ -19,6 +19,7 @@ import { Route as DownloadRouteImport } from './routes/download'
 import { Route as DocsRouteImport } from './routes/docs'
 import { Route as ConnectAiRouteImport } from './routes/connect-ai'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AppRouteImport } from './routes/app'
 import { Route as AgentsRouteImport } from './routes/agents'
 import { Route as AuthedRouteImport } from './routes/_authed'
 import { Route as SlugRouteImport } from './routes/$slug'
@@ -100,6 +101,11 @@ const ConnectAiRoute = ConnectAiRouteImport.update({
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppRoute = AppRouteImport.update({
+  id: '/app',
+  path: '/app',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AgentsRoute = AgentsRouteImport.update({
@@ -268,6 +274,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/$slug': typeof SlugRoute
   '/agents': typeof AgentsRouteWithChildren
+  '/app': typeof AppRoute
   '/auth': typeof AuthRouteWithChildren
   '/connect-ai': typeof ConnectAiRoute
   '/docs': typeof DocsRoute
@@ -310,6 +317,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/$slug': typeof SlugRoute
+  '/app': typeof AppRoute
   '/auth': typeof AuthRouteWithChildren
   '/connect-ai': typeof ConnectAiRoute
   '/docs': typeof DocsRoute
@@ -355,6 +363,7 @@ export interface FileRoutesById {
   '/$slug': typeof SlugRoute
   '/_authed': typeof AuthedRouteWithChildren
   '/agents': typeof AgentsRouteWithChildren
+  '/app': typeof AppRoute
   '/auth': typeof AuthRouteWithChildren
   '/connect-ai': typeof ConnectAiRoute
   '/docs': typeof DocsRoute
@@ -400,6 +409,7 @@ export interface FileRouteTypes {
     | '/'
     | '/$slug'
     | '/agents'
+    | '/app'
     | '/auth'
     | '/connect-ai'
     | '/docs'
@@ -442,6 +452,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/$slug'
+    | '/app'
     | '/auth'
     | '/connect-ai'
     | '/docs'
@@ -486,6 +497,7 @@ export interface FileRouteTypes {
     | '/$slug'
     | '/_authed'
     | '/agents'
+    | '/app'
     | '/auth'
     | '/connect-ai'
     | '/docs'
@@ -531,6 +543,7 @@ export interface RootRouteChildren {
   SlugRoute: typeof SlugRoute
   AuthedRoute: typeof AuthedRouteWithChildren
   AgentsRoute: typeof AgentsRouteWithChildren
+  AppRoute: typeof AppRoute
   AuthRoute: typeof AuthRouteWithChildren
   ConnectAiRoute: typeof ConnectAiRoute
   DocsRoute: typeof DocsRoute
@@ -628,6 +641,13 @@ declare module '@tanstack/react-router' {
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/app': {
+      id: '/app'
+      path: '/app'
+      fullPath: '/app'
+      preLoaderRoute: typeof AppRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/agents': {
@@ -944,6 +964,7 @@ const rootRouteChildren: RootRouteChildren = {
   SlugRoute: SlugRoute,
   AuthedRoute: AuthedRouteWithChildren,
   AgentsRoute: AgentsRouteWithChildren,
+  AppRoute: AppRoute,
   AuthRoute: AuthRouteWithChildren,
   ConnectAiRoute: ConnectAiRoute,
   DocsRoute: DocsRoute,

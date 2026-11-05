@@ -1,20 +1,16 @@
 import { useState } from "react";
-import { Check, CopySimple, Warning } from "@phosphor-icons/react";
+import { Warning } from "@phosphor-icons/react";
 import { Navigate, createFileRoute } from "@tanstack/react-router";
 import { Helmet } from "react-helmet-async";
 import { useMutation, useQuery } from "convex/react";
 import { PageLoading } from "@/components/shared/PageLoading";
+import { Paywall } from "@/components/setup/Paywall";
 import { useAuth } from "@/lib/auth";
 import { api } from "@/lib/convex";
+import { getMcpOrigin } from "@/lib/mcp";
 import stageLogo from "@/assets/logos/stage-logo-light.png";
 
-// The MCP server that belongs to this web app. A connect code only ever goes back to it.
-const MCP_ORIGINS: Record<string, string> = {
-  "getstage.co": "https://mcp.getstage.co",
-  "www.getstage.co": "https://mcp.getstage.co",
-  "testing.getstage.co": "https://mcp-testing.getstage.co",
-  localhost: "http://localhost:8787",
-};
+const MCP_PLANS = ["pro", "team"];
 
 type ConnectRequest = { state: string; challenge: string; client: string; domain?: string; redirectHost: string; local: boolean };
 
@@ -27,18 +23,21 @@ export const Route = createFileRoute("/connect-ai")({
 });
 
 function ConnectAiPage() {
-  const { isLoading, isAuthenticated } = useAuth();
+  const { isLoading, isAuthenticated, user } = useAuth();
   const search = Route.useSearch();
-  const mcpOrigin = MCP_ORIGINS[window.location.hostname];
+  const mcpOrigin = getMcpOrigin();
 
   if (isLoading) return <PageLoading />;
-  if (!isAuthenticated) {
+  if (!isAuthenticated || !user) {
     return <Navigate to="/auth" search={{ redirect: `${window.location.pathname}${window.location.search}` }} replace />;
   }
 
   const request: ConnectRequest | undefined = search.state && search.challenge && search.client && search.redirect_host
     ? { state: search.state, challenge: search.challenge, client: search.client, domain: search.domain, redirectHost: search.redirect_host, local: search.local === "1" }
     : undefined;
+
+  if (!request) return <Navigate to="/app" replace />;
+  if (!MCP_PLANS.includes(user.plan)) return <Paywall title={`Pick a plan to connect ${request.client}`} />;
 
   return (
     <>
@@ -52,10 +51,8 @@ function ConnectAiPage() {
             <img src={stageLogo} alt="Stage" className="mb-5 h-[23px] w-auto" />
             {!mcpOrigin ? (
               <p className="text-[13px] font-medium text-[#DC2626]">Connecting AI tools isn't available on this address.</p>
-            ) : request ? (
-              <ApproveConnection request={request} mcpOrigin={mcpOrigin} />
             ) : (
-              <ConnectSteps mcpUrl={`${mcpOrigin}/mcp`} />
+              <ApproveConnection request={request} mcpOrigin={mcpOrigin} />
             )}
           </div>
         </div>
@@ -153,49 +150,5 @@ function ApproveConnection({ request, mcpOrigin }: { request: ConnectRequest; mc
         </button>
       </div>
     </>
-  );
-}
-
-// Opened directly: how to add Stage to each tool. (Full MCP Home comes with step 16.)
-function ConnectSteps({ mcpUrl }: { mcpUrl: string }) {
-  const steps = [
-    { tool: "Claude Code", how: "Run in your terminal:", value: `claude mcp add --transport http stage ${mcpUrl}` },
-    { tool: "Claude", how: "Settings → Connectors → Add custom connector, then paste:", value: mcpUrl },
-    { tool: "Cursor", how: "Settings → MCP → Add server, then paste:", value: mcpUrl },
-    { tool: "Codex", how: "Run in your terminal:", value: `codex mcp add stage --url ${mcpUrl}` },
-  ];
-  return (
-    <>
-      <h1 className="text-[21px] font-semibold leading-[1.2] text-[#0A0A0A]">Connect Stage to your AI tool</h1>
-      <p className="mt-2.5 text-[13px] font-medium leading-[1.5] text-[#525252]">
-        Add Stage once. The first time your tool uses it, you sign in here and allow access.
-      </p>
-      <div className="mt-6 flex w-full flex-col gap-3">
-        {steps.map((step) => (
-          <div key={step.tool} className="rounded-[8px] bg-[#F5F5F5] p-3">
-            <p className="text-[13px] font-semibold text-[#171717]">{step.tool}</p>
-            <p className="mt-1 text-[12px] font-medium text-[#737373]">{step.how}</p>
-            <CopyField value={step.value} />
-          </div>
-        ))}
-      </div>
-    </>
-  );
-}
-
-function CopyField({ value }: { value: string }) {
-  const [copied, setCopied] = useState(false);
-  return (
-    <div className="mt-2 flex items-center gap-2 rounded-[6px] bg-white px-2.5 py-2 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
-      <code className="min-w-0 flex-1 truncate text-[12px] text-[#171717]">{value}</code>
-      <button
-        type="button"
-        aria-label="Copy"
-        onClick={() => void navigator.clipboard.writeText(value).then(() => setCopied(true))}
-        className="shrink-0 text-[#737373] hover:text-[#171717]"
-      >
-        {copied ? <Check size={16} aria-hidden="true" /> : <CopySimple size={16} aria-hidden="true" />}
-      </button>
-    </div>
   );
 }
