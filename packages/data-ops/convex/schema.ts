@@ -1062,12 +1062,24 @@ export default defineSchema({
     userId: v.id("users"),
     hashedKey: v.string(),
     name: v.string(),
+    // "mcp": created when the user connects an AI tool over MCP (one key per connection).
+    kind: v.optional(v.literal("mcp")),
     createdAt: v.number(),
     lastUsedAt: v.optional(v.number()),
     revokedAt: v.optional(v.number()),
   })
     .index("by_hashed_key", ["hashedKey"])
     .index("by_user", ["userId"]),
+
+  // One-time codes from the "Connect your AI tool" page to the MCP server (PKCE, 5 minutes).
+  mcpConnectCodes: defineTable({
+    userId: v.id("users"),
+    hashedCode: v.string(),
+    codeChallenge: v.string(),
+    clientName: v.string(),
+    expiresAt: v.number(),
+    usedAt: v.optional(v.number()),
+  }).index("by_hashed_code", ["hashedCode"]),
 
   uploadedAssets: defineTable({
     userId: v.id("users"),

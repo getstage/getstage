@@ -35,6 +35,7 @@ import type * as crons from "../crons.js";
 import type * as dashboard from "../dashboard.js";
 import type * as desktop from "../desktop.js";
 import type * as developer_apiKeys from "../developer/apiKeys.js";
+import type * as developer_mcpConnect from "../developer/mcpConnect.js";
 import type * as developer_testingFixtures from "../developer/testingFixtures.js";
 import type * as domain_accountCleanup from "../domain/accountCleanup.js";
 import type * as domain_auth_cleanup from "../domain/auth/cleanup.js";
@@ -197,6 +198,7 @@ declare const fullApi: ApiFromModules<{
   dashboard: typeof dashboard;
   desktop: typeof desktop;
   "developer/apiKeys": typeof developer_apiKeys;
+  "developer/mcpConnect": typeof developer_mcpConnect;
   "developer/testingFixtures": typeof developer_testingFixtures;
   "domain/accountCleanup": typeof domain_accountCleanup;
   "domain/auth/cleanup": typeof domain_auth_cleanup;

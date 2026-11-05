@@ -10,6 +10,7 @@ import { figmaConnectCallback, notionConnectCallback } from "./integrations/cont
 import { creditWebhookEvents } from "./lib/billing/handlers/webhooks";
 import { resend } from "./lib/emails/client";
 import { unsubscribeHandler } from "./lib/emails/unsubscribe";
+import { exchangeConnectCode } from "./developer/mcpConnect";
 
 const http = new HttpRouterWithHono(apiApp as HonoWithConvex<ActionCtx>);
 auth.addHttpRoutes(http);
@@ -52,6 +53,13 @@ http.route({
   path: "/emails/unsubscribe",
   method: "GET",
   handler: unsubscribeHandler,
+});
+
+// The MCP server redeems a one-time connect code for the user's MCP key.
+http.route({
+  path: "/mcp/connect/token",
+  method: "POST",
+  handler: exchangeConnectCode,
 });
 
 export default http;

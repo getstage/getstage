@@ -17,6 +17,7 @@ import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as OpenclawRouteImport } from './routes/openclaw'
 import { Route as DownloadRouteImport } from './routes/download'
 import { Route as DocsRouteImport } from './routes/docs'
+import { Route as ConnectAiRouteImport } from './routes/connect-ai'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AgentsRouteImport } from './routes/agents'
 import { Route as AuthedRouteImport } from './routes/_authed'
@@ -89,6 +90,11 @@ const DownloadRoute = DownloadRouteImport.update({
 const DocsRoute = DocsRouteImport.update({
   id: '/docs',
   path: '/docs',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ConnectAiRoute = ConnectAiRouteImport.update({
+  id: '/connect-ai',
+  path: '/connect-ai',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRoute = AuthRouteImport.update({
@@ -263,6 +269,7 @@ export interface FileRoutesByFullPath {
   '/$slug': typeof SlugRoute
   '/agents': typeof AgentsRouteWithChildren
   '/auth': typeof AuthRouteWithChildren
+  '/connect-ai': typeof ConnectAiRoute
   '/docs': typeof DocsRoute
   '/download': typeof DownloadRouteWithChildren
   '/openclaw': typeof OpenclawRoute
@@ -304,6 +311,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/$slug': typeof SlugRoute
   '/auth': typeof AuthRouteWithChildren
+  '/connect-ai': typeof ConnectAiRoute
   '/docs': typeof DocsRoute
   '/download': typeof DownloadRouteWithChildren
   '/openclaw': typeof OpenclawRoute
@@ -348,6 +356,7 @@ export interface FileRoutesById {
   '/_authed': typeof AuthedRouteWithChildren
   '/agents': typeof AgentsRouteWithChildren
   '/auth': typeof AuthRouteWithChildren
+  '/connect-ai': typeof ConnectAiRoute
   '/docs': typeof DocsRoute
   '/download': typeof DownloadRouteWithChildren
   '/openclaw': typeof OpenclawRoute
@@ -392,6 +401,7 @@ export interface FileRouteTypes {
     | '/$slug'
     | '/agents'
     | '/auth'
+    | '/connect-ai'
     | '/docs'
     | '/download'
     | '/openclaw'
@@ -433,6 +443,7 @@ export interface FileRouteTypes {
     | '/'
     | '/$slug'
     | '/auth'
+    | '/connect-ai'
     | '/docs'
     | '/download'
     | '/openclaw'
@@ -476,6 +487,7 @@ export interface FileRouteTypes {
     | '/_authed'
     | '/agents'
     | '/auth'
+    | '/connect-ai'
     | '/docs'
     | '/download'
     | '/openclaw'
@@ -520,6 +532,7 @@ export interface RootRouteChildren {
   AuthedRoute: typeof AuthedRouteWithChildren
   AgentsRoute: typeof AgentsRouteWithChildren
   AuthRoute: typeof AuthRouteWithChildren
+  ConnectAiRoute: typeof ConnectAiRoute
   DocsRoute: typeof DocsRoute
   DownloadRoute: typeof DownloadRouteWithChildren
   OpenclawRoute: typeof OpenclawRoute
@@ -601,6 +614,13 @@ declare module '@tanstack/react-router' {
       path: '/docs'
       fullPath: '/docs'
       preLoaderRoute: typeof DocsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/connect-ai': {
+      id: '/connect-ai'
+      path: '/connect-ai'
+      fullPath: '/connect-ai'
+      preLoaderRoute: typeof ConnectAiRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth': {
@@ -925,6 +945,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthedRoute: AuthedRouteWithChildren,
   AgentsRoute: AgentsRouteWithChildren,
   AuthRoute: AuthRouteWithChildren,
+  ConnectAiRoute: ConnectAiRoute,
   DocsRoute: DocsRoute,
   DownloadRoute: DownloadRouteWithChildren,
   OpenclawRoute: OpenclawRoute,

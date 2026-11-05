@@ -7,7 +7,14 @@ const KEY_PREFIX = "stg_";
 const KEY_BYTE_LENGTH = 32;
 const MAX_KEYS_PER_USER = 5;
 
-async function hashKey(rawKey: string): Promise<string> {
+// Developer API keys need Studio. MCP keys need Studio or Agency.
+type Plan = "free" | "start" | "pro" | "team";
+const KEY_PLANS = { api: ["pro"], mcp: ["pro", "team"] } satisfies Record<string, Plan[]>;
+export function planAllowsKey(kind: "api" | "mcp", plan: Plan) {
+  return (KEY_PLANS[kind] as Plan[]).includes(plan);
+}
+
+export async function hashKey(rawKey: string): Promise<string> {
   const encoded = new TextEncoder().encode(rawKey);
   const hashBuffer = await crypto.subtle.digest("SHA-256", encoded);
   const hashArray = new Uint8Array(hashBuffer);
@@ -16,7 +23,7 @@ async function hashKey(rawKey: string): Promise<string> {
     .join("");
 }
 
-function generateRawKey(): string {
+export function generateRawKey(): string {
   const bytes = new Uint8Array(KEY_BYTE_LENGTH);
   crypto.getRandomValues(bytes);
   const hex = Array.from(bytes)
@@ -50,7 +57,7 @@ export const generate = mutation({
       .withIndex("by_user", (q) => q.eq("userId", user._id))
       .collect();
 
-    const activeKeys = existingKeys.filter((k) => !k.revokedAt);
+    const activeKeys = existingKeys.filter((k) => !k.revokedAt && k.kind !== "mcp");
     if (activeKeys.length >= MAX_KEYS_PER_USER) {
       throw new Error(`You can have at most ${MAX_KEYS_PER_USER} active API keys.`);
     }
@@ -137,7 +144,7 @@ export const getUserByHashedKey = internalQuery({
 
     const subscription = await getCurrentSubscriptionSnapshot(ctx, String(user._id));
     const plan = subscription?.plan ?? user.plan ?? "free";
-    if (plan !== "pro") {
+    if (!planAllowsKey(apiKey.kind ?? "api", plan)) {
       return null;
     }
 
@@ -166,7 +173,7 @@ export const authenticateByHashedKey = internalMutation({
 
     const subscription = await getCurrentSubscriptionSnapshot(ctx, String(user._id));
     const plan = subscription?.plan ?? user.plan ?? "free";
-    if (plan !== "pro") {
+    if (!planAllowsKey(apiKey.kind ?? "api", plan)) {
       return null;
     }
 
