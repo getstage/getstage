@@ -4,6 +4,7 @@ import type { MutationCtx, QueryCtx } from "../../../_generated/server";
 import { upsertContextRecord } from "../domain/contextStore";
 import { createArtifactRecord } from "../domain/artifactStore";
 import { createRunRecord } from "../domain/runStore";
+import { findLatestArtifact } from "../domain/latestArtifact";
 import {
   getArtifactRecord,
   getContextRecord,
@@ -267,13 +268,24 @@ export async function upsertArtifactExportForApiHandler(
   return { destinationId };
 }
 
-// Steps an AI tool can save through the MCP. Moodboard and Delivery need Stage for Mac (image search, exports).
-const SAVE_STEP = {
-  research: saveResearchResult,
-  strategy: saveStrategyResult,
-  flows: saveFlowsResult,
-  generate: saveWireframesResult,
+// Steps an AI tool can save through the MCP, in Stage's order. Moodboard and Delivery need Stage for Mac
+// (image search, exports), so a saved Moodboard is used when present but never required.
+const UPSTREAM = {
+  research: { module: "research", kind: "researchArtifact", label: "Research" },
+  strategy: { module: "strategy", kind: "strategyArtifact", label: "Strategy" },
+  moodboard: { module: "moodboard", kind: "moodboardArtifact", label: "Moodboard" },
+  flows: { module: "flows", kind: "flowsArtifact", label: "Flows" },
 } as const;
+
+const REQUIRES = {
+  research: [],
+  strategy: ["research"],
+  flows: ["research", "strategy"],
+  generate: ["strategy", "flows"],
+} as const;
+
+// Saving Research replaces the Strategy built on it (same as a Research run on Mac).
+const CLEARS = { research: ["strategy"], strategy: [], flows: [], generate: [] } as const;
 
 export const saveStepForApiArgs = {
   userId: v.id("users"),
@@ -284,24 +296,48 @@ export const saveStepForApiArgs = {
   contentJson: v.string(),
 };
 
-/** Saves a step result made by the user's own AI tool. No credits: Stage ran no model. */
+/**
+ * Saves a step result made by the user's own AI tool. No credits: Stage ran no model.
+ * Earlier steps must be saved first; their ids are filled in from the project, never taken from the AI.
+ */
 export async function saveStepForApiHandler(
   ctx: MutationCtx,
   args: {
     userId: Id<"users">;
     projectId: Id<"projects">;
-    step: keyof typeof SAVE_STEP;
+    step: keyof typeof REQUIRES;
     title: string;
     summary?: string;
     contentJson: string;
   },
 ) {
   const access = await requireProjectAccessForUserId(ctx, { userId: args.userId, projectId: args.projectId });
-  const { artifactId } = await SAVE_STEP[args.step](ctx, access, {
-    projectId: args.projectId,
-    title: args.title,
-    summary: args.summary,
-    contentJson: args.contentJson,
-  });
-  return { artifactId };
+  const latestId = async (key: keyof typeof UPSTREAM) => {
+    const { module, kind } = UPSTREAM[key];
+    const artifact = await findLatestArtifact(ctx, args.projectId, module, kind);
+    return artifact && String(artifact._id);
+  };
+
+  for (const key of REQUIRES[args.step]) {
+    if (!(await latestId(key))) throw new Error(`Save ${UPSTREAM[key].label} first: ${UPSTREAM[key].label} comes before this step.`);
+  }
+
+  const base = { projectId: args.projectId, title: args.title, summary: args.summary, contentJson: args.contentJson };
+  const researchArtifactId = (await latestId("research")) ?? undefined;
+  const strategyArtifactId = (await latestId("strategy")) ?? undefined;
+  const moodboardArtifactId = (await latestId("moodboard")) ?? undefined;
+  const { artifactId } = await (() => {
+    switch (args.step) {
+      case "research":
+        return saveResearchResult(ctx, access, base);
+      case "strategy":
+        return saveStrategyResult(ctx, access, { ...base, researchArtifactId });
+      case "flows":
+        return saveFlowsResult(ctx, access, { ...base, researchArtifactId, strategyArtifactId, moodboardArtifactId });
+      case "generate":
+        return latestId("flows").then((flowsArtifactId) =>
+          saveWireframesResult(ctx, access, { ...base, researchArtifactId, strategyArtifactId, moodboardArtifactId, flowsArtifactId: flowsArtifactId ?? undefined }));
+    }
+  })();
+  return { artifactId, cleared: CLEARS[args.step] };
 }
