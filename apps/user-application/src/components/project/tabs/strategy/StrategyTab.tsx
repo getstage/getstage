@@ -22,15 +22,7 @@ import {
   AddSectionEditor,
 } from "./AddSectionEditor";
 import { StrategyGenerateStep } from "./StrategyGenerateStep";
-import { StrategySectionCard } from "./StrategySectionCard";
-import { MetaDot } from "./StrategyStatus";
-import {
-  ArrowRightIcon,
-  EditIcon,
-  NotionIcon,
-  PlusIcon,
-  SaveIcon,
-} from "./strategyIcons";
+import { ArrowRightIcon, EditIcon, NotionIcon, PlusIcon, SaveIcon, StrategyProgress, StrategySectionCard } from "@stage/project-ui/strategy";
 
 // Matches the engine run source that regenerates only not-yet-approved sections,
 // leaving approved sections untouched (apps/stage-engine/src/strategy/section.rs).
@@ -532,21 +524,7 @@ export function StrategyTab({
               </p>
             ) : null}
           <div className="flex flex-wrap items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="h-[10px] w-[65px] overflow-hidden rounded-full bg-[#E5E5E5]">
-                <div
-                  className="h-full rounded-full bg-[#16A34A] transition-[width]"
-                  style={{ width: `${Math.max(8, (approvedCount / visibleSections.length) * 100)}%` }}
-                />
-              </div>
-              <p className="text-[13px] font-medium leading-[1.25] text-[#171717]">
-                {approvedCount} of {visibleSections.length} sections approved
-              </p>
-              <MetaDot />
-              <p className="text-[13px] font-medium leading-[1.25] text-[#737373]">Total {visibleSections.length} sections</p>
-              <MetaDot />
-              <p className="text-[13px] font-medium leading-[1.25] text-[#737373]">Based on Research</p>
-            </div>
+            <StrategyProgress approvedCount={approvedCount} total={visibleSections.length} />
             {isEditing ? (
               <div className="flex items-start gap-2">
                 <button

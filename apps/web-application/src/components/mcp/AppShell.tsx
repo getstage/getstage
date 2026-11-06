@@ -1,5 +1,5 @@
-import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
-import { Link } from "@tanstack/react-router";
+import { createContext, useContext, useRef, useState, type ReactNode } from "react";
+import { Link, useLocation } from "@tanstack/react-router";
 import { useQuery } from "convex-helpers/react/cache/hooks";
 import chevronDown from "@/assets/home/chevron-down.svg";
 import navDashboard from "@/assets/home/nav-dashboard.svg";
@@ -12,6 +12,7 @@ import stageMark from "@/assets/home/stage-mark.svg";
 import { useAuth, useSignOut } from "@/lib/auth";
 import { api } from "@/lib/convex";
 import { cn } from "@/lib/utils";
+import { useDismiss } from "./useDismiss";
 
 // Signed-in web app shell (Figma 2491-4955 / 2491-5129 / 2495-5463). Rendered once by the /app layout route,
 // so the sidebar and its data stay mounted while the pages under it change.
@@ -78,6 +79,8 @@ export function AppShell({ children }: { children: ReactNode }) {
   const activeSpace = useActiveSpaceState();
   const { spaces, active, choose } = activeSpace;
   const spaceLabel = active ? (active.role === "owner" ? `${active.name}’s Workspace` : active.name) : "";
+  // A project uses the Mac app's full-width step screens; the other pages keep the narrow Figma column.
+  const wide = useLocation({ select: (location) => location.pathname.startsWith("/app/projects/") });
 
   return (
     <ActiveSpaceContext.Provider value={activeSpace}>
@@ -130,7 +133,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
         </aside>
         <main className="min-h-[calc(100dvh-8px)] min-w-0 flex-1 rounded-[8px] border-[0.5px] border-[#D4D4D4] bg-white px-4 py-11">
-          <div className="mx-auto flex w-full max-w-[684px] flex-col gap-8">{children}</div>
+          <div className={cn("mx-auto flex w-full flex-col gap-8", wide ? "max-w-[1120px]" : "max-w-[684px]")}>{children}</div>
         </main>
       </div>
     </ActiveSpaceContext.Provider>
@@ -144,18 +147,7 @@ function UserMenu() {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (!open) return;
-    const close = (event: Event) => {
-      if (event instanceof KeyboardEvent ? event.key === "Escape" : !ref.current?.contains(event.target as Node)) setOpen(false);
-    };
-    document.addEventListener("pointerdown", close);
-    document.addEventListener("keydown", close);
-    return () => {
-      document.removeEventListener("pointerdown", close);
-      document.removeEventListener("keydown", close);
-    };
-  }, [open]);
+  useDismiss(ref, open, () => setOpen(false));
 
   if (!user) return null;
   return (

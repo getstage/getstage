@@ -4,6 +4,8 @@ import type { Id } from "./_generated/dataModel";
 import type { QueryCtx } from "./_generated/server";
 import { requireAuthUser, requireProjectAccessOrNull } from "./_helpers";
 import { listAccessibleProjectDocsForUser } from "./domain/projects/readModel";
+import { WORKFLOW_STEPS } from "../src/contracts/desktop-api/project";
+import { resolveProjectCategory } from "./lib/projects/domain/projectCategory";
 
 // The 6 project steps in the Mac app's order, with where each step's result and runs are stored.
 const STEPS = [
@@ -50,11 +52,14 @@ export const listProjectProgress = query({
   },
 });
 
-// One project's name for the web project view; null once it's deleted or not shared with this user.
+// One project for the web project view's header; null once it's deleted or not shared with this user.
+// enabledSteps defaults the same way as for the Mac app.
 export const getProject = query({
   args: { projectId: v.id("projects") },
   handler: async (ctx, args) => {
     const access = await requireProjectAccessOrNull(ctx, args.projectId);
-    return access && { name: access.project.name };
+    if (!access) return null;
+    const { name, clientName, type, enabledSteps } = access.project;
+    return { name, clientName, category: resolveProjectCategory(type), enabledSteps: enabledSteps ?? [...WORKFLOW_STEPS] };
   },
 });

@@ -10,7 +10,7 @@ import type { Project } from "@/models/project/project";
 import type { ValidatedResearchConfigureInput } from "@/lib/project/researchConfigureInput";
 import type { ProjectCategory, ProviderId, ResearchArtifactSection } from "@stage/data-ops/contracts";
 import type { Id } from "@stage/data-ops/convex/data-model";
-import type { CompetitiveView, ResearchTabData } from "@/types/project/researchTab";
+import { type CompetitiveView, type ResearchTabData, CompanySnapshot, CompetitiveAnalysis, Opportunities, CustomSections, Divider, ResearchSummary, TargetUsers, UiPatterns } from "@stage/project-ui/research";
 import { useResearchContext } from "@/hooks/project/research/useResearchContext";
 import { useResearchProviderSelection } from "@/hooks/project/research/useResearchProviderSelection";
 import { useResearchSectionRegenerate } from "@/hooks/project/research/useResearchSectionRegenerate";
@@ -21,21 +21,13 @@ import { applyResearchTabEdits } from "@/lib/project/applyResearchTabEdits";
 import { RESEARCH_RUN_FAILED_USER_MESSAGE } from "@/lib/engine/formatRunError";
 import { toUserFacingErrorMessage } from "@/lib/errors";
 import { cn } from "@/lib/utils";
-import { CompanySnapshot } from "./CompanySnapshot";
-import { CompetitiveAnalysis } from "./CompetitiveAnalysis";
-import { Opportunities } from "./Opportunities";
 import { PhotoLightbox } from "@/components/project/PhotoLightbox";
 import { AddSectionEditor } from "../strategy/AddSectionEditor";
-import { CustomSections } from "./CustomSections";
 import { NotionParentPageDialog } from "./NotionParentPageDialog";
 import { GenerateStrategyRunDialog } from "@/components/project/GenerateStrategyRunDialog";
 import { ResearchActions } from "./ResearchActions";
 import { ResearchConfigureStep } from "./ResearchConfigureStep";
-import { Divider } from "./ResearchPrimitives";
 import { ResearchSkillReport } from "./ResearchSkillReport";
-import { ResearchSummary } from "./ResearchSummary";
-import { TargetUsers } from "./TargetUsers";
-import { UiPatterns } from "./UiPatterns";
 
 export function ResearchTab({
   project,

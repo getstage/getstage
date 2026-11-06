@@ -1,5 +1,5 @@
-import type { ResearchCompetitor } from "@/types/project/researchTab";
-import { BrandLogo } from "@/components/shared/BrandLogo";
+import type { ResearchCompetitor } from "./types";
+import { BrandLogo } from "../BrandLogo";
 import { SectionTitle } from "./ResearchPrimitives";
 import { CardIcon, MatrixIcon } from "./researchIcons";
 

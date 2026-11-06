@@ -1,5 +1,6 @@
-import type { ProjectTab } from "@/models/project/project";
 import type { ProjectCategory } from "@stage/data-ops/contracts";
+
+export type ProjectTab = "overview" | "research" | "strategy" | "moodboard" | "flows" | "wireframes" | "assets";
 
 export const PROJECT_PAGE_TABS: { key: ProjectTab; label: string; iconSrc: string }[] = [
   { key: "overview", label: "Overview", iconSrc: "/logos/dashboard/overview.svg" },

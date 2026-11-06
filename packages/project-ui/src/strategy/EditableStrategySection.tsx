@@ -1,5 +1,5 @@
-import { cn } from "@/lib/utils";
-import type { StrategySection } from "@/models/project/strategyTab";
+import { cn } from "../cn";
+import type { StrategySection } from "./types";
 import { RegenerateIcon } from "./strategyIcons";
 
 export function EditableStrategyContent({

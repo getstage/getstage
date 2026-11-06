@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { UiPatternGroupWithPatterns, UiPatternImage } from "@/types/project/researchTab";
+import type { UiPatternGroupWithPatterns, UiPatternImage } from "./types";
 import {
   ArrowLeftMiniIcon,
   ArrowRightMiniIcon,
@@ -246,10 +246,8 @@ function getVisibleCarouselImages(images: UiPatternImage[], startIndex: number, 
 
   const count = Math.min(images.length, visibleCount);
 
-  return Array.from({ length: count }, (_, index) => {
-    const originalIndex = (startIndex + index) % images.length;
-    return { image: images[originalIndex], originalIndex };
-  });
+  return Array.from({ length: count }, (_, index) => (startIndex + index) % images.length)
+    .flatMap((originalIndex) => images.slice(originalIndex, originalIndex + 1).map((image) => ({ image, originalIndex })));
 }
 
 function PatternCard({

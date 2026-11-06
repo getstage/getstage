@@ -5,12 +5,11 @@ import type {
   SaveClientProfileInput,
   SaveProjectProfileInput,
 } from "@/hooks/project";
-import { getEnabledProjectTabs } from "@/lib/project/projectTabs";
+import { ProjectTabBar, ProjectTitle } from "@stage/project-ui/project";
 import type { Phase, Project, ProjectTab } from "@/models/project/project";
 import type { ProjectModal, ProjectTimeline } from "@/types/project/projectHeader";
 import { ProjectActionsMenu } from "./header/ProjectActionsMenu";
 import { ProjectActionModal } from "./header/ProjectHeaderModals";
-import "./header/projectHeader.css";
 
 export type { ProjectTimeline };
 
@@ -100,22 +99,7 @@ export function ProjectHeader({
   return (
     <section className="project-detail-header">
       <div className="project-header-primary grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-start gap-[14px]">
-        <div className="project-header-title min-w-0">
-          <h1 className="max-w-[720px] truncate font-heading text-[20px] font-semibold leading-[1.2] text-[#0A0A0A]">
-            {project.name}
-          </h1>
-          <div className="project-header-metadata mt-2 flex min-w-0 items-center gap-2 text-[13px] font-medium leading-[1.2] text-[#737373]">
-            <span className="truncate">{project.clientName}</span>
-            {projectCategoryLabel ? (
-              <>
-                <span aria-hidden="true">·</span>
-                <span className="shrink-0" aria-label={`Project category: ${projectCategoryLabel}`}>
-                  {projectCategoryLabel}
-                </span>
-              </>
-            ) : null}
-          </div>
-        </div>
+        <ProjectTitle name={project.name} clientName={project.clientName} categoryLabel={projectCategoryLabel} />
 
         <div ref={projectMenuRef} className="project-header-actions relative flex min-w-0 items-center justify-end gap-[6px]">
           <button
@@ -155,36 +139,7 @@ export function ProjectHeader({
 
       <div className="project-header-secondary grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-start gap-[10px]">
         <div className="project-header-tabs min-w-0 max-w-full overflow-hidden">
-          <div className="project-tab-menu w-fit max-w-full overflow-x-auto rounded-[8px] bg-[#F5F5F5] p-[2px]">
-            <div className="flex w-max items-start gap-[8px]">
-              {getEnabledProjectTabs(enabledSteps, projectCategory).map((tab) => {
-                const isActive = tab.key === activeTab;
-                return (
-                  <button
-                    key={tab.key}
-                    type="button"
-                    onClick={() => onTabChange(tab.key)}
-                    aria-current={isActive ? "page" : undefined}
-                    className={`inline-flex shrink-0 cursor-pointer items-center gap-[8px] whitespace-nowrap rounded-[6px] py-[6px] pl-[10px] pr-[12px] text-[13px] font-medium leading-none transition-all duration-150 ${
-                      isActive
-                        ? "bg-gradient-to-b from-[#8D87FF] to-[#7B76DF] text-[#E5E5E5] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]"
-                        : "text-[#737373] hover:bg-white"
-                    }`}
-                  >
-                    <span
-                      aria-hidden="true"
-                      className="h-[15px] w-[15px] shrink-0 bg-current"
-                      style={{
-                        WebkitMask: `url("${tab.iconSrc}") center / contain no-repeat`,
-                        mask: `url("${tab.iconSrc}") center / contain no-repeat`,
-                      }}
-                    />
-                    {tab.label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+          <ProjectTabBar enabledSteps={enabledSteps} category={projectCategory} activeTab={activeTab} onTabChange={onTabChange} />
         </div>
 
         <div className="project-header-portal flex min-w-0 items-center justify-end gap-2">

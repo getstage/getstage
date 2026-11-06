@@ -55,6 +55,7 @@
     "@radix-ui/react-toggle-group": "^1.1.2",
     "@radix-ui/react-tooltip": "^1.1.8",
     "@stage/data-ops": "workspace:*",
+    "@stage/project-ui": "workspace:*",
     "@tanstack/react-query": "^5.66.0",
     "@tanstack/react-router": "^1.112.0",
     "canvas-confetti": "^1.9.4",

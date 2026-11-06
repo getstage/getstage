@@ -1,4 +1,6 @@
 @import "tailwindcss";
+/* Shared project screens (Mac app and web app). */
+@source "../../../../packages/project-ui/src";
 
 @custom-variant dark (&:where(.dark, .dark *));
 

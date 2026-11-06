@@ -30,7 +30,7 @@ import {
 } from "@/lib/project/researchConfigureInput";
 import { validateUploadFile } from "@/lib/r2Uploads";
 import { AiRunSettings } from "@/components/project/AiRunSettings";
-import { PlusIcon } from "./researchIcons";
+import { PlusIcon } from "@stage/project-ui/research";
 import { ResearchSkillsField } from "./ResearchSkillsField";
 
 const suggestedIndustries = "e.g. Fintech, E-commerce, SaaS, Health";

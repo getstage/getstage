@@ -1,6 +1,6 @@
 import type { ResearchArtifact } from "@stage/data-ops/contracts";
 import { researchArtifactSchema } from "@stage/data-ops/contracts";
-import { mapResearchArtifactToTabData } from "@/lib/project/mapResearchArtifactToTabData";
+import { mapResearchArtifactToTabData } from "@stage/project-ui/research";
 import type { ResearchArtifactRecord } from "@/types/project/researchArtifactRecord";
 import { createMockResearchArtifact, mockResearchArtifact, MOCK_RESEARCH_PROJECT_ID } from "./researchArtifact";
 

@@ -6,9 +6,10 @@ type ResearchSummaryProps = {
   isEditing: boolean;
   editItems?: string[];
   onEditItemsChange?: (items: string[]) => void;
-  onEdit: () => void;
-  onDiscard: () => void;
-  onSave: () => void;
+  // Without these (the web app) the summary is read-only.
+  onEdit?: () => void;
+  onDiscard?: () => void;
+  onSave?: () => void;
   isSaving?: boolean;
   onRerunResearch?: () => void;
   isRunBusy?: boolean;
@@ -102,15 +103,17 @@ export function ResearchSummary({
                 Re-run research
               </button>
             ) : null}
-            <button
-              type="button"
-              onClick={onEdit}
-              disabled={isRunBusy}
-              className="inline-flex h-[34px] shrink-0 cursor-pointer items-center justify-center gap-2 rounded-[6px] bg-[#F5F5F5] py-2 pl-[10px] pr-3 text-[13px] font-medium leading-none text-[#525252] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#ECECEC] disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <EditIcon />
-              Edit Research
-            </button>
+            {onEdit ? (
+              <button
+                type="button"
+                onClick={onEdit}
+                disabled={isRunBusy}
+                className="inline-flex h-[34px] shrink-0 cursor-pointer items-center justify-center gap-2 rounded-[6px] bg-[#F5F5F5] py-2 pl-[10px] pr-3 text-[13px] font-medium leading-none text-[#525252] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#ECECEC] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <EditIcon />
+                Edit Research
+              </button>
+            ) : null}
           </div>
         )}
       </div>

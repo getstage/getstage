@@ -1,5 +1,24 @@
-import { useState } from "react";
-import { brandLogoUrl, normalizeBrandDomain } from "@/config/brandfetch";
+import { createContext, useContext, useState, type ReactNode } from "react";
+
+type LogoUrl = (domain: string, sizePx: number) => string | null;
+
+// Each app knows its own logo service (the Mac app passes its Brandfetch client id); without one, logos fall back to the letter mark.
+const BrandLogoContext = createContext<LogoUrl>(() => null);
+
+export function BrandLogoProvider({ logoUrl, children }: { logoUrl: LogoUrl; children: ReactNode }) {
+  return <BrandLogoContext.Provider value={logoUrl}>{children}</BrandLogoContext.Provider>;
+}
+
+function normalizeBrandDomain(url: string): string | null {
+  const trimmed = url.trim();
+  if (!trimmed) return null;
+  const withScheme = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+  try {
+    return new URL(withScheme).hostname.toLowerCase().replace(/^www\./, "") || null;
+  } catch {
+    return null;
+  }
+}
 
 type BrandLogoProps = {
   url: string;
@@ -11,6 +30,7 @@ type BrandLogoProps = {
 };
 
 export function BrandLogo({ url, name, fallbackColor, fallbackMark, size, rounded }: BrandLogoProps) {
+  const brandLogoUrl = useContext(BrandLogoContext);
   const domain = normalizeBrandDomain(url);
   const src = domain ? brandLogoUrl(domain, size * 2) : null;
 

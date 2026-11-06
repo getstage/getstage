@@ -3,7 +3,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import type { ProviderId } from "@stage/data-ops/contracts";
 import { AiRunSettings } from "@/components/project/AiRunSettings";
 import type { ResearchProviderOption } from "@/hooks/project/research/useResearchProviderSelection";
-import { ArrowRightIcon } from "@/components/project/tabs/strategy/strategyIcons";
+import { ArrowRightIcon } from "@stage/project-ui/strategy";
 
 type GenerateStrategyRunDialogProps = {
   open: boolean;

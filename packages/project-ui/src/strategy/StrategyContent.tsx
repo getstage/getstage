@@ -1,17 +1,10 @@
-import { cn } from "@/lib/utils";
-import type { StrategySection } from "@/models/project/strategyTab";
+import { cn } from "../cn";
+import type { StrategySection } from "./types";
 import { StrategyIcon } from "./strategyIcons";
 
 function parseLabeledLine(line: string) {
-  const match = line.match(/^([^:]{2,40}):\s*(.+)$/);
-  if (!match) {
-    return null;
-  }
-
-  return {
-    label: match[1].trim(),
-    value: match[2].trim(),
-  };
+  const [, label, value] = line.match(/^([^:]{2,40}):\s*(.+)$/) ?? [];
+  return label && value ? { label: label.trim(), value: value.trim() } : null;
 }
 
 export function StrategyContent({

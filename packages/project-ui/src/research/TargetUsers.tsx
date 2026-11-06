@@ -1,4 +1,4 @@
-import type { ResearchTargetUser } from "@/types/project/researchTab";
+import type { ResearchTargetUser } from "./types";
 import { SectionTitle } from "./ResearchPrimitives";
 
 type TargetUsersProps = {

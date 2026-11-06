@@ -11,6 +11,8 @@ import { router } from "./router";
 import { useRecordAppOpened } from "./hooks/useRecordAppOpened";
 import "./styles/globals.css";
 import "./styles/desktop.css";
+import { BrandLogoProvider } from "@stage/project-ui";
+import { brandLogoUrl } from "@/config/brandfetch";
 
 if (new URLSearchParams(window.location.search).get("stageWindow") === "companion") {
   document.documentElement.classList.add("stage-companion-document");
@@ -48,7 +50,9 @@ ReactDOM.createRoot(rootEl).render(
           <DesktopAuthProvider>
             <RecordAppOpenedOnAuth />
             <IdentifyAnalyticsUser />
-            <RouterProvider router={router} />
+            <BrandLogoProvider logoUrl={brandLogoUrl}>
+              <RouterProvider router={router} />
+            </BrandLogoProvider>
           </DesktopAuthProvider>
         </QueryClientProvider>
       </ConvexProviderWithAuth>

@@ -4,7 +4,7 @@ import type {
   ResearchTabData,
   ResearchTargetUser,
   UiPatternGroupWithPatterns,
-} from "@/types/project/researchTab";
+} from "./types";
 
 const COMPETITOR_COLORS = ["#FF4A00", "#1ED760", "#635BFF", "#050505", "#2563EB", "#DB2777"];
 

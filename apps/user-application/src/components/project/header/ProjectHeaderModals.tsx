@@ -6,7 +6,7 @@ import type {
   SaveProjectProfileInput,
 } from "@/hooks/project";
 import type { Phase, Project, ProjectTab } from "@/models/project/project";
-import { PROJECT_PAGE_TABS, WORKFLOW_TABS } from "@/lib/project/projectTabs";
+import { PROJECT_PAGE_TABS, WORKFLOW_TABS } from "@stage/project-ui/project";
 import type { ProjectModal, ProjectTimeline } from "@/types/project/projectHeader";
 
 export function ProjectActionModal({

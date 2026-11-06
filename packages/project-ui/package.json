@@ -1,0 +1,25 @@
+{
+  "name": "@stage/project-ui",
+  "private": true,
+  "type": "module",
+  "description": "Project step screens (display only) shared by Stage for Mac and the Stage web app. Actions such as AI runs and exports stay in each app and are passed in as optional handlers.",
+  "exports": {
+    ".": "./src/index.ts",
+    "./research": "./src/research/index.ts",
+    "./strategy": "./src/strategy/index.ts",
+    "./project": "./src/project/index.ts"
+  },
+  "dependencies": {
+    "@stage/data-ops": "workspace:*",
+    "clsx": "^2.1.1",
+    "emoji-picker-react": "^4.19.1",
+    "tailwind-merge": "^3.5.0"
+  },
+  "peerDependencies": {
+    "react": ">=19"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "react": "^19.0.0"
+  }
+}

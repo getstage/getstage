@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
-import type { StrategySection } from "@/models/project/strategyTab";
+import type { StrategySection } from "./types";
 import { EditableStrategyContent } from "./EditableStrategySection";
 import { StrategyContent } from "./StrategyContent";
 import { StatusPill } from "./StrategyStatus";
@@ -48,12 +48,13 @@ export function StrategySectionCard({
   showDivider: boolean;
   isEditing: boolean;
   isRegenerating?: boolean;
-  onSectionChange: (section: StrategySection) => void;
-  onEmojiChange: (emoji: string) => void;
+  // Editing and approving happen in Stage for Mac; without these handlers (the web app) the card is read-only.
+  onSectionChange?: (section: StrategySection) => void;
+  onEmojiChange?: (emoji: string) => void;
   onDelete?: () => void;
-  onApprove: () => void;
-  onUnapprove: () => void;
-  onRegenerate: () => void;
+  onApprove?: () => void;
+  onUnapprove?: () => void;
+  onRegenerate?: () => void;
 }) {
   const [isExpanded, setIsExpanded] = useState(true);
   const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
@@ -109,6 +110,7 @@ export function StrategySectionCard({
             </span>
           </button>
           <div className="flex min-w-0 items-center">
+            {onEmojiChange ? (
             <div className="relative" ref={emojiPickerRef}>
               <button
                 ref={emojiButtonRef}
@@ -140,6 +142,9 @@ export function StrategySectionCard({
                 </div>
               ) : null}
             </div>
+            ) : (
+              <span className="inline-flex size-6 items-center justify-center text-[15px] leading-none" aria-hidden="true">{emoji}</span>
+            )}
             <h2 className="min-w-0 text-[15px] font-semibold leading-normal text-[#171717]">
               {title.label}
             </h2>
@@ -163,7 +168,7 @@ export function StrategySectionCard({
           }`}
         >
           <div className="flex min-h-0 flex-col gap-2 overflow-hidden">
-            {isEditing ? (
+            {isEditing && onSectionChange && onRegenerate ? (
               <EditableStrategyContent
                 section={section}
                 onChange={onSectionChange}
@@ -172,7 +177,7 @@ export function StrategySectionCard({
             ) : (
               <StrategyContent section={section} />
             )}
-            {!isEditing && section.status === "action" ? (
+            {!isEditing && section.status === "action" && onApprove ? (
               <div className="flex flex-wrap items-center gap-1">
                 <button
                   type="button"
@@ -194,7 +199,7 @@ export function StrategySectionCard({
                 </button>
               </div>
             ) : null}
-            {!isEditing && section.status === "approved" ? (
+            {!isEditing && section.status === "approved" && onUnapprove ? (
               <div className="flex flex-wrap items-center gap-1">
                 <button
                   type="button"

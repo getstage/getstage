@@ -1,4 +1,4 @@
-import type { ResearchCustomSection } from "@/types/project/researchTab";
+import type { ResearchCustomSection } from "./types";
 import { SectionTitle } from "./ResearchPrimitives";
 
 type CustomSectionsProps = {
