@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import type { WireframeResultCard } from "@/lib/project/mapWireframesArtifactToTabData";
-import { formatRelativeTime } from "@/lib/utils";
+import type { WireframeResultCard } from "./mapWireframesArtifact";
+import { formatRelativeTime } from "../time";
 import { Badge, SecondaryButton } from "./WireframePrimitives";
 import { CheckIcon, ImageIcon, PlusIcon, SparkleIcon } from "./wireframesIcons";
 import { WireframeBlockPreview } from "./WireframeBlockPreview";
@@ -18,14 +18,15 @@ export function ResultsGrid({
   isDeleting = false,
 }: {
   cards: WireframeResultCard[];
-  onExport: (cardId: string) => void;
-  onManageScreens: () => void;
+  // Exporting and managing screens happen in Stage for Mac; without these handlers (the web app) the grid only shows the screens.
+  onExport?: (cardId: string) => void;
+  onManageScreens?: () => void;
   deleteMode?: boolean;
   selectedDeleteIds?: Set<string>;
-  onStartDelete: () => void;
-  onCancelDelete: () => void;
-  onToggleDeleteSelection: (cardId: string) => void;
-  onConfirmDelete: () => void;
+  onStartDelete?: () => void;
+  onCancelDelete?: () => void;
+  onToggleDeleteSelection?: (cardId: string) => void;
+  onConfirmDelete?: () => void;
   isDeleting?: boolean;
 }) {
   const selectedCount = selectedDeleteIds.size;
@@ -39,11 +40,13 @@ export function ResultsGrid({
         <div className="flex flex-wrap items-center justify-end gap-2">
           {!deleteMode ? (
             <>
-              <SecondaryButton onClick={onManageScreens}>
-                <PlusIcon />
-                Add or edit screens
-              </SecondaryButton>
-              {cards.length > 0 ? (
+              {onManageScreens ? (
+                <SecondaryButton onClick={onManageScreens}>
+                  <PlusIcon />
+                  Add or edit screens
+                </SecondaryButton>
+              ) : null}
+              {cards.length > 0 && onStartDelete ? (
                 <SecondaryButton onClick={onStartDelete}>Delete screens</SecondaryButton>
               ) : null}
             </>
@@ -68,10 +71,10 @@ export function ResultsGrid({
           <WireframeCard
             key={`${card.id}-${index}`}
             card={card}
-            onExport={() => onExport(card.id)}
+            onExport={onExport && (() => onExport(card.id))}
             selecting={deleteMode}
             selected={selectedDeleteIds.has(card.id)}
-            onToggleSelection={() => onToggleDeleteSelection(card.id)}
+            onToggleSelection={onToggleDeleteSelection && (() => onToggleDeleteSelection(card.id))}
           />
         ))}
       </div>
@@ -87,7 +90,7 @@ export function WireframeCard({
   onToggleSelection,
 }: {
   card: WireframeResultCard;
-  onExport: () => void;
+  onExport?: () => void;
   selecting?: boolean;
   selected?: boolean;
   onToggleSelection?: () => void;
@@ -152,7 +155,7 @@ export function WireframeCard({
               {generatedAtLabel}
             </p>
           </div>
-          {!selecting ? (
+          {!selecting && onExport ? (
             <button
               type="button"
               onClick={onExport}

@@ -7,19 +7,14 @@ import { useAssetsTab, useFlowsTab, useWireframesTab } from "@/hooks/project";
 import { useFigmaWireframeExport } from "@/hooks/project/assets/useFigmaWireframeExport";
 import { useWireframeDeliveryExport } from "@/hooks/project/assets/useWireframeDeliveryExport";
 import { api } from "@/lib/convexApi";
-import {
-  buildResultCards,
-  hasDisplayableWireframeResults,
-} from "@/lib/project/mapWireframesArtifactToTabData";
+import { buildResultCards, hasDisplayableWireframeResults, type WireframesTabData, ResultsGrid } from "@stage/project-ui/wireframes";
 import type { Project, ProjectScreen } from "@/models/project/project";
 import type { WireframeAssetCard } from "@/types/project/assetsTab";
-import type { WireframesTabData } from "@/types/project/wireframesTab";
 import { ExportOptionsDialog } from "../assets/ExportOptionsDialog";
 import { TabLoadingState } from "../TabLoadingState";
 import { CanvasShell } from "./CanvasShell";
 import { ConfigureStep } from "./ConfigureStep";
 import { GeneratingStep } from "./GeneratingStep";
-import { ResultsGrid } from "./ResultsGrid";
 
 type WireframesTabProps = {
   project: Project;

@@ -1,5 +1,5 @@
 import type { ProjectAsset } from "@/models/project/project";
-import type { WireframeRenderableSection } from "@/types/project/wireframesTab";
+import type { WireframeRenderableSection } from "@stage/project-ui/wireframes";
 
 export type AssetView = "wireframes" | "documents" | "uploaded";
 

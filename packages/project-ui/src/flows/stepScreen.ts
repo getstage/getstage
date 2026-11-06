@@ -2,7 +2,8 @@ import type { FlowStep, Screen } from "@stage/data-ops/contracts";
 
 // Generated step labels read "Screen → action".
 export function stepScreenTitle(label: string) {
-  return label.split(/\s*(?:→|->)\s*/, 1)[0].trim();
+  const [title = ""] = label.split(/\s*(?:→|->)\s*/, 1);
+  return title.trim();
 }
 
 // Steps the model left without a screenId still belong to the screen named before "→".

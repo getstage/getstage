@@ -5,7 +5,7 @@ import type { Id } from "@stage/data-ops/convex/data-model";
 import { api } from "@/lib/convexApi";
 import { CreateFlowsDialog } from "./CreateFlowsDialog";
 import { FlowsCanvas } from "./FlowsCanvas";
-import { stepScreenTitle } from "./stepScreen";
+import { stepScreenTitle } from "@stage/project-ui/flows";
 import type { ScreenDetailsChange } from "./ScreenDetailsDialog";
 import { UpstreamStaleBanner } from "@/components/project/UpstreamStaleBanner";
 import { getDefaultExpandedFlowId } from "@/data/fixtures/project/flowsTabFixtures";

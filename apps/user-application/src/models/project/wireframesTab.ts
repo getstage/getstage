@@ -5,4 +5,4 @@ export type {
   WireframesBrandKit,
   WireframesTabData,
   WireframesTabStats,
-} from "@/types/project/wireframesTab";
+} from "@stage/project-ui/wireframes";

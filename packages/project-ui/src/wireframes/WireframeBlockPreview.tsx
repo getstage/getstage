@@ -2,7 +2,7 @@ import type {
   WireframeBlockEmphasis,
   WireframeRenderableBlock,
   WireframeRenderableSection,
-} from "@/types/project/wireframesTab";
+} from "./types";
 
 export function WireframeBlockPreview({
   sections,

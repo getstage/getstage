@@ -3,7 +3,7 @@ import type {
   ScreenItem,
   WireframeGeneratedScreen,
   WireframesTabData,
-} from "@/types/project/wireframesTab";
+} from "./types";
 
 export function mapConfigureScreenToScreenItem(screen: WireframeConfigureScreen): ScreenItem {
   return {

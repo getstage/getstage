@@ -7,8 +7,7 @@ import {
   parseResearchArtifactContent,
   strategyArtifactSchema,
   wireframesArtifactSchema,
-  type FlowsArtifact,
-  type WireframesArtifact,
+  type ProjectCategory,
 } from "@stage/data-ops/contracts";
 import type { Id } from "@stage/data-ops/convex/data-model";
 import { ProjectTabBar, ProjectTitle, type ProjectTab } from "@stage/project-ui/project";
@@ -24,10 +23,10 @@ import {
   UiPatterns,
   type CompetitiveView,
 } from "@stage/project-ui/research";
+import { FlowsCanvasView } from "@stage/project-ui/flows";
 import { StrategyProgress, StrategySectionCard } from "@stage/project-ui/strategy";
+import { buildResultCards, mapWireframesArtifactToTabData, ResultsGrid } from "@stage/project-ui/wireframes";
 import { api } from "@/lib/convex";
-import { formatRelative } from "@/lib/mcp";
-import { Card } from "./AppShell";
 import { useDismiss } from "./useDismiss";
 
 // One project on the web: the Mac app's own step screens (shared from @stage/project-ui), read-only.
@@ -61,19 +60,19 @@ export function ProjectView({ projectId, tab }: { projectId: Id<"projects">; tab
           </div>
         </div>
       </section>
-      <TabPanel projectId={projectId} tab={tab} projectName={project.name} />
+      <TabPanel projectId={projectId} tab={tab} projectName={project.name} category={project.category} />
     </>
   );
 }
 
-function TabPanel({ projectId, tab, projectName }: { projectId: Id<"projects">; tab: ProjectTab; projectName: string }) {
+function TabPanel({ projectId, tab, projectName, category }: { projectId: Id<"projects">; tab: ProjectTab; projectName: string; category: ProjectCategory }) {
   switch (tab) {
     case "research":
       return <ResearchPanel projectId={projectId} projectName={projectName} />;
     case "strategy":
       return <StrategyPanel projectId={projectId} projectName={projectName} />;
     case "flows":
-      return <FlowsPanel projectId={projectId} projectName={projectName} />;
+      return <FlowsPanel projectId={projectId} projectName={projectName} category={category} />;
     case "wireframes":
       return <WireframesPanel projectId={projectId} projectName={projectName} />;
     case "overview":
@@ -85,13 +84,13 @@ function TabPanel({ projectId, tab, projectName }: { projectId: Id<"projects">; 
   }
 }
 
-type Saved = { contentJson: string | null; updatedAt: number } | null | undefined;
+type Saved = { contentJson: string | null } | null | undefined;
 
 // A saved step in its contract shape: undefined while loading, null when nothing valid is saved yet.
 function parseSaved<T>(saved: Saved, schema: { safeParse: (value: unknown) => { success: true; data: T } | { success: false } }) {
   if (saved === undefined) return undefined;
   const parsed = saved?.contentJson ? schema.safeParse(JSON.parse(saved.contentJson)) : null;
-  return saved && parsed?.success ? { data: parsed.data, updatedAt: saved.updatedAt } : null;
+  return saved && parsed?.success ? { data: parsed.data } : null;
 }
 
 // Same white page card as the Mac step tabs.
@@ -169,71 +168,19 @@ function StrategyPanel({ projectId, projectName }: { projectId: Id<"projects">; 
   );
 }
 
-// Flows and Wireframes: interim web views until their Mac screens (canvas, screen previews) move to @stage/project-ui.
-function FlowsPanel({ projectId, projectName }: { projectId: Id<"projects">; projectName: string }) {
-  const step = parseSaved(useQuery(api.projectAi.getLatestFlowsArtifact, { projectId }), flowsArtifactSchema);
-  if (step === undefined) return null;
-  if (!step) return <NotYet step="Flows" projectName={projectName} />;
-  return <><Updated at={step.updatedAt} /><FlowsList data={step.data} /></>;
+function FlowsPanel({ projectId, projectName, category }: { projectId: Id<"projects">; projectName: string; category: ProjectCategory }) {
+  const flows = parseSaved(useQuery(api.projectAi.getLatestFlowsArtifact, { projectId }), flowsArtifactSchema);
+  if (flows === undefined) return null;
+  if (!flows) return <NotYet step="Flows" projectName={projectName} />;
+  return <FlowsCanvasView artifact={flows.data} projectCategory={category} />;
 }
 
 function WireframesPanel({ projectId, projectName }: { projectId: Id<"projects">; projectName: string }) {
-  const step = parseSaved(useQuery(api.projectAi.getLatestWireframesArtifact, { projectId }), wireframesArtifactSchema);
-  if (step === undefined) return null;
-  if (!step) return <NotYet step="Wireframes" projectName={projectName} />;
-  return <><Updated at={step.updatedAt} /><WireframesList data={step.data} /></>;
-}
-
-function Updated({ at }: { at: number }) {
-  return <p className="text-[12px] text-[#737373]">Updated {formatRelative(at)}</p>;
-}
-
-function FlowsList({ data }: { data: FlowsArtifact }) {
-  const screens = new Map(data.screens.map((screen) => [screen.id, screen]));
-  return (
-    <>
-      {data.flows.map((flow) => (
-        <Card key={flow.id} title={flow.title} subtitle={`${flow.category} · ${flow.status}`}>
-          <p className="text-[13px] text-[#404040]">{flow.description}</p>
-          <ol className="flex flex-col gap-1.5">
-            {[...flow.steps].sort((a, b) => a.order - b.order).map((step) => {
-              const screen = step.screenId ? screens.get(step.screenId) : undefined;
-              return (
-                <li key={step.id} className="flex flex-col gap-0.5 text-[13px]">
-                  <span className="font-medium text-[#171717]">{step.label}</span>
-                  {screen ? <span className="text-[12px] text-[#737373]">{screen.keyElements.join(" · ")}</span> : null}
-                </li>
-              );
-            })}
-          </ol>
-        </Card>
-      ))}
-    </>
-  );
-}
-
-function WireframesList({ data }: { data: WireframesArtifact }) {
-  return (
-    <>
-      {data.generatedScreens.map((screen) => (
-        <Card key={screen.id} title={screen.title} subtitle={screen.goal}>
-          {screen.html ? (
-            // Sandboxed without scripts: the AI's HTML can't run code or reach the page.
-            <iframe title={screen.title} sandbox="" srcDoc={screen.html} className="h-[480px] w-full rounded-[6px] border-[0.5px] border-[#E5E5E5] bg-white" />
-          ) : (
-            <ol className="flex flex-col gap-1.5 text-[13px]">
-              {screen.sections.map((section) => (
-                <li key={section.id}>
-                  <span className="font-medium text-[#171717]">{section.title}</span>
-                  <span className="text-[#737373]"> · {section.blocks.map((block) => block.intent).join(", ")}</span>
-                </li>
-              ))}
-            </ol>
-          )}
-        </Card>
-      ))}
-    </>
-  );
+  const wireframes = parseSaved(useQuery(api.projectAi.getLatestWireframesArtifact, { projectId }), wireframesArtifactSchema);
+  if (wireframes === undefined) return null;
+  if (!wireframes) return <NotYet step="Wireframes" projectName={projectName} />;
+  const tabData = mapWireframesArtifactToTabData(wireframes.data);
+  return <ResultsGrid cards={buildResultCards(tabData.configureScreens, tabData.generatedAtLabel, tabData.generatedScreens, tabData.generatedAt)} />;
 }
 
 function MacLink() {

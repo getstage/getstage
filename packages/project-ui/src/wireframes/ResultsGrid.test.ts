@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   buildResultCards,
-} from "@/lib/project/mapWireframesArtifactToTabData";
-import type { ScreenItem, WireframeGeneratedScreen } from "@/types/project/wireframesTab";
+} from "./mapWireframesArtifact";
+import type { ScreenItem, WireframeGeneratedScreen } from "./types";
 
 const configuredScreen = (id: string): ScreenItem => ({
   id,

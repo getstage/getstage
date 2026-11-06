@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { ASSET_CATEGORY_ICONS, EXPORT_OPTIONS } from "@/mock/project/assets";
 import type { Project } from "@/models/project/project";
 import { useAssetsArtifact } from "./useAssetsArtifact";
-import { hasLofiBlocks } from "@/lib/project/mapWireframesArtifactToTabData";
+import { hasLofiBlocks } from "@stage/project-ui/wireframes";
 import type { AssetsTabData } from "@/types/project/assetsTab";
 import { useWireframesArtifact } from "../wireframes/useWireframesArtifact";
 

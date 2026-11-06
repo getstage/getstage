@@ -1,6 +1,6 @@
 import type { WireframeAssetCard } from "@/types/project/assetsTab";
 import { ImagePlaceholderIcon, SparkleIcon } from "./assetsIcons";
-import { WireframeBlockPreview } from "../wireframes/WireframeBlockPreview";
+import { WireframeBlockPreview } from "@stage/project-ui/wireframes";
 
 export function AssetCard({
   asset,

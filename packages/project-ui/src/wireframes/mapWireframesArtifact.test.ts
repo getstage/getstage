@@ -5,8 +5,8 @@ import {
   hasDisplayableWireframeResults,
   hasLofiBlocks,
   mapWireframesArtifactToTabData,
-} from "./mapWireframesArtifactToTabData";
-import type { WireframeGeneratedScreen, WireframesTabData } from "../../types/project/wireframesTab";
+} from "./mapWireframesArtifact";
+import type { WireframeGeneratedScreen, WireframesTabData } from "./types";
 
 const blocks: NonNullable<WireframeGeneratedScreen["sections"]> = [
   {

@@ -495,6 +495,9 @@ importers:
       '@stage/data-ops':
         specifier: workspace:*
         version: link:../data-ops
+      '@xyflow/react':
+        specifier: 12.12.0
+        version: 12.12.0(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
@@ -511,6 +514,9 @@ importers:
       react:
         specifier: ^19.0.0
         version: 19.2.6
+      tsx:
+        specifier: ^4.23.15
+        version: 4.23.15
 
 packages:
 

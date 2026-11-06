@@ -7,10 +7,13 @@
     ".": "./src/index.ts",
     "./research": "./src/research/index.ts",
     "./strategy": "./src/strategy/index.ts",
-    "./project": "./src/project/index.ts"
+    "./project": "./src/project/index.ts",
+    "./flows": "./src/flows/index.ts",
+    "./wireframes": "./src/wireframes/index.ts"
   },
   "dependencies": {
     "@stage/data-ops": "workspace:*",
+    "@xyflow/react": "12.12.0",
     "clsx": "^2.1.1",
     "emoji-picker-react": "^4.19.1",
     "tailwind-merge": "^3.5.0"
@@ -20,6 +23,10 @@
   },
   "devDependencies": {
     "@types/react": "^19.0.0",
-    "react": "^19.0.0"
+    "react": "^19.0.0",
+    "tsx": "^4.23.15"
+  },
+  "scripts": {
+    "test": "tsx --test \"src/**/*.test.ts\""
   }
 }
