@@ -194,6 +194,12 @@
 
 .profile-nav-link:focus-visible { color: #fafafa; }
 
+/* Signed in: Dashboard / My Profile under the account link. */
+.account-menu { position: relative; display: inline-flex; }
+.account-menu-list { position: absolute; top: calc(100% + 14px); right: 0; z-index: 60; display: flex; flex-direction: column; min-width: 160px; padding: 4px; border-radius: 12px; background: #171717; box-shadow: 0 8px 24px rgba(0,0,0,.35); }
+.account-menu-list a { padding: 8px 12px; border-radius: 8px; color: #d4d4d4; font-size: 14px; font-weight: 500; letter-spacing: -.3px; }
+.account-menu-list a:hover, .account-menu-list a:focus-visible { background: #262626; color: #fafafa; }
+
 /* Photos occupy the same fixed slot as the fallback, so loading cannot shift links. */
 .profile-nav-avatar { position: relative; display: inline-flex; width: 20px; height: 20px; flex: 0 0 20px; }
 .profile-nav-avatar img { position: absolute; inset: 0; display: block; width: 20px; height: 20px; border-radius: 50%; object-fit: cover; background: #171717; }
