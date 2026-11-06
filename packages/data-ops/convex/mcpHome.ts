@@ -2,7 +2,7 @@ import { v } from "convex/values";
 import { query } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 import type { QueryCtx } from "./_generated/server";
-import { requireAuthUser } from "./_helpers";
+import { requireAuthUser, requireProjectAccessOrNull } from "./_helpers";
 import { listAccessibleProjectDocsForUser } from "./domain/projects/readModel";
 
 // The 6 project steps in the Mac app's order, with where each step's result and runs are stored.
@@ -47,5 +47,14 @@ export const listProjectProgress = query({
       updatedAt: project.updatedAt,
       steps: (await stepStatuses(ctx, project._id)).map((status, index) => ({ label: STEPS[index]?.label ?? "", status })),
     })));
+  },
+});
+
+// One project's name for the web project view; null once it's deleted or not shared with this user.
+export const getProject = query({
+  args: { projectId: v.id("projects") },
+  handler: async (ctx, args) => {
+    const access = await requireProjectAccessOrNull(ctx, args.projectId);
+    return access && { name: access.project.name };
   },
 });

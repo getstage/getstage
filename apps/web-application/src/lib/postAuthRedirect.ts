@@ -18,6 +18,7 @@ const ALLOWED_POST_AUTH_PATHS = new Set([
   "/app",
   "/app/projects",
   "/app/integrations",
+  "/app/settings",
 ]);
 const INVITE_PATH_PATTERN = /^\/invite\/[A-Za-z0-9]+$/;
 

@@ -1,14 +1,15 @@
 import appleIcon from "@/assets/home/apple.svg";
 import noise from "@/assets/home/noise.png";
 import stageMarkWhite from "@/assets/home/stage-mark-white.svg";
-import { AppShell, Card, PageHeader, StatusBadge } from "./AppShell";
-import { MCP_TOOLS, McpConnectCard, useMcpConnections } from "./McpConnectCard";
+import { Link } from "@tanstack/react-router";
+import { Card, PageHeader, StatusBadge } from "./AppShell";
+import { MCP_TOOLS, McpConnectCard, useMcpConnections, type McpToolId } from "./McpConnectCard";
 
 // Dashboard (Figma 2491-4955).
-export function Dashboard() {
-  const { connectedIds } = useMcpConnections();
+export function Dashboard({ tool }: { tool?: McpToolId }) {
+  const { loading, isConnected } = useMcpConnections();
   return (
-    <AppShell page="dashboard">
+    <>
       <PageHeader title="Welcome to Stage" subtitle="Connect Stage to the AI tool you already use, Stage does the thinking, AI does the building." />
 
       <section className="overflow-hidden rounded-[12px] border-[0.5px] border-[#D4D4D4] bg-[#F5F5F5] p-1 shadow-[0_1px_4px_-2px_rgba(10,10,10,0.4)]">
@@ -37,19 +38,19 @@ export function Dashboard() {
         </div>
       </section>
 
-      <McpConnectCard />
+      <McpConnectCard initialTool={tool} />
 
-      <Card title="Your Integrations" aside={<a href="/app/integrations" className="text-[13px] font-medium leading-[1.5] text-[#525252] underline">Manage Integrations</a>}>
+      <Card title="Your Integrations" aside={<Link to="/app/integrations" className="text-[13px] font-medium leading-[1.5] text-[#525252] underline">Manage Integrations</Link>}>
         {MCP_TOOLS.filter((tool) => tool.icon).map((tool) => (
           <div key={tool.id} className="flex items-center justify-between gap-3">
             <span className="flex items-center gap-2 text-[13px] font-medium text-[#171717]">
               <img src={tool.icon} alt="" className="size-4" />
               {tool.name}
             </span>
-            <StatusBadge status={connectedIds.has(tool.id) ? "connected" : "off"} />
+            {loading ? null : <StatusBadge status={isConnected(tool.id) ? "connected" : "off"} />}
           </div>
         ))}
       </Card>
-    </AppShell>
+    </>
   );
 }

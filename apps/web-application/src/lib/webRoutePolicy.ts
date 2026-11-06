@@ -4,7 +4,7 @@ import { PUBLIC_WEB_PATHS } from "./publicWebPaths";
 // Content pages (content.json) live at the top level (getstage.co/<slug>).
 const CONTENT_PAGE_PATHS = new Set(pages.map((page) => pagePath(page.slug)));
 
-const PUBLIC_WEB_PREFIXES = ["/skills/", "/component-libraries/", "/builders/","/portal/", "/invite/", "/use-cases/", "/blog/", "/app/projects/"];
+const PUBLIC_WEB_PREFIXES = ["/skills/", "/component-libraries/", "/builders/","/portal/", "/invite/", "/use-cases/", "/blog/", "/app/"];
 
 const PRODUCT_WORKSPACE_PREFIXES = ["/dashboard", "/new-project", "/settings", "/project/"];
 

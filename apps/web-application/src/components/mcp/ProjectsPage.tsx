@@ -1,12 +1,14 @@
 import { useState } from "react";
-import { useMutation, useQuery } from "convex/react";
+import { Link, useNavigate } from "@tanstack/react-router";
+import { useMutation } from "convex/react";
+import { useQuery } from "convex-helpers/react/cache/hooks";
 import copyDarkIcon from "@/assets/home/copy-dark.svg";
 import infoIcon from "@/assets/home/info.svg";
 import type { Id } from "@stage/data-ops/convex/data-model";
 import { api } from "@/lib/convex";
 import { formatRelative } from "@/lib/mcp";
 import { cn } from "@/lib/utils";
-import { AppShell, PageHeader, useActiveSpace } from "./AppShell";
+import { PageHeader, useActiveSpace } from "./AppShell";
 
 // Projects (Figma 2495-5463, tooltip 2495-5618).
 const NEW_PROJECT_PROMPT = "Start a new Stage project for my app. Use the Stage MCP: begin with Research, then follow Stage's steps.";
@@ -34,7 +36,7 @@ export function ProjectsPage() {
   const [creating, setCreating] = useState(false);
 
   return (
-    <AppShell page="projects">
+    <>
       <PageHeader
         title="Projects"
         subtitle="Every project your AI creates through Stage shows up here, step by step."
@@ -62,7 +64,7 @@ export function ProjectsPage() {
                   <div className="flex min-w-0 flex-col gap-1">
                     <span className="flex items-center gap-2.5">
                       {/* The stretched link makes the whole card open the project; the info button sits above it. */}
-                      <a href={`/app/projects/${project.id}`} className="truncate text-[13px] font-medium text-[#171717] after:absolute after:inset-0">{project.name}</a>
+                      <Link to="/app/projects/$projectId" params={{ projectId: project.id }} className="truncate text-[13px] font-medium text-[#171717] after:absolute after:inset-0">{project.name}</Link>
                       <ProgressInfo work={TYPE_LABEL[project.type] ?? project.type} updatedAt={project.updatedAt} />
                     </span>
                     <span className="text-[12px] text-[#525252]">{text.status}</span>
@@ -88,7 +90,7 @@ export function ProjectsPage() {
           })}
         </section>
       )}
-    </AppShell>
+    </>
   );
 }
 
@@ -134,13 +136,14 @@ function CopyPromptButton() {
 
 const FIELD = "w-full rounded-[6px] border-[0.5px] border-[#D4D4D4] bg-white px-2 py-1.5 text-[13px] text-[#171717]";
 
-// Same fields the Mac app asks for. Dates come from date inputs (YYYY-MM-DD).
+// Same fields the Mac app asks for (the client email feeds the client portal). Dates come from date inputs (YYYY-MM-DD).
 function NewProjectForm({ spaceOwnerId, onCancel }: { spaceOwnerId: string; onCancel: () => void }) {
   const create = useMutation(api.projects.create);
-  const [form, setForm] = useState({ name: "", clientName: "", type: "websites" as keyof typeof TYPE_LABEL, startDate: "", endDate: "" });
+  const navigate = useNavigate();
+  const [form, setForm] = useState({ name: "", clientName: "", clientEmail: "", type: "websites" as keyof typeof TYPE_LABEL, startDate: "", endDate: "" });
   const [status, setStatus] = useState<{ kind: "idle" } | { kind: "saving" } | { kind: "error"; message: string }>({ kind: "idle" });
   const set = (key: keyof typeof form) => (event: { target: { value: string } }) => setForm({ ...form, [key]: event.target.value });
-  const ready = form.name.trim() && form.clientName.trim() && form.startDate && form.endDate && form.endDate >= form.startDate;
+  const ready = form.name.trim() && form.clientName.trim() && form.clientEmail.includes("@") && form.startDate && form.endDate && form.endDate >= form.startDate;
 
   const submit = async () => {
     setStatus({ kind: "saving" });
@@ -148,13 +151,14 @@ function NewProjectForm({ spaceOwnerId, onCancel }: { spaceOwnerId: string; onCa
       const project = await create({
         name: form.name.trim(),
         clientName: form.clientName.trim(),
+        clientEmail: form.clientEmail.trim(),
         type: form.type as "websites" | "web-apps" | "ios-apps",
         method: "manual",
         startDate: Date.parse(form.startDate),
         endDate: Date.parse(form.endDate),
         spaceOwnerId: spaceOwnerId as Id<"users">,
       });
-      window.location.assign(`/app/projects/${project.id}`);
+      void navigate({ to: "/app/projects/$projectId", params: { projectId: project.id } });
     } catch (error) {
       setStatus({ kind: "error", message: error instanceof Error ? error.message : "Could not create the project." });
     }
@@ -170,6 +174,7 @@ function NewProjectForm({ spaceOwnerId, onCancel }: { spaceOwnerId: string; onCa
     >
       <label className="flex flex-col gap-1 text-[12px] font-medium text-[#525252]">Project name<input id="new-project-name" className={FIELD} value={form.name} onChange={set("name")} /></label>
       <label className="flex flex-col gap-1 text-[12px] font-medium text-[#525252]">Client<input id="new-project-client" className={FIELD} value={form.clientName} onChange={set("clientName")} /></label>
+      <label className="flex flex-col gap-1 text-[12px] font-medium text-[#525252]">Client email<input id="new-project-client-email" type="email" className={FIELD} value={form.clientEmail} onChange={set("clientEmail")} /></label>
       <label className="flex flex-col gap-1 text-[12px] font-medium text-[#525252]">
         Type
         <select id="new-project-type" className={FIELD} value={form.type} onChange={set("type")}>

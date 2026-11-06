@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery } from "convex/react";
+import { useQuery } from "convex-helpers/react/cache/hooks";
 import claudeCodeIcon from "@/assets/home/claude-tool.svg";
 import copyDarkIcon from "@/assets/home/copy-dark.svg";
 import copyIcon from "@/assets/home/copy.svg";
@@ -10,7 +10,7 @@ import { getMcpOrigin } from "@/lib/mcp";
 import { cn } from "@/lib/utils";
 import { Card } from "./AppShell";
 
-// "Connect the Stage MCP" (Figma Dashboard 2491-4955). A tool counts as connected once it has called Stage.
+// "Connect the Stage MCP" (Figma Dashboard 2491-4955). A tool counts as connected once the user approved it.
 const SIGN_IN = "Sign in to Stage when the browser opens.";
 const FIRST_ASK = "Then ask your AI: “Start a new Stage project for my app”. The status above turns green on the first call.";
 
@@ -29,33 +29,34 @@ function mcpToolIdOf(clientName: string) {
   return MCP_TOOLS.find((tool) => name.includes(tool.id))?.id;
 }
 
+export type McpToolId = (typeof MCP_TOOLS)[number]["id"];
+
+// One rule everywhere: a tool is connected while it has an approved, unrevoked connection.
+// `loading` is true until the first answer, so pages show no status rather than a wrong "Not Connected".
 export function useMcpConnections() {
-  const connections = useQuery(api.developer.mcpConnect.listConnections);
-  const active = connections ?? [];
-  const called = active.filter((connection) => connection.lastUsedAt);
+  const result = useQuery(api.developer.mcpConnect.listConnections);
+  const connections = result ?? [];
+  // Every connection of one tool, newest call first (for "last call …" and Disconnect).
+  const forTool = (toolId: McpToolId) => connections
+    .filter((connection) => mcpToolIdOf(connection.clientName) === toolId)
+    .sort((a, b) => (b.lastUsedAt ?? 0) - (a.lastUsedAt ?? 0));
   return {
-    called,
-    connectedIds: new Set(called.map((connection) => mcpToolIdOf(connection.clientName))),
-    // Every active connection of one tool, newest call first (for "last call …" and Disconnect).
-    forTool: (toolId: string) => active
-      .filter((connection) => mcpToolIdOf(connection.clientName) === toolId)
-      .sort((a, b) => (b.lastUsedAt ?? 0) - (a.lastUsedAt ?? 0)),
+    loading: result === undefined,
+    anyConnected: connections.length > 0,
+    forTool,
+    isConnected: (toolId: McpToolId) => forTool(toolId).length > 0,
   };
 }
 
-export function McpConnectCard() {
-  // `/app?tool=cursor` (from Integrations → Setup) opens on that tool.
-  const [toolId, setToolId] = useState<(typeof MCP_TOOLS)[number]["id"]>(() => {
-    const requested = new URLSearchParams(window.location.search).get("tool");
-    return MCP_TOOLS.find((tool) => tool.id === requested)?.id ?? "claude code";
-  });
-  const { called } = useMcpConnections();
+export function McpConnectCard({ initialTool = "claude code" }: { initialTool?: McpToolId }) {
+  const [toolId, setToolId] = useState<McpToolId>(initialTool);
+  const { loading, anyConnected } = useMcpConnections();
   const mcpOrigin = getMcpOrigin();
   const tool = MCP_TOOLS.find((entry) => entry.id === toolId) ?? MCP_TOOLS[0];
   const url = `${mcpOrigin}/mcp`;
   const command = toolId === "claude code" ? `claude mcp add --transport http stage ${url}` : toolId === "codex" ? `codex mcp add stage --url ${url}` : url;
 
-  const status = called.length ? (
+  const status = loading ? null : anyConnected ? (
     <span className="flex items-center gap-2 text-[12px] leading-[1.5] text-[#047857]"><span className="size-2.5 rounded-full bg-[#34D399]" />Connected</span>
   ) : (
     <span className="flex items-center gap-2 text-[12px] leading-[1.5] text-[#737373]"><img src={waitingIcon} alt="" className="size-2.5" />Waiting for first connection</span>

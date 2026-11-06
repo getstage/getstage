@@ -1,5 +1,7 @@
 import { useState, type ReactNode } from "react";
-import { useMutation, useQuery } from "convex/react";
+import { Link, useNavigate } from "@tanstack/react-router";
+import { useMutation } from "convex/react";
+import { useQuery } from "convex-helpers/react/cache/hooks";
 import type { z } from "zod";
 import {
   flowsArtifactSchema,
@@ -16,11 +18,12 @@ import type { Id } from "@stage/data-ops/convex/data-model";
 import { api } from "@/lib/convex";
 import { formatRelative } from "@/lib/mcp";
 import { cn } from "@/lib/utils";
-import { AppShell, Card } from "./AppShell";
+import { Card } from "./AppShell";
 
 // One project on the web (read-only): the saved result of each Stage step, the same data the Mac app shows.
 // The AI tool fills Research, Strategy, Flows and Wireframes through the MCP; Moodboard and Delivery come from Stage for Mac.
-type StepId = "research" | "strategy" | "moodboard" | "flows" | "wireframes" | "delivery";
+export type ProjectStepId = "research" | "strategy" | "moodboard" | "flows" | "wireframes" | "delivery";
+type StepId = ProjectStepId;
 
 const STEPS: { id: StepId; label: string }[] = [
   { id: "research", label: "Research" },
@@ -33,39 +36,45 @@ const STEPS: { id: StepId; label: string }[] = [
 
 type Saved = { contentJson: string | null; updatedAt: number } | null | undefined;
 
-export function ProjectView({ projectId, step, onStep }: { projectId: Id<"projects">; step: StepId; onStep: (step: StepId) => void }) {
-  const project = useQuery(api.projects.getById, { projectId });
+export function ProjectView({ projectId, step }: { projectId: Id<"projects">; step: StepId }) {
+  const project = useQuery(api.mcpHome.getProject, { projectId });
 
+  if (project === null) {
+    return <Empty>This project doesn't exist anymore, or it isn't shared with you. <Link to="/app/projects" className="underline">Back to Projects</Link></Empty>;
+  }
   return (
-    <AppShell page="projects">
-      <a href="/app/projects" className="self-start text-[12px] font-medium text-[#737373] hover:text-[#171717]">← Projects</a>
+    <>
+      <Link to="/app/projects" className="self-start text-[12px] font-medium text-[#737373] hover:text-[#171717]">← Projects</Link>
       {project ? <ProjectHeader projectId={projectId} name={project.name} /> : null}
       <nav className="flex flex-wrap gap-1 self-start rounded-[8px] bg-[#F5F5F5] p-[2px]" aria-label="Steps">
         {STEPS.map((item) => (
-          <button
+          <Link
             key={item.id}
-            type="button"
+            to="/app/projects/$projectId"
+            params={{ projectId }}
+            search={{ step: item.id }}
+            replace
             aria-current={item.id === step ? "page" : undefined}
-            onClick={() => onStep(item.id)}
             className={cn(
               "rounded-[6px] px-3 py-1.5 text-[13px] font-medium",
               item.id === step ? "bg-white text-[#171717] shadow-[0_1px_3px_rgba(10,10,10,0.15)]" : "text-[#737373] hover:text-[#171717]",
             )}
           >
             {item.label}
-          </button>
+          </Link>
         ))}
       </nav>
       <StepPanel projectId={projectId} step={step} projectName={project?.name ?? ""} />
-    </AppShell>
+    </>
   );
 }
 
-export const PROJECT_STEP_IDS = STEPS.map((item) => item.id);
+export const PROJECT_STEP_IDS: readonly ProjectStepId[] = STEPS.map((item) => item.id);
 
 function ProjectHeader({ projectId, name }: { projectId: Id<"projects">; name: string }) {
   const update = useMutation(api.projects.update);
   const remove = useMutation(api.projects.deleteById);
+  const navigate = useNavigate();
   const [mode, setMode] = useState<"view" | "rename" | "confirm-delete">("view");
   const [draft, setDraft] = useState(name);
   const [error, setError] = useState<string>();
@@ -111,7 +120,7 @@ function ProjectHeader({ projectId, name }: { projectId: Id<"projects">; name: s
                 <HeaderButton onClick={() => setMode("view")}>Keep</HeaderButton>
                 <HeaderButton danger onClick={() => void act(async () => {
                   await remove({ projectId });
-                  window.location.assign("/app/projects");
+                  await navigate({ to: "/app/projects" });
                 })}>Delete for good</HeaderButton>
               </>
             ) : (

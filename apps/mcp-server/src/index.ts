@@ -61,6 +61,7 @@ function createServer() {
       inputSchema: z.object({
         name: z.string().min(1),
         clientName: z.string().min(1).describe("Client or company the work is for; the user's own name for personal work."),
+        clientEmail: z.string().email().describe("Client's email (Stage uses it for the client portal). Ask the user; for personal work use their own email from whoami."),
         type: z.enum(["websites", "web-apps", "ios-apps"]),
         startDate: z.string().date().describe("YYYY-MM-DD"),
         endDate: z.string().date().describe("YYYY-MM-DD, on or after startDate"),
@@ -70,15 +71,19 @@ function createServer() {
       run(() => stageApi("/projects", { ...project, startDate: Date.parse(startDate), endDate: Date.parse(endDate) })),
   );
 
-  for (const [step, { tool, title, schema, instructions }] of Object.entries(STEPS)) {
+  for (const [step, { tool, title, artifactKind, input, instructions }] of Object.entries(STEPS)) {
     server.registerTool(
       tool,
       {
         description: `Save the ${title} step of a Stage project. It replaces the previous ${title}.\n${instructions}\n${STEP_GUIDE}`,
-        inputSchema: z.object({ projectId, summary: z.string().optional().describe("One line for the project overview."), result: schema }),
+        inputSchema: z.object({ projectId, summary: z.string().optional().describe("One line for the project overview."), result: input }),
       },
       ({ projectId, summary, result }) =>
-        run(() => stageApi(`/projects/${encodeURIComponent(projectId)}/steps/${step}`, { title, summary, result })),
+        run(() => stageApi(`/projects/${encodeURIComponent(projectId)}/steps/${step}`, {
+          title,
+          summary,
+          result: { ...result, projectId, apiVersion: "v1", artifactKind },
+        })),
     );
   }
 

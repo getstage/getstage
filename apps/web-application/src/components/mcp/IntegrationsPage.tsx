@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { useAction, useMutation, useQuery } from "convex/react";
+import { Link, useNavigate } from "@tanstack/react-router";
+import { useAction, useMutation } from "convex/react";
+import { useQuery } from "convex-helpers/react/cache/hooks";
 import copyDarkIcon from "@/assets/home/copy-dark.svg";
 import figmaIcon from "@/assets/home/figma.svg";
 import paperIcon from "@/assets/home/paper.svg";
@@ -10,7 +12,7 @@ import tabTools from "@/assets/home/tab-tools.svg";
 import { api } from "@/lib/convex";
 import { formatRelative, getMcpOrigin } from "@/lib/mcp";
 import { cn } from "@/lib/utils";
-import { AppShell, Card, MaskIcon, PageHeader, StatusBadge } from "./AppShell";
+import { Card, MaskIcon, PageHeader, StatusBadge } from "./AppShell";
 import { MCP_TOOLS, useMcpConnections } from "./McpConnectCard";
 
 // Integrations → Tools (Figma 2491-5129). Skills, Components and Marketplace open the existing pages.
@@ -30,12 +32,13 @@ const TOOL_DESCRIPTION: Record<string, string> = {
 };
 
 export function IntegrationsPage() {
-  const { forTool } = useMcpConnections();
+  const { loading, forTool } = useMcpConnections();
   const disconnect = useMutation(api.developer.mcpConnect.disconnect);
+  const navigate = useNavigate();
   const mcpUrl = `${getMcpOrigin() ?? ""}/mcp`;
 
   return (
-    <AppShell page="integrations">
+    <>
       <div className="flex flex-col gap-3">
         <PageHeader title="Integrations" subtitle="Manage your tools, skills and libraries all in one place" />
         <nav className="flex gap-2 self-start rounded-[8px] bg-[#F5F5F5] p-[2px]">
@@ -63,7 +66,7 @@ export function IntegrationsPage() {
           aside={<CopyUrlButton value={mcpUrl} />}
           bodyClassName="gap-4 p-5"
         >
-          {MCP_TOOLS.filter((tool) => tool.icon).map((tool) => {
+          {loading ? null : MCP_TOOLS.filter((tool) => tool.icon).map((tool) => {
             const connections = forTool(tool.id);
             const lastCall = connections.find((connection) => connection.lastUsedAt)?.lastUsedAt;
             const connected = connections.length > 0;
@@ -77,7 +80,7 @@ export function IntegrationsPage() {
                 on={connected}
                 onToggle={() => {
                   if (connected) void disconnect({ ids: connections.map((connection) => connection.id) });
-                  else window.location.assign(`/app?tool=${encodeURIComponent(tool.id)}`);
+                  else void navigate({ to: "/app", search: { tool: tool.id } });
                 }}
                 toggleLabel={connected ? `Disconnect ${tool.name}` : `Set up ${tool.name}`}
               />
@@ -89,15 +92,15 @@ export function IntegrationsPage() {
               <p className="text-[13px] font-medium text-[#171717]">Any other AI tool</p>
               <p className="text-[12px] text-[#525252]">Works with any client that supports remote MCP</p>
             </div>
-            <a href="/app?tool=other" className="rounded-[6px] border-[0.5px] border-[#D4D4D4] bg-[#F5F5F5] px-2.5 py-1 text-[12px] font-medium text-[#171717] shadow-[0_1px_5px_-3.5px_rgba(0,0,0,0.5)]">
+            <Link to="/app" search={{ tool: "other" }} className="rounded-[6px] border-[0.5px] border-[#D4D4D4] bg-[#F5F5F5] px-2.5 py-1 text-[12px] font-medium text-[#171717] shadow-[0_1px_5px_-3.5px_rgba(0,0,0,0.5)]">
               Instructions
-            </a>
+            </Link>
           </div>
         </Card>
 
         <DesignTools />
       </div>
-    </AppShell>
+    </>
   );
 }
 
@@ -148,10 +151,10 @@ function DesignTools() {
         iconClassName="size-[13px]"
         name="Paper"
         status="warning"
-        detail="Exporting designs and handing them off made easy!"
+        detail="Export designs to Paper from the Stage Mac app"
         on={false}
         disabled
-        toggleLabel="Paper connects from Stage for Mac"
+        toggleLabel="Paper works through the Stage Mac app"
       />
       {error ? <p role="alert" className="text-[12px] font-medium text-[#DC2626]">{error}</p> : null}
     </Card>

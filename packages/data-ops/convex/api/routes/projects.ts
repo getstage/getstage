@@ -17,7 +17,7 @@ import { flowsArtifactSchema } from "../../../src/contracts/flows";
 import { researchArtifactSchema } from "../../../src/contracts/research";
 import { strategyArtifactSchema } from "../../../src/contracts/strategy";
 import { wireframesArtifactSchema } from "../../../src/contracts/wireframes";
-import { ApiError, jsonError, validationHook } from "../errors";
+import { ApiError, jsonError, publicMessage, validationHook } from "../errors";
 import type { ApiBindings } from "../types";
 import type { Doc, Id } from "../../_generated/dataModel";
 
@@ -253,6 +253,9 @@ export function createProjectRoutes() {
       const auth = await authenticateApiKey(c);
       const { id, step } = c.req.valid("param");
       const body = c.req.valid("json");
+      if (body.result.projectId !== id) {
+        throw new ApiError(400, `result.projectId must be the project in the URL (${id}).`, "project_mismatch");
+      }
       const parsed = STEP_RESULT_SCHEMA[step].safeParse(body.result);
       if (!parsed.success) {
         throw new ApiError(400, `The ${step} result doesn't match Stage's format.`, "invalid_step_result", parsed.error.issues);
@@ -269,7 +272,8 @@ export function createProjectRoutes() {
         return c.json(saved, 201);
       } catch (error) {
         // Format checks inside the save (e.g. Research completeness) are fixable by the AI, so they come back as 400.
-        throw new ApiError(400, error instanceof Error ? error.message : "Could not save the step.", "step_not_saved");
+        if (error instanceof Error && error.message.includes("not found")) throw error;
+        throw new ApiError(400, error instanceof Error ? publicMessage(error.message) : "Could not save the step.", "step_not_saved");
       }
     },
   );
