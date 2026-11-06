@@ -1,9 +1,22 @@
-// Copy of apps/user-application/src/components/subscriptions/planCards.tsx, limited to the plans that
-// include the MCP (Studio and Agency).
-export type Tier = "pro" | "team";
+// Copy of apps/user-application/src/components/subscriptions/planCards.tsx.
+export type Tier = "start" | "pro" | "team";
 export type BillingCycle = "monthly" | "yearly";
 
+const PLAN_LABEL: Record<string, string> = {
+  start: "Solo",
+  pro: "Studio",
+  team: "Agency",
+  free: "Free",
+};
+
 export const PLAN_FEATURES: Record<Tier, Array<{ iconSrc: string; label: string }>> = {
+  start: [
+    { iconSrc: "/logos/pricing/folder.svg", label: "1 seat, 2,000 AI credits/mo" },
+    { iconSrc: "/logos/ai-workflow.svg", label: "Full design workflow" },
+    { iconSrc: "/logos/pricing/connect.svg", label: "Bring your own Claude or Codex" },
+    { iconSrc: "/logos/pricing/portal.svg", label: "Standard client portal" },
+    { iconSrc: "/logos/support.svg", label: "Standard support" },
+  ],
   pro: [
     { iconSrc: "/logos/dashboard/clients.svg", label: "5 workspace seats" },
     { iconSrc: "/logos/pricing/folder.svg", label: "10,000 pooled AI credits/mo" },
@@ -30,6 +43,7 @@ export const PLANS: Array<{
   popular?: boolean;
   meta?: string;
 }> = [
+  { tier: "start", name: "Solo", prices: { monthly: 29, yearly: 290 }, description: "For individual product builders." },
   {
     tier: "pro",
     name: "Studio",
@@ -59,12 +73,23 @@ export function BillingPeriodToggle({ value, onChange }: { value: BillingCycle; 
   );
 }
 
+export function planCta(tier: Tier, currentPlan: string | undefined, isSubscribed: boolean) {
+  if (isSubscribed && currentPlan === tier) {
+    return "Current plan";
+  }
+  if (isSubscribed) {
+    return `Switch to ${PLAN_LABEL[tier]}`;
+  }
+  return "Start 14-Day Trial";
+}
+
 export function PlanCard({
   name,
   price,
   pricePeriod,
   description,
   features,
+  note,
   cta,
   meta,
   popular = false,
@@ -72,12 +97,14 @@ export function PlanCard({
   onCtaClick,
   ctaLoading = false,
   ctaDisabled = false,
+  className,
 }: {
   name: string;
   price: number;
   pricePeriod: string;
   description: string;
   features: Array<{ iconSrc: string; label: string }>;
+  note?: string;
   cta: string;
   meta?: string;
   popular?: boolean;
@@ -85,12 +112,14 @@ export function PlanCard({
   onCtaClick: () => void;
   ctaLoading?: boolean;
   ctaDisabled?: boolean;
+  className?: string;
 }) {
   return (
     <article
-      className={primary
+      className={`${primary
         ? "flex w-full flex-col gap-[24px] rounded-[8px] bg-[linear-gradient(180deg,rgba(158,153,248,0.09)_0%,rgba(158,153,248,0.045)_16%,#ffffff_44%)] p-[12px] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] min-[900px]:min-h-[429px] min-[900px]:min-w-0 min-[900px]:flex-1"
-        : "flex w-full flex-col gap-[24px] rounded-[8px] bg-white p-[12px] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] min-[900px]:min-h-[429px] min-[900px]:min-w-0 min-[900px]:flex-1"}
+        : "flex w-full flex-col gap-[24px] rounded-[8px] bg-white p-[12px] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] min-[900px]:min-h-[429px] min-[900px]:min-w-0 min-[900px]:flex-1"
+      } ${className ?? ""}`}
     >
       <div className="flex items-center justify-between gap-[16px]">
         <p className={primary ? "bg-gradient-to-r from-[#463fba] via-[rgba(70,63,186,0.75)] to-[#463fba] bg-clip-text text-[13px] font-medium leading-[1.5] text-transparent" : "text-[13px] font-medium leading-[1.5] text-[#0a0a0a]"}>
@@ -105,10 +134,12 @@ export function PlanCard({
         ) : null}
       </div>
 
-      <div className="min-w-0">
-        <p className="text-[19px] font-semibold leading-none text-[#171717]">${price}</p>
-        <p className="mt-[3px] text-[13px] font-medium leading-none text-[#525252]">{pricePeriod}</p>
-        <p className="mt-[10px] text-[13px] font-normal leading-[1.35] text-[#525252]">{description}</p>
+      <div className="flex items-end justify-between gap-[12px]">
+        <div className="min-w-0">
+          <p className="text-[19px] font-semibold leading-none text-[#171717]">${price}</p>
+          <p className="mt-[3px] text-[13px] font-medium leading-none text-[#525252]">{pricePeriod}</p>
+          <p className="mt-[10px] text-[13px] font-normal leading-[1.35] text-[#525252]">{description}</p>
+        </div>
       </div>
 
       <div className="flex flex-1 flex-col gap-[12px]">
@@ -117,6 +148,7 @@ export function PlanCard({
             {feature.label}
           </FeatureRow>
         ))}
+        {note ? <p className="mt-auto text-[13px] font-medium leading-[1.35] text-[#525252]">{note}</p> : null}
       </div>
 
       <button
@@ -135,7 +167,15 @@ export function PlanCard({
   );
 }
 
-function BillingPeriodButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: string }) {
+function BillingPeriodButton({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: string;
+}) {
   return (
     <button
       type="button"

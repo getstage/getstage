@@ -9,3 +9,8 @@ const MCP_ORIGINS: Record<string, string> = {
 export function getMcpOrigin(): string | undefined {
   return MCP_ORIGINS[window.location.hostname];
 }
+
+// Same rule as the backend (`planAllowsKey("mcp", …)`): every paid plan includes the MCP.
+export function hasMcpPlan(plan: string) {
+  return plan === "start" || plan === "pro" || plan === "team";
+}

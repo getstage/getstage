@@ -31,7 +31,7 @@ export const createConnectCode = mutation({
     const subscription = await getCurrentSubscriptionSnapshot(ctx, String(user._id));
     const plan = subscription?.plan ?? user.plan ?? "free";
     if (!planAllowsKey("mcp", plan)) {
-      throw new Error("Connecting an AI tool needs Stage Studio or Agency.");
+      throw new Error("Connecting an AI tool needs a paid Stage plan.");
     }
     if (!/^[A-Za-z0-9_-]{43}$/.test(args.codeChallenge)) {
       throw new Error("This connect link is invalid. Start connecting again from your AI tool.");

@@ -7,10 +7,8 @@ import { PageLoading } from "@/components/shared/PageLoading";
 import { Paywall } from "@/components/setup/Paywall";
 import { useAuth } from "@/lib/auth";
 import { api } from "@/lib/convex";
-import { getMcpOrigin } from "@/lib/mcp";
+import { getMcpOrigin, hasMcpPlan } from "@/lib/mcp";
 import stageLogo from "@/assets/logos/stage-logo-light.png";
-
-const MCP_PLANS = ["pro", "team"];
 
 type ConnectRequest = { state: string; challenge: string; client: string; domain?: string; redirectHost: string; local: boolean };
 
@@ -37,7 +35,7 @@ function ConnectAiPage() {
     : undefined;
 
   if (!request) return <Navigate to="/app" replace />;
-  if (!MCP_PLANS.includes(user.plan)) return <Paywall title={`Pick a plan to connect ${request.client}`} />;
+  if (!hasMcpPlan(user.plan)) return <Paywall title={`Pick a plan to connect ${request.client}`} />;
 
   return (
     <>

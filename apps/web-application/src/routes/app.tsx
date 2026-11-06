@@ -9,17 +9,16 @@ import { Paywall } from "@/components/setup/Paywall";
 import { QuestionsStep, WelcomeStep, WorkspaceStep, type SetupAnswers, type SetupStep } from "@/components/setup/SetupScreens";
 import { useAuth } from "@/lib/auth";
 import { api } from "@/lib/convex";
+import { hasMcpPlan } from "@/lib/mcp";
 
 // Web home for MCP users. Onboarding (copy of the Mac flow): welcome → connect your AI tool → questions →
-// workspace → paywall (Studio/Agency), then the Dashboard.
+// workspace → paywall, then the Dashboard.
 export const Route = createFileRoute("/app")({
   validateSearch: (search: Record<string, unknown>): { billing?: "success" | "cancel" } => ({
     billing: search.billing === "success" || search.billing === "cancel" ? search.billing : undefined,
   }),
   component: AppPage,
 });
-
-const MCP_PLANS = ["pro", "team"];
 
 function AppPage() {
   const { isLoading, isAuthenticated, user } = useAuth();
@@ -29,7 +28,7 @@ function AppPage() {
   if (isLoading || (isAuthenticated && state === undefined)) return <PageLoading />;
   if (!isAuthenticated || !user || !state) return <Navigate to="/auth" search={{ redirect: "/app" }} replace />;
 
-  const paid = MCP_PLANS.includes(user.plan);
+  const paid = hasMcpPlan(user.plan);
   // Back from Stripe: the plan switches once the webhook has run.
   if (billing === "success" && !paid) return <PageLoading />;
 
@@ -44,7 +43,7 @@ function AppPage() {
         <meta name="robots" content="noindex, nofollow" />
       </Helmet>
       {state.isCompleted && paid ? (
-        <Dashboard />
+        <Dashboard workspaceName={state.workspaceName ?? ""} />
       ) : (
         <Onboarding userName={user.name} startAt={startAt} afterConnect={afterConnect} workspaceName={state.workspaceName ?? ""} paid={paid} />
       )}

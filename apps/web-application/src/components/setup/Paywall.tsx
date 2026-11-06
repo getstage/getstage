@@ -5,8 +5,7 @@ import { getDatafastCheckoutMetadata, trackDatafastGoal } from "@/lib/datafast";
 import { BillingPeriodToggle, PLANS, PLAN_FEATURES, PlanCard, type BillingCycle, type Tier } from "./planCards";
 import { SetupScreen } from "./SetupScreens";
 
-// Copy of the Mac onboarding paywall, Studio and Agency only (the plans that include the MCP).
-// Stripe returns to /app (success or cancel).
+// Copy of the Mac onboarding paywall. Stripe returns to /app (success or cancel).
 export function Paywall({ title = "Pick your Stage plan", beforeCheckout }: { title?: string; beforeCheckout?: () => Promise<unknown> }) {
   const createCheckoutSession = useAction(api.billing.createCheckoutSession);
   const [billingPeriod, setBillingPeriod] = useState<BillingCycle>("monthly");
@@ -42,7 +41,7 @@ export function Paywall({ title = "Pick your Stage plan", beforeCheckout }: { ti
         <div>
           <h1 className="text-[21px] font-semibold leading-[1.2] text-[#0a0a0a]">{title}</h1>
           <p className="mt-[10px] text-[13px] font-medium leading-[1.5] text-[#525252]">
-            Connecting your AI tool needs Studio or Agency. 14-day free trial. Card required, cancel anytime.
+            14-day free trial. Card required, cancel anytime.
           </p>
         </div>
         <BillingPeriodToggle value={billingPeriod} onChange={setBillingPeriod} />

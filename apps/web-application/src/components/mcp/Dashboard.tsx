@@ -1,15 +1,59 @@
 import appleIcon from "@/assets/home/apple.svg";
+import navDashboard from "@/assets/home/nav-dashboard.svg";
+import navHelp from "@/assets/home/nav-help.svg";
+import navSettings from "@/assets/home/nav-settings.svg";
 import noise from "@/assets/home/noise.png";
 import stageMarkWhite from "@/assets/home/stage-mark-white.svg";
+import stageMark from "@/assets/home/stage-mark.svg";
+import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 import { MCP_TOOLS, McpCard, McpConnectCard, useMcpConnections } from "./McpConnectCard";
 
-// Dashboard (Figma 2491-4955). The sidebar shell comes with the Integrations and Projects pages.
-export function Dashboard() {
+// Projects and Integrations join the sidebar with their pages.
+const NAV = [
+  { label: "Dashboard", href: "/app", icon: navDashboard, active: true },
+  { label: "Settings", href: "/profile", icon: navSettings, active: false },
+];
+
+// Dashboard (Figma 2491-5010) in the web app shell.
+export function Dashboard({ workspaceName }: { workspaceName: string }) {
+  const { user } = useAuth();
   const { connectedIds } = useMcpConnections();
   return (
-    <div className="min-h-dvh bg-[#F5F5F5] p-1">
-      <main className="min-h-[calc(100dvh-8px)] rounded-[8px] border-[0.5px] border-[#D4D4D4] bg-white px-4 py-11">
+    <div className="flex min-h-dvh bg-[#F5F5F5] p-1">
+      <aside className="hidden w-[200px] shrink-0 flex-col gap-4 px-2 py-3 md:flex">
+        <img src={stageMark} alt="Stage" className="ml-1 h-5 w-auto self-start" />
+        <span className="truncate rounded-[6px] border-[0.5px] border-[#D4D4D4] bg-white px-2.5 py-1.5 text-[12px] font-medium text-[#171717]">
+          {workspaceName || `${user?.name ?? "My"}'s Workspace`}
+        </span>
+        <nav className="flex flex-col gap-0.5">
+          {NAV.map((item) => (
+            <a
+              key={item.label}
+              href={item.href}
+              aria-current={item.active ? "page" : undefined}
+              className={cn(
+                "flex items-center gap-2 rounded-[6px] px-2.5 py-1.5 text-[13px] font-medium",
+                item.active ? "bg-[#0A0A0A] text-[#FAFAFA]" : "text-[#525252] hover:bg-white",
+              )}
+            >
+              <img src={item.icon} alt="" className="size-[15px]" />
+              {item.label}
+            </a>
+          ))}
+        </nav>
+        <div className="mt-auto flex flex-col gap-0.5">
+          <a href="/docs" className="flex items-center gap-2 rounded-[6px] px-2.5 py-1.5 text-[13px] font-medium text-[#525252] hover:bg-white">
+            <img src={navHelp} alt="" className="size-[15px]" />
+            Help & Feedback
+          </a>
+          <a href="/profile" className="flex items-center gap-2 rounded-[6px] px-2.5 py-1.5 text-[13px] font-medium text-[#171717] hover:bg-white">
+            {user?.avatarUrl ? <img src={user.avatarUrl} alt="" className="size-5 rounded-full" /> : null}
+            <span className="truncate">{user?.name}</span>
+          </a>
+        </div>
+      </aside>
+      <main className="min-h-[calc(100dvh-8px)] flex-1 rounded-[8px] border-[0.5px] border-[#D4D4D4] bg-white px-4 py-11">
         <div className="mx-auto flex w-full max-w-[684px] flex-col gap-8">
           <header>
             <h1 className="text-[20px] font-semibold leading-[1.2] text-[#0A0A0A]">Welcome to Stage</h1>

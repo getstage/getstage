@@ -8,9 +8,9 @@ const KEY_PREFIX = "stg_";
 const KEY_BYTE_LENGTH = 32;
 const MAX_KEYS_PER_USER = 5;
 
-// Developer API keys need Studio. MCP keys need Studio or Agency.
+// Developer API keys need Studio. MCP keys need any paid plan.
 type Plan = "free" | "start" | "pro" | "team";
-const KEY_PLANS = { api: ["pro"], mcp: ["pro", "team"] } satisfies Record<string, Plan[]>;
+const KEY_PLANS = { api: ["pro"], mcp: ["start", "pro", "team"] } satisfies Record<string, Plan[]>;
 export function planAllowsKey(kind: "api" | "mcp", plan: Plan) {
   return (KEY_PLANS[kind] as Plan[]).includes(plan);
 }

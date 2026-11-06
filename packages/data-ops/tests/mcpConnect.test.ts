@@ -74,8 +74,8 @@ describe("connecting an AI tool over MCP", () => {
     await expect(asUser.mutation(create, { ...args, workspaceIds: [String(userId)] })).resolves.toHaveProperty("code");
   });
 
-  test("MCP keys need Studio or Agency; developer API keys need Studio", () => {
-    expect((["free", "start", "pro", "team"] as const).filter((plan) => planAllowsKey("mcp", plan))).toEqual(["pro", "team"]);
+  test("MCP keys need any paid plan; developer API keys need Studio", () => {
+    expect((["free", "start", "pro", "team"] as const).filter((plan) => planAllowsKey("mcp", plan))).toEqual(["start", "pro", "team"]);
     expect((["free", "start", "pro", "team"] as const).filter((plan) => planAllowsKey("api", plan))).toEqual(["pro"]);
   });
 });
