@@ -1,4 +1,5 @@
 import appleIcon from "@/assets/home/apple.svg";
+import noise from "@/assets/home/noise.png";
 import stageMarkWhite from "@/assets/home/stage-mark-white.svg";
 import { cn } from "@/lib/utils";
 import { MCP_TOOLS, McpCard, McpConnectCard, useMcpConnections } from "./McpConnectCard";
@@ -15,21 +16,24 @@ export function Dashboard() {
             <p className="mt-1.5 text-[13px] font-medium text-[#737373]">Connect Stage to the AI tool you already use. Stage does the thinking, AI does the building.</p>
           </header>
 
-          <section className="flex flex-col gap-3 rounded-[12px] border-[0.5px] border-[#D4D4D4] bg-[#F5F5F5] p-3 shadow-[0_1px_4px_-2px_rgba(10,10,10,0.4)] sm:flex-row sm:items-center">
-            <span className="flex size-12 shrink-0 items-center justify-center rounded-[8px] border border-[#6D67D3] bg-gradient-to-b from-[#5955A9] to-[#2F2A7D]">
-              <img src={stageMarkWhite} alt="" className="h-6 w-auto" />
-            </span>
-            <div className="flex-1">
-              <p className="text-[15px] font-semibold text-[#171717]">Stage for Mac</p>
-              <p className="text-[12px] text-[#525252]">The full experience: the 7-step canvas, project memory and exports, right on your Mac.</p>
+          <section className="flex flex-col gap-1 rounded-[12px] border-[0.5px] border-[#D4D4D4] bg-[#F5F5F5] p-1 shadow-[0_1px_4px_-2px_rgba(10,10,10,0.4)]">
+            <div className="relative flex h-[97px] items-center justify-center overflow-hidden rounded-[8px] border border-[#6D67D3] bg-gradient-to-b from-[#5955A9] to-[#2F2A7D]">
+              <span className="absolute inset-0 opacity-30 mix-blend-soft-light" style={{ backgroundImage: `url(${noise})` }} />
+              <img src={stageMarkWhite} alt="" className="relative h-8 w-auto" />
             </div>
-            <a
-              href="/download/mac"
-              className="flex items-center justify-center gap-2 rounded-[6px] border border-[#525252] bg-gradient-to-b from-[#404040] to-[#0A0A0A] px-3 py-2 text-[12px] font-medium text-[#FAFAFA]"
-            >
-              <img src={appleIcon} alt="" className="h-3.5 w-auto" />
-              Download for MacOS
-            </a>
+            <div className="flex flex-col items-center gap-3 px-4 py-4 text-center">
+              <div>
+                <p className="text-[15px] font-semibold text-[#171717]">Stage for Mac</p>
+                <p className="mt-1 text-[12px] text-[#525252]">The full experience: the 7-step canvas, project memory and exports, right on your Mac.</p>
+              </div>
+              <a
+                href="/download/mac"
+                className="flex items-center justify-center gap-2 rounded-[6px] border border-[#525252] bg-gradient-to-b from-[#404040] to-[#0A0A0A] px-3 py-2 text-[12px] font-medium text-[#FAFAFA]"
+              >
+                <img src={appleIcon} alt="" className="h-3.5 w-auto" />
+                Download for MacOS
+              </a>
+            </div>
           </section>
 
           <McpConnectCard />

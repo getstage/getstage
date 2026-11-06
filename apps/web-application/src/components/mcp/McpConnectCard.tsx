@@ -1,6 +1,8 @@
 import { useState, type ReactNode } from "react";
 import { useQuery } from "convex/react";
 import claudeCodeIcon from "@/assets/home/claude-tool.svg";
+import copyDarkIcon from "@/assets/home/copy-dark.svg";
+import copyIcon from "@/assets/home/copy.svg";
 import openaiIcon from "@/assets/home/openai.svg";
 import waitingIcon from "@/assets/home/status-waiting.svg";
 import { api } from "@/lib/convex";
@@ -67,7 +69,7 @@ export function McpConnectCard() {
       <div className="flex flex-col gap-2">
         <span className="text-[13px] font-medium text-[#171717]">Your MCP server URL</span>
         <div className="flex items-center gap-2 rounded-[6px] border-[0.5px] border-[#D4D4D4] bg-[#F5F5F5] px-3 py-2.5">
-          <code className="min-w-0 flex-1 truncate text-[12px] text-[#525252]">{url}</code>
+          <span className="min-w-0 flex-1 truncate text-[12px] text-[#525252]">{url}</span>
           <CopyButton value={url} />
         </div>
       </div>
@@ -93,22 +95,27 @@ export function McpConnectCard() {
         ))}
       </div>
       <div className="flex items-center gap-2 rounded-[6px] bg-[#0A0A0A] py-1.5 pl-3 pr-1.5">
-        <code className="min-w-0 flex-1 truncate text-[12px] text-white">{command}</code>
-        <CopyButton value={command} />
+        <span className="min-w-0 flex-1 truncate text-[12px] text-white">{command}</span>
+        <CopyButton value={command} label="Copy Link" />
       </div>
     </McpCard>
   );
 }
 
-function CopyButton({ value }: { value: string }) {
+function CopyButton({ value, label }: { value: string; label?: string }) {
   const [copied, setCopied] = useState(false);
   return (
     <button
       type="button"
+      aria-label={label ? undefined : "Copy"}
       onClick={() => void navigator.clipboard.writeText(value).then(() => setCopied(true))}
-      className="shrink-0 rounded-[4px] border-[0.5px] border-[#D4D4D4] bg-white px-2.5 py-1 text-[12px] font-medium text-[#0A0A0A]"
+      className={cn(
+        "flex shrink-0 items-center gap-1.5 text-[12px] font-medium",
+        label ? "rounded-[4px] bg-white px-2.5 py-1 text-[#0A0A0A]" : "text-[#525252] hover:text-[#0A0A0A]",
+      )}
     >
-      {copied ? "Copied" : "Copy"}
+      <img src={label ? copyDarkIcon : copyIcon} alt="" className="size-3.5" />
+      {copied ? "Copied" : label}
     </button>
   );
 }
