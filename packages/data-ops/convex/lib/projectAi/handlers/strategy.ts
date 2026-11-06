@@ -2,7 +2,7 @@ import { v } from "convex/values";
 import type { Id } from "../../../_generated/dataModel";
 import { strategyArtifactSchema } from "../../../../src/contracts/strategy";
 import type { MutationCtx, QueryCtx } from "../../../_generated/server";
-import { requireProjectAccess, requireProjectAccessOrNull } from "../../../_helpers";
+import { requireProjectAccess, requireProjectAccessOrNull, type ProjectAccessResult } from "../../../_helpers";
 import {
   createArtifactRecord,
   deletePreviousStrategyArtifacts,
@@ -151,6 +151,15 @@ export const completeStrategyRunArgs = {
 
 export async function completeStrategyRunHandler(
   ctx: MutationCtx,
+  args: Parameters<typeof saveStrategyResult>[2],
+) {
+  return saveStrategyResult(ctx, await requireProjectAccess(ctx, args.projectId), args);
+}
+
+/** Validates and stores a Strategy result. Shared by the Mac app's runs and the MCP save tool. */
+export async function saveStrategyResult(
+  ctx: MutationCtx,
+  { user }: ProjectAccessResult,
   args: {
     projectId: Id<"projects">;
     runId?: Id<"projectAiRuns">;
@@ -161,7 +170,6 @@ export async function completeStrategyRunHandler(
     providerId?: "claude" | "codex";
   },
 ) {
-  const { user } = await requireProjectAccess(ctx, args.projectId);
 
   if (args.runId) {
     const run = await getRunRecord(ctx, args.runId);

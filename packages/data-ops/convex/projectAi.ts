@@ -293,3 +293,8 @@ export const upsertArtifactExportForApi = internalMutation({
   args: apiHandlers.upsertArtifactExportForApiArgs,
   handler: apiHandlers.upsertArtifactExportForApiHandler,
 });
+
+export const saveStepForApi = internalMutation({
+  args: apiHandlers.saveStepForApiArgs,
+  handler: apiHandlers.saveStepForApiHandler,
+});

@@ -6,6 +6,7 @@ import { z } from "zod";
 import { authHandler } from "./auth";
 import type { Env } from "./env";
 import { StageApiError, stageApi } from "./stageApi";
+import { STEP_GUIDE, STEPS } from "./steps";
 
 type ToolResult = { content: { type: "text"; text: string }[]; isError?: boolean };
 
@@ -22,7 +23,7 @@ async function run(action: () => Promise<unknown>): Promise<ToolResult> {
 const STEP = z.enum(["research", "strategy", "moodboard", "styleguide", "flows", "generate", "delivery"]);
 
 function createServer() {
-  const server = new McpServer({ name: "Stage", version: "0.1.0" });
+  const server = new McpServer({ name: "Stage", version: "0.2.0" }, { instructions: STEP_GUIDE });
 
   server.registerTool(
     "whoami",
@@ -68,6 +69,18 @@ function createServer() {
     ({ startDate, endDate, ...project }) =>
       run(() => stageApi("/projects", { ...project, startDate: Date.parse(startDate), endDate: Date.parse(endDate) })),
   );
+
+  for (const [step, { tool, title, schema, instructions }] of Object.entries(STEPS)) {
+    server.registerTool(
+      tool,
+      {
+        description: `Save the ${title} step of a Stage project. It replaces the previous ${title}.\n${instructions}\n${STEP_GUIDE}`,
+        inputSchema: z.object({ projectId, summary: z.string().optional().describe("One line for the project overview."), result: schema }),
+      },
+      ({ projectId, summary, result }) =>
+        run(() => stageApi(`/projects/${encodeURIComponent(projectId)}/steps/${step}`, { title, summary, result })),
+    );
+  }
 
   return server;
 }

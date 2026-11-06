@@ -3,7 +3,7 @@ import { flowsArtifactSchema } from "../../../../src/contracts/flows";
 import { arrangeFlowsCanvas, assertFlowsCanvasIdentity, flowLayoutDirection, validateFlowsCanvas } from "../../../../src/domain/flows-canvas";
 import type { Id } from "../../../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../../../_generated/server";
-import { requireProjectAccess } from "../../../_helpers";
+import { requireProjectAccess, type ProjectAccessResult } from "../../../_helpers";
 import {
   createArtifactRecord,
   deletePreviousFlowsArtifacts,
@@ -141,6 +141,15 @@ export const completeFlowsRunArgs = {
 
 export async function completeFlowsRunHandler(
   ctx: MutationCtx,
+  args: Parameters<typeof saveFlowsResult>[2],
+) {
+  return saveFlowsResult(ctx, await requireProjectAccess(ctx, args.projectId), args);
+}
+
+/** Validates and stores a Flows result. Shared by the Mac app's runs and the MCP save tool. */
+export async function saveFlowsResult(
+  ctx: MutationCtx,
+  { user, project }: ProjectAccessResult,
   args: {
     projectId: Id<"projects">;
     runId?: Id<"projectAiRuns">;
@@ -153,7 +162,6 @@ export async function completeFlowsRunHandler(
     providerId?: "claude" | "codex";
   },
 ) {
-  const { user, project } = await requireProjectAccess(ctx, args.projectId);
 
   if (args.runId) {
     const run = await getRunRecord(ctx, args.runId);

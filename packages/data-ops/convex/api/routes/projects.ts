@@ -9,11 +9,24 @@ import {
   createProjectBodySchema,
   importProjectPlanBodySchema,
   projectIdParamSchema,
+  saveStepBodySchema,
+  stepParamSchema,
   upsertProjectAiContextBodySchema,
 } from "../models";
-import { jsonError, validationHook } from "../errors";
+import { flowsArtifactSchema } from "../../../src/contracts/flows";
+import { researchArtifactSchema } from "../../../src/contracts/research";
+import { strategyArtifactSchema } from "../../../src/contracts/strategy";
+import { wireframesArtifactSchema } from "../../../src/contracts/wireframes";
+import { ApiError, jsonError, validationHook } from "../errors";
 import type { ApiBindings } from "../types";
 import type { Doc, Id } from "../../_generated/dataModel";
+
+const STEP_RESULT_SCHEMA = {
+  research: researchArtifactSchema,
+  strategy: strategyArtifactSchema,
+  flows: flowsArtifactSchema,
+  generate: wireframesArtifactSchema,
+};
 
 export function createProjectRoutes() {
   const app = new Hono<{
@@ -228,6 +241,36 @@ export function createProjectRoutes() {
       });
 
       return c.json({ artifactId: String(result.artifactId) }, 201);
+    },
+  );
+
+  // A step result made by the user's AI tool (MCP), in the same shape the Mac screens read.
+  app.post(
+    "/:id/steps/:step",
+    zValidator("param", stepParamSchema, validationHook),
+    zValidator("json", saveStepBodySchema, validationHook),
+    async (c) => {
+      const auth = await authenticateApiKey(c);
+      const { id, step } = c.req.valid("param");
+      const body = c.req.valid("json");
+      const parsed = STEP_RESULT_SCHEMA[step].safeParse(body.result);
+      if (!parsed.success) {
+        throw new ApiError(400, `The ${step} result doesn't match Stage's format.`, "invalid_step_result", parsed.error.issues);
+      }
+      try {
+        const saved = await c.env.runMutation(internal.projectAi.saveStepForApi, {
+          userId: auth.userId,
+          projectId: id as Id<"projects">,
+          step,
+          title: body.title,
+          summary: body.summary,
+          contentJson: JSON.stringify(parsed.data),
+        });
+        return c.json(saved, 201);
+      } catch (error) {
+        // Format checks inside the save (e.g. Research completeness) are fixable by the AI, so they come back as 400.
+        throw new ApiError(400, error instanceof Error ? error.message : "Could not save the step.", "step_not_saved");
+      }
     },
   );
 

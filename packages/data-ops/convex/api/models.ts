@@ -271,3 +271,14 @@ export const createArtifactExportBodySchema = z.object({
   errorMessage: optionalTrimmedString,
   lastSyncedAt: z.number().optional(),
 });
+
+export const stepParamSchema = z.object({
+  id: trimmedString("Project ID"),
+  step: z.enum(["research", "strategy", "flows", "generate"]),
+});
+
+export const saveStepBodySchema = z.object({
+  title: trimmedString("Title"),
+  summary: optionalTrimmedString,
+  result: z.record(z.string(), z.unknown()),
+});

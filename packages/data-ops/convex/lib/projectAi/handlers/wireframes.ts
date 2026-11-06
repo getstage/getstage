@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import type { Id } from "../../../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../../../_generated/server";
-import { requireProjectAccess } from "../../../_helpers";
+import { requireProjectAccess, type ProjectAccessResult } from "../../../_helpers";
 import {
   createArtifactRecord,
   deletePreviousWireframesArtifacts,
@@ -144,6 +144,15 @@ export const completeWireframesRunArgs = {
 
 export async function completeWireframesRunHandler(
   ctx: MutationCtx,
+  args: Parameters<typeof saveWireframesResult>[2],
+) {
+  return saveWireframesResult(ctx, await requireProjectAccess(ctx, args.projectId), args);
+}
+
+/** Validates and stores a Wireframes result. Shared by the Mac app's runs and the MCP save tool. */
+export async function saveWireframesResult(
+  ctx: MutationCtx,
+  { user }: ProjectAccessResult,
   args: {
     projectId: Id<"projects">;
     runId?: Id<"projectAiRuns">;
@@ -157,7 +166,6 @@ export async function completeWireframesRunHandler(
     providerId?: "claude" | "codex";
   },
 ) {
-  const { user } = await requireProjectAccess(ctx, args.projectId);
 
   if (args.runId) {
     const run = await getRunRecord(ctx, args.runId);

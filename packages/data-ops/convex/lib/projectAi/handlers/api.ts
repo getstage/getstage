@@ -22,6 +22,11 @@ import {
   type AiModule,
 } from "../domain/validators";
 import { resolveAssetUrl } from "../../../r2";
+import { requireProjectAccessForUserId } from "../../../_helpers";
+import { saveFlowsResult } from "./flows";
+import { saveResearchResult } from "./research";
+import { saveStrategyResult } from "./strategy";
+import { saveWireframesResult } from "./wireframes";
 
 export const getContextForApiArgs = {
   userId: v.id("users"),
@@ -260,4 +265,43 @@ export async function upsertArtifactExportForApiHandler(
   });
 
   return { destinationId };
+}
+
+// Steps an AI tool can save through the MCP. Moodboard and Delivery need Stage for Mac (image search, exports).
+const SAVE_STEP = {
+  research: saveResearchResult,
+  strategy: saveStrategyResult,
+  flows: saveFlowsResult,
+  generate: saveWireframesResult,
+} as const;
+
+export const saveStepForApiArgs = {
+  userId: v.id("users"),
+  projectId: v.id("projects"),
+  step: v.union(v.literal("research"), v.literal("strategy"), v.literal("flows"), v.literal("generate")),
+  title: v.string(),
+  summary: v.optional(v.string()),
+  contentJson: v.string(),
+};
+
+/** Saves a step result made by the user's own AI tool. No credits: Stage ran no model. */
+export async function saveStepForApiHandler(
+  ctx: MutationCtx,
+  args: {
+    userId: Id<"users">;
+    projectId: Id<"projects">;
+    step: keyof typeof SAVE_STEP;
+    title: string;
+    summary?: string;
+    contentJson: string;
+  },
+) {
+  const access = await requireProjectAccessForUserId(ctx, { userId: args.userId, projectId: args.projectId });
+  const { artifactId } = await SAVE_STEP[args.step](ctx, access, {
+    projectId: args.projectId,
+    title: args.title,
+    summary: args.summary,
+    contentJson: args.contentJson,
+  });
+  return { artifactId };
 }

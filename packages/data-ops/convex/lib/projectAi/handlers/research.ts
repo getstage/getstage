@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import type { Id } from "../../../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../../../_generated/server";
-import { requireProjectAccess, requireProjectAccessOrNull } from "../../../_helpers";
+import { requireProjectAccess, requireProjectAccessOrNull, type ProjectAccessResult } from "../../../_helpers";
 import { deleteOldR2Asset } from "../../../r2";
 import {
   createArtifactRecord,
@@ -111,6 +111,27 @@ export const completeResearchRunArgs = {
 
 export async function completeResearchRunHandler(
   ctx: MutationCtx,
+  args: Parameters<typeof saveResearchResult>[2],
+) {
+  const access = await requireProjectAccess(ctx, args.projectId);
+  const result = await saveResearchResult(ctx, access, args);
+
+  // Charge Refero usage once the research artifact is saved. Idempotent on runId.
+  await recordUsage(ctx, {
+    ownerUserId: access.project.userId,
+    kind: "reference",
+    credits: CREDIT_COSTS.researchFallback,
+    userId: access.user._id,
+    runId: args.runId ? String(args.runId) : undefined,
+  });
+
+  return result;
+}
+
+/** Validates and stores a Research result. Shared by the Mac app's runs and the MCP save tool. */
+export async function saveResearchResult(
+  ctx: MutationCtx,
+  { user }: ProjectAccessResult,
   args: {
     projectId: Id<"projects">;
     runId?: Id<"projectAiRuns">;
@@ -120,8 +141,6 @@ export async function completeResearchRunHandler(
     providerId?: "claude" | "codex";
   },
 ) {
-  const { user, project } = await requireProjectAccess(ctx, args.projectId);
-
   if (args.runId) {
     const run = await getRunRecord(ctx, args.runId);
     if (run.projectId !== args.projectId) {
@@ -165,15 +184,6 @@ export async function completeResearchRunHandler(
   }
 
   const completedAt = args.runId ? await completeRunRecord(ctx, args.runId) : now();
-
-  // Charge Refero usage once the research artifact is saved. Idempotent on runId.
-  await recordUsage(ctx, {
-    ownerUserId: project.userId,
-    kind: "reference",
-    credits: CREDIT_COSTS.researchFallback,
-    userId: user._id,
-    runId: args.runId ? String(args.runId) : undefined,
-  });
 
   return {
     artifactId: String(artifactId),

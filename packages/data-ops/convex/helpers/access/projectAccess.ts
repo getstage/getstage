@@ -5,7 +5,7 @@ import { isActiveMembership } from "./seatEntitlement";
 import { requireAuthUser } from "../auth/requireAuthUser";
 
 type ReaderCtx = QueryCtx | MutationCtx;
-type ProjectAccessResult = { user: Doc<"users">; project: Doc<"projects">; role: "owner" | "editor" };
+export type ProjectAccessResult = { user: Doc<"users">; project: Doc<"projects">; role: "owner" | "editor" };
 
 async function requireExistingUser(ctx: ReaderCtx, userId: Id<"users">) {
   const user = await ctx.db.get(userId);

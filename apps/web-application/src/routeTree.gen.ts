@@ -50,6 +50,7 @@ import { Route as AgentsClaudeRouteImport } from './routes/agents/claude'
 import { Route as AuthedSettingsRouteImport } from './routes/_authed/settings'
 import { Route as AuthedNewProjectRouteImport } from './routes/_authed/new-project'
 import { Route as AuthedDashboardRouteImport } from './routes/_authed/dashboard'
+import { Route as AppProjectsProjectIdRouteImport } from './routes/app_.projects_.$projectId'
 import { Route as AuthedProjectIdRouteImport } from './routes/_authed/project.$id'
 import { Route as PortalTokenTaskTaskIdRouteImport } from './routes/portal.$token.task.$taskId'
 import { Route as AuthedProjectIdStitchRouteImport } from './routes/_authed/project.$id.stitch'
@@ -260,6 +261,11 @@ const AuthedDashboardRoute = AuthedDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AuthedRoute,
 } as any)
+const AppProjectsProjectIdRoute = AppProjectsProjectIdRouteImport.update({
+  id: '/app_/projects_/$projectId',
+  path: '/app/projects/$projectId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthedProjectIdRoute = AuthedProjectIdRouteImport.update({
   id: '/project/$id',
   path: '/project/$id',
@@ -324,6 +330,7 @@ export interface FileRoutesByFullPath {
   '/tools/': typeof ToolsIndexRoute
   '/use-cases/': typeof UseCasesIndexRoute
   '/project/$id': typeof AuthedProjectIdRouteWithChildren
+  '/app/projects/$projectId': typeof AppProjectsProjectIdRoute
   '/project/$id/stitch': typeof AuthedProjectIdStitchRoute
   '/portal/$token/task/$taskId': typeof PortalTokenTaskTaskIdRoute
   '/project/$id/task/$taskId': typeof AuthedProjectIdTaskTaskIdRoute
@@ -369,6 +376,7 @@ export interface FileRoutesByTo {
   '/tools': typeof ToolsIndexRoute
   '/use-cases': typeof UseCasesIndexRoute
   '/project/$id': typeof AuthedProjectIdRouteWithChildren
+  '/app/projects/$projectId': typeof AppProjectsProjectIdRoute
   '/project/$id/stitch': typeof AuthedProjectIdStitchRoute
   '/portal/$token/task/$taskId': typeof PortalTokenTaskTaskIdRoute
   '/project/$id/task/$taskId': typeof AuthedProjectIdTaskTaskIdRoute
@@ -417,6 +425,7 @@ export interface FileRoutesById {
   '/tools/': typeof ToolsIndexRoute
   '/use-cases/': typeof UseCasesIndexRoute
   '/_authed/project/$id': typeof AuthedProjectIdRouteWithChildren
+  '/app_/projects_/$projectId': typeof AppProjectsProjectIdRoute
   '/_authed/project/$id/stitch': typeof AuthedProjectIdStitchRoute
   '/portal/$token/task/$taskId': typeof PortalTokenTaskTaskIdRoute
   '/_authed/project/$id/task/$taskId': typeof AuthedProjectIdTaskTaskIdRoute
@@ -465,6 +474,7 @@ export interface FileRouteTypes {
     | '/tools/'
     | '/use-cases/'
     | '/project/$id'
+    | '/app/projects/$projectId'
     | '/project/$id/stitch'
     | '/portal/$token/task/$taskId'
     | '/project/$id/task/$taskId'
@@ -510,6 +520,7 @@ export interface FileRouteTypes {
     | '/tools'
     | '/use-cases'
     | '/project/$id'
+    | '/app/projects/$projectId'
     | '/project/$id/stitch'
     | '/portal/$token/task/$taskId'
     | '/project/$id/task/$taskId'
@@ -557,6 +568,7 @@ export interface FileRouteTypes {
     | '/tools/'
     | '/use-cases/'
     | '/_authed/project/$id'
+    | '/app_/projects_/$projectId'
     | '/_authed/project/$id/stitch'
     | '/portal/$token/task/$taskId'
     | '/_authed/project/$id/task/$taskId'
@@ -595,6 +607,7 @@ export interface RootRouteChildren {
   SkillsIndexRoute: typeof SkillsIndexRoute
   ToolsIndexRoute: typeof ToolsIndexRoute
   UseCasesIndexRoute: typeof UseCasesIndexRoute
+  AppProjectsProjectIdRoute: typeof AppProjectsProjectIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -886,6 +899,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedDashboardRouteImport
       parentRoute: typeof AuthedRoute
     }
+    '/app_/projects_/$projectId': {
+      id: '/app_/projects_/$projectId'
+      path: '/app/projects/$projectId'
+      fullPath: '/app/projects/$projectId'
+      preLoaderRoute: typeof AppProjectsProjectIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authed/project/$id': {
       id: '/_authed/project/$id'
       path: '/project/$id'
@@ -1033,6 +1053,7 @@ const rootRouteChildren: RootRouteChildren = {
   SkillsIndexRoute: SkillsIndexRoute,
   ToolsIndexRoute: ToolsIndexRoute,
   UseCasesIndexRoute: UseCasesIndexRoute,
+  AppProjectsProjectIdRoute: AppProjectsProjectIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
