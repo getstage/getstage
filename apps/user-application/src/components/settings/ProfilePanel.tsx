@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useMutation } from "convex/react";
-import { Avatar } from "@/components/ui/Avatar";
+import { Avatar } from "@stage/project-ui";
 import { useSettingsOverviewQuery } from "@/hooks/convex-data";
 import { api } from "@/lib/convexApi";
 import {

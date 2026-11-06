@@ -14,7 +14,7 @@ import {
   uploadFileToR2,
   type PreparedUpload,
 } from "@/lib/r2Uploads";
-import { Avatar } from "@/components/ui/Avatar";
+import { Avatar } from "@stage/project-ui";
 import { ClientPortalTabBar } from "./ClientPortalTabBar";
 
 const DEFAULT_BRAND_COLOR = "#030303";

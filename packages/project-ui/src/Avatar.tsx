@@ -1,5 +1,14 @@
 import { useState } from "react";
-import { cn, getInitials } from "@/lib/utils";
+import { cn } from "./cn";
+
+export function getInitials(name: string): string {
+  return name
+    .split(" ")
+    .map((part) => part.charAt(0))
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+}
 
 interface AvatarProps {
   name: string;

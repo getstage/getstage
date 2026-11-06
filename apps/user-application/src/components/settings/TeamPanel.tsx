@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useAction, useMutation } from "convex/react";
 import type { Id } from "@stage/data-ops/convex/data-model";
-import { Avatar } from "@/components/ui/Avatar";
+import { Avatar } from "@stage/project-ui";
 import { api } from "@/lib/convexApi";
 import { toUserFacingErrorMessage } from "@/lib/errors";
 import { inviteTeamMemberSchema } from "@/lib/validation";

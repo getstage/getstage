@@ -1,4 +1,4 @@
-import type { Phase, Task } from "@/models/project/project";
+import type { Phase, Task } from "./model";
 
 export type KanbanStatus = "backlog" | "todo" | "in-progress" | "done" | "revision";
 

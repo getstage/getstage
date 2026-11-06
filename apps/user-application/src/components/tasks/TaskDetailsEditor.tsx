@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
-import { Avatar } from "@/components/ui/Avatar";
+import { Avatar } from "@stage/project-ui";
 import { useSettingsOverviewQuery, type ProjectMember } from "@/hooks/convex-data";
 
 type BlockType = "heading" | "paragraph" | "bullet";

@@ -12,16 +12,7 @@ export function getGreeting(name: string, options?: { nowTimestamp?: number }) {
   return `Good evening, ${name}`;
 }
 
-export function getInitials(name: string): string {
-  return name
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2);
-}
-
-export { formatRelativeTime } from "@stage/project-ui";
+export { formatRelativeTime, getInitials } from "@stage/project-ui";
 
 export function readFileAsDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {

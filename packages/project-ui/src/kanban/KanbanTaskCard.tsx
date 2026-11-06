@@ -1,20 +1,15 @@
 import type { PointerEvent } from "react";
-import { useQuery as useConvexQuery } from "convex/react";
-import { parseConvexTaskId } from "@stage/data-ops";
-import { Avatar } from "@/components/ui/Avatar";
-import { KANBAN_ASSIGNEES } from "@/data/fixtures/project/kanbanAssignees";
-import { useSettingsOverviewQuery } from "@/hooks/convex-data";
-import { api } from "@/lib/convexApi";
-import {
-  DEFAULT_PHASE_TAG_COLOR,
-  PHASE_TAG_COLORS,
-  type BoardTask,
-} from "@/lib/project/kanbanColumns";
-import type { Task } from "@/models/project/project";
+import { Avatar } from "../Avatar";
+import { DEFAULT_PHASE_TAG_COLOR, PHASE_TAG_COLORS, type BoardTask } from "./columns";
+import type { Task } from "./model";
+
+const ASSIGNEE_CIRCLE = "flex h-5 w-5 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-full bg-[#E5E5E5] text-[10px] font-medium text-[#221E6C]";
 
 export function KanbanTaskCard({
   task,
   phaseName,
+  description,
+  assigneeAvatarUrl,
   dimmed = false,
   dragging = false,
   onPointerDown,
@@ -24,6 +19,9 @@ export function KanbanTaskCard({
 }: {
   task: Task;
   phaseName: string;
+  // The Mac app loads the full description and the assignee's photo; without them the card uses the task's summary.
+  description?: string;
+  assigneeAvatarUrl?: string;
   dimmed?: boolean;
   dragging?: boolean;
   onPointerDown?: (event: PointerEvent<HTMLDivElement>) => void;
@@ -32,18 +30,7 @@ export function KanbanTaskCard({
   onOpen?: () => void;
 }) {
   const tagColor = PHASE_TAG_COLORS[phaseName] ?? DEFAULT_PHASE_TAG_COLOR;
-  const settingsOverviewQuery = useSettingsOverviewQuery();
-  const profile = settingsOverviewQuery.data?.profile;
   const assignee = task.assignees?.[0];
-  const assigneeAvatarUrl = assignee
-    ? getTaskAssigneeAvatarUrl(assignee.name, profile)
-    : undefined;
-  const convexTaskId = task.hasContent ? parseConvexTaskId(task.id) : null;
-  const taskDetail = useConvexQuery(
-    api.tasks.getDetail,
-    convexTaskId ? { taskId: convexTaskId } : "skip",
-  );
-  const description = taskDetail?.task.content?.trim() || task.content?.trim();
 
   return (
     <div
@@ -67,40 +54,44 @@ export function KanbanTaskCard({
         <span className={`inline-flex rounded-[2px] px-[6px] py-[2px] text-[12px] font-normal leading-[1.25] ${tagColor.bg} ${tagColor.text}`}>
           {phaseName}
         </span>
-        <button
-          type="button"
-          draggable={false}
-          onMouseDown={(event) => event.stopPropagation()}
-          onPointerDown={(event) => event.stopPropagation()}
-          onClick={(event) => {
-            event.stopPropagation();
-            onAssign?.();
-          }}
-          className="flex h-5 w-5 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-full bg-[#E5E5E5] text-[10px] font-medium text-[#221E6C]"
-          aria-label="Assign task"
-        >
-          {assignee ? (
-            <Avatar
-              name={assignee.name}
-              src={assigneeAvatarUrl}
-              className="h-full w-full"
-            />
-          ) : (
-            <img src="/logos/dashboard/assign.svg" alt="" aria-hidden="true" className="h-[14px] w-[14px]" />
-          )}
-        </button>
+        {onAssign ? (
+          <button
+            type="button"
+            draggable={false}
+            onMouseDown={(event) => event.stopPropagation()}
+            onPointerDown={(event) => event.stopPropagation()}
+            onClick={(event) => {
+              event.stopPropagation();
+              onAssign();
+            }}
+            className={ASSIGNEE_CIRCLE}
+            aria-label="Assign task"
+          >
+            {assignee ? (
+              <Avatar name={assignee.name} src={assigneeAvatarUrl} className="h-full w-full" />
+            ) : (
+              <img src="/logos/dashboard/assign.svg" alt="" aria-hidden="true" className="h-[14px] w-[14px]" />
+            )}
+          </button>
+        ) : assignee ? (
+          <span className={ASSIGNEE_CIRCLE}>
+            <Avatar name={assignee.name} src={assigneeAvatarUrl} className="h-full w-full" />
+          </span>
+        ) : null}
       </div>
       <div className="mt-3 flex flex-col gap-1">
         <div className="flex items-center gap-[6px]">
           <button
             type="button"
+            disabled={!onToggle}
+            aria-label={task.isCompleted ? "Mark as not done" : "Mark as done"}
             onClick={(event) => {
               event.stopPropagation();
               onToggle?.();
             }}
             onPointerDown={(event) => event.stopPropagation()}
-            className={`flex h-4 w-4 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-[4px] p-[2px] transition-colors ${
-              task.isCompleted ? "bg-[#0A0A0A] text-white" : "bg-[#D4D4D4] text-transparent hover:bg-[#A3A3A3]"
+            className={`flex h-4 w-4 shrink-0 cursor-pointer items-center disabled:cursor-default justify-center overflow-hidden rounded-[4px] p-[2px] transition-colors ${
+              task.isCompleted ? "bg-[#0A0A0A] text-white" : "bg-[#D4D4D4] text-transparent enabled:hover:bg-[#A3A3A3]"
             }`}
           >
             {task.isCompleted ? (
@@ -114,7 +105,7 @@ export function KanbanTaskCard({
           </span>
         </div>
         <p className="line-clamp-2 text-[12px] font-normal leading-[1.5] text-[#525252]">
-          {description || task.summary || "No description yet."}
+          {description || task.content?.trim() || task.summary || "No description yet."}
         </p>
         {task.revisionNote ? (
           <p className="mt-1 line-clamp-3 rounded-[6px] bg-[#FEF3E2] p-2 text-[12px] font-normal leading-[1.5] text-[#92400E]">
@@ -124,17 +115,6 @@ export function KanbanTaskCard({
       </div>
     </div>
   );
-}
-
-function getTaskAssigneeAvatarUrl(
-  assigneeName: string,
-  profile: { name: string; email: string; avatarUrl: string | null } | undefined,
-) {
-  if (profile?.avatarUrl && (assigneeName === profile.name || assigneeName === profile.email)) {
-    return profile.avatarUrl;
-  }
-
-  return KANBAN_ASSIGNEES.find((assignee) => assignee.name.includes(assigneeName))?.avatar;
 }
 
 export type KanbanDragPreview = BoardTask & {

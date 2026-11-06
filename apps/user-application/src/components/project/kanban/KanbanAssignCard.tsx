@@ -1,4 +1,4 @@
-import { Avatar } from "@/components/ui/Avatar";
+import { Avatar } from "@stage/project-ui";
 import { useSettingsOverviewQuery, type ProjectMember } from "@/hooks/convex-data";
 
 function memberLabel(member: ProjectMember) {

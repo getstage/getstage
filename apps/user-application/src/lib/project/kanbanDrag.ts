@@ -1,4 +1,4 @@
-import { KANBAN_COLUMNS, type KanbanStatus } from "./kanbanColumns";
+import { KANBAN_COLUMNS, type KanbanStatus } from "@stage/project-ui/kanban";
 
 export function getKanbanColumnFromPoint(x: number, y: number): KanbanStatus | null {
   const element = document.elementFromPoint(x, y);

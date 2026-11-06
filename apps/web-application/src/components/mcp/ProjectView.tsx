@@ -24,6 +24,7 @@ import {
   type CompetitiveView,
 } from "@stage/project-ui/research";
 import { FlowsCanvasView } from "@stage/project-ui/flows";
+import { KanbanBoardView, mapPhase } from "@stage/project-ui/kanban";
 import { StrategyProgress, StrategySectionCard } from "@stage/project-ui/strategy";
 import { buildResultCards, mapWireframesArtifactToTabData, ResultsGrid } from "@stage/project-ui/wireframes";
 import { api } from "@/lib/convex";
@@ -76,7 +77,7 @@ function TabPanel({ projectId, tab, projectName, category }: { projectId: Id<"pr
     case "wireframes":
       return <WireframesPanel projectId={projectId} projectName={projectName} />;
     case "overview":
-      return <Notice>The task board is in <MacLink />.</Notice>;
+      return <OverviewPanel projectId={projectId} />;
     case "moodboard":
       return <Notice>The Moodboard and Style guide are made and viewed in <MacLink />.</Notice>;
     case "assets":
@@ -106,6 +107,16 @@ function StepPage({ children }: { children: ReactNode }) {
 
 function NotYet({ step, projectName }: { step: string; projectName: string }) {
   return <Notice>No {step} yet. Ask your AI tool: “Run the Stage {step} step for {projectName}.”</Notice>;
+}
+
+// Same task board as the Mac Overview, read-only (tasks are moved and edited in Stage for Mac).
+function OverviewPanel({ projectId }: { projectId: Id<"projects"> }) {
+  const data = useQuery(api.desktop.getProjectData, { projectId });
+  if (!data) return null;
+  const phases = [...data.phases]
+    .sort((a, b) => a.order - b.order)
+    .map((phase) => mapPhase(phase, data.tasks.filter((task) => task.phaseId === phase.id)));
+  return <KanbanBoardView phases={phases} />;
 }
 
 function ResearchPanel({ projectId, projectName }: { projectId: Id<"projects">; projectName: string }) {

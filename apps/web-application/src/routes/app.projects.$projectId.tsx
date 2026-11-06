@@ -14,7 +14,7 @@ export const Route = createFileRoute("/app/projects/$projectId")({
     return (
       <>
         <Helmet><title>Project — Stage</title></Helmet>
-        <ProjectView projectId={projectId as Id<"projects">} tab={tab ?? "research"} />
+        <ProjectView projectId={projectId as Id<"projects">} tab={tab ?? "overview"} />
       </>
     );
   },

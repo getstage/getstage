@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { resolveProjectCategory, type ProviderId } from "@stage/data-ops/contracts";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { motion } from "motion/react";
-import { Avatar } from "@/components/ui/Avatar";
+import { Avatar } from "@stage/project-ui";
 import { ProjectHeader } from "./ProjectHeader";
 import { ProjectExportDialog } from "./header/ProjectExportDialog";
 import { KanbanBoard } from "./KanbanBoard";

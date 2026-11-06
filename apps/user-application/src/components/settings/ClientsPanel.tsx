@@ -1,7 +1,7 @@
 import { useMemo, useState, type ReactNode } from "react";
 import { useMutation } from "convex/react";
 import { parseConvexId } from "@stage/data-ops";
-import { Avatar } from "@/components/ui/Avatar";
+import { Avatar } from "@stage/project-ui";
 import { Badge } from "@/components/ui/Badge";
 import { useClientsQuery, type ClientSummary } from "@/hooks/convex-data/useClientsQuery";
 import { api } from "@/lib/convexApi";
