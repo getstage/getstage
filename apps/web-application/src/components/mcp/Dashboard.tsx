@@ -1,110 +1,55 @@
 import appleIcon from "@/assets/home/apple.svg";
-import navDashboard from "@/assets/home/nav-dashboard.svg";
-import navHelp from "@/assets/home/nav-help.svg";
-import navSettings from "@/assets/home/nav-settings.svg";
 import noise from "@/assets/home/noise.png";
 import stageMarkWhite from "@/assets/home/stage-mark-white.svg";
-import stageMark from "@/assets/home/stage-mark.svg";
-import { useAuth } from "@/lib/auth";
-import { cn } from "@/lib/utils";
-import { MCP_TOOLS, McpCard, McpConnectCard, useMcpConnections } from "./McpConnectCard";
+import { AppShell, Card, PageHeader, StatusBadge } from "./AppShell";
+import { MCP_TOOLS, McpConnectCard, useMcpConnections } from "./McpConnectCard";
 
-// Projects and Integrations join the sidebar with their pages.
-const NAV = [
-  { label: "Dashboard", href: "/app", icon: navDashboard, active: true },
-  { label: "Settings", href: "/profile", icon: navSettings, active: false },
-];
-
-// Dashboard (Figma 2491-5010) in the web app shell.
-export function Dashboard({ workspaceName }: { workspaceName: string }) {
-  const { user } = useAuth();
+// Dashboard (Figma 2491-4955).
+export function Dashboard() {
   const { connectedIds } = useMcpConnections();
   return (
-    <div className="flex min-h-dvh bg-[#F5F5F5] p-1">
-      <aside className="hidden w-[200px] shrink-0 flex-col gap-4 px-2 py-3 md:flex">
-        <img src={stageMark} alt="Stage" className="ml-1 h-5 w-auto self-start" />
-        <span className="truncate rounded-[6px] border-[0.5px] border-[#D4D4D4] bg-white px-2.5 py-1.5 text-[12px] font-medium text-[#171717]">
-          {workspaceName || `${user?.name ?? "My"}'s Workspace`}
-        </span>
-        <nav className="flex flex-col gap-0.5">
-          {NAV.map((item) => (
+    <AppShell page="dashboard">
+      <PageHeader title="Welcome to Stage" subtitle="Connect Stage to the AI tool you already use, Stage does the thinking, AI does the building." />
+
+      <section className="overflow-hidden rounded-[12px] border-[0.5px] border-[#D4D4D4] bg-[#F5F5F5] p-1 shadow-[0_1px_4px_-2px_rgba(10,10,10,0.4)]">
+        <div className="relative flex flex-col overflow-hidden rounded-[8px] border-[0.5px] border-[#D4D4D4] bg-white shadow-[0_1px_4px_-2px_rgba(10,10,10,0.4)]">
+          <div className="relative h-[97px] overflow-hidden rounded-t-[6px] border-[0.5px] border-[#6D67D3] bg-gradient-to-b from-[#5955A9] to-[#2F2A7D]">
+            <span
+              aria-hidden="true"
+              className="absolute inset-0 opacity-30 mix-blend-soft-light"
+              style={{ backgroundImage: `url(${noise})`, backgroundSize: "1024px 1024px" }}
+            />
+            <img src={stageMarkWhite} alt="" className="absolute left-1/2 top-[36.69px] h-[22.617px] w-[18.848px] -translate-x-1/2" />
+          </div>
+          <div className="flex flex-col items-center gap-3 p-3 text-center">
+            <div className="flex flex-col items-center gap-1">
+              <p className="text-[15px] font-semibold text-[#171717]">Stage for Mac</p>
+              <p className="text-[12px] font-[450] text-[#525252] text-balance">The full experience: the 7-step canvas, project memory and exports, right on your Mac.</p>
+            </div>
             <a
-              key={item.label}
-              href={item.href}
-              aria-current={item.active ? "page" : undefined}
-              className={cn(
-                "flex items-center gap-2 rounded-[6px] px-2.5 py-1.5 text-[13px] font-medium",
-                item.active ? "bg-[#0A0A0A] text-[#FAFAFA]" : "text-[#525252] hover:bg-white",
-              )}
+              href="/download/mac"
+              className="flex items-center gap-2 rounded-[6px] border border-[#525252] bg-gradient-to-b from-[#404040] to-[#0A0A0A] px-3 py-2 text-[12px] font-medium text-[#FAFAFA] drop-shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] [text-shadow:0_0.5px_0.5px_black]"
             >
-              <img src={item.icon} alt="" className="size-[15px]" />
-              {item.label}
+              <img src={appleIcon} alt="" className="mb-[1.5px] h-[13px] w-[10.573px]" />
+              Download for MacOS
             </a>
-          ))}
-        </nav>
-        <div className="mt-auto flex flex-col gap-0.5">
-          <a href="/docs" className="flex items-center gap-2 rounded-[6px] px-2.5 py-1.5 text-[13px] font-medium text-[#525252] hover:bg-white">
-            <img src={navHelp} alt="" className="size-[15px]" />
-            Help & Feedback
-          </a>
-          <a href="/profile" className="flex items-center gap-2 rounded-[6px] px-2.5 py-1.5 text-[13px] font-medium text-[#171717] hover:bg-white">
-            {user?.avatarUrl ? <img src={user.avatarUrl} alt="" className="size-5 rounded-full" /> : null}
-            <span className="truncate">{user?.name}</span>
-          </a>
+          </div>
         </div>
-      </aside>
-      <main className="min-h-[calc(100dvh-8px)] flex-1 rounded-[8px] border-[0.5px] border-[#D4D4D4] bg-white px-4 py-11">
-        <div className="mx-auto flex w-full max-w-[684px] flex-col gap-8">
-          <header>
-            <h1 className="text-[20px] font-semibold leading-[1.2] text-[#0A0A0A]">Welcome to Stage</h1>
-            <p className="mt-1.5 text-[13px] font-medium text-[#737373]">Connect Stage to the AI tool you already use. Stage does the thinking, AI does the building.</p>
-          </header>
+      </section>
 
-          <section className="flex flex-col gap-1 rounded-[12px] border-[0.5px] border-[#D4D4D4] bg-[#F5F5F5] p-1 shadow-[0_1px_4px_-2px_rgba(10,10,10,0.4)]">
-            <div className="relative flex h-[97px] items-center justify-center overflow-hidden rounded-[8px] border border-[#6D67D3] bg-gradient-to-b from-[#5955A9] to-[#2F2A7D]">
-              <span className="absolute inset-0 opacity-30 mix-blend-soft-light" style={{ backgroundImage: `url(${noise})` }} />
-              <img src={stageMarkWhite} alt="" className="relative h-8 w-auto" />
-            </div>
-            <div className="flex flex-col items-center gap-3 px-4 py-4 text-center">
-              <div>
-                <p className="text-[15px] font-semibold text-[#171717]">Stage for Mac</p>
-                <p className="mt-1 text-[12px] text-[#525252]">The full experience: the 7-step canvas, project memory and exports, right on your Mac.</p>
-              </div>
-              <a
-                href="/download/mac"
-                className="flex items-center justify-center gap-2 rounded-[6px] border border-[#525252] bg-gradient-to-b from-[#404040] to-[#0A0A0A] px-3 py-2 text-[12px] font-medium text-[#FAFAFA]"
-              >
-                <img src={appleIcon} alt="" className="h-3.5 w-auto" />
-                Download for MacOS
-              </a>
-            </div>
-          </section>
+      <McpConnectCard />
 
-          <McpConnectCard />
-
-          <McpCard title="Your Integrations">
-            {MCP_TOOLS.filter((tool) => tool.icon).map((tool) => {
-              const connected = connectedIds.has(tool.id);
-              return (
-                <div key={tool.id} className="flex items-center justify-between gap-3">
-                  <span className="flex items-center gap-2 text-[13px] text-[#171717]">
-                    <img src={tool.icon} alt="" className="size-4" />
-                    {tool.name}
-                  </span>
-                  <span
-                    className={cn(
-                      "rounded-full border-[0.5px] px-2.5 py-0.5 text-[12px]",
-                      connected ? "border-[#34D399] bg-[#D1FAE5] text-[#022C22]" : "border-[#D4D4D4] bg-[#F5F5F5] text-[#737373]",
-                    )}
-                  >
-                    {connected ? "Connected" : "Not Connected"}
-                  </span>
-                </div>
-              );
-            })}
-          </McpCard>
-        </div>
-      </main>
-    </div>
+      <Card title="Your Integrations" aside={<a href="/app/integrations" className="text-[13px] font-medium leading-[1.5] text-[#525252] underline">Manage Integrations</a>}>
+        {MCP_TOOLS.filter((tool) => tool.icon).map((tool) => (
+          <div key={tool.id} className="flex items-center justify-between gap-3">
+            <span className="flex items-center gap-2 text-[13px] font-medium text-[#171717]">
+              <img src={tool.icon} alt="" className="size-4" />
+              {tool.name}
+            </span>
+            <StatusBadge status={connectedIds.has(tool.id) ? "connected" : "off"} />
+          </div>
+        ))}
+      </Card>
+    </AppShell>
   );
 }

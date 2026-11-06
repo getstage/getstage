@@ -22,5 +22,7 @@ export const PUBLIC_WEB_PATHS: ReadonlySet<string> = new Set([
   "/start",
   // MCP: web onboarding/Dashboard and the "Allow your AI tool" page; both send signed-out visitors to /auth.
   "/app",
+  "/app/projects",
+  "/app/integrations",
   "/connect-ai",
 ]);

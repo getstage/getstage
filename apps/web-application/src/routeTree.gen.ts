@@ -42,6 +42,8 @@ import { Route as BuildersHandleRouteImport } from './routes/builders.$handle'
 import { Route as BlogSlugRouteImport } from './routes/blog/$slug'
 import { Route as BillingReturnRouteImport } from './routes/billing.return'
 import { Route as AuthDesktopRouteImport } from './routes/auth.desktop'
+import { Route as AppProjectsRouteImport } from './routes/app_.projects'
+import { Route as AppIntegrationsRouteImport } from './routes/app_.integrations'
 import { Route as AgentsStitchRouteImport } from './routes/agents/stitch'
 import { Route as AgentsSkillsRouteImport } from './routes/agents/skills'
 import { Route as AgentsClaudeRouteImport } from './routes/agents/claude'
@@ -218,6 +220,16 @@ const AuthDesktopRoute = AuthDesktopRouteImport.update({
   path: '/desktop',
   getParentRoute: () => AuthRoute,
 } as any)
+const AppProjectsRoute = AppProjectsRouteImport.update({
+  id: '/app_/projects',
+  path: '/app/projects',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppIntegrationsRoute = AppIntegrationsRouteImport.update({
+  id: '/app_/integrations',
+  path: '/app/integrations',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AgentsStitchRoute = AgentsStitchRouteImport.update({
   id: '/stitch',
   path: '/stitch',
@@ -291,6 +303,8 @@ export interface FileRoutesByFullPath {
   '/agents/claude': typeof AgentsClaudeRoute
   '/agents/skills': typeof AgentsSkillsRoute
   '/agents/stitch': typeof AgentsStitchRoute
+  '/app/integrations': typeof AppIntegrationsRoute
+  '/app/projects': typeof AppProjectsRoute
   '/auth/desktop': typeof AuthDesktopRoute
   '/billing/return': typeof BillingReturnRoute
   '/blog/$slug': typeof BlogSlugRoute
@@ -334,6 +348,8 @@ export interface FileRoutesByTo {
   '/agents/claude': typeof AgentsClaudeRoute
   '/agents/skills': typeof AgentsSkillsRoute
   '/agents/stitch': typeof AgentsStitchRoute
+  '/app/integrations': typeof AppIntegrationsRoute
+  '/app/projects': typeof AppProjectsRoute
   '/auth/desktop': typeof AuthDesktopRoute
   '/billing/return': typeof BillingReturnRoute
   '/blog/$slug': typeof BlogSlugRoute
@@ -380,6 +396,8 @@ export interface FileRoutesById {
   '/agents/claude': typeof AgentsClaudeRoute
   '/agents/skills': typeof AgentsSkillsRoute
   '/agents/stitch': typeof AgentsStitchRoute
+  '/app_/integrations': typeof AppIntegrationsRoute
+  '/app_/projects': typeof AppProjectsRoute
   '/auth/desktop': typeof AuthDesktopRoute
   '/billing/return': typeof BillingReturnRoute
   '/blog/$slug': typeof BlogSlugRoute
@@ -426,6 +444,8 @@ export interface FileRouteTypes {
     | '/agents/claude'
     | '/agents/skills'
     | '/agents/stitch'
+    | '/app/integrations'
+    | '/app/projects'
     | '/auth/desktop'
     | '/billing/return'
     | '/blog/$slug'
@@ -469,6 +489,8 @@ export interface FileRouteTypes {
     | '/agents/claude'
     | '/agents/skills'
     | '/agents/stitch'
+    | '/app/integrations'
+    | '/app/projects'
     | '/auth/desktop'
     | '/billing/return'
     | '/blog/$slug'
@@ -514,6 +536,8 @@ export interface FileRouteTypes {
     | '/agents/claude'
     | '/agents/skills'
     | '/agents/stitch'
+    | '/app_/integrations'
+    | '/app_/projects'
     | '/auth/desktop'
     | '/billing/return'
     | '/blog/$slug'
@@ -554,6 +578,8 @@ export interface RootRouteChildren {
   SetupProfileRoute: typeof SetupProfileRoute
   StartRoute: typeof StartRoute
   TermsRoute: typeof TermsRoute
+  AppIntegrationsRoute: typeof AppIntegrationsRoute
+  AppProjectsRoute: typeof AppProjectsRoute
   BillingReturnRoute: typeof BillingReturnRoute
   BlogSlugRoute: typeof BlogSlugRoute
   BuildersHandleRoute: typeof BuildersHandleRoute
@@ -804,6 +830,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthDesktopRouteImport
       parentRoute: typeof AuthRoute
     }
+    '/app_/projects': {
+      id: '/app_/projects'
+      path: '/app/projects'
+      fullPath: '/app/projects'
+      preLoaderRoute: typeof AppProjectsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/app_/integrations': {
+      id: '/app_/integrations'
+      path: '/app/integrations'
+      fullPath: '/app/integrations'
+      preLoaderRoute: typeof AppIntegrationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/agents/stitch': {
       id: '/agents/stitch'
       path: '/stitch'
@@ -975,6 +1015,8 @@ const rootRouteChildren: RootRouteChildren = {
   SetupProfileRoute: SetupProfileRoute,
   StartRoute: StartRoute,
   TermsRoute: TermsRoute,
+  AppIntegrationsRoute: AppIntegrationsRoute,
+  AppProjectsRoute: AppProjectsRoute,
   BillingReturnRoute: BillingReturnRoute,
   BlogSlugRoute: BlogSlugRoute,
   BuildersHandleRoute: BuildersHandleRoute,

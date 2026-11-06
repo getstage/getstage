@@ -140,6 +140,7 @@ import type * as lib_settings_githubImport from "../lib/settings/githubImport.js
 import type * as lib_settings_handlers_index from "../lib/settings/handlers/index.js";
 import type * as lib_tasks_handlers_index from "../lib/tasks/handlers/index.js";
 import type * as maintenance from "../maintenance.js";
+import type * as mcpHome from "../mcpHome.js";
 import type * as models_integrations_contentPlatforms from "../models/integrations/contentPlatforms.js";
 import type * as models_integrations_googleSheets from "../models/integrations/googleSheets.js";
 import type * as models_integrations_stitch from "../models/integrations/stitch.js";
@@ -303,6 +304,7 @@ declare const fullApi: ApiFromModules<{
   "lib/settings/handlers/index": typeof lib_settings_handlers_index;
   "lib/tasks/handlers/index": typeof lib_tasks_handlers_index;
   maintenance: typeof maintenance;
+  mcpHome: typeof mcpHome;
   "models/integrations/contentPlatforms": typeof models_integrations_contentPlatforms;
   "models/integrations/googleSheets": typeof models_integrations_googleSheets;
   "models/integrations/stitch": typeof models_integrations_stitch;

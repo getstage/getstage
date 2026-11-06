@@ -100,7 +100,20 @@ export const listConnections = query({
       .collect();
     return keys
       .filter((key) => key.kind === "mcp" && !key.revokedAt)
-      .map((key) => ({ clientName: key.name.replace(/^MCP · /, ""), lastUsedAt: key.lastUsedAt }));
+      .map((key) => ({ id: key._id, clientName: key.name.replace(/^MCP · /, ""), lastUsedAt: key.lastUsedAt }));
+  },
+});
+
+// Disconnect = revoke the tool's MCP keys; the tool has to sign in again to reconnect.
+export const disconnect = mutation({
+  args: { ids: v.array(v.id("apiKeys")) },
+  handler: async (ctx, args) => {
+    const user = await requireAuthUser(ctx);
+    for (const id of args.ids) {
+      const key = await ctx.db.get(id);
+      if (key?.userId !== user._id || key.kind !== "mcp" || key.revokedAt) continue;
+      await ctx.db.patch(id, { revokedAt: Date.now() });
+    }
   },
 });
 

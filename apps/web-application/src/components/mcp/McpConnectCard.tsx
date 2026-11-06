@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useState } from "react";
 import { useQuery } from "convex/react";
 import claudeCodeIcon from "@/assets/home/claude-tool.svg";
 import copyDarkIcon from "@/assets/home/copy-dark.svg";
@@ -8,6 +8,7 @@ import waitingIcon from "@/assets/home/status-waiting.svg";
 import { api } from "@/lib/convex";
 import { getMcpOrigin } from "@/lib/mcp";
 import { cn } from "@/lib/utils";
+import { Card } from "./AppShell";
 
 // "Connect the Stage MCP" (Figma Dashboard 2491-4955). A tool counts as connected once it has called Stage.
 const SIGN_IN = "Sign in to Stage when the browser opens.";
@@ -30,24 +31,24 @@ function mcpToolIdOf(clientName: string) {
 
 export function useMcpConnections() {
   const connections = useQuery(api.developer.mcpConnect.listConnections);
-  const called = connections?.filter((connection) => connection.lastUsedAt) ?? [];
-  return { called, connectedIds: new Set(called.map((connection) => mcpToolIdOf(connection.clientName))) };
-}
-
-export function McpCard({ title, aside, children }: { title: string; aside?: ReactNode; children: ReactNode }) {
-  return (
-    <section className="flex flex-col gap-1 rounded-[12px] border-[0.5px] border-[#D4D4D4] bg-[#F5F5F5] p-1 shadow-[0_1px_4px_-2px_rgba(10,10,10,0.4)]">
-      <div className="flex items-center justify-between gap-3 px-3 py-2 text-[13px] font-medium text-[#0A0A0A]">
-        <h2>{title}</h2>
-        {aside}
-      </div>
-      <div className="flex flex-col gap-4 rounded-[8px] border-[0.5px] border-[#D4D4D4] bg-white p-3">{children}</div>
-    </section>
-  );
+  const active = connections ?? [];
+  const called = active.filter((connection) => connection.lastUsedAt);
+  return {
+    called,
+    connectedIds: new Set(called.map((connection) => mcpToolIdOf(connection.clientName))),
+    // Every active connection of one tool, newest call first (for "last call …" and Disconnect).
+    forTool: (toolId: string) => active
+      .filter((connection) => mcpToolIdOf(connection.clientName) === toolId)
+      .sort((a, b) => (b.lastUsedAt ?? 0) - (a.lastUsedAt ?? 0)),
+  };
 }
 
 export function McpConnectCard() {
-  const [toolId, setToolId] = useState<(typeof MCP_TOOLS)[number]["id"]>("claude code");
+  // `/app?tool=cursor` (from Integrations → Setup) opens on that tool.
+  const [toolId, setToolId] = useState<(typeof MCP_TOOLS)[number]["id"]>(() => {
+    const requested = new URLSearchParams(window.location.search).get("tool");
+    return MCP_TOOLS.find((tool) => tool.id === requested)?.id ?? "claude code";
+  });
   const { called } = useMcpConnections();
   const mcpOrigin = getMcpOrigin();
   const tool = MCP_TOOLS.find((entry) => entry.id === toolId) ?? MCP_TOOLS[0];
@@ -55,28 +56,29 @@ export function McpConnectCard() {
   const command = toolId === "claude code" ? `claude mcp add --transport http stage ${url}` : toolId === "codex" ? `codex mcp add stage --url ${url}` : url;
 
   const status = called.length ? (
-    <span className="flex items-center gap-1.5 text-[12px] text-[#047857]"><span className="size-2 rounded-full bg-[#34D399]" />Connected</span>
+    <span className="flex items-center gap-2 text-[12px] leading-[1.5] text-[#047857]"><span className="size-2.5 rounded-full bg-[#34D399]" />Connected</span>
   ) : (
-    <span className="flex items-center gap-1.5 text-[12px] text-[#737373]"><img src={waitingIcon} alt="" className="size-2.5" />Waiting for first connection</span>
+    <span className="flex items-center gap-2 text-[12px] leading-[1.5] text-[#737373]"><img src={waitingIcon} alt="" className="size-2.5" />Waiting for first connection</span>
   );
 
   if (!mcpOrigin) {
-    return <McpCard title="Connect the Stage MCP"><p className="text-[13px] font-medium text-[#DC2626]">Connecting AI tools isn't available on this address.</p></McpCard>;
+    return <Card title="Connect the Stage MCP"><p className="text-[13px] font-medium text-[#DC2626]">Connecting AI tools isn't available on this address.</p></Card>;
   }
 
   return (
-    <McpCard title="Connect the Stage MCP" aside={status}>
+    <Card title="Connect the Stage MCP" aside={status} bodyClassName="gap-5 p-3">
       <div className="flex flex-col gap-2">
         <span className="text-[13px] font-medium text-[#171717]">Your MCP server URL</span>
-        <div className="flex items-center gap-2 rounded-[6px] border-[0.5px] border-[#D4D4D4] bg-[#F5F5F5] px-3 py-2.5">
+        <div className="flex items-center gap-2 rounded-[6px] border-[0.5px] border-[#D4D4D4] bg-[#F5F5F5] px-3 py-2.5 shadow-[0_1px_4px_-2.5px_rgba(10,10,10,0.5)]">
           <span className="min-w-0 flex-1 truncate text-[12px] text-[#525252]">{url}</span>
           <CopyButton value={url} />
         </div>
       </div>
-      <ol className="list-decimal pl-5 text-[12px] leading-[1.6] text-[#525252]">
+      <ol className="list-decimal ps-[18px] text-[12px] leading-[1.6] text-[#525252]">
         {tool.steps.map((step) => <li key={step}>{step}</li>)}
       </ol>
-      <div role="tablist" aria-label="AI tool" className="flex flex-wrap gap-2">
+      <div className="flex flex-col gap-1.5">
+      <div role="tablist" aria-label="AI tool" className="flex flex-wrap gap-1.5">
         {MCP_TOOLS.map((entry) => (
           <button
             key={entry.id}
@@ -85,7 +87,7 @@ export function McpConnectCard() {
             aria-selected={entry.id === toolId}
             onClick={() => setToolId(entry.id)}
             className={cn(
-              "flex items-center gap-1.5 rounded-full border-[0.5px] px-2.5 py-1 text-[13px] font-medium transition-colors",
+              "flex items-center gap-1.5 rounded-full border-[0.5px] px-2.5 py-1 text-[13px] font-medium shadow-[0_1px_5px_-3.5px_rgba(0,0,0,0.5)] transition-colors",
               entry.id === toolId ? "border-[#463FBA] bg-[rgba(123,118,223,0.15)] text-[#463FBA]" : "border-[#D4D4D4] bg-[#F5F5F5] text-[#171717] hover:bg-white",
             )}
           >
@@ -94,11 +96,12 @@ export function McpConnectCard() {
           </button>
         ))}
       </div>
-      <div className="flex items-center gap-2 rounded-[6px] bg-[#0A0A0A] py-1.5 pl-3 pr-1.5">
-        <span className="min-w-0 flex-1 truncate text-[12px] text-white">{command}</span>
+      <div className="flex items-center gap-2 rounded-[6px] border-[0.5px] border-[#262626] bg-[#0A0A0A] p-1 shadow-[0_1px_4px_-2.5px_rgba(10,10,10,0.5)]">
+        <span className="min-w-0 flex-1 truncate px-2 text-[12px] font-medium text-white">{command}</span>
         <CopyButton value={command} label="Copy Link" />
       </div>
-    </McpCard>
+      </div>
+    </Card>
   );
 }
 
@@ -111,7 +114,7 @@ function CopyButton({ value, label }: { value: string; label?: string }) {
       onClick={() => void navigator.clipboard.writeText(value).then(() => setCopied(true))}
       className={cn(
         "flex shrink-0 items-center gap-1.5 text-[12px] font-medium",
-        label ? "rounded-[4px] bg-white px-2.5 py-1 text-[#0A0A0A]" : "text-[#525252] hover:text-[#0A0A0A]",
+        label ? "rounded-[4px] bg-white py-1.5 pl-2 pr-3 text-[#0A0A0A] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]" : "text-[#525252] hover:text-[#0A0A0A]",
       )}
     >
       <img src={label ? copyDarkIcon : copyIcon} alt="" className="size-3.5" />

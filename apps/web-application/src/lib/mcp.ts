@@ -14,3 +14,15 @@ export function getMcpOrigin(): string | undefined {
 export function hasMcpPlan(plan: string) {
   return plan === "start" || plan === "pro" || plan === "team";
 }
+
+// "2 minutes ago", "yesterday", … for "last call" and "Last Updated".
+export function formatRelative(timestamp: number) {
+  const minutes = Math.round((Date.now() - timestamp) / 60_000);
+  if (minutes < 1) return "just now";
+  if (minutes < 60) return `${minutes} ${minutes === 1 ? "minute" : "minutes"} ago`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `${hours} ${hours === 1 ? "hour" : "hours"} ago`;
+  const days = Math.round(hours / 24);
+  if (days === 1) return "yesterday";
+  return `${days} days ago`;
+}

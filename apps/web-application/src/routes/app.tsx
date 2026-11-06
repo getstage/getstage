@@ -43,7 +43,7 @@ function AppPage() {
         <meta name="robots" content="noindex, nofollow" />
       </Helmet>
       {state.isCompleted && paid ? (
-        <Dashboard workspaceName={state.workspaceName ?? ""} />
+        <Dashboard />
       ) : (
         <Onboarding userName={user.name} startAt={startAt} afterConnect={afterConnect} workspaceName={state.workspaceName ?? ""} paid={paid} />
       )}
