@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Navigate, createFileRoute } from "@tanstack/react-router";
 import { Helmet } from "react-helmet-async";
 import { useMutation, useQuery } from "convex/react";
+import { Dashboard } from "@/components/mcp/Dashboard";
 import { PageLoading } from "@/components/shared/PageLoading";
 import { ConnectToolStep } from "@/components/setup/ConnectToolStep";
 import { Paywall } from "@/components/setup/Paywall";
@@ -9,8 +10,8 @@ import { QuestionsStep, WelcomeStep, WorkspaceStep, type SetupAnswers, type Setu
 import { useAuth } from "@/lib/auth";
 import { api } from "@/lib/convex";
 
-// Web home for MCP users. Onboarding (copy of the Mac flow): welcome → questions → workspace →
-// paywall (Studio/Agency) → connect your AI tool. Afterwards the Dashboard (step 16; until then the connect setup).
+// Web home for MCP users. Onboarding (copy of the Mac flow): welcome → connect your AI tool → questions →
+// workspace → paywall (Studio/Agency), then the Dashboard.
 export const Route = createFileRoute("/app")({
   validateSearch: (search: Record<string, unknown>): { billing?: "success" | "cancel" } => ({
     billing: search.billing === "success" || search.billing === "cancel" ? search.billing : undefined,
@@ -32,6 +33,10 @@ function AppPage() {
   // Back from Stripe: the plan switches once the webhook has run.
   if (billing === "success" && !paid) return <PageLoading />;
 
+  const afterConnect: SetupStep = state.hasAnswers ? "workspace" : "questions";
+  // Paid without finishing: they paid from the AI tool's sign-in page halfway through, so resume after connecting.
+  const startAt: SetupStep = paid ? afterConnect : state.isCompleted || billing === "cancel" ? "paywall" : "welcome";
+
   return (
     <>
       <Helmet>
@@ -39,28 +44,23 @@ function AppPage() {
         <meta name="robots" content="noindex, nofollow" />
       </Helmet>
       {state.isCompleted && paid ? (
-        <ConnectToolStep />
+        <Dashboard />
       ) : (
-        <Onboarding
-          userName={user.name}
-          startAt={paid ? "connect" : state.isCompleted || billing === "cancel" ? "paywall" : "welcome"}
-          skipQuestions={state.hasAnswers}
-          workspaceName={state.workspaceName ?? ""}
-          paid={paid}
-        />
+        <Onboarding userName={user.name} startAt={startAt} afterConnect={afterConnect} workspaceName={state.workspaceName ?? ""} paid={paid} />
       )}
     </>
   );
 }
 
-function Onboarding({ userName, startAt, skipQuestions, workspaceName, paid }: {
+function Onboarding({ userName, startAt, afterConnect, workspaceName, paid }: {
   userName: string;
   startAt: SetupStep;
-  skipQuestions: boolean;
+  afterConnect: SetupStep;
   workspaceName: string;
   paid: boolean;
 }) {
   const [step, setStep] = useState(startAt);
+  const [error, setError] = useState<string | null>(null);
   const [answers, setAnswers] = useState<SetupAnswers>({
     discoverySource: null,
     discoveryHandle: "",
@@ -71,32 +71,33 @@ function Onboarding({ userName, startAt, skipQuestions, workspaceName, paid }: {
   });
   const saveAnswers = useMutation(api.onboarding.saveAnswers);
   const completeOnboarding = useMutation(api.onboarding.completeOnboarding);
-  const [error, setError] = useState<string | null>(null);
   const onChange = (patch: Partial<SetupAnswers>) => setAnswers((current) => ({ ...current, ...patch }));
-  const afterWorkspace = paid ? "connect" : "paywall";
-  const finish = () => completeOnboarding({}).catch(() => setError("Could not finish setup. Try again."));
+  const footer = (onContinue: () => void) => ({ continueEnabled: true, error, onContinue });
+  // Onboarding counts as done before Stripe opens, as on the Mac; paid users are done after the workspace.
+  const finishWorkspace = () => {
+    if (!paid) return setStep("paywall");
+    completeOnboarding({}).catch(() => setError("Could not finish setup. Try again."));
+  };
 
   switch (step) {
     case "welcome":
-      return <WelcomeStep userName={userName} onContinue={() => setStep(skipQuestions ? "workspace" : "questions")} />;
+      return <WelcomeStep userName={userName} onContinue={() => setStep("connect")} />;
+    case "connect":
+      return <ConnectToolStep footer={footer(() => setStep(afterConnect))} />;
     case "questions":
       return (
         <QuestionsStep
           answers={answers}
           onChange={onChange}
-          footer={{
-            continueEnabled: true,
-            error: null,
-            onContinue: () => {
-              void saveAnswers({
-                discoverySource: answers.discoverySource ?? undefined,
-                discoveryHandle: answers.discoveryHandle,
-                workMode: answers.workMode,
-                buildFor: answers.buildFor,
-              }).catch(() => undefined);
-              setStep("workspace");
-            },
-          }}
+          footer={footer(() => {
+            void saveAnswers({
+              discoverySource: answers.discoverySource ?? undefined,
+              discoveryHandle: answers.discoveryHandle,
+              workMode: answers.workMode,
+              buildFor: answers.buildFor,
+            }).catch(() => undefined);
+            setStep("workspace");
+          })}
         />
       );
     case "workspace":
@@ -104,20 +105,14 @@ function Onboarding({ userName, startAt, skipQuestions, workspaceName, paid }: {
         <WorkspaceStep
           answers={answers}
           onChange={onChange}
-          onSkip={() => setStep(afterWorkspace)}
-          footer={{
-            continueEnabled: true,
-            error: null,
-            onContinue: () => {
-              void saveAnswers({ workspaceName: answers.workspaceName, inviteEmails: answers.inviteEmails }).catch(() => undefined);
-              setStep(afterWorkspace);
-            },
-          }}
+          onSkip={finishWorkspace}
+          footer={footer(() => {
+            void saveAnswers({ workspaceName: answers.workspaceName, inviteEmails: answers.inviteEmails }).catch(() => undefined);
+            finishWorkspace();
+          })}
         />
       );
     case "paywall":
-      return <Paywall />;
-    case "connect":
-      return <ConnectToolStep footer={{ continueEnabled: true, error, onContinue: () => void finish() }} onSkip={() => void finish()} />;
+      return <Paywall beforeCheckout={() => completeOnboarding({})} />;
   }
 }

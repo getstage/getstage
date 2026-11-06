@@ -32,7 +32,7 @@ export type SetupFooterProps = {
   error: string | null;
 };
 
-const PROGRESS_STEPS: SetupStep[] = ["questions", "workspace", "connect"];
+const PROGRESS_STEPS: SetupStep[] = ["connect", "questions", "workspace"];
 
 const fieldClass =
   "w-full rounded-[6px] border-[0.5px] border-[#D4D4D4] bg-[#F5F5F5] px-3 py-2.5 text-[12px] font-medium text-[#525252] shadow-[0_1px_4px_-2.5px_rgba(10,10,10,0.5)] outline-none transition-colors placeholder:text-[#737373] focus:bg-white";

@@ -7,7 +7,7 @@ import { SetupScreen } from "./SetupScreens";
 
 // Copy of the Mac onboarding paywall, Studio and Agency only (the plans that include the MCP).
 // Stripe returns to /app (success or cancel).
-export function Paywall({ title = "Pick your Stage plan" }: { title?: string }) {
+export function Paywall({ title = "Pick your Stage plan", beforeCheckout }: { title?: string; beforeCheckout?: () => Promise<unknown> }) {
   const createCheckoutSession = useAction(api.billing.createCheckoutSession);
   const [billingPeriod, setBillingPeriod] = useState<BillingCycle>("monthly");
   const [loadingTier, setLoadingTier] = useState<Tier>();
@@ -18,6 +18,7 @@ export function Paywall({ title = "Pick your Stage plan" }: { title?: string }) 
     setLoadingTier(tier);
     setError(undefined);
     try {
+      await beforeCheckout?.();
       const result = await createCheckoutSession({
         tier,
         billingCycle: billingPeriod,
