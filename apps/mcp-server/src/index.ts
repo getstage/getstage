@@ -2,6 +2,7 @@ import { OAuthProvider } from "@cloudflare/workers-oauth-provider";
 import { McpServer } from "@modelcontextprotocol/server";
 import { createMcpHandler } from "agents/mcp/server";
 import { env as workerEnv } from "cloudflare:workers";
+import { z } from "zod";
 import { authHandler } from "./auth";
 import type { Env } from "./env";
 import { StageApiError, stageApi } from "./stageApi";
@@ -18,6 +19,8 @@ async function run(action: () => Promise<unknown>): Promise<ToolResult> {
   }
 }
 
+const STEP = z.enum(["research", "strategy", "moodboard", "styleguide", "flows", "generate", "delivery"]);
+
 function createServer() {
   const server = new McpServer({ name: "Stage", version: "0.1.0" });
 
@@ -31,6 +34,39 @@ function createServer() {
     "list_projects",
     { description: "List the user's Stage projects with their ids, names and status." },
     () => run(() => stageApi("/projects")),
+  );
+
+  const projectId = z.string().describe("Project id from list_projects.");
+
+  server.registerTool(
+    "get_project",
+    { description: "One Stage project: name, client, type, dates and phases.", inputSchema: z.object({ projectId }) },
+    ({ projectId }) => run(() => stageApi(`/projects/${encodeURIComponent(projectId)}`)),
+  );
+
+  server.registerTool(
+    "get_step_results",
+    {
+      description: "The saved results of a project's Stage steps (research, strategy, moodboard, styleguide, flows, generate = wireframes, delivery). Leave step empty for all steps.",
+      inputSchema: z.object({ projectId, step: STEP.optional() }),
+    },
+    ({ projectId, step }) => run(() => stageApi(`/projects/${encodeURIComponent(projectId)}/ai/artifacts${step ? `?module=${step}` : ""}`)),
+  );
+
+  server.registerTool(
+    "create_project",
+    {
+      description: "Create a Stage project in the user's own workspace.",
+      inputSchema: z.object({
+        name: z.string().min(1),
+        clientName: z.string().min(1).describe("Client or company the work is for; the user's own name for personal work."),
+        type: z.enum(["websites", "web-apps", "ios-apps"]),
+        startDate: z.string().date().describe("YYYY-MM-DD"),
+        endDate: z.string().date().describe("YYYY-MM-DD, on or after startDate"),
+      }),
+    },
+    ({ startDate, endDate, ...project }) =>
+      run(() => stageApi("/projects", { ...project, startDate: Date.parse(startDate), endDate: Date.parse(endDate) })),
   );
 
   return server;

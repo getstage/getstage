@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuery } from 'convex/react';
 import { makeFunctionReference } from 'convex/server';
 import type { Profile } from './MarketplaceState';
@@ -10,7 +10,7 @@ const myProfile = makeFunctionReference<'query', Record<string, never>, Profile 
 export function AccountMenu({ mobile = false }: { mobile?: boolean }) {
  const [mounted,setMounted]=useState(false);
  useEffect(()=>setMounted(true),[]);
- return mounted?<ConnectedAccount mobile={mobile}/>:<a className="nav-link login-link" href="/auth?mode=login&redirect=%2Fprofile">Log in</a>;
+ return mounted?<ConnectedAccount mobile={mobile}/>:<a className="nav-link login-link" href="/auth?mode=login">Log in</a>;
 }
 function ConnectedAccount({ mobile }: { mobile: boolean }) {
  const {isAuthenticated,isLoading,user}=useAuth();
@@ -22,23 +22,11 @@ function ConnectedAccount({ mobile }: { mobile: boolean }) {
  if(isAuthenticated)return <SignedInMenu avatar={avatar}/>;
  if(preview)return <a className="nav-link profile-nav-link" href="/profile?preview=1"><ProfileNavAvatar key={avatar || "placeholder"} src={avatar}/><span>My Profile</span></a>;
  if(isLoading)return <span className="nav-link" aria-label="Loading account" role="status" style={{width: 62, height: 14, borderRadius: 4, background: "rgba(255,255,255,.12)"}} />;
- return <a className="nav-link login-link" href="/auth?mode=login&redirect=%2Fprofile">Log in</a>;
+ return <a className="nav-link login-link" href="/auth?mode=login">Log in</a>;
 }
 
 function SignedInMenu({avatar}:{avatar?:string}) {
- const [open,setOpen]=useState(false);
- const ref=useRef<HTMLSpanElement>(null);
- useEffect(()=>{
-  if(!open)return;
-  const close=(event:Event)=>{if(event instanceof KeyboardEvent?event.key==='Escape':!ref.current?.contains(event.target as Node))setOpen(false);};
-  document.addEventListener('pointerdown',close);
-  document.addEventListener('keydown',close);
-  return()=>{document.removeEventListener('pointerdown',close);document.removeEventListener('keydown',close);};
- },[open]);
- return <span ref={ref} className="account-menu">
-  <button type="button" className="nav-link profile-nav-link" aria-expanded={open} aria-haspopup="menu" onClick={()=>setOpen(!open)}><ProfileNavAvatar key={avatar || "placeholder"} src={avatar}/><span>My Account</span></button>
-  {open&&<span role="menu" className="account-menu-list"><a role="menuitem" href="/app">Dashboard</a><a role="menuitem" href="/profile">My Profile</a></span>}
- </span>;
+ return <a className="nav-link profile-nav-link" href="/app"><ProfileNavAvatar key={avatar || "placeholder"} src={avatar}/><span>Dashboard</span></a>;
 }
 
 function ProfileNavAvatar({src}:{src?:string}) {
