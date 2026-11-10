@@ -1,3 +1,5 @@
+import { ConnectMcpButton } from "./ConnectMcpButton";
+
 export function HeroSection() {
   return (
     <>
@@ -42,14 +44,7 @@ export function HeroSection() {
             brief Cursor, Claude Code and Codex actually follow.
           </p>
           <div className="hero-actions">
-            <a
-              className="button button-neutral"
-              href="https://cal.com/adrien-ninet/stage-demo"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <span>Book a demo</span>
-            </a>
+            <ConnectMcpButton />
             <a className="button button-primary hero-cta" href="/download">
               <svg
                 className="icon"
