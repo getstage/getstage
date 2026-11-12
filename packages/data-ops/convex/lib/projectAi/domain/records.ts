@@ -3,21 +3,6 @@ import type { MutationCtx, QueryCtx } from "../../../_generated/server";
 
 type ReaderCtx = QueryCtx | MutationCtx;
 
-export async function requireProjectForApi(
-  ctx: ReaderCtx,
-  userId: Id<"users">,
-  projectId: Id<"projects">,
-) {
-  const project = await ctx.db.get(projectId);
-  if (!project) {
-    throw new Error("Project not found.");
-  }
-  if (project.userId !== userId) {
-    throw new Error("Not authorized.");
-  }
-  return project;
-}
-
 export async function getContextRecord(ctx: ReaderCtx, projectId: Id<"projects">) {
   return ctx.db
     .query("projectAiContexts")

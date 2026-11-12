@@ -5,12 +5,7 @@ import { upsertContextRecord } from "../domain/contextStore";
 import { createArtifactRecord } from "../domain/artifactStore";
 import { createRunRecord } from "../domain/runStore";
 import { findLatestArtifact } from "../domain/latestArtifact";
-import {
-  getArtifactRecord,
-  getContextRecord,
-  getRunRecord,
-  requireProjectForApi,
-} from "../domain/records";
+import { getArtifactRecord, getContextRecord, getRunRecord } from "../domain/records";
 import { normalizeOptional } from "../domain/normalize";
 import { now } from "../domain/time";
 import {
@@ -48,7 +43,7 @@ export async function getContextForApiHandler(
   ctx: QueryCtx,
   args: { userId: Id<"users">; projectId: Id<"projects"> },
 ) {
-  await requireProjectForApi(ctx, args.userId, args.projectId);
+  await requireProjectAccessForUserId(ctx, args);
   const record = await getContextRecord(ctx, args.projectId);
   if (!record) {
     return null;
@@ -87,7 +82,7 @@ export async function upsertContextForApiHandler(
     notes?: string;
   },
 ) {
-  await requireProjectForApi(ctx, args.userId, args.projectId);
+  await requireProjectAccessForUserId(ctx, args);
   const contextId = await upsertContextRecord(ctx, args);
   return { contextId };
 }
@@ -102,7 +97,7 @@ export async function listRunsForApiHandler(
   ctx: QueryCtx,
   args: { userId: Id<"users">; projectId: Id<"projects">; module?: AiModule },
 ) {
-  await requireProjectForApi(ctx, args.userId, args.projectId);
+  await requireProjectAccessForUserId(ctx, args);
   const runs = await ctx.db
     .query("projectAiRuns")
     .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
@@ -139,7 +134,7 @@ export async function createRunForApiHandler(
     externalRunId?: string;
   },
 ) {
-  await requireProjectForApi(ctx, args.userId, args.projectId);
+  await requireProjectAccessForUserId(ctx, args);
   const runId = await createRunRecord(ctx, args);
   return { runId };
 }
@@ -154,7 +149,7 @@ export async function listArtifactsForApiHandler(
   ctx: QueryCtx,
   args: { userId: Id<"users">; projectId: Id<"projects">; module?: AiModule },
 ) {
-  await requireProjectForApi(ctx, args.userId, args.projectId);
+  await requireProjectAccessForUserId(ctx, args);
   const artifacts = await ctx.db
     .query("projectAiArtifacts")
     .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
@@ -197,7 +192,7 @@ export async function createArtifactForApiHandler(
     externalUrl?: string;
   },
 ) {
-  await requireProjectForApi(ctx, args.userId, args.projectId);
+  await requireProjectAccessForUserId(ctx, args);
   if (args.runId) {
     const run = await getRunRecord(ctx, args.runId);
     if (run.projectId !== args.projectId) {
@@ -236,7 +231,7 @@ export async function upsertArtifactExportForApiHandler(
   },
 ) {
   const artifact = await getArtifactRecord(ctx, args.artifactId);
-  await requireProjectForApi(ctx, args.userId, artifact.projectId);
+  await requireProjectAccessForUserId(ctx, { userId: args.userId, projectId: artifact.projectId });
   const timestamp = now();
   const existing = (
     await ctx.db
