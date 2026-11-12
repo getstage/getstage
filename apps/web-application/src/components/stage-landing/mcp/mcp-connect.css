@@ -1,0 +1,100 @@
+@font-face{font-family:"Stage Inter";src:url("/landing-preview/assets/fonts/InterVariable.woff2") format("woff2");font-style:normal;font-weight:100 900;font-display:swap}
+/* Stage's landing-page tokens and existing .button-primary component. */
+.mcp-dialog,.mcp-dialog *{box-sizing:border-box}
+.mcp-dialog{--mcp-paper:var(--paper,#fff);--mcp-shell:var(--shell,#f5f5f5);--mcp-ink:var(--ink,#171717);--mcp-muted:var(--muted,#737373);--mcp-line:var(--line,#e5e5e5);--mcp-accent:var(--purple,#463fba);--mcp-accent-soft:var(--purple-soft,#e7e6fd);width:440px;max-width:calc(100vw - 32px);max-height:calc(100dvh - 40px);margin:auto;padding:0;border:1px solid var(--mcp-line);border-radius:12px;background:var(--mcp-paper);color:var(--mcp-ink);box-shadow:0 24px 80px #0002;font-family:"Stage Inter",Arial,sans-serif;font-size:14px;line-height:1.5;overflow:auto;color-scheme:light;scrollbar-width:thin;scrollbar-color:#d4d4d4 transparent}
+.mcp-dialog::backdrop{background:#0009;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.mcp-dialog[open]{animation:mcp-enter .2s ease-out}
+.mcp-shell{padding:24px}
+.mcp-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.mcp-brand{display:block;width:40px;height:40px;flex-shrink:0}
+.mcp-brand img{display:block;width:40px;height:40px;object-fit:contain}
+.mcp-close{display:grid;place-items:center;width:32px;height:32px;margin:-5px -6px 0 0;padding:8px;align-self:flex-start;border:0;border-radius:8px;background:transparent;color:#a3a3a3;cursor:pointer}
+.mcp-close svg{width:16px;height:16px}
+.mcp-close:hover{background:var(--mcp-shell);color:var(--mcp-ink)}
+#stage-mcp-dialog #mcp-title{margin:0 0 20px;font-family:"Stage Inter",Arial,sans-serif!important;font-size:23px;font-weight:500;line-height:1.25;letter-spacing:-.8px;color:var(--mcp-ink);text-wrap:balance}
+.mcp-tabs{display:flex;align-items:stretch;width:max-content;max-width:100%;gap:4px;padding:2px;margin-bottom:18px;border:0;border-radius:8px;background:var(--mcp-shell);box-shadow:0 .45px .5px rgba(10,10,10,.25)}
+.mcp-tabs button{display:flex;align-items:center;justify-content:center;flex-shrink:0;gap:8px;min-height:28px;padding:6px 12px 6px 10px;border:0;border-radius:6px;background:transparent;color:var(--mcp-muted);font:inherit;font-size:13px;font-weight:500;line-height:16px;white-space:nowrap;cursor:pointer;transition:color .15s,background .15s,box-shadow .15s}
+.mcp-tabs button svg{width:15px;height:15px;flex-shrink:0}
+.mcp-tabs button[aria-selected=true]{background:var(--mcp-paper);color:var(--mcp-ink);box-shadow:0 .45px .5px rgba(10,10,10,.25)}
+.mcp-tabs button:hover{color:var(--mcp-ink)}
+#stage-mcp-dialog #mcp-guide{margin:0;padding:0;outline:0}
+.mcp-illustration{display:flex;align-items:center;justify-content:center;height:240px;padding:26px 22px;position:relative;overflow:hidden;border-radius:10px;background:var(--mcp-shell)}
+.mcp-step-row{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:11px 0 0;min-height:28px}
+.mcp-step-label{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;line-height:1.4;letter-spacing:-.25px;min-width:0}
+.mcp-step-number{display:grid;place-items:center;flex-shrink:0;width:22px;height:22px;border-radius:50%;background:#ededed;color:var(--mcp-muted);font-size:11px;font-weight:500}
+.mcp-steps{display:flex;align-items:center;gap:0;flex-shrink:0}
+.mcp-steps button{display:grid;place-items:center;width:22px;height:28px;padding:4px;border:0;border-radius:4px;background:none;cursor:pointer}
+.mcp-steps button span{width:6px;height:6px;background:#d4d4d4;border-radius:5px;transition:width .15s,background .15s}
+.mcp-steps button[aria-current=step]{width:32px}
+.mcp-steps button[aria-current=step] span{width:24px;background:var(--mcp-accent)}
+.mcp-setup-slot{position:relative;min-height:0;padding:12px 0 16px}
+.mcp-code-box{display:flex;align-items:center;gap:9px;padding:7px 9px 7px 11px;border:1px solid var(--mcp-line);border-radius:8px;background:#fafafa;min-height:35px}
+.mcp-code-box[hidden]{display:none}
+.mcp-code-box code{display:block;flex:1;min-width:0;max-height:55px;overflow:auto;overflow-wrap:anywhere;white-space:pre-wrap;font-family:ui-monospace,SFMono-Regular,Menlo,monospace!important;font-size:10px;line-height:1.5;color:#525252;letter-spacing:-.25px;scrollbar-width:thin}
+.mcp-copy{display:grid;place-items:center;flex-shrink:0;width:23px;height:23px;padding:4px;border:0;border-radius:4px;background:none;color:#8a8a8a;cursor:pointer}
+.mcp-copy:hover{background:#ededed;color:var(--mcp-ink)}
+.mcp-copy svg{width:14px;height:14px}
+.mcp-copy-status{position:absolute;bottom:3px;left:0;font-size:9px;line-height:1.3;color:var(--mcp-muted)}
+.mcp-dialog .mcp-primary{display:flex;align-items:center;justify-content:center;gap:8px;min-height:44px;width:100%;margin:0;padding:10px 14px;border-radius:8px;font-family:"Stage Inter",Arial,sans-serif;font-size:14px;font-weight:500;line-height:1.4;letter-spacing:-.3px;text-decoration:none;cursor:pointer}
+.mcp-primary svg{width:16px;height:16px;flex-shrink:0}
+#stage-mcp-dialog .mcp-footer{margin:13px 0 0;font-size:11px;line-height:1.5;text-align:center;color:#a3a3a3;letter-spacing:-.15px}
+.mcp-footer a{color:var(--mcp-muted);text-decoration:underline;text-underline-offset:3px}
+.mcp-footer a:hover{color:var(--mcp-accent)}
+.mcp-dialog button:focus-visible,.mcp-dialog a:focus-visible,.mcp-dialog code:focus-visible{outline:2px solid var(--mcp-accent);outline-offset:3px}
+@keyframes mcp-enter{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+@media(max-width:480px){.mcp-dialog{max-width:calc(100vw - 24px);max-height:calc(100dvh - 24px)}.mcp-shell{padding:20px}#stage-mcp-dialog #mcp-title{font-size:21px;letter-spacing:-.7px}.mcp-illustration{height:228px;padding:24px 16px}.mcp-tabs button{font-size:13px}.mcp-step-label{font-size:14px}.mcp-code-box code{font-size:9px}.mcp-dialog .mcp-primary{font-size:13px}}
+@media(max-height:700px){.mcp-shell{padding:20px}.mcp-header{margin-bottom:12px}#stage-mcp-dialog #mcp-title{margin-bottom:16px}.mcp-illustration{height:198px}.mcp-setup-slot{min-height:0}.mcp-tabs{margin-bottom:15px}}
+@media(prefers-reduced-motion:reduce){.mcp-dialog[open]{animation:none}.mcp-dialog *{transition:none!important}}
+
+/* Use Stage typography throughout the guide, with provider fonts inside the illustrations. */
+#stage-mcp-dialog *{font-family:"Stage Inter",Arial,sans-serif!important}
+#stage-mcp-dialog code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace!important}
+
+[data-connect-mcp] .mcp-cta-icon{width:16px;height:16px;flex-shrink:0}
+.mcp-tabs button[data-mcp-tab="claude"] svg{color:#d97757}
+.mcp-step-row{margin-top:14px;min-height:30px;gap:10px}
+.mcp-step-label{gap:8px}
+.mcp-steps{gap:1px}
+.mcp-steps button span{position:relative;overflow:hidden}
+.mcp-steps button[aria-current=step] span{background:#dad8f2}
+.mcp-dialog .mcp-steps button[aria-current=step] span::after{content:"";position:absolute;inset:0;background:var(--mcp-accent);transform-origin:left;animation:mcp-progress var(--mcp-step-duration,6000ms) linear forwards}
+@keyframes mcp-progress{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+/* Every guide shares Stage surfaces. Provider identity stays in type, icons and CTAs. */
+.mcp-illustration{--ui-paper:var(--mcp-paper);--ui-canvas:var(--mcp-shell);--ui-ink:var(--mcp-ink);--ui-muted:var(--mcp-muted);--ui-line:var(--mcp-line);--ui-input:#fafafa;--ui-accent:var(--mcp-accent);--ui-action:#171717;--ui-button-ink:#fff;--ui-soft:var(--mcp-accent-soft);--ui-on-soft:var(--mcp-accent);--ui-font:"Stage Inter",Arial,sans-serif;background:var(--ui-canvas);color:var(--ui-ink)}
+.mcp-illustration[data-provider=chatgpt]{--ui-action:#0d0d0d;--ui-font:-apple-system-body,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif}
+.mcp-illustration[data-provider=claude]{--ui-action:#d97757;--ui-font:"Guide Anthropic Sans",system-ui,sans-serif}
+@media(max-width:480px){.mcp-illustration{padding:23px 16px}.mcp-step-label{font-size:14px;font-weight:600}.mcp-steps{gap:0}.mcp-steps button{width:22px}.mcp-steps button[aria-current=step]{width:32px}.mcp-step-number{width:21px;height:21px}}
+@media(prefers-reduced-motion:reduce){.mcp-dialog .mcp-steps button[aria-current=step] span::after{animation:none}}
+/* Stage Figma reference: Design Concept, node 41:11 (Frame 213).
+   Existing Inter face and neutral palette are reused; no new library is needed. */
+.mcp-dialog{--mcp-frame:#f5f5f5;--mcp-frame-shadow:0 .45px .5px rgba(10,10,10,.25);--mcp-control-shadow:0 .45px 1px rgba(10,10,10,.25);border:0;border-radius:12px;background:var(--mcp-frame);box-shadow:var(--mcp-frame-shadow),0 24px 80px #0002}
+.mcp-shell{padding:4px}
+.mcp-header{align-items:center;gap:12px;padding:12px;margin:0;min-height:64px}
+.mcp-header .mcp-brand{width:36px;height:36px}
+.mcp-header .mcp-brand img{width:36px;height:36px}
+#stage-mcp-dialog #mcp-title{flex:1;min-width:0;margin:0;font-size:15px;font-weight:500;line-height:1.5;letter-spacing:0;text-wrap:initial;color:#0a0a0a}
+.mcp-header .mcp-close{align-self:center;flex-shrink:0;width:26px;height:26px;margin:0;padding:5px;border-radius:6px;color:#737373}
+.mcp-body{padding:12px;background:#fff;border-radius:8px;box-shadow:var(--mcp-frame-shadow)}
+.mcp-body .mcp-tabs{margin-bottom:12px}
+.mcp-body .mcp-illustration{border-radius:8px}
+.mcp-body .mcp-step-row{margin-top:12px}
+.mcp-setup-slot{min-height:0;padding:12px 0 16px}
+.mcp-setup-slot:has(.mcp-code-control[hidden]){height:36px;padding:0}
+.mcp-code-control[hidden]{display:none}
+.mcp-code-label{display:block;margin-bottom:8px;color:#171717;font-size:13px;font-weight:500;line-height:16px;letter-spacing:0}
+.mcp-code-box{gap:8px;padding:2px 2px 2px 12px;min-height:35px;background:#f5f5f5;border:0;border-radius:8px;box-shadow:var(--mcp-control-shadow)}
+#stage-mcp-dialog .mcp-code-box code{color:#525252;font-family:"Stage Inter",Arial,sans-serif!important;font-size:12px;font-weight:500;line-height:1.3;letter-spacing:0}
+#stage-mcp-dialog .mcp-copy{display:flex;align-items:center;justify-content:center;gap:6px;width:auto;min-width:88px;height:31px;padding:7px 11px;border:1px solid #525252;border-radius:6px;background:linear-gradient(#404040,#0a0a0a);box-shadow:var(--mcp-control-shadow);color:#fafafa;font-size:12px;font-weight:500;line-height:15px;white-space:nowrap}
+#stage-mcp-dialog .mcp-copy:hover{background:linear-gradient(#525252,#171717);color:#fafafa}
+#stage-mcp-dialog .mcp-copy svg{width:12px;height:12px}
+#stage-mcp-dialog .mcp-primary{min-height:44px;width:100%;gap:10px;padding:11px 16px;border:1px solid #525252;border-radius:12px;background:linear-gradient(#404040,#0a0a0a);box-shadow:var(--mcp-control-shadow);color:#fafafa;font-size:15px;font-weight:600;line-height:20px;letter-spacing:-.2px}
+#stage-mcp-dialog .mcp-primary:hover{background:linear-gradient(#525252,#171717);color:#fafafa;transform:none}
+#stage-mcp-dialog .mcp-primary.is-copied,#stage-mcp-dialog .mcp-primary.is-copied:hover,#stage-mcp-dialog .mcp-copy.is-copied,#stage-mcp-dialog .mcp-copy.is-copied:hover{background:#00bf3e;border-color:#00bf3e;color:#fff;box-shadow:0 1px 2px #008c2e1a}
+#stage-mcp-dialog .mcp-footer{margin:12px 0 0;color:#737373}
+@media(max-width:480px){.mcp-shell{padding:4px}.mcp-header{padding:12px;gap:10px}#stage-mcp-dialog #mcp-title{font-size:15px;letter-spacing:0}.mcp-body{padding:12px}#stage-mcp-dialog .mcp-code-box code{font-size:11px}#stage-mcp-dialog .mcp-copy{min-width:82px;padding:7px 8px}}
+@media(max-height:700px){.mcp-shell{padding:4px}.mcp-header{margin:0}#stage-mcp-dialog #mcp-title{margin:0}.mcp-setup-slot{min-height:0}}
+
+.mcp-action-slot[hidden]{display:none}
+
+
+@media(max-width:380px){.mcp-tabs{gap:2px}.mcp-tabs button{gap:6px;padding:6px 8px;font-size:12px}}
