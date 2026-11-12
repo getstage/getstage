@@ -24,7 +24,8 @@ import {
   evaluateProviderPreflight,
   isProviderStatusPending,
 } from "@/lib/engine/providerPreflight";
-import { clearDesktopSessionIfExpired, toUserFacingErrorMessage } from "@/lib/errors";
+import { toUserFacingErrorMessage } from "@stage/project-ui/errors";
+import { clearDesktopSessionIfExpired } from "@/lib/sessionExpiry";
 import { useDraggablePanel } from "@/hooks/companion/useDraggablePanel";
 import {
   createEmptyStageChat,

@@ -23,7 +23,7 @@ import {
   type ImportedSkillHubItem,
   type SkillCatalogItem,
 } from "@/lib/settings/skillsCatalog";
-import { toUserFacingErrorMessage } from "@/lib/errors";
+import { toUserFacingErrorMessage } from "@stage/project-ui/errors";
 
 export function catalogEntry(
   id: string | null,

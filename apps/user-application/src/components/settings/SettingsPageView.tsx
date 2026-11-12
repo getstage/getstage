@@ -1,16 +1,18 @@
 import { Suspense, lazy } from "react";
-import type { SettingsTab } from "@/models/settings/settings";
-import { SettingsShell } from "./SettingsShell";
+import { useNavigate } from "@tanstack/react-router";
+import type { SettingsTab } from "@stage/project-ui/settings/model";
+import { getSettingsTabRoute } from "@/lib/settings/settingsTabs";
+import { SettingsShell } from "@stage/project-ui/settings/SettingsShell";
 import { ShortcutsPanel } from "./ShortcutsPanel";
 
 const AccountPanel = lazy(() =>
   import("./AccountPanel").then((module) => ({ default: module.AccountPanel })),
 );
 const BillingPanel = lazy(() =>
-  import("./BillingPanel").then((module) => ({ default: module.BillingPanel })),
+  import("@stage/project-ui/settings/BillingPanel").then((module) => ({ default: module.BillingPanel })),
 );
 const ClientsPanel = lazy(() =>
-  import("./ClientsPanel").then((module) => ({ default: module.ClientsPanel })),
+  import("@stage/project-ui/settings/ClientsPanel").then((module) => ({ default: module.ClientsPanel })),
 );
 const ClientPortalSettingsView = lazy(() =>
   import("@/components/client-portal/ClientPortalSettingsView").then((module) => ({
@@ -24,10 +26,10 @@ const IntegrationsPage = lazy(() =>
   import("./IntegrationsPage").then((module) => ({ default: module.IntegrationsPage })),
 );
 const ProfilePanel = lazy(() =>
-  import("./ProfilePanel").then((module) => ({ default: module.ProfilePanel })),
+  import("@stage/project-ui/settings/ProfilePanel").then((module) => ({ default: module.ProfilePanel })),
 );
 const TeamPanel = lazy(() =>
-  import("./TeamPanel").then((module) => ({ default: module.TeamPanel })),
+  import("@stage/project-ui/settings/TeamPanel").then((module) => ({ default: module.TeamPanel })),
 );
 
 export function SettingsPageView({
@@ -35,6 +37,7 @@ export function SettingsPageView({
 }: {
   initialTab?: SettingsTab;
 }) {
+  const navigate = useNavigate();
   if (initialTab === "integrations") {
     return (
       <Suspense fallback={<SettingsLoadingState />}>
@@ -52,7 +55,7 @@ export function SettingsPageView({
   }
 
   return (
-    <SettingsShell activeTab={initialTab}>
+    <SettingsShell activeTab={initialTab} onSelectTab={(tab) => void navigate({ to: getSettingsTabRoute(tab) })}>
       <Suspense fallback={<SettingsLoadingState />}>
         {initialTab === "profile" ? <ProfilePanel /> : null}
         {initialTab === "billing" ? <BillingPanel /> : null}

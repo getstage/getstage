@@ -1,4 +1,11 @@
 import { z } from "zod";
+import { phaseSchema, taskSchema } from "@stage/project-ui/kanban";
+import { projectFlowSchema, projectScreenSchema } from "@stage/project-ui/flows/model";
+import { projectAssetSchema } from "@stage/project-ui/assets/model";
+
+export { phaseSchema, projectAssetSchema, projectFlowSchema, projectScreenSchema, taskSchema };
+export type { ProjectFlow, ProjectScreen } from "@stage/project-ui/flows/model";
+export type { ProjectAsset } from "@stage/project-ui/assets/model";
 
 export const projectTabSchema = z.enum([
   "overview",
@@ -10,27 +17,6 @@ export const projectTabSchema = z.enum([
   "assets",
 ]);
 
-export const taskSchema = z.object({
-  id: z.string(),
-  title: z.string(),
-  content: z.string().optional(),
-  summary: z.string().optional(),
-  hasContent: z.boolean().optional(),
-  status: z.enum(["backlog", "todo", "in-progress", "done", "revision"]).optional(),
-  boardStatus: z.enum(["backlog", "todo", "in-progress", "done", "revision"]).optional(),
-  revisionNote: z.string().optional(),
-  isCompleted: z.boolean(),
-  updatedAt: z.number(),
-  assignees: z.array(z.object({ name: z.string() })).optional(),
-});
-
-export const phaseSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  status: z.enum(["upcoming", "active", "completed"]),
-  tasks: z.array(taskSchema),
-});
-
 export const projectReferenceSchema = z.object({
   id: z.string(),
   title: z.string(),
@@ -38,29 +24,6 @@ export const projectReferenceSchema = z.object({
   date: z.string(),
 });
 
-export const projectFlowSchema = z.object({
-  id: z.string(),
-  title: z.string(),
-  description: z.string(),
-  status: z.string(),
-  screenCount: z.number().optional(),
-  category: z.string().optional(),
-  steps: z.array(z.string()).optional(),
-});
-
-export const projectScreenSchema = z.object({
-  id: z.string(),
-  title: z.string(),
-  description: z.string(),
-  flowCount: z.number(),
-  keyElements: z.array(z.string()),
-});
-
-export const projectAssetSchema = z.object({
-  id: z.string(),
-  title: z.string(),
-  type: z.string(),
-});
 
 export const projectSchema = z.object({
   id: z.string(),
@@ -88,7 +51,4 @@ export type ProjectTab = z.infer<typeof projectTabSchema>;
 export type Task = z.infer<typeof taskSchema>;
 export type Phase = z.infer<typeof phaseSchema>;
 export type ProjectReference = z.infer<typeof projectReferenceSchema>;
-export type ProjectFlow = z.infer<typeof projectFlowSchema>;
-export type ProjectScreen = z.infer<typeof projectScreenSchema>;
-export type ProjectAsset = z.infer<typeof projectAssetSchema>;
 export type Project = z.infer<typeof projectSchema>;

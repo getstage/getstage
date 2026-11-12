@@ -1,3 +1,5 @@
+import { ConnectMcpButton } from "./ConnectMcpButton";
+
 const plans = [
   {
     name: "Solo",
@@ -73,14 +75,7 @@ export function PricingSection() {
               ))}
             </ul>
             <div className="hero-actions">
-              <a
-                className="button button-neutral"
-                href={DEMO_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Book a demo
-              </a>
+              <ConnectMcpButton />
               <a
                 className={`button ${plan.featured ? "button-primary" : "button-neutral"}`}
                 href="/download"

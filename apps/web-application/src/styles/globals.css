@@ -1,6 +1,18 @@
 @import "tailwindcss";
+/* Shared project screens (Mac app and web app): their classes and the Style Guide preview tokens. */
+@import "../../../../packages/project-ui/src/moodboard/styleguide/theme.css";
+@source "../../../../packages/project-ui/src";
 
 @custom-variant dark (&:where(.dark, .dark *));
+
+/* Same as Stage for Mac: a hand cursor on everything clickable (Tailwind v4 no longer sets it on buttons). */
+button:not(:disabled),
+a[href],
+select:not(:disabled),
+summary,
+[role="button"]:not([aria-disabled="true"]) {
+  cursor: pointer;
+}
 
 /* ============================================================
    STAGE DESIGN SYSTEM

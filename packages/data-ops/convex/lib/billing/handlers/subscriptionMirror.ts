@@ -7,7 +7,7 @@ import {
   type Tier,
   billingCycleForPriceId,
   configForPriceId,
-  resolveTier,
+  tierForPriceId,
 } from "../../credits/priceConfig";
 
 type AppSubscriptionStatus =
@@ -91,7 +91,7 @@ function resolveCancelReason(
 }
 
 function resolvePlan(priceId: string, metadata?: Record<string, unknown> | null): Tier | null {
-  const fromPrice = resolveTier(priceId);
+  const fromPrice = tierForPriceId(priceId);
   if (fromPrice) {
     return fromPrice;
   }

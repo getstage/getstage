@@ -2,12 +2,21 @@ import { v } from "convex/values";
 import { mutation, query, internalQuery, internalMutation } from "../_generated/server";
 import { requireAuthUser } from "../_helpers";
 import { getCurrentSubscriptionSnapshot } from "../billing";
+import type { Doc } from "../_generated/dataModel";
+import { ALL_MCP_PERMISSIONS, isMcpPermission } from "../../src/domain/mcpPermissions";
 
 const KEY_PREFIX = "stg_";
 const KEY_BYTE_LENGTH = 32;
 const MAX_KEYS_PER_USER = 5;
 
-async function hashKey(rawKey: string): Promise<string> {
+// Developer API keys need Studio. MCP keys need any paid plan.
+type Plan = "free" | "start" | "pro" | "team";
+const KEY_PLANS = { api: ["pro"], mcp: ["start", "pro", "team"] } satisfies Record<string, Plan[]>;
+export function planAllowsKey(kind: "api" | "mcp", plan: Plan) {
+  return (KEY_PLANS[kind] as Plan[]).includes(plan);
+}
+
+export async function hashKey(rawKey: string): Promise<string> {
   const encoded = new TextEncoder().encode(rawKey);
   const hashBuffer = await crypto.subtle.digest("SHA-256", encoded);
   const hashArray = new Uint8Array(hashBuffer);
@@ -16,7 +25,7 @@ async function hashKey(rawKey: string): Promise<string> {
     .join("");
 }
 
-function generateRawKey(): string {
+export function generateRawKey(): string {
   const bytes = new Uint8Array(KEY_BYTE_LENGTH);
   crypto.getRandomValues(bytes);
   const hex = Array.from(bytes)
@@ -50,7 +59,7 @@ export const generate = mutation({
       .withIndex("by_user", (q) => q.eq("userId", user._id))
       .collect();
 
-    const activeKeys = existingKeys.filter((k) => !k.revokedAt);
+    const activeKeys = existingKeys.filter((k) => !k.revokedAt && k.kind !== "mcp");
     if (activeKeys.length >= MAX_KEYS_PER_USER) {
       throw new Error(`You can have at most ${MAX_KEYS_PER_USER} active API keys.`);
     }
@@ -116,6 +125,17 @@ export const revoke = mutation({
 
 // --- Internal functions (for API auth in HTTP actions) ---
 
+// An MCP key without a stored scope never acts: the user has to connect again and choose.
+// Keys from before per-step permissions: read + edit allowed everything, read only viewing.
+function mcpScope(apiKey: Doc<"apiKeys">) {
+  if (!apiKey.mcpWorkspaceIds || apiKey.mcpWorkspaceIds.length === 0) return undefined;
+  if (!apiKey.mcpPermissions && !apiKey.mcpAccess) return undefined;
+  const permissions = apiKey.mcpPermissions
+    ? apiKey.mcpPermissions.filter(isMcpPermission)
+    : apiKey.mcpAccess === "write" ? ALL_MCP_PERMISSIONS : [];
+  return { permissions, workspaceIds: apiKey.mcpWorkspaceIds };
+}
+
 export const getUserByHashedKey = internalQuery({
   args: {
     hashedKey: v.string(),
@@ -137,7 +157,7 @@ export const getUserByHashedKey = internalQuery({
 
     const subscription = await getCurrentSubscriptionSnapshot(ctx, String(user._id));
     const plan = subscription?.plan ?? user.plan ?? "free";
-    if (plan !== "pro") {
+    if (!planAllowsKey(apiKey.kind ?? "api", plan)) {
       return null;
     }
 
@@ -166,7 +186,12 @@ export const authenticateByHashedKey = internalMutation({
 
     const subscription = await getCurrentSubscriptionSnapshot(ctx, String(user._id));
     const plan = subscription?.plan ?? user.plan ?? "free";
-    if (plan !== "pro") {
+    if (!planAllowsKey(apiKey.kind ?? "api", plan)) {
+      return null;
+    }
+
+    const mcp = apiKey.kind === "mcp" ? mcpScope(apiKey) : undefined;
+    if (apiKey.kind === "mcp" && !mcp) {
       return null;
     }
 
@@ -174,7 +199,7 @@ export const authenticateByHashedKey = internalMutation({
       lastUsedAt: Date.now(),
     });
 
-    return { apiKeyId: apiKey._id, userId: user._id };
+    return { apiKeyId: apiKey._id, userId: user._id, mcp };
   },
 });
 

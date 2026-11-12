@@ -35,8 +35,9 @@ impl DetailsService {
         self.auth_configured
     }
 
-    pub fn with_token(&self, token: String) -> Result<Self, DetailsServiceError> {
-        Self::from_parts(&self.mcp_url, Some(token.as_str()))
+    /// The same service against another MCP endpoint (Stage's backend relay) with another bearer token.
+    pub fn with_endpoint(&self, mcp_url: &str, token: &str) -> Result<Self, DetailsServiceError> {
+        Self::from_parts(mcp_url, Some(token))
     }
 
     pub async fn research_context(

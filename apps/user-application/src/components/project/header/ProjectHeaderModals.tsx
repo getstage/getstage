@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState, type ChangeEvent, type ReactNode } from "react";
 import { StageDatePicker } from "@/components/ui/StageDatePicker";
-import { AVATAR_ACCEPT, PROJECT_MARKER_ACCEPT } from "@/lib/r2Uploads";
+import { AVATAR_ACCEPT, PROJECT_MARKER_ACCEPT } from "@stage/project-ui/r2Uploads";
 import type {
   SaveClientProfileInput,
   SaveProjectProfileInput,
 } from "@/hooks/project";
 import type { Phase, Project, ProjectTab } from "@/models/project/project";
-import { PROJECT_PAGE_TABS, WORKFLOW_TABS } from "@/lib/project/projectTabs";
+import { PROJECT_PAGE_TABS, WORKFLOW_TABS } from "@stage/project-ui/project";
 import type { ProjectModal, ProjectTimeline } from "@/types/project/projectHeader";
 
 export function ProjectActionModal({

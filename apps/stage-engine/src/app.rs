@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 use crate::chat::workflow::ChatWorkflow;
 use crate::config::AppConfig;
-use crate::convex_store::app_secrets::AppSecretsRepository;
+use crate::convex_store::reference_relay::ReferenceRelay;
 use crate::convex_store::asset_upload::ConvexAssetUploader;
 use crate::convex_store::chat_repository::ChatRepository;
 use crate::convex_store::flows_repository::FlowsRepository;
@@ -48,14 +48,14 @@ impl AppState {
         let figma = FigmaService::new(&config.figma)?;
         let research = Arc::new(ResearchWorkflow::new(
             ResearchRepository::new(&config.convex),
-            AppSecretsRepository::new(&config.convex),
+            ReferenceRelay::new(&config.convex),
             ResearchService::new(refero.clone()),
             details,
             config.r2_public_base_url.clone(),
         ));
         let moodboard = Arc::new(MoodboardWorkflow::new(
             MoodboardRepository::new(&config.convex),
-            AppSecretsRepository::new(&config.convex),
+            ReferenceRelay::new(&config.convex),
             refero,
             figma,
         ));

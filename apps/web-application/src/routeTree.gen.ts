@@ -17,6 +17,7 @@ import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as OpenclawRouteImport } from './routes/openclaw'
 import { Route as DownloadRouteImport } from './routes/download'
 import { Route as DocsRouteImport } from './routes/docs'
+import { Route as ConnectAiRouteImport } from './routes/connect-ai'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AgentsRouteImport } from './routes/agents'
 import { Route as AuthedRouteImport } from './routes/_authed'
@@ -40,14 +41,21 @@ import { Route as BuildersHandleRouteImport } from './routes/builders.$handle'
 import { Route as BlogSlugRouteImport } from './routes/blog/$slug'
 import { Route as BillingReturnRouteImport } from './routes/billing.return'
 import { Route as AuthDesktopRouteImport } from './routes/auth.desktop'
+import { Route as AppAuthedRouteImport } from './routes/app/_authed'
 import { Route as AgentsStitchRouteImport } from './routes/agents/stitch'
 import { Route as AgentsSkillsRouteImport } from './routes/agents/skills'
 import { Route as AgentsClaudeRouteImport } from './routes/agents/claude'
 import { Route as AuthedSettingsRouteImport } from './routes/_authed/settings'
 import { Route as AuthedNewProjectRouteImport } from './routes/_authed/new-project'
 import { Route as AuthedDashboardRouteImport } from './routes/_authed/dashboard'
+import { Route as AppAuthedIndexRouteImport } from './routes/app/_authed/index'
+import { Route as AppAuthedSettingsRouteImport } from './routes/app/_authed/settings'
+import { Route as AppAuthedPlansRouteImport } from './routes/app/_authed/plans'
+import { Route as AppAuthedIntegrationsRouteImport } from './routes/app/_authed/integrations'
 import { Route as AuthedProjectIdRouteImport } from './routes/_authed/project.$id'
+import { Route as AppAuthedProjectsIndexRouteImport } from './routes/app/_authed/projects/index'
 import { Route as PortalTokenTaskTaskIdRouteImport } from './routes/portal.$token.task.$taskId'
+import { Route as AppAuthedProjectsProjectIdRouteImport } from './routes/app/_authed/projects/$projectId'
 import { Route as AuthedProjectIdStitchRouteImport } from './routes/_authed/project.$id.stitch'
 import { Route as AuthedProjectIdTaskTaskIdRouteImport } from './routes/_authed/project.$id.task.$taskId'
 
@@ -89,6 +97,11 @@ const DownloadRoute = DownloadRouteImport.update({
 const DocsRoute = DocsRouteImport.update({
   id: '/docs',
   path: '/docs',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ConnectAiRoute = ConnectAiRouteImport.update({
+  id: '/connect-ai',
+  path: '/connect-ai',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRoute = AuthRouteImport.update({
@@ -206,6 +219,11 @@ const AuthDesktopRoute = AuthDesktopRouteImport.update({
   path: '/desktop',
   getParentRoute: () => AuthRoute,
 } as any)
+const AppAuthedRoute = AppAuthedRouteImport.update({
+  id: '/app/_authed',
+  path: '/app',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AgentsStitchRoute = AgentsStitchRouteImport.update({
   id: '/stitch',
   path: '/stitch',
@@ -236,16 +254,47 @@ const AuthedDashboardRoute = AuthedDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AuthedRoute,
 } as any)
+const AppAuthedIndexRoute = AppAuthedIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppAuthedRoute,
+} as any)
+const AppAuthedSettingsRoute = AppAuthedSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AppAuthedRoute,
+} as any)
+const AppAuthedPlansRoute = AppAuthedPlansRouteImport.update({
+  id: '/plans',
+  path: '/plans',
+  getParentRoute: () => AppAuthedRoute,
+} as any)
+const AppAuthedIntegrationsRoute = AppAuthedIntegrationsRouteImport.update({
+  id: '/integrations',
+  path: '/integrations',
+  getParentRoute: () => AppAuthedRoute,
+} as any)
 const AuthedProjectIdRoute = AuthedProjectIdRouteImport.update({
   id: '/project/$id',
   path: '/project/$id',
   getParentRoute: () => AuthedRoute,
+} as any)
+const AppAuthedProjectsIndexRoute = AppAuthedProjectsIndexRouteImport.update({
+  id: '/projects/',
+  path: '/projects/',
+  getParentRoute: () => AppAuthedRoute,
 } as any)
 const PortalTokenTaskTaskIdRoute = PortalTokenTaskTaskIdRouteImport.update({
   id: '/task/$taskId',
   path: '/task/$taskId',
   getParentRoute: () => PortalTokenRoute,
 } as any)
+const AppAuthedProjectsProjectIdRoute =
+  AppAuthedProjectsProjectIdRouteImport.update({
+    id: '/projects/$projectId',
+    path: '/projects/$projectId',
+    getParentRoute: () => AppAuthedRoute,
+  } as any)
 const AuthedProjectIdStitchRoute = AuthedProjectIdStitchRouteImport.update({
   id: '/stitch',
   path: '/stitch',
@@ -263,6 +312,7 @@ export interface FileRoutesByFullPath {
   '/$slug': typeof SlugRoute
   '/agents': typeof AgentsRouteWithChildren
   '/auth': typeof AuthRouteWithChildren
+  '/connect-ai': typeof ConnectAiRoute
   '/docs': typeof DocsRoute
   '/download': typeof DownloadRouteWithChildren
   '/openclaw': typeof OpenclawRoute
@@ -277,6 +327,7 @@ export interface FileRoutesByFullPath {
   '/agents/claude': typeof AgentsClaudeRoute
   '/agents/skills': typeof AgentsSkillsRoute
   '/agents/stitch': typeof AgentsStitchRoute
+  '/app': typeof AppAuthedRouteWithChildren
   '/auth/desktop': typeof AuthDesktopRoute
   '/billing/return': typeof BillingReturnRoute
   '/blog/$slug': typeof BlogSlugRoute
@@ -296,14 +347,21 @@ export interface FileRoutesByFullPath {
   '/tools/': typeof ToolsIndexRoute
   '/use-cases/': typeof UseCasesIndexRoute
   '/project/$id': typeof AuthedProjectIdRouteWithChildren
+  '/app/integrations': typeof AppAuthedIntegrationsRoute
+  '/app/plans': typeof AppAuthedPlansRoute
+  '/app/settings': typeof AppAuthedSettingsRoute
+  '/app/': typeof AppAuthedIndexRoute
   '/project/$id/stitch': typeof AuthedProjectIdStitchRoute
+  '/app/projects/$projectId': typeof AppAuthedProjectsProjectIdRoute
   '/portal/$token/task/$taskId': typeof PortalTokenTaskTaskIdRoute
+  '/app/projects/': typeof AppAuthedProjectsIndexRoute
   '/project/$id/task/$taskId': typeof AuthedProjectIdTaskTaskIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/$slug': typeof SlugRoute
   '/auth': typeof AuthRouteWithChildren
+  '/connect-ai': typeof ConnectAiRoute
   '/docs': typeof DocsRoute
   '/download': typeof DownloadRouteWithChildren
   '/openclaw': typeof OpenclawRoute
@@ -337,8 +395,14 @@ export interface FileRoutesByTo {
   '/tools': typeof ToolsIndexRoute
   '/use-cases': typeof UseCasesIndexRoute
   '/project/$id': typeof AuthedProjectIdRouteWithChildren
+  '/app/integrations': typeof AppAuthedIntegrationsRoute
+  '/app/plans': typeof AppAuthedPlansRoute
+  '/app/settings': typeof AppAuthedSettingsRoute
+  '/app': typeof AppAuthedIndexRoute
   '/project/$id/stitch': typeof AuthedProjectIdStitchRoute
+  '/app/projects/$projectId': typeof AppAuthedProjectsProjectIdRoute
   '/portal/$token/task/$taskId': typeof PortalTokenTaskTaskIdRoute
+  '/app/projects': typeof AppAuthedProjectsIndexRoute
   '/project/$id/task/$taskId': typeof AuthedProjectIdTaskTaskIdRoute
 }
 export interface FileRoutesById {
@@ -348,6 +412,7 @@ export interface FileRoutesById {
   '/_authed': typeof AuthedRouteWithChildren
   '/agents': typeof AgentsRouteWithChildren
   '/auth': typeof AuthRouteWithChildren
+  '/connect-ai': typeof ConnectAiRoute
   '/docs': typeof DocsRoute
   '/download': typeof DownloadRouteWithChildren
   '/openclaw': typeof OpenclawRoute
@@ -362,6 +427,7 @@ export interface FileRoutesById {
   '/agents/claude': typeof AgentsClaudeRoute
   '/agents/skills': typeof AgentsSkillsRoute
   '/agents/stitch': typeof AgentsStitchRoute
+  '/app/_authed': typeof AppAuthedRouteWithChildren
   '/auth/desktop': typeof AuthDesktopRoute
   '/billing/return': typeof BillingReturnRoute
   '/blog/$slug': typeof BlogSlugRoute
@@ -381,8 +447,14 @@ export interface FileRoutesById {
   '/tools/': typeof ToolsIndexRoute
   '/use-cases/': typeof UseCasesIndexRoute
   '/_authed/project/$id': typeof AuthedProjectIdRouteWithChildren
+  '/app/_authed/integrations': typeof AppAuthedIntegrationsRoute
+  '/app/_authed/plans': typeof AppAuthedPlansRoute
+  '/app/_authed/settings': typeof AppAuthedSettingsRoute
+  '/app/_authed/': typeof AppAuthedIndexRoute
   '/_authed/project/$id/stitch': typeof AuthedProjectIdStitchRoute
+  '/app/_authed/projects/$projectId': typeof AppAuthedProjectsProjectIdRoute
   '/portal/$token/task/$taskId': typeof PortalTokenTaskTaskIdRoute
+  '/app/_authed/projects/': typeof AppAuthedProjectsIndexRoute
   '/_authed/project/$id/task/$taskId': typeof AuthedProjectIdTaskTaskIdRoute
 }
 export interface FileRouteTypes {
@@ -392,6 +464,7 @@ export interface FileRouteTypes {
     | '/$slug'
     | '/agents'
     | '/auth'
+    | '/connect-ai'
     | '/docs'
     | '/download'
     | '/openclaw'
@@ -406,6 +479,7 @@ export interface FileRouteTypes {
     | '/agents/claude'
     | '/agents/skills'
     | '/agents/stitch'
+    | '/app'
     | '/auth/desktop'
     | '/billing/return'
     | '/blog/$slug'
@@ -425,14 +499,21 @@ export interface FileRouteTypes {
     | '/tools/'
     | '/use-cases/'
     | '/project/$id'
+    | '/app/integrations'
+    | '/app/plans'
+    | '/app/settings'
+    | '/app/'
     | '/project/$id/stitch'
+    | '/app/projects/$projectId'
     | '/portal/$token/task/$taskId'
+    | '/app/projects/'
     | '/project/$id/task/$taskId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/$slug'
     | '/auth'
+    | '/connect-ai'
     | '/docs'
     | '/download'
     | '/openclaw'
@@ -466,8 +547,14 @@ export interface FileRouteTypes {
     | '/tools'
     | '/use-cases'
     | '/project/$id'
+    | '/app/integrations'
+    | '/app/plans'
+    | '/app/settings'
+    | '/app'
     | '/project/$id/stitch'
+    | '/app/projects/$projectId'
     | '/portal/$token/task/$taskId'
+    | '/app/projects'
     | '/project/$id/task/$taskId'
   id:
     | '__root__'
@@ -476,6 +563,7 @@ export interface FileRouteTypes {
     | '/_authed'
     | '/agents'
     | '/auth'
+    | '/connect-ai'
     | '/docs'
     | '/download'
     | '/openclaw'
@@ -490,6 +578,7 @@ export interface FileRouteTypes {
     | '/agents/claude'
     | '/agents/skills'
     | '/agents/stitch'
+    | '/app/_authed'
     | '/auth/desktop'
     | '/billing/return'
     | '/blog/$slug'
@@ -509,8 +598,14 @@ export interface FileRouteTypes {
     | '/tools/'
     | '/use-cases/'
     | '/_authed/project/$id'
+    | '/app/_authed/integrations'
+    | '/app/_authed/plans'
+    | '/app/_authed/settings'
+    | '/app/_authed/'
     | '/_authed/project/$id/stitch'
+    | '/app/_authed/projects/$projectId'
     | '/portal/$token/task/$taskId'
+    | '/app/_authed/projects/'
     | '/_authed/project/$id/task/$taskId'
   fileRoutesById: FileRoutesById
 }
@@ -520,6 +615,7 @@ export interface RootRouteChildren {
   AuthedRoute: typeof AuthedRouteWithChildren
   AgentsRoute: typeof AgentsRouteWithChildren
   AuthRoute: typeof AuthRouteWithChildren
+  ConnectAiRoute: typeof ConnectAiRoute
   DocsRoute: typeof DocsRoute
   DownloadRoute: typeof DownloadRouteWithChildren
   OpenclawRoute: typeof OpenclawRoute
@@ -528,6 +624,7 @@ export interface RootRouteChildren {
   SetupProfileRoute: typeof SetupProfileRoute
   StartRoute: typeof StartRoute
   TermsRoute: typeof TermsRoute
+  AppAuthedRoute: typeof AppAuthedRouteWithChildren
   BillingReturnRoute: typeof BillingReturnRoute
   BlogSlugRoute: typeof BlogSlugRoute
   BuildersHandleRoute: typeof BuildersHandleRoute
@@ -601,6 +698,13 @@ declare module '@tanstack/react-router' {
       path: '/docs'
       fullPath: '/docs'
       preLoaderRoute: typeof DocsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/connect-ai': {
+      id: '/connect-ai'
+      path: '/connect-ai'
+      fullPath: '/connect-ai'
+      preLoaderRoute: typeof ConnectAiRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth': {
@@ -764,6 +868,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthDesktopRouteImport
       parentRoute: typeof AuthRoute
     }
+    '/app/_authed': {
+      id: '/app/_authed'
+      path: '/app'
+      fullPath: '/app'
+      preLoaderRoute: typeof AppAuthedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/agents/stitch': {
       id: '/agents/stitch'
       path: '/stitch'
@@ -806,6 +917,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedDashboardRouteImport
       parentRoute: typeof AuthedRoute
     }
+    '/app/_authed/': {
+      id: '/app/_authed/'
+      path: '/'
+      fullPath: '/app/'
+      preLoaderRoute: typeof AppAuthedIndexRouteImport
+      parentRoute: typeof AppAuthedRoute
+    }
+    '/app/_authed/settings': {
+      id: '/app/_authed/settings'
+      path: '/settings'
+      fullPath: '/app/settings'
+      preLoaderRoute: typeof AppAuthedSettingsRouteImport
+      parentRoute: typeof AppAuthedRoute
+    }
+    '/app/_authed/plans': {
+      id: '/app/_authed/plans'
+      path: '/plans'
+      fullPath: '/app/plans'
+      preLoaderRoute: typeof AppAuthedPlansRouteImport
+      parentRoute: typeof AppAuthedRoute
+    }
+    '/app/_authed/integrations': {
+      id: '/app/_authed/integrations'
+      path: '/integrations'
+      fullPath: '/app/integrations'
+      preLoaderRoute: typeof AppAuthedIntegrationsRouteImport
+      parentRoute: typeof AppAuthedRoute
+    }
     '/_authed/project/$id': {
       id: '/_authed/project/$id'
       path: '/project/$id'
@@ -813,12 +952,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedProjectIdRouteImport
       parentRoute: typeof AuthedRoute
     }
+    '/app/_authed/projects/': {
+      id: '/app/_authed/projects/'
+      path: '/projects'
+      fullPath: '/app/projects/'
+      preLoaderRoute: typeof AppAuthedProjectsIndexRouteImport
+      parentRoute: typeof AppAuthedRoute
+    }
     '/portal/$token/task/$taskId': {
       id: '/portal/$token/task/$taskId'
       path: '/task/$taskId'
       fullPath: '/portal/$token/task/$taskId'
       preLoaderRoute: typeof PortalTokenTaskTaskIdRouteImport
       parentRoute: typeof PortalTokenRoute
+    }
+    '/app/_authed/projects/$projectId': {
+      id: '/app/_authed/projects/$projectId'
+      path: '/projects/$projectId'
+      fullPath: '/app/projects/$projectId'
+      preLoaderRoute: typeof AppAuthedProjectsProjectIdRouteImport
+      parentRoute: typeof AppAuthedRoute
     }
     '/_authed/project/$id/stitch': {
       id: '/_authed/project/$id/stitch'
@@ -907,6 +1060,28 @@ const DownloadRouteWithChildren = DownloadRoute._addFileChildren(
   DownloadRouteChildren,
 )
 
+interface AppAuthedRouteChildren {
+  AppAuthedIntegrationsRoute: typeof AppAuthedIntegrationsRoute
+  AppAuthedPlansRoute: typeof AppAuthedPlansRoute
+  AppAuthedSettingsRoute: typeof AppAuthedSettingsRoute
+  AppAuthedIndexRoute: typeof AppAuthedIndexRoute
+  AppAuthedProjectsProjectIdRoute: typeof AppAuthedProjectsProjectIdRoute
+  AppAuthedProjectsIndexRoute: typeof AppAuthedProjectsIndexRoute
+}
+
+const AppAuthedRouteChildren: AppAuthedRouteChildren = {
+  AppAuthedIntegrationsRoute: AppAuthedIntegrationsRoute,
+  AppAuthedPlansRoute: AppAuthedPlansRoute,
+  AppAuthedSettingsRoute: AppAuthedSettingsRoute,
+  AppAuthedIndexRoute: AppAuthedIndexRoute,
+  AppAuthedProjectsProjectIdRoute: AppAuthedProjectsProjectIdRoute,
+  AppAuthedProjectsIndexRoute: AppAuthedProjectsIndexRoute,
+}
+
+const AppAuthedRouteWithChildren = AppAuthedRoute._addFileChildren(
+  AppAuthedRouteChildren,
+)
+
 interface PortalTokenRouteChildren {
   PortalTokenTaskTaskIdRoute: typeof PortalTokenTaskTaskIdRoute
 }
@@ -925,6 +1100,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthedRoute: AuthedRouteWithChildren,
   AgentsRoute: AgentsRouteWithChildren,
   AuthRoute: AuthRouteWithChildren,
+  ConnectAiRoute: ConnectAiRoute,
   DocsRoute: DocsRoute,
   DownloadRoute: DownloadRouteWithChildren,
   OpenclawRoute: OpenclawRoute,
@@ -933,6 +1109,7 @@ const rootRouteChildren: RootRouteChildren = {
   SetupProfileRoute: SetupProfileRoute,
   StartRoute: StartRoute,
   TermsRoute: TermsRoute,
+  AppAuthedRoute: AppAuthedRouteWithChildren,
   BillingReturnRoute: BillingReturnRoute,
   BlogSlugRoute: BlogSlugRoute,
   BuildersHandleRoute: BuildersHandleRoute,

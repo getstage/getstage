@@ -1,4 +1,4 @@
-import { CheckIcon } from "./strategyIcons";
+import { CheckIcon } from "@stage/project-ui/strategy";
 
 export function AddSectionEditor({
   title,

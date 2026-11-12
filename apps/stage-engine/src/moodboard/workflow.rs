@@ -3,7 +3,7 @@ use std::{net::IpAddr, sync::Arc};
 use reqwest::{Url, header::CONTENT_TYPE};
 use serde_json::{Value, json};
 
-use crate::convex_store::app_secrets::AppSecretsRepository;
+use crate::convex_store::reference_relay::ReferenceRelay;
 use crate::convex_store::asset_upload::ConvexAssetUploader;
 use crate::convex_store::moodboard_repository::{MoodboardRepository, empty_moodboard_artifact};
 use crate::figma::service::{FigmaImportedImage, FigmaService};
@@ -23,7 +23,7 @@ const MAX_URL_IMAGE_BYTES: u64 = 10 * 1024 * 1024;
 #[derive(Clone, Debug)]
 pub struct MoodboardWorkflow {
     repository: MoodboardRepository,
-    secrets: AppSecretsRepository,
+    relay: ReferenceRelay,
     refero: ReferoService,
     figma: FigmaService,
 }
@@ -31,13 +31,13 @@ pub struct MoodboardWorkflow {
 impl MoodboardWorkflow {
     pub fn new(
         repository: MoodboardRepository,
-        secrets: AppSecretsRepository,
+        relay: ReferenceRelay,
         refero: ReferoService,
         figma: FigmaService,
     ) -> Self {
         Self {
             repository,
-            secrets,
+            relay,
             refero,
             figma,
         }
@@ -253,18 +253,8 @@ impl MoodboardWorkflow {
             return Ok(self.refero.clone());
         }
 
-        let token = self
-            .secrets
-            .fetch_refero_mcp_token(auth_token)
-            .await?
-            .ok_or_else(|| {
-                WorkflowError::InvalidRequest(
-                    "Refero is not configured for this Stage deployment.".to_string(),
-                )
-            })?;
-
         self.refero
-            .with_token(token)
+            .with_endpoint(self.relay.refero_url(), auth_token.to_string())
             .map_err(|error| WorkflowError::InvalidRequest(error.to_string()))
     }
 

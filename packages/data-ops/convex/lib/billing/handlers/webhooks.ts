@@ -245,6 +245,9 @@ async function handleSubscriptionCreated(ctx: WebhookCtx, event: Stripe.Event) {
     cancelReason: cancelReasonFromStripeSubscription(subscription),
     trialStartedAtMs: trialStartedAtMsFromStripe(subscription),
   });
+  // The plan exists now: invite the teammates entered during setup.
+  const userId = asUserId(subscription.metadata?.userId);
+  if (userId) await ctx.scheduler.runAfter(0, internal.workspaceMembers.invitePendingTeammates, { ownerUserId: userId });
 }
 
 // customer.subscription.updated — covers tier changes, seat-quantity changes, and

@@ -3,7 +3,7 @@ import {
   dateRangeInputSchema,
   projectBasicsSchema,
   projectTypeSchema,
-} from "@/lib/validation";
+} from "@stage/project-ui/validation";
 import type { Method } from "../../../shared/project-creation";
 import type { OnboardingStepId } from "./model";
 import type { ProjectCategory } from "@/types";

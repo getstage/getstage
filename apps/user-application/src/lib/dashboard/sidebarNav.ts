@@ -1,3 +1,4 @@
+// Stage for Mac's sidebar items and which route makes each one active.
 export const SIDEBAR_NAV_ITEMS = [
   { name: "Dashboard", icon: "/logos/dashboard/dashboard.svg", routeKey: "dashboard" },
   { name: "Projects", icon: "/logos/dashboard/projects.svg", routeKey: "project" },
@@ -22,10 +23,4 @@ export function isSidebarNavActive(routeKey: string, pathname: string) {
 export function getActiveProjectId(pathname: string) {
   if (!pathname.startsWith("/project/")) return "";
   return decodeURIComponent(pathname.split("/")[2] ?? "");
-}
-
-export function sidebarLabelClassName(collapsed: boolean) {
-  return collapsed
-    ? "hidden"
-    : "min-w-0 max-w-[150px] overflow-hidden truncate whitespace-nowrap text-[13px] font-medium";
 }

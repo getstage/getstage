@@ -1,7 +1,7 @@
 import type { DashboardProject } from "@/models/dashboard/dashboard";
-import { sidebarLabelClassName } from "@/lib/dashboard/sidebarNav";
+import { sidebarLabelClassName } from "@stage/project-ui/sidebar/sidebarNav";
 import { cn } from "@/lib/utils";
-import { SidebarRoundAvatar } from "./SidebarRoundAvatar";
+import { SidebarRoundAvatar } from "@stage/project-ui/workspace/SidebarRoundAvatar";
 
 export function SidebarProjectList({
   collapsed,

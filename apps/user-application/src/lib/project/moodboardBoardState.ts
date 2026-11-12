@@ -6,8 +6,9 @@ import type {
   MoodboardStyleGuide,
   MoodboardUploadedFile,
 } from "@stage/data-ops/contracts";
-import type { MoodboardMode } from "@/types/project/moodboardTab";
+import type { MoodboardMode } from "@stage/project-ui/moodboard/types";
 import { buildMoodboardArtifact } from "./buildMoodboardArtifact";
+import { directionIdFromName } from "@stage/data-ops/domain";
 
 /** A board reference as held in tab-local state (folder is the direction name). */
 export type MoodboardBoardItem = {
@@ -43,14 +44,6 @@ export type MoodboardBoardState = {
  * name in the UI, so a name-derived id stays stable across save/reload without
  * threading ids through every tab component.
  */
-export function directionIdFromName(name: string): string {
-  const slug = name
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-  return `direction-${slug || "untitled"}`;
-}
 
 function stableImageUrlForSave(item: MoodboardBoardItem) {
   return item.imageAssetKey ?? item.imageUrl ?? item.image;

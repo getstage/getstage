@@ -1,0 +1,31 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "stage-mcp",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-06-11",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": { "logs": { "enabled": true, "invocation_logs": true } },
+  "env": {
+    "testing": {
+      "name": "stage-mcp-testing",
+      "vars": {
+        "MCP_ORIGIN": "https://mcp-testing.getstage.co",
+        "STAGE_APP_ORIGIN": "https://testing.getstage.co",
+        "CONVEX_SITE_ORIGIN": "https://reliable-bullfrog-917.convex.site"
+      },
+      // No id: wrangler creates the namespace on the first deploy.
+      "kv_namespaces": [{ "binding": "OAUTH_KV" }],
+      "routes": [{ "pattern": "mcp-testing.getstage.co", "custom_domain": true }]
+    },
+    "production": {
+      "name": "stage-mcp-production",
+      "vars": {
+        "MCP_ORIGIN": "https://mcp.getstage.co",
+        "STAGE_APP_ORIGIN": "https://getstage.co",
+        "CONVEX_SITE_ORIGIN": "https://quirky-snail-763.convex.site"
+      },
+      "kv_namespaces": [{ "binding": "OAUTH_KV" }],
+      "routes": [{ "pattern": "mcp.getstage.co", "custom_domain": true }]
+    }
+  }
+}

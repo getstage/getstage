@@ -1,0 +1,77 @@
+import { createContext, useContext, useState, type ReactNode } from "react";
+
+type LogoUrl = (domain: string, sizePx: number) => string | null;
+
+// Each app knows its own logo service (the Mac app passes its Brandfetch client id); without one, logos fall back to the letter mark.
+const BrandLogoContext = createContext<LogoUrl>(() => null);
+
+export function BrandLogoProvider({ logoUrl, children }: { logoUrl: LogoUrl; children: ReactNode }) {
+  return <BrandLogoContext.Provider value={logoUrl}>{children}</BrandLogoContext.Provider>;
+}
+
+/** Brandfetch's logo CDN for an app's client id (from the app's env); no id, no logos. */
+export function brandfetchLogoUrl(clientId: string | undefined): LogoUrl {
+  return (domain, sizePx) => (clientId ? `https://cdn.brandfetch.io/${domain}/w/${sizePx}/h/${sizePx}?c=${clientId}` : null);
+}
+
+function normalizeBrandDomain(url: string): string | null {
+  const trimmed = url.trim();
+  if (!trimmed) return null;
+  const withScheme = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+  try {
+    return new URL(withScheme).hostname.toLowerCase().replace(/^www\./, "") || null;
+  } catch {
+    return null;
+  }
+}
+
+type BrandLogoProps = {
+  url: string;
+  name: string;
+  fallbackColor: string;
+  fallbackMark: string;
+  size: number;
+  rounded: string;
+};
+
+export function BrandLogo({ url, name, fallbackColor, fallbackMark, size, rounded }: BrandLogoProps) {
+  const brandLogoUrl = useContext(BrandLogoContext);
+  const domain = normalizeBrandDomain(url);
+  const src = domain ? brandLogoUrl(domain, size * 2) : null;
+
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
+  const failed = src !== null && failedSrc === src;
+
+  if (!src || failed) {
+    return (
+      <div
+        className={`flex shrink-0 items-center justify-center text-white ${rounded}`}
+        style={{
+          width: size,
+          height: size,
+          background: fallbackColor,
+          fontSize: Math.max(9, Math.round(size * 0.4)),
+          fontWeight: 600,
+          lineHeight: 1.25,
+        }}
+        aria-label={name}
+      >
+        {fallbackMark}
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={src}
+      alt={`${name} logo`}
+      width={size}
+      height={size}
+      loading="lazy"
+      referrerPolicy="no-referrer-when-downgrade"
+      onError={() => setFailedSrc(src)}
+      className={`shrink-0 bg-white object-contain ${rounded}`}
+      style={{ width: size, height: size }}
+    />
+  );
+}

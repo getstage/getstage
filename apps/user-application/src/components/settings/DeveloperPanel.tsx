@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { SettingsCard } from "./SettingsPrimitives";
+import { SettingsCard } from "@stage/project-ui/settings/SettingsPrimitives";
 
 export function DeveloperPanel() {
   return (

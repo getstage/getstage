@@ -1,4 +1,4 @@
-import { ArrowRightIcon, NotionIcon, PlusIcon } from "./researchIcons";
+import { ArrowRightIcon, NotionIcon, PlusIcon } from "@stage/project-ui/research";
 
 type ResearchActionsProps = {
   onAddSection: () => void;

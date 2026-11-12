@@ -1,7 +1,7 @@
 import { type ReactNode } from "react";
 import { DesktopUpdateBanner } from "@/components/app/DesktopUpdateBanner";
 import { StageSidebar } from "@/components/dashboard/StageSidebar";
-import { buildSidebarProjectsFromSummaries } from "@/lib/dashboard/projectContextDashboard";
+import { buildSidebarProjectsFromSummaries, getAccountInitials } from "@stage/project-ui/sidebar/projects";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { useProjectsQuery, useSettingsOverviewQuery } from "@/hooks/convex-data";
 import { useDesktopSession } from "@/hooks/engine/useDesktopSession";
@@ -55,16 +55,4 @@ export function WorkspaceFrame({
       </div>
     </div>
   );
-}
-
-function getAccountInitials(label: string) {
-  if (!label || label === "Not signed in") {
-    return "ST";
-  }
-
-  const [first, second] = label
-    .split(/[\s@._-]+/)
-    .filter(Boolean);
-
-  return `${first?.[0] ?? "S"}${second?.[0] ?? first?.[1] ?? "T"}`.toUpperCase();
 }

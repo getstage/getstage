@@ -1,5 +1,5 @@
 import { useState, type ChangeEvent, type DragEvent } from "react";
-import { PROJECT_ASSET_ACCEPT } from "@/lib/r2Uploads";
+import { PROJECT_ASSET_ACCEPT } from "@stage/project-ui/r2Uploads";
 import { useProjectAssetUploads } from "@/hooks/project/useProjectAssetUploads";
 
 type UploadSource = "figma" | "device";

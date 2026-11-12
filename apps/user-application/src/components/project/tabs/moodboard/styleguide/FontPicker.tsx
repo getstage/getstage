@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import { Check, UploadSimple } from "@phosphor-icons/react";
-import { GOOGLE_FONTS, ensureGoogleFont } from "@/lib/fonts/googleFonts";
-import type { UploadedFont } from "@/lib/fonts/uploadedFonts";
-import { STYLEGUIDE_FONT_ACCEPT } from "@/lib/r2Uploads";
+import { GOOGLE_FONTS } from "@stage/data-ops/domain/googleFonts";
+import { ensureGoogleFont } from "@stage/project-ui/fonts/googleFonts";
+import type { UploadedFont } from "@stage/project-ui/fonts/uploadedFonts";
+import { STYLEGUIDE_FONT_ACCEPT } from "@stage/project-ui/r2Uploads";
 import { cn } from "@/lib/utils";
-import { Icon } from "./fields";
+import { Icon } from "@stage/project-ui/moodboard/styleguide/fields";
 
 // Searchable font picker for the Style Guide: the team's uploaded fonts, then every
 // Google Font (most popular first). Only the first matches render; typing narrows it.

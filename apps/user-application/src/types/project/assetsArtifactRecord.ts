@@ -1,5 +1,5 @@
 import type { AssetsArtifact } from "@stage/data-ops/contracts";
-import type { AssetsTabData } from "@/types/project/assetsTab";
+import type { AssetsTabData } from "@stage/project-ui/assets/types";
 
 export type AssetsArtifactRecord = {
   id: string;

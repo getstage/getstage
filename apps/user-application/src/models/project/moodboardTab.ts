@@ -5,4 +5,4 @@ export type {
   MoodboardStyleGuideViewData,
   MoodboardTabData,
   MoodboardUploadedFileView,
-} from "@/types/project/moodboardTab";
+} from "@stage/project-ui/moodboard/types";

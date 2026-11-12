@@ -4,12 +4,12 @@ import { useCreditSummaryQuery, useSettingsOverviewQuery } from "@/hooks/convex-
 import {
   formatSubscriptionPeriodDate,
   subscriptionPeriodLabel,
-} from "@/lib/billing/subscriptionPeriodLabel";
+} from "@stage/project-ui/billing/subscriptionPeriodLabel";
 import {
   creditsUsedBarWidth,
   formatCreditsAmount,
   formatCreditsUsedLabel,
-} from "@/lib/billing/creditUsageDisplay";
+} from "@stage/project-ui/billing/creditUsageDisplay";
 
 type SidebarCreditsCardProps = {
   collapsed: boolean;

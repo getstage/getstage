@@ -1,7 +1,6 @@
 import { wireframesArtifactSchema, type WireframesArtifact, type WireframeBrandSource, type WireframeKind } from "@stage/data-ops/contracts";
-import { mapWireframesArtifactToTabData } from "@/lib/project/mapWireframesArtifactToTabData";
+import { mapWireframesArtifactToTabData, type ScreenItem } from "@stage/project-ui/wireframes";
 import type { WireframesArtifactRecord } from "@/types/project/wireframesArtifactRecord";
-import type { ScreenItem } from "@/types/project/wireframesTab";
 import { delay } from "@/mock/project/research";
 import {
   createMockWireframesArtifact,

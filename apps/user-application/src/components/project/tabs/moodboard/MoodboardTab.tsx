@@ -7,21 +7,21 @@ import {
   type MoodboardMode,
 } from "@/data/fixtures/project/moodboardTabFixtures";
 import { useMoodboardTab } from "@/hooks/project";
-import { getStyleGuideForDirection } from "@/lib/project/mapMoodboardArtifactToTabData";
-import { directionIdFromName } from "@/lib/project/moodboardBoardState";
+import { boardDirections, getStyleGuideForDirection } from "@stage/project-ui/moodboard/mapMoodboardArtifact";
+import { directionIdFromName } from "@stage/data-ops/domain";
 import type { Project } from "@/models/project/project";
-import type { MoodboardTabData } from "@/types/project/moodboardTab";
-import { DirectionHub, type Direction } from "./DirectionHub";
-import { DirectionToggle } from "./DirectionToggle";
+import type { MoodboardTabData } from "@stage/project-ui/moodboard/types";
+import { DirectionHub, type Direction } from "@stage/project-ui/moodboard/DirectionHub";
+import { DirectionToggle } from "@stage/project-ui/moodboard/DirectionToggle";
 import { FigmaLinkPanel, GenerateWithAiButton, GenerateWithAiPanel } from "./FigmaLinkPanel";
 import { FolderMenu } from "./FolderMenu";
 import { Footer } from "./Footer";
-import { Header } from "./Header";
+import { Header } from "@stage/project-ui/moodboard/Header";
 import { ModeToggle } from "./ModeToggle";
-import { MoodboardGrid } from "./MoodboardGrid";
+import { MoodboardGrid } from "@stage/project-ui/moodboard/MoodboardGrid";
 import { StyleGuideGenerating } from "./StyleGuideGenerating";
 import { StyleGuideEditor } from "./styleguide/StyleGuideEditor";
-import { DirectionIcon } from "./moodboardIcons";
+import { DirectionIcon } from "@stage/project-ui/moodboard/moodboardIcons";
 import { UploadDropzone } from "./UploadDropzone";
 import { TabLoadingState } from "../TabLoadingState";
 import { UploadedFilesList } from "./UploadedFilesList";
@@ -30,12 +30,6 @@ type MoodboardView = "board" | "hub" | "generating-style-guide" | "style-guide";
 
 function createFallbackItems(): MoodboardItem[] {
   return [];
-}
-
-const LEGACY_AUTO_DIRECTION_NAMES = new Set(["Direction 1", "Direction 2", "Direction 3"]);
-
-function isLegacyAutoDirection(name: string, usedDirectionNames: Set<string>, hasStyleGuide?: boolean) {
-  return LEGACY_AUTO_DIRECTION_NAMES.has(name) && !usedDirectionNames.has(name) && !hasStyleGuide;
 }
 
 function getMoodboardUiFromTabData(tabData: MoodboardTabData | undefined) {
@@ -50,17 +44,6 @@ function getMoodboardUiFromTabData(tabData: MoodboardTabData | undefined) {
     };
   }
 
-  const usedDirectionNames = new Set(
-    tabData.references
-      .map((reference) => reference.folder)
-      .filter((folder): folder is string => Boolean(folder)),
-  );
-  const styleGuideDirectionIds = new Set(
-    tabData.styleGuides.map((styleGuide) => styleGuide.directionId),
-  );
-  const directionHasStyleGuide = (name: string) =>
-    styleGuideDirectionIds.has(directionIdFromName(name));
-
   return {
     mode: (tabData.importMode === "url" ? "figma" : (tabData.importMode ?? "upload")) as MoodboardMode,
     hasUploadedFiles: tabData.uploadedFiles.length > 0,
@@ -71,14 +54,7 @@ function getMoodboardUiFromTabData(tabData: MoodboardTabData | undefined) {
       tabData.references.some((reference) => !reference.isInMoodboard),
     uploadedFiles: tabData.uploadedFiles as MoodboardUploadedFile[],
     items: tabData.references,
-    folders: tabData.directions
-      .filter((direction) =>
-        !isLegacyAutoDirection(direction.name, usedDirectionNames, directionHasStyleGuide(direction.name)),
-      )
-      .map((direction) => ({
-        name: direction.name,
-        hasStyleGuide: directionHasStyleGuide(direction.name),
-      })),
+    folders: boardDirections(tabData),
   };
 }
 

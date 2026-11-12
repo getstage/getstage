@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useSearch } from "@tanstack/react-router";
-import stageLogo from "@/assets/logos/stage-logo-light.png";
+import stageLogo from "@stage/project-ui/assets/stage-logo-light.png";
 import { useDesktopSession } from "@/hooks/engine/useDesktopSession";
 import { useDesktopBridge } from "@/hooks/useDesktopBridge";
 import { getSafeAuthRedirect } from "@/lib/authRedirect";

@@ -1,5 +1,5 @@
 import type { ChangeEvent, DragEvent } from "react";
-import { UploadFolderIcon } from "./assetsIcons";
+import { UploadFolderIcon } from "@stage/project-ui/assets/assetsIcons";
 
 export function UploadDropzone({
   accept,

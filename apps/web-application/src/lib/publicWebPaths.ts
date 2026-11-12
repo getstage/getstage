@@ -20,4 +20,7 @@ export const PUBLIC_WEB_PATHS: ReadonlySet<string> = new Set([
   "/setup-profile",
   // STA-63: "Choose how to use Stage" after sign-up; sends signed-out visitors to /auth.
   "/start",
+  // MCP: the web app (/app and every page under it, see webRoutePolicy) and the "Allow your AI tool" page; both send signed-out visitors to /auth.
+  "/app",
+  "/connect-ai",
 ]);

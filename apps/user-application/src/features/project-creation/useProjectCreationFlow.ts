@@ -4,7 +4,7 @@ import {
   dateRangeInputSchema,
   projectBasicsSchema,
   projectTypeSchema,
-} from "@/lib/validation";
+} from "@stage/project-ui/validation";
 import type { ProjectCategory } from "@/types";
 
 export type WorkflowStep = 1 | 2 | 3 | 4 | 5;

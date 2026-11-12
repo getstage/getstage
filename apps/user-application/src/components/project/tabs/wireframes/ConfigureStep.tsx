@@ -2,16 +2,7 @@ import { useState } from "react";
 import type { ProviderId } from "@stage/data-ops/contracts";
 import { AiRunSettings } from "@/components/project/AiRunSettings";
 import type { ResearchProviderOption } from "@/hooks/project/research/useResearchProviderSelection";
-import type { ScreenItem } from "@/types/project/wireframesTab";
-import { Badge, PrimaryButton, SecondaryButton } from "./WireframePrimitives";
-import {
-  ArrowLeftIcon,
-  ArrowRightIcon,
-  CheckIcon,
-  EditIcon,
-  PlusIcon,
-  TrashIcon,
-} from "./wireframesIcons";
+import { type ScreenItem, Badge, PrimaryButton, SecondaryButton, ArrowLeftIcon, ArrowRightIcon, CheckIcon, EditIcon, PlusIcon, TrashIcon } from "@stage/project-ui/wireframes";
 
 export type ScreenDraft = Pick<ScreenItem, "title" | "description" | "kind">;
 

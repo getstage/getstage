@@ -5,21 +5,19 @@ import {
   type StyleGuideSection,
   type StyleGuideSpec,
 } from "@stage/data-ops/contracts";
-import type { UploadedFont } from "@/lib/fonts/uploadedFonts";
-import type { ThemeMode } from "@/lib/project/styleGuideSpec";
-import type { MoodboardItem } from "@/types/project/moodboardTab";
+import type { UploadedFont } from "@stage/project-ui/fonts/uploadedFonts";
+import type { ThemeMode } from "@stage/project-ui/moodboard/styleGuideSpec";
+import type { MoodboardItem } from "@stage/project-ui/moodboard/types";
 import { cn } from "@/lib/utils";
 import { FontPicker } from "./FontPicker";
-import { AddButton, ColorInput, Field, Icon, Range, RemovableRow, Section, Segmented, Select, TextArea, TextInput, TextLink, ValueChip } from "./fields";
+import { AddButton, ColorInput, Field, Icon, Range, RemovableRow, Section, Segmented, Select, TextArea, TextInput, TextLink, ValueChip } from "@stage/project-ui/moodboard/styleguide/fields";
+import { MODES } from "@stage/project-ui/moodboard/styleguide/StyleGuideDialog";
 
 export type SpecUpdate = <S extends StyleGuideSection>(section: S, value: StyleGuideSpec[S]) => void;
 export type SectionProps = { spec: StyleGuideSpec; update: SpecUpdate };
 export type FontSectionProps = SectionProps & { uploadFont: (file: File) => Promise<UploadedFont> };
 
-export const MODES = [
-  { value: "light", label: "Light" },
-  { value: "dark", label: "Dark" },
-] as const;
+
 
 export function IntentSection({ spec, update }: SectionProps) {
   const set = (patch: Partial<StyleGuideSpec["intent"]>) => update("intent", { ...spec.intent, ...patch });

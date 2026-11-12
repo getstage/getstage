@@ -7,7 +7,7 @@ import {
 } from "@stage/data-ops/contracts";
 import type { Id } from "@stage/data-ops/convex/data-model";
 import { useDesktopAuth } from "@/lib/auth";
-import { mapResearchArtifactToTabData } from "@/lib/project/mapResearchArtifactToTabData";
+import { mapResearchArtifactToTabData } from "@stage/project-ui/research";
 import { api } from "@/lib/convexApi";
 import type { ResearchArtifactRecord } from "@/types/project/researchArtifactRecord";
 

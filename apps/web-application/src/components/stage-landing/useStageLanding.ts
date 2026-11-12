@@ -16,6 +16,8 @@ type StageConfig = {
 declare global {
   interface Window {
     STAGE_CONFIG?: StageConfig;
+    // Set by public/landing-preview/experience.js.
+    STAGE_LANDING_MOTION?: { start: () => void; stop: () => void };
   }
 }
 
@@ -155,6 +157,8 @@ export function useStageLanding({
     };
 
     retainStylesheets();
+    // Back on the landing after visiting the app: restart its smooth scrolling (stopped on leave).
+    if (experience) window.STAGE_LANDING_MOTION?.start();
     let cancelled = false;
     const timer = window.setTimeout(() => {
       if (!cancelled) void bootScripts(experience, () => cancelled);
@@ -163,6 +167,7 @@ export function useStageLanding({
     return () => {
       cancelled = true;
       window.clearTimeout(timer);
+      window.STAGE_LANDING_MOTION?.stop();
       html.classList.remove("stage-landing-page", "js");
       extraBodyClasses.forEach((name) => body.classList.remove(name));
       document.title = previousTitle;

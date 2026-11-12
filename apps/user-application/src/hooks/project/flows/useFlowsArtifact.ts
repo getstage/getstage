@@ -4,7 +4,7 @@ import { convexQuery } from "@convex-dev/react-query";
 import { flowsArtifactSchema, type FlowsArtifact } from "@stage/data-ops/contracts";
 import type { Id } from "@stage/data-ops/convex/data-model";
 import { useDesktopAuth } from "@/lib/auth";
-import { mapFlowsArtifactToTabData } from "@/lib/project/mapFlowsArtifactToTabData";
+import { mapFlowsArtifactToTabData } from "@stage/project-ui/flows/mapFlowsArtifact";
 import { SHOULD_QUERY_PROJECT_AI_ARTIFACTS } from "@/lib/project/shouldQueryProjectAiArtifacts";
 import { api } from "@/lib/convexApi";
 import type { FlowsArtifactRecord } from "@/types/project/flowsArtifactRecord";

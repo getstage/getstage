@@ -22,9 +22,9 @@ import {
   trackDatafastGoal,
   trackDatafastGoalOnce,
 } from "@/lib/datafast";
-import { isProjectUpgradeRequiredError, toUserFacingErrorMessage } from "@/lib/errors";
+import { isProjectUpgradeRequiredError, toUserFacingErrorMessage } from "@stage/project-ui/errors";
 import { openExternalLink } from "@/lib/settings/openExternalLink";
-import { googleSheetsUrlSchema } from "@/lib/validation";
+import { googleSheetsUrlSchema } from "@stage/project-ui/validation";
 import type { ClaudeConnectionSummary } from "@/types/settings";
 import type { ProjectType } from "@/types";
 

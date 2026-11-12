@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from '@tanstack/react-router';
 import { useQuery } from 'convex/react';
 import { makeFunctionReference } from 'convex/server';
 import type { Profile } from './MarketplaceState';
@@ -7,20 +8,28 @@ import { readLocalProfile } from './localProfile';
 
 const myProfile = makeFunctionReference<'query', Record<string, never>, Profile | null>('builderProfiles:mine');
 
-export function AccountMenu(_props: { mobile?: boolean }) {
+export function AccountMenu({ mobile = false }: { mobile?: boolean }) {
  const [mounted,setMounted]=useState(false);
  useEffect(()=>setMounted(true),[]);
- return mounted?<ConnectedAccount/>:<a className="nav-link login-link" href="/auth?mode=login&redirect=%2Fprofile">Log in</a>;
+ return mounted?<ConnectedAccount mobile={mobile}/>:<a className="nav-link login-link" href="/auth?mode=login">Log in</a>;
 }
-function ConnectedAccount() {
+function ConnectedAccount({ mobile }: { mobile: boolean }) {
  const {isAuthenticated,isLoading,user}=useAuth();
  const profile=useQuery(myProfile,isAuthenticated?{}:'skip');
  const localProfile=readLocalProfile();
  const preview=!!localProfile;
  const avatar=(isAuthenticated?profile?.customAvatar:localProfile?.customAvatar)||user?.avatarUrl;
- if(isAuthenticated||preview)return <a className="nav-link profile-nav-link" href={preview&&!isAuthenticated?'/profile?preview=1':'/profile'}><ProfileNavAvatar key={avatar || "placeholder"} src={avatar}/><span>My Profile</span></a>;
+ if(isAuthenticated&&mobile)return <><Link to="/app">Dashboard</Link><a href="/profile">My Profile</a></>;
+ if(isAuthenticated)return <SignedInMenu avatar={avatar}/>;
+ if(preview)return <a className="nav-link profile-nav-link" href="/profile?preview=1"><ProfileNavAvatar key={avatar || "placeholder"} src={avatar}/><span>My Profile</span></a>;
  if(isLoading)return <span className="nav-link" aria-label="Loading account" role="status" style={{width: 62, height: 14, borderRadius: 4, background: "rgba(255,255,255,.12)"}} />;
- return <a className="nav-link login-link" href="/auth?mode=login&redirect=%2Fprofile">Log in</a>;
+ return <a className="nav-link login-link" href="/auth?mode=login">Log in</a>;
+}
+
+// Dashboard (the signed-in app) and My Profile (collection, sharing, account). The Dashboard link stays in the
+// page, no reload: a reload while Convex Auth refreshes the session shows a "Leave page?" prompt.
+function SignedInMenu({avatar}:{avatar?:string}) {
+ return <><Link className="nav-link" to="/app">Dashboard</Link><a className="nav-link profile-nav-link" href="/profile"><ProfileNavAvatar key={avatar || "placeholder"} src={avatar}/><span>My Profile</span></a></>;
 }
 
 function ProfileNavAvatar({src}:{src?:string}) {

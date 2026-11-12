@@ -1,3 +1,5 @@
+import { ConnectMcpButton } from "./ConnectMcpButton";
+
 export function ClosingSection() {
   return (
     <>
@@ -12,14 +14,7 @@ export function ClosingSection() {
           What if the first prompt was the finished product?
         </h2>
         <div className="hero-actions">
-          <a
-            className="button button-neutral"
-            href="https://cal.com/adrien-ninet/stage-demo"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <span>Book a demo</span>
-          </a>
+          <ConnectMcpButton />
           <a className="button button-primary" href="/download">
             <svg
               className="icon"

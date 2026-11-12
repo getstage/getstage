@@ -90,6 +90,15 @@ export const moodboardStyleGuideSchema = z.object({
   spec: styleGuideSpecSchema.partial().optional(),
 });
 
+// What an AI writes for a style guide (Mac engine prompt or MCP). Stage adds the id, direction and grounding.
+export const generatedStyleGuideSchema = moodboardStyleGuideSchema
+  .omit({ id: true, directionId: true, projectCategory: true, categoryConventions: true, researchReferenceIds: true, implementationNotes: true, spec: true })
+  .extend({ title: z.string().min(1).optional() });
+
+// What an AI tool (MCP) saves: the generated guide plus the Style Guide editor's full spec (intent, tagged references,
+// light/dark colour roles, fonts, shape, rules, type scale, layout, motion, components).
+export const aiStyleGuideSchema = generatedStyleGuideSchema.extend({ spec: styleGuideSpecSchema });
+
 export const moodboardInputSchema = z.object({
   projectId: z.string().min(1),
   projectName: z.string().min(1),
@@ -122,5 +131,7 @@ export type MoodboardDirection = z.infer<typeof moodboardDirectionSchema>;
 export type MoodboardReference = z.infer<typeof moodboardReferenceSchema>;
 export type MoodboardUploadedFile = z.infer<typeof moodboardUploadedFileSchema>;
 export type MoodboardStyleGuide = z.infer<typeof moodboardStyleGuideSchema>;
+export type GeneratedStyleGuide = z.infer<typeof generatedStyleGuideSchema>;
 export type MoodboardInput = z.infer<typeof moodboardInputSchema>;
 export type MoodboardArtifact = z.infer<typeof moodboardArtifactSchema>;
+

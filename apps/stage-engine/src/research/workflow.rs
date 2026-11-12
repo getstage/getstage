@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::convex_store::app_secrets::AppSecretsRepository;
+use crate::convex_store::reference_relay::ReferenceRelay;
 use crate::convex_store::asset_upload::ConvexAssetUploader;
 use crate::convex_store::research_repository::{
     ResearchRepository, enrich_research_artifact, extract_json_object, extract_research_artifact,
@@ -42,7 +42,7 @@ const RESEARCH_PROVIDER_TIMEOUT: Duration = Duration::from_secs(600);
 #[derive(Clone, Debug)]
 pub struct ResearchWorkflow {
     repository: ResearchRepository,
-    secrets: AppSecretsRepository,
+    relay: ReferenceRelay,
     research: ResearchService,
     details: DetailsService,
     r2_public_base_url: Option<String>,
@@ -60,14 +60,14 @@ struct SectionRegenerateContext<'a> {
 impl ResearchWorkflow {
     pub fn new(
         repository: ResearchRepository,
-        secrets: AppSecretsRepository,
+        relay: ReferenceRelay,
         research: ResearchService,
         details: DetailsService,
         r2_public_base_url: Option<String>,
     ) -> Self {
         Self {
             repository,
-            secrets,
+            relay,
             research,
             details,
             r2_public_base_url,
@@ -488,6 +488,7 @@ impl ResearchWorkflow {
                         project_id,
                         convex_run_id.as_deref(),
                         &error.to_string(),
+                        false,
                     )
                     .await
                 {
@@ -518,19 +519,9 @@ impl ResearchWorkflow {
             return Ok(self.research.refero().with_fresh_call_counter());
         }
 
-        let token = self
-            .secrets
-            .fetch_refero_mcp_token(auth_token)
-            .await?
-            .ok_or_else(|| {
-                WorkflowError::InvalidRequest(
-                    "Refero is not configured for this Stage deployment.".to_string(),
-                )
-            })?;
-
         self.research
             .refero()
-            .with_token(token)
+            .with_endpoint(self.relay.refero_url(), auth_token.to_string())
             .map_err(|error| WorkflowError::InvalidRequest(error.to_string()))
     }
 
@@ -539,18 +530,8 @@ impl ResearchWorkflow {
             return Ok(self.details.clone());
         }
 
-        let token = self
-            .secrets
-            .fetch_details_mcp_token(auth_token)
-            .await?
-            .ok_or_else(|| {
-                WorkflowError::InvalidRequest(
-                    "Details is not configured for this Stage deployment.".to_string(),
-                )
-            })?;
-
         self.details
-            .with_token(token)
+            .with_endpoint(&self.relay.details_url(), auth_token)
             .map_err(|error| WorkflowError::InvalidRequest(error.to_string()))
     }
 
@@ -568,6 +549,7 @@ impl ResearchWorkflow {
                 project_id,
                 convex_run_id,
                 "Run cancelled by user.",
+                true,
             )
             .await
         {

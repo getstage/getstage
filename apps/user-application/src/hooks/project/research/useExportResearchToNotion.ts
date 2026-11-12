@@ -1,7 +1,8 @@
 import { useCallback, useState } from "react";
 import { useAction as useConvexAction, useConvexAuth, useQuery as useConvexQuery } from "convex/react";
 import { api } from "@/lib/convexApi";
-import { clearDesktopSessionIfExpired, toUserFacingErrorMessage } from "@/lib/errors";
+import { toUserFacingErrorMessage } from "@stage/project-ui/errors";
+import { clearDesktopSessionIfExpired } from "@/lib/sessionExpiry";
 import { openExternalLink } from "@/lib/settings/openExternalLink";
 import type { Id } from "@stage/data-ops/convex/data-model";
 

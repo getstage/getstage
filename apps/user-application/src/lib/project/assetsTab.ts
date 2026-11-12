@@ -29,9 +29,6 @@ export function formatBytes(bytes: number) {
   return `${Math.round((bytes / (1024 * 1024)) * 10) / 10}MB`;
 }
 
-export function formatUploadDate(timestamp: number) {
-  return new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" }).format(new Date(timestamp));
-}
 
 /** @deprecated Use createSeedWireframeAssets from assetsTabFixtures or useAssetsTab().tabData.wireframeAssets */
 export function buildAssetCards(assets: import("@/models/project/project").ProjectAsset[]) {

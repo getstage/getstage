@@ -1,7 +1,7 @@
 import * as Dialog from "@radix-ui/react-dialog";
 import { AnimatePresence, motion } from "motion/react";
 import { ArrowRight } from "@phosphor-icons/react";
-import stageLogo from "@/assets/logos/stage-logo-light.png";
+import stageLogo from "@stage/project-ui/assets/stage-logo-light.png";
 import { OnboardingStepRenderer } from "@/components/onboarding/OnboardingStepRenderer";
 import { StepDots } from "@/components/onboarding/OnboardingPrimitives";
 import { isSetupScreen, SETUP_PROGRESS_STEPS } from "@/features/onboarding/flow";

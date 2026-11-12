@@ -1,5 +1,5 @@
 import { useNavigate } from "@tanstack/react-router";
-import { SettingsIcon } from "@/components/settings/SettingsIcons";
+import { SettingsIcon } from "@stage/project-ui/settings/SettingsIcons";
 import { cn } from "@/lib/utils";
 
 export function ClientPortalTabBar({ activeTab }: { activeTab: "brand" | "projects" }) {

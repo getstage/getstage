@@ -256,6 +256,11 @@
   reducedMotion.addEventListener('change', configureMotion);
   document.fonts?.ready.then(scheduleScroll);
   configureMotion();
+  // The app is a single page: leaving the landing must stop smooth scrolling, or it takes over scrolling in /app.
+  window.STAGE_LANDING_MOTION = {
+    start: configureMotion,
+    stop() { lenis?.destroy(); lenis = null; },
+  };
 })();
 
 (() => {

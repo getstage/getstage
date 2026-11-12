@@ -289,6 +289,12 @@ export const researchArtifactSchema = z.object({
   generatedAt: z.number().int().nonnegative(),
 });
 
+// What an AI tool (MCP) sees in each UI pattern group Stage collected: 2–4 recognized patterns per group id.
+export const researchUiPatternInsightsSchema = z.array(z.object({
+  groupId: z.string().min(1),
+  patterns: z.array(z.object({ title: z.string().min(1), description: z.string().min(1) })).min(2).max(4),
+}));
+
 export const researchArtifactPatchSchema = z.object({
   artifactId: z.string().min(1),
   section: researchArtifactSectionSchema,

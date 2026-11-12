@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import type { AddFlowDraft, AddFlowStep } from "@/types/project/flowsTab";
-import { ArrowRightIcon, ChevronDownIcon, PlusIcon, StepsIcon } from "./flowsIcons";
+import { ArrowRightIcon, ChevronDownIcon, PlusIcon, StepsIcon } from "@stage/project-ui/flows/flowsIcons";
 
 const fieldClassName =
   "w-full rounded-[6px] bg-[#F5F5F5] px-3 py-[10px] text-[12px] font-medium leading-[1.25] text-[#171717] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] outline-none placeholder:text-[#525252]";

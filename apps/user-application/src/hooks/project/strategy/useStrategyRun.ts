@@ -7,7 +7,7 @@ import { useProviderPreferences } from "@/hooks/engine/useProviderPreferences";
 import { useProviderStatus } from "@/hooks/engine/useProviderStatus";
 import { useChatDefaults } from "@/hooks/engine/useChatDefaults";
 import { formatRunFailedEvent, STRATEGY_RUN_FAILED_USER_MESSAGE, toRunFailureUserMessage } from "@/lib/engine/formatRunError";
-import { toUserFacingErrorMessage } from "@/lib/errors";
+import { toUserFacingErrorMessage } from "@stage/project-ui/errors";
 import { buildRunModelOptions } from "@/lib/engine/runModelOptions";
 import {
   assertProviderPreflightReady,

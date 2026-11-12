@@ -1,4 +1,4 @@
-import { ArrowRightIcon } from "./moodboardIcons";
+import { ArrowRightIcon } from "@stage/project-ui/moodboard/moodboardIcons";
 
 export function Footer({
   hasMoodboard,

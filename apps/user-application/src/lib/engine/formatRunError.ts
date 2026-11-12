@@ -1,5 +1,5 @@
 import type { EngineError, ProviderId, RunEvent } from "@stage/data-ops/contracts";
-import { toUserFacingErrorMessage } from "@/lib/errors";
+import { toUserFacingErrorMessage } from "@stage/project-ui/errors";
 
 /** Shown in the Research UI when a run fails. Technical detail goes to the dev terminal only. */
 export const RESEARCH_RUN_FAILED_USER_MESSAGE =

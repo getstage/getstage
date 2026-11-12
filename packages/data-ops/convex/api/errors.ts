@@ -71,12 +71,18 @@ export function jsonError(
   );
 }
 
+// Errors thrown inside Convex functions arrive as "[Request ID: …] Server Error\nUncaught Error: <message>\n    at <file>:<line>".
+// API callers (and AI tools) get the message only, never internal file paths.
+export function publicMessage(raw: string) {
+  return /Uncaught (?:\w*Error): ([^\n]+)/.exec(raw)?.[1] ?? raw;
+}
+
 export function handleApiError(error: unknown, c: Context) {
   if (error instanceof ApiError) {
     return jsonError(c, error.status, error.message, error.code, error.details);
   }
 
-  const message = error instanceof Error ? error.message : "Internal server error.";
+  const message = error instanceof Error ? publicMessage(error.message) : "Internal server error.";
   const status = inferStatus(message);
 
   if (status >= 500) {
@@ -91,5 +97,8 @@ export const validationHook = (result: { success: boolean; error?: { issues: unk
     return;
   }
 
-  return jsonError(c, 400, "Invalid request.", "validation_error", result.error?.issues);
+  // Name the first problem in the message so the caller can fix it without reading the details.
+  const [first] = (result.error?.issues ?? []) as { path?: PropertyKey[]; message?: string }[];
+  const message = first?.message ? `${first.path?.length ? `${first.path.join(".")}: ` : ""}${first.message}` : "Invalid request.";
+  return jsonError(c, 400, message, "validation_error", result.error?.issues);
 };

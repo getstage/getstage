@@ -247,12 +247,25 @@ export async function createWorkspaceInviteRecord(
   args: { email: string; tokenHash: string },
 ) {
   const { owner } = await requireWorkspaceOwner(ctx);
-  return prepareInvite(ctx, {
-    owner,
-    email: args.email,
-    tokenHash: args.tokenHash,
-    projectName: "your workspace",
-  });
+  return prepareInvite(ctx, { owner, email: args.email, tokenHash: args.tokenHash, projectName: "your workspace" });
+}
+
+/** The same workspace invite, made by Stage for the owner (teammates entered during setup, once the plan is paid). */
+export async function createOwnerWorkspaceInviteRecord(
+  ctx: MutationCtx,
+  args: { ownerUserId: Id<"users">; email: string; tokenHash: string },
+) {
+  const owner = await ctx.db.get(args.ownerUserId);
+  if (!owner) throw new Error("User not found.");
+  return prepareInvite(ctx, { owner, email: args.email, tokenHash: args.tokenHash, projectName: "your workspace" });
+}
+
+/** Hands out the teammates saved during setup exactly once, so a repeated webhook never invites twice. */
+export async function takePendingInviteEmails(ctx: MutationCtx, ownerUserId: Id<"users">) {
+  const owner = await ctx.db.get(ownerUserId);
+  const emails = owner?.pendingInviteEmails ?? [];
+  if (emails.length > 0) await ctx.db.patch(ownerUserId, { pendingInviteEmails: undefined });
+  return emails;
 }
 
 export async function getWorkspaceInviteRateLimitContext(ctx: ReaderCtx, email: string) {

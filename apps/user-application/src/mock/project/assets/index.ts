@@ -1,5 +1,5 @@
 import { assetsArtifactSchema, type AssetsArtifact } from "@stage/data-ops/contracts";
-import { mapAssetsArtifactToTabData } from "@/lib/project/mapAssetsArtifactToTabData";
+import { mapAssetsArtifactToTabData } from "@stage/project-ui/assets/mapAssetsArtifact";
 import type { AssetsArtifactRecord } from "@/types/project/assetsArtifactRecord";
 import { createMockAssetsArtifact, mockAssetsArtifact, MOCK_ASSETS_PROJECT_ID } from "./assetsArtifact";
 

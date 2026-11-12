@@ -1,20 +1,24 @@
 /**
  * Project AI Convex endpoints — registered here only.
- * Logic: `lib/projectAi/handlers/*` + `lib/projectAi/domain/*`
+ * Logic: `lib/projectAi/<step>/*` (research, strategy, moodboard, flows, wireframes), `lib/projectAi/mcp/*`
+ * and `lib/projectAi/domain/*`. Background jobs are registered in `workflows/`.
  */
-import { internalMutation, internalQuery, mutation, query } from "./_generated/server";
+import { internalAction, internalMutation, internalQuery, mutation, query } from "./_generated/server";
 import { v } from "convex/values";
-import * as apiHandlers from "./lib/projectAi/handlers/api";
-import * as artifactHandlers from "./lib/projectAi/handlers/artifacts";
-import * as contextHandlers from "./lib/projectAi/handlers/context";
-import * as chatHandlers from "./lib/projectAi/handlers/chat";
-import * as flowsHandlers from "./lib/projectAi/handlers/flows";
-import * as flowsCanvasHandlers from "./lib/projectAi/handlers/flowsCanvas";
-import * as moodboardHandlers from "./lib/projectAi/handlers/moodboard";
-import * as researchHandlers from "./lib/projectAi/handlers/research";
-import * as runHandlers from "./lib/projectAi/handlers/runs";
-import * as strategyHandlers from "./lib/projectAi/handlers/strategy";
-import * as wireframesHandlers from "./lib/projectAi/handlers/wireframes";
+import * as apiHandlers from "./lib/projectAi/mcp/steps";
+import * as artifactHandlers from "./lib/projectAi/artifacts";
+import * as contextHandlers from "./lib/projectAi/context";
+import * as chatHandlers from "./lib/projectAi/chat";
+import * as flowsHandlers from "./lib/projectAi/flows/handlers";
+import * as flowsCanvasHandlers from "./lib/projectAi/flows/canvas";
+import * as moodboardHandlers from "./lib/projectAi/moodboard/handlers";
+import * as moodboardImportHandlers from "./lib/projectAi/moodboard/mcp";
+import * as researchHandlers from "./lib/projectAi/research/handlers";
+import * as researchStartHandlers from "./lib/projectAi/research/mcp";
+import * as runHandlers from "./lib/projectAi/runs";
+import * as runStatusHandlers from "./lib/projectAi/mcp/runStatus";
+import * as strategyHandlers from "./lib/projectAi/strategy/handlers";
+import * as wireframesHandlers from "./lib/projectAi/wireframes/handlers";
 
 export const getContext = query({
   args: contextHandlers.getContextArgs,
@@ -292,4 +296,49 @@ export const createArtifactForApi = internalMutation({
 export const upsertArtifactExportForApi = internalMutation({
   args: apiHandlers.upsertArtifactExportForApiArgs,
   handler: apiHandlers.upsertArtifactExportForApiHandler,
+});
+
+export const saveStepForApi = internalMutation({
+  args: apiHandlers.saveStepForApiArgs,
+  handler: apiHandlers.saveStepForApiHandler,
+});
+
+export const researchInputsForApi = internalQuery({
+  args: researchStartHandlers.researchInputsForApiArgs,
+  handler: researchStartHandlers.researchInputsForApiHandler,
+});
+
+export const saveResearchInputsForApi = internalMutation({
+  args: researchStartHandlers.saveResearchInputsForApiArgs,
+  handler: researchStartHandlers.saveResearchInputsForApiHandler,
+});
+
+export const startResearchForApi = internalMutation({
+  args: researchStartHandlers.startResearchForApiArgs,
+  handler: researchStartHandlers.startResearchForApiHandler,
+});
+
+export const startMoodboardImportForApi = internalMutation({
+  args: moodboardImportHandlers.startMoodboardImportForApiArgs,
+  handler: moodboardImportHandlers.startMoodboardImportForApiHandler,
+});
+
+export const closeAbandonedResearchRuns = internalMutation({
+  args: runHandlers.closeAbandonedResearchRunsArgs,
+  handler: runHandlers.closeAbandonedResearchRunsHandler,
+});
+
+export const runStatusForApi = internalQuery({
+  args: runStatusHandlers.runStatusForApiArgs,
+  handler: runStatusHandlers.runStatusForApiHandler,
+});
+
+export const searchReferencesForApi = internalAction({
+  args: moodboardImportHandlers.searchReferencesForApiArgs,
+  handler: moodboardImportHandlers.searchReferencesForApiHandler,
+});
+
+export const saveStyleGuideForApi = internalMutation({
+  args: moodboardImportHandlers.saveStyleGuideForApiArgs,
+  handler: moodboardImportHandlers.saveStyleGuideForApiHandler,
 });

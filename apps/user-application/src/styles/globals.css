@@ -1,4 +1,7 @@
 @import "tailwindcss";
+/* Shared project screens (Mac app and web app): their classes and the Style Guide preview tokens. */
+@import "../../../../packages/project-ui/src/moodboard/styleguide/theme.css";
+@source "../../../../packages/project-ui/src";
 
 @custom-variant dark (&:where(.dark, .dark *));
 
@@ -62,30 +65,6 @@
 
   /* Override Tailwind's default sans family with the Stage app font. */
   --default-font-family: var(--font-body);
-}
-
-/* shadcn/ui tokens for the Style Guide preview only. The preview element sets the
-   raw shadcn variables (--primary, --radius, ...) from the Direction; the sg- prefix
-   keeps them from colliding with Stage's own accent/border/destructive tokens. */
-@theme inline {
-  --color-sg-background: var(--background);
-  --color-sg-foreground: var(--foreground);
-  --color-sg-card: var(--card);
-  --color-sg-card-foreground: var(--card-foreground);
-  --color-sg-primary: var(--primary);
-  --color-sg-primary-foreground: var(--primary-foreground);
-  --color-sg-secondary: var(--secondary);
-  --color-sg-secondary-foreground: var(--secondary-foreground);
-  --color-sg-muted: var(--muted);
-  --color-sg-muted-foreground: var(--muted-foreground);
-  --color-sg-accent: var(--accent);
-  --color-sg-accent-foreground: var(--accent-foreground);
-  --color-sg-destructive: var(--destructive);
-  --color-sg-border: var(--border);
-  --color-sg-input: var(--input);
-  --color-sg-ring: var(--ring);
-  --radius-sg: var(--radius);
-  --radius-sg-button: var(--sg-button-radius);
 }
 
 /* ============================================================

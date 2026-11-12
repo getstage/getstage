@@ -7,7 +7,7 @@
  */
 
 import { z } from "zod";
-import { typeOtherLabelSchema } from "@/lib/validation";
+import { typeOtherLabelSchema } from "@stage/project-ui/validation";
 
 // --- Enums ---
 

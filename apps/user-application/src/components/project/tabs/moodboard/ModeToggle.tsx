@@ -1,5 +1,5 @@
 import type { MoodboardMode } from "@/data/fixtures/project/moodboardTabFixtures";
-import { FigmaIcon, UploadFromDeviceIcon } from "./moodboardIcons";
+import { FigmaIcon, UploadFromDeviceIcon } from "@stage/project-ui/moodboard/moodboardIcons";
 
 export function ModeToggle({
   mode,

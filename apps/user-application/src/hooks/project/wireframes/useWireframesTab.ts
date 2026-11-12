@@ -3,7 +3,7 @@ import type { ProviderId } from "@stage/data-ops/contracts";
 import { useProviderRequired } from "@/components/app/ProviderRequiredDialog";
 import { useProjectAiProvider } from "@/hooks/project/useProjectAiProvider";
 import type { Project } from "@/models/project/project";
-import type { ScreenItem } from "@/types/project/wireframesTab";
+import type { ScreenItem } from "@stage/project-ui/wireframes";
 import { useWireframesArtifact } from "./useWireframesArtifact";
 import { useWireframesRun } from "./useWireframesRun";
 

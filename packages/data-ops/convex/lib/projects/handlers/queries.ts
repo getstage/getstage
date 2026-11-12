@@ -17,8 +17,9 @@ const MAX_USER_TASKS_LIMIT = 200;
 export const listProjectsForApi = internalQuery({
   args: {
     userId: v.id("users"),
+    workspaceIds: v.optional(v.array(v.id("users"))),
   },
-  handler: async (ctx, args) => listProjectSummariesForUser(ctx, args.userId),
+  handler: async (ctx, args) => listProjectSummariesForUser(ctx, args.userId, args.workspaceIds),
 });
 
 export const listPhasesForApi = internalQuery({

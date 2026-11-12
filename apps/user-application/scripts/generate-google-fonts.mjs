@@ -1,10 +1,10 @@
-// Regenerates src/lib/fonts/googleFonts.json from Google's public font catalogue
+// Regenerates packages/data-ops/src/domain/googleFonts.json from Google's public font catalogue
 // (no API key). Run: node scripts/generate-google-fonts.mjs
 import { writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 
 const CATALOGUE_URL = "https://fonts.google.com/metadata/fonts";
-const output = fileURLToPath(new URL("../src/lib/fonts/googleFonts.json", import.meta.url));
+const output = fileURLToPath(new URL("../../../packages/data-ops/src/domain/googleFonts.json", import.meta.url));
 
 const response = await fetch(CATALOGUE_URL);
 if (!response.ok) throw new Error(`Font catalogue request failed: ${response.status}`);

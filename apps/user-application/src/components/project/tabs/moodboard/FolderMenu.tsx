@@ -1,4 +1,4 @@
-import { DirectionIcon, PlusIcon } from "./moodboardIcons";
+import { DirectionIcon, PlusIcon } from "@stage/project-ui/moodboard/moodboardIcons";
 
 export function FolderMenu({
   folders,

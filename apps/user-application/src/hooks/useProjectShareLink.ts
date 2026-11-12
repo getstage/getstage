@@ -3,7 +3,7 @@ import { useMutation } from "convex/react";
 import type { ProjectDetail } from "@stage/data-ops";
 import { parseConvexId } from "@stage/data-ops";
 import { api } from "@/lib/convexApi";
-import { toUserFacingErrorMessage } from "@/lib/errors";
+import { toUserFacingErrorMessage } from "@stage/project-ui/errors";
 import { resolvePortalShareUrl } from "@/lib/portal";
 
 type UseProjectShareLinkInput = {

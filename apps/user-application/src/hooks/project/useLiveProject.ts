@@ -12,7 +12,8 @@ import {
 import { z } from "zod";
 import { useDesktopAuth } from "@/lib/auth";
 import { api } from "@/lib/convexApi";
-import type { Phase, Project, Task } from "@/models/project/project";
+import { mapPhase } from "@stage/project-ui/kanban";
+import type { Project } from "@/models/project/project";
 
 const EMPTY_PHASES: PhaseSummary[] = [];
 const EMPTY_TASKS_BY_PHASE: { [phaseId: string]: TaskSummary[] } = {};
@@ -30,32 +31,6 @@ type LiveProjectData = {
   phases: PhaseSummary[];
   tasksByPhaseId: { [phaseId: string]: TaskSummary[] };
 };
-
-function mapTask(task: TaskSummary): Task {
-  return {
-    id: task.id,
-    title: task.title,
-    summary: task.summary,
-    content: task.summary,
-    hasContent: task.hasContent,
-    boardStatus: task.boardStatus ?? undefined,
-    isCompleted: task.isCompleted,
-    updatedAt: task.updatedAt,
-    assignees: task.assignees.map((assignee) => ({
-      name: assignee.name ?? "Stage",
-    })),
-  };
-}
-
-function mapPhase(phase: PhaseSummary, tasks: TaskSummary[]): Phase {
-  const sortedTasks = [...tasks].sort((a, b) => a.order - b.order);
-  return {
-    id: phase.id,
-    name: phase.name,
-    status: phase.status,
-    tasks: sortedTasks.map(mapTask),
-  };
-}
 
 function mapProject(data: LiveProjectData): Project {
   const sortedPhases = [...data.phases]

@@ -146,8 +146,8 @@ export function buildSettingsRedirect(
   status: "connected" | "error",
   reason?: string,
 ) {
-  const url = new URL("/settings", requireSiteUrl());
-  url.searchParams.set("tab", "integrations");
+  // Web users connect on the web app's Integrations page; Stage for Mac passes its own return URL.
+  const url = new URL("/app/integrations", requireSiteUrl());
   url.searchParams.set("integration", provider);
   url.searchParams.set("integration_status", status);
   if (reason) {

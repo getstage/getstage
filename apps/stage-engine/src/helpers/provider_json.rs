@@ -114,7 +114,10 @@ fn extract_json_object_matching(
         if let Some(value) = find_artifact_by_kind(trimmed, kind) {
             return Ok(value);
         }
-        bail!("provider output did not contain a valid {kind} artifact");
+        bail!(
+            "provider output did not contain a valid {kind} artifact ({})",
+            describe_output(trimmed)
+        );
     }
 
     if let Ok(value) = serde_json::from_str::<JsonValue>(trimmed)
@@ -132,6 +135,29 @@ fn extract_json_object_matching(
         .into_iter()
         .last()
         .context("provider output contained invalid JSON")
+}
+
+/// What the provider sent back when no artifact was found, short enough to keep on the run:
+/// its length, whether a JSON object was cut off, and how it ended. Never the whole output.
+fn describe_output(text: &str) -> String {
+    let cut_off = text
+        .match_indices('{')
+        .next()
+        .is_some_and(|(start, _)| matching_object_end(text, start).is_none());
+    let tail: String = text
+        .chars()
+        .rev()
+        .take(200)
+        .collect::<Vec<_>>()
+        .into_iter()
+        .rev()
+        .collect();
+    let tail = tail.split_whitespace().collect::<Vec<_>>().join(" ");
+    format!(
+        "{} chars{}; ends with: \"{tail}\"",
+        text.chars().count(),
+        if cut_off { ", JSON cut off" } else { "" }
+    )
 }
 
 fn find_artifact_by_kind(text: &str, kind: &str) -> Option<JsonValue> {
@@ -294,6 +320,21 @@ pub(crate) fn matching_object_end(text: &str, start: usize) -> Option<usize> {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn missing_research_artifact_error_describes_the_output() {
+        let error = super::extract_research_artifact(
+            "Here is the research: {\"artifactKind\": \"researchArtifact\", \"summary\": [",
+        )
+        .unwrap_err()
+        .to_string();
+        assert!(
+            error
+                .starts_with("provider output did not contain a valid researchArtifact artifact (")
+        );
+        assert!(error.contains("JSON cut off"));
+        assert!(error.contains("ends with: \"Here is the research:"));
+    }
+
     use super::*;
 
     #[test]

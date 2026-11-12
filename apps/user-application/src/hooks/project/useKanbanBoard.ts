@@ -11,10 +11,10 @@ import {
   KANBAN_COLUMNS,
   type BoardTask,
   type KanbanStatus,
-} from "@/lib/project/kanbanColumns";
+} from "@stage/project-ui/kanban";
 import { getKanbanDropTargetFromPoint } from "@/lib/project/kanbanDrag";
 import type { Phase } from "@/models/project/project";
-import type { KanbanDragPreview } from "@/components/project/kanban/KanbanTaskCard";
+import type { KanbanDragPreview } from "@stage/project-ui/kanban";
 
 export function useKanbanBoard(phases: Phase[], projectId?: string) {
   const initialColumns = useMemo(() => buildKanbanColumns(phases), [phases]);

@@ -80,6 +80,7 @@ export function applyFlowsCanvasEdit(artifact: FlowsArtifact, input: FlowsCanvas
   const board = getFlowCanvasBoard(flow, artifact.canvas);
   const steps = new Set(flow.steps.map((step) => step.id));
   if (edit.type === "addStep") return addStep(artifact, flow, board, edit);
+  if (edit.type === "removeStep") return removeStep(artifact, flow, board, edit.stepId);
   if (edit.type === "arrange") {
     const arranged = arrangeFlowBoard(flow, board, edit.direction);
     const next = { ...artifact, canvas: { version: 1 as const, boards: [...(artifact.canvas?.boards ?? []).filter((candidate) => candidate.flowId !== flow.id), arranged] } };
@@ -138,6 +139,40 @@ function addStep(
     ...artifact,
     flows: artifact.flows.map((candidate) => (candidate.id === flow.id ? nextFlow : candidate)),
     screens: [...artifact.screens, { id: screenId, title: edit.label, description: edit.label, flowCount: 1, keyElements: [] }],
+    canvas: { version: 1, boards: [...(artifact.canvas?.boards ?? []).filter((candidate) => candidate.flowId !== flow.id), nextBoard] },
+  };
+  validateFlowsCanvas(next);
+  return next;
+}
+
+// Removes a node, its position and every connection to or from it. Its screen goes too
+// unless another node still shows it.
+function removeStep(artifact: FlowsArtifact, flow: Flow, board: FlowCanvasBoard, stepId: string): FlowsArtifact {
+  const step = flow.steps.find((candidate) => candidate.id === stepId);
+  if (!step) return artifact;
+  const steps = flow.steps.filter((candidate) => candidate.id !== stepId);
+  const screenStillInFlow = steps.some((candidate) => candidate.screenId === step.screenId);
+  const nextFlow: Flow = {
+    ...flow,
+    screenCount: step.screenId && !screenStillInFlow ? Math.max(0, flow.screenCount - 1) : flow.screenCount,
+    steps,
+  };
+  const flows = artifact.flows.map((candidate) => (candidate.id === flow.id ? nextFlow : candidate));
+  const flowsShowing = (screenId: string) => flows.filter((candidate) => candidate.steps.some((entry) => entry.screenId === screenId)).length;
+  const screens = artifact.screens.flatMap((screen) => {
+    if (screen.id !== step.screenId) return [screen];
+    const flowCount = flowsShowing(screen.id);
+    return flowCount ? [{ ...screen, flowCount }] : [];
+  });
+  const nextBoard: FlowCanvasBoard = {
+    ...board,
+    positions: board.positions.filter((position) => position.stepId !== stepId),
+    edges: board.edges.filter((edge) => edge.source !== stepId && edge.target !== stepId),
+  };
+  const next: FlowsArtifact = {
+    ...artifact,
+    flows,
+    screens,
     canvas: { version: 1, boards: [...(artifact.canvas?.boards ?? []).filter((candidate) => candidate.flowId !== flow.id), nextBoard] },
   };
   validateFlowsCanvas(next);

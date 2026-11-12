@@ -1,7 +1,7 @@
 import { Email } from "@convex-dev/auth/providers/Email";
 import type { RandomReader } from "@oslojs/crypto/random";
 import { generateRandomString } from "@oslojs/crypto/random";
-import { enforceOtpRequestRateLimit } from "../platform/rateLimits";
+import { enforceOtpRequestRateLimit } from "../lib/rateLimits";
 import { normalizeEmailAddress } from "../userEmails";
 
 function getEnv(name: string) {

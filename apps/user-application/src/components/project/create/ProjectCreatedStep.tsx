@@ -1,4 +1,4 @@
-import stageLogoLight from "@/assets/logos/stage-logo-light.png";
+import stageLogoLight from "@stage/project-ui/assets/stage-logo-light.png";
 import { ArrowRightIcon } from "./CreateProjectPrimitives";
 
 export function ProjectCreatedStep({ onViewProject }: { onViewProject: () => void }) {

@@ -12,7 +12,7 @@ import {
   type StrategyGenerateFormValues,
   type ValidatedStrategyGenerateInput,
 } from "@/lib/project/strategyGenerateInput";
-import { ArrowRightIcon, PlusIcon } from "./strategyIcons";
+import { ArrowRightIcon, PlusIcon } from "@stage/project-ui/strategy";
 
 export function StrategyGenerateStep({
   isSubmitting,

@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { StageDatePicker } from "@/components/ui/StageDatePicker";
-import stageLogo from "@/assets/logos/stage-logo-light.png";
+import stageLogo from "@stage/project-ui/assets/stage-logo-light.png";
 import { cn } from "@/lib/utils";
 import type { OnboardingStepId } from "@/features/onboarding/model";
 

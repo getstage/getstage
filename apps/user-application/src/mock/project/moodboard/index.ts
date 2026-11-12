@@ -1,6 +1,6 @@
 import { moodboardArtifactSchema, type MoodboardArtifact } from "@stage/data-ops/contracts";
 import type { ValidatedMoodboardConfigureInput } from "@/lib/project/moodboardConfigureInput";
-import { mapMoodboardArtifactToTabData } from "@/lib/project/mapMoodboardArtifactToTabData";
+import { mapMoodboardArtifactToTabData } from "@stage/project-ui/moodboard/mapMoodboardArtifact";
 import type { MoodboardArtifactRecord } from "@/types/project/moodboardArtifactRecord";
 import { delay } from "@/mock/project/research";
 import {

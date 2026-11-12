@@ -1,14 +1,14 @@
-import { action, mutation, query } from "./_generated/server";
+import { action, internalAction, mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { requireAuthUser, requireWorkspaceOwner } from "./_helpers";
 import { internal } from "./_generated/api";
-import { enforceWorkspaceInviteRateLimit } from "./platform/rateLimits";
+import { enforceWorkspaceInviteRateLimit } from "./lib/rateLimits";
 import {
   buildWorkspaceInviteUrl,
   sendInviteEmail,
   toInviteErrorMessage,
-} from "./platform/inviteEmail";
-import { createInviteToken, hashInviteToken } from "./platform/inviteTokens";
+} from "./lib/invites/email";
+import { createInviteToken, hashInviteToken } from "./lib/invites/tokens";
 import {
   listPendingWorkspaceInvites,
   listWorkspaceMembers,
@@ -38,6 +38,26 @@ type AddWorkspaceMemberResult = {
 };
 
 type InviteRateLimitContext = { ownerId: string; recipientEmail: string };
+
+/** Creates the invite record with a fresh token, then emails the link. A failed email keeps the invite (resend works). */
+async function inviteAndEmail(
+  createRecord: (tokenHash: string) => Promise<AddedWorkspaceMemberPayload>,
+): Promise<AddWorkspaceMemberResult> {
+  const token = createInviteToken();
+  const member = await createRecord(await hashInviteToken(token));
+  try {
+    await sendInviteEmail({
+      email: member.recipientEmail,
+      inviterName: member.inviterName,
+      projectName: member.projectName,
+      inviteUrl: buildWorkspaceInviteUrl(token),
+    });
+    return { inviteId: member.inviteId, inviteSent: true };
+  } catch (error) {
+    console.error("Failed to send workspace invite email", error);
+    return { inviteId: member.inviteId, inviteSent: false, inviteError: toInviteErrorMessage(error) };
+  }
+}
 
 export const list = query({
   args: { ownerUserId: v.optional(v.id("users")) },
@@ -125,32 +145,27 @@ export const add = action({
       email: rateLimitContext.recipientEmail,
     });
 
-    const token = createInviteToken();
-    const tokenHash = await hashInviteToken(token);
-    const member = (await ctx.runMutation(
-      internal.domain.collaborators.invites.addWorkspaceRecord,
-      { ...args, tokenHash },
-    )) as AddedWorkspaceMemberPayload;
+    return inviteAndEmail(async (tokenHash) =>
+      (await ctx.runMutation(internal.domain.collaborators.invites.addWorkspaceRecord, { ...args, tokenHash })) as AddedWorkspaceMemberPayload);
+  },
+});
 
-    try {
-      await sendInviteEmail({
-        email: member.recipientEmail,
-        inviterName: member.inviterName,
-        projectName: member.projectName,
-        inviteUrl: buildWorkspaceInviteUrl(token),
-      });
-
-      return {
-        inviteId: member.inviteId,
-        inviteSent: true,
-      };
-    } catch (error) {
-      console.error("Failed to send workspace invite email", error);
-      return {
-        inviteId: member.inviteId,
-        inviteSent: false,
-        inviteError: toInviteErrorMessage(error),
-      };
+/**
+ * Invites the teammates entered during setup ("Invites go out once you've picked a plan"). Scheduled by the
+ * Stripe webhook when the subscription is created. One teammate failing (seat limit, already a member) doesn't
+ * stop the others.
+ */
+export const invitePendingTeammates = internalAction({
+  args: { ownerUserId: v.id("users") },
+  handler: async (ctx, { ownerUserId }) => {
+    const emails = await ctx.runMutation(internal.domain.collaborators.invites.takePendingEmails, { ownerUserId });
+    for (const email of emails) {
+      try {
+        await inviteAndEmail(async (tokenHash) =>
+          (await ctx.runMutation(internal.domain.collaborators.invites.addOwnerWorkspaceRecord, { ownerUserId, email, tokenHash })) as AddedWorkspaceMemberPayload);
+      } catch (error) {
+        console.error("Could not invite a teammate from setup", { ownerUserId, error: error instanceof Error ? error.message : error });
+      }
     }
   },
 });

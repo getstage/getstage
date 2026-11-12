@@ -1,6 +1,6 @@
 import type { DashboardMetric } from "@/models/dashboard/dashboard";
 import { cn } from "@/lib/utils";
-import { surfaceStyles, textStyles } from "@/styles/recipes";
+import { surfaceStyles, textStyles } from "@stage/project-ui/ui/recipes";
 
 export function MetricGrid({ metrics }: { metrics: DashboardMetric[] }) {
   return (

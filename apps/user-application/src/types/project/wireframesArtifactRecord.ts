@@ -1,5 +1,5 @@
 import type { WireframesArtifact } from "@stage/data-ops/contracts";
-import type { WireframesTabData } from "@/types/project/wireframesTab";
+import type { WireframesTabData } from "@stage/project-ui/wireframes";
 
 export type WireframesArtifactRecord = {
   id: string;

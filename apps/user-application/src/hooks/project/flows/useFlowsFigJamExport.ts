@@ -3,7 +3,7 @@ import { useQuery } from "convex/react";
 import type { CreateFigmaExportResponse } from "@stage/data-ops/contracts";
 import type { Id } from "@stage/data-ops/convex/data-model";
 import { api } from "@/lib/convexApi";
-import { toUserFacingErrorMessage } from "@/lib/errors";
+import { toUserFacingErrorMessage } from "@stage/project-ui/errors";
 
 export function useFlowsFigJamExport(projectId: string) {
   const [request, setRequest] = useState<CreateFigmaExportResponse | null>(null);

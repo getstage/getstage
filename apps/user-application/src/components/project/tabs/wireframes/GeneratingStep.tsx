@@ -1,5 +1,4 @@
-import { DoneCircleIcon, PendingIcon, SpinnerIcon } from "./wireframesIcons";
-import { SecondaryButton } from "./WireframePrimitives";
+import { DoneCircleIcon, PendingIcon, SpinnerIcon, SecondaryButton } from "@stage/project-ui/wireframes";
 
 export function GeneratingStep({
   onCancel,

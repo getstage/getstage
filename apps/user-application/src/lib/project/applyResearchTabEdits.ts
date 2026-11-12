@@ -1,5 +1,5 @@
 import type { ResearchArtifact } from "@stage/data-ops/contracts";
-import type { ResearchTabData } from "@/types/project/researchTab";
+import type { ResearchTabData } from "@stage/project-ui/research";
 
 function optionalText(value: string | null | undefined) {
   const trimmed = value?.trim();

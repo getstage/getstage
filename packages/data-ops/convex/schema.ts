@@ -868,13 +868,17 @@ export default defineSchema({
     .index("by_project", ["projectId"])
     .index("by_project_module", ["projectId", "module"])
     .index("by_project_startedAt", ["projectId", "startedAt"])
-    .index("by_user", ["userId"]),
+    .index("by_user", ["userId"])
+    // Finding runs that never finished (closeAbandonedResearchRuns).
+    .index("by_module_status_startedAt", ["module", "status", "startedAt"]),
 
   projectAiRunCheckpoints: defineTable({
     userId: v.id("users"),
     projectId: v.id("projects"),
     runId: v.id("projectAiRuns"),
-    kind: v.union(v.literal("design-plan"), v.literal("screen")),
+    // research-references: the UI pattern screens Stage collected for an AI tool's Research run.
+    // moodboard-import: what an AI tool's moodboard import added and which items failed.
+    kind: v.union(v.literal("design-plan"), v.literal("screen"), v.literal("research-references"), v.literal("moodboard-import")),
     screenId: v.optional(v.string()),
     contentJson: v.string(),
     createdAt: v.number(),
@@ -1062,12 +1066,32 @@ export default defineSchema({
     userId: v.id("users"),
     hashedKey: v.string(),
     name: v.string(),
+    // "mcp": created when the user connects an AI tool over MCP (one key per connection).
+    kind: v.optional(v.literal("mcp")),
+    // MCP keys only: the workspaces (owner user ids) and permissions the user allowed at sign-in
+    // (src/domain/mcpPermissions). mcpAccess is the older read / read + edit choice, kept for existing keys.
+    mcpWorkspaceIds: v.optional(v.array(v.id("users"))),
+    mcpPermissions: v.optional(v.array(v.string())),
+    mcpAccess: v.optional(v.union(v.literal("read"), v.literal("write"))),
     createdAt: v.number(),
     lastUsedAt: v.optional(v.number()),
     revokedAt: v.optional(v.number()),
   })
     .index("by_hashed_key", ["hashedKey"])
     .index("by_user", ["userId"]),
+
+  // One-time codes from the "Connect your AI tool" page to the MCP server (PKCE, 5 minutes).
+  mcpConnectCodes: defineTable({
+    userId: v.id("users"),
+    hashedCode: v.string(),
+    codeChallenge: v.string(),
+    clientName: v.string(),
+    workspaceIds: v.array(v.id("users")),
+    permissions: v.optional(v.array(v.string())),
+    access: v.optional(v.union(v.literal("read"), v.literal("write"))),
+    expiresAt: v.number(),
+    usedAt: v.optional(v.number()),
+  }).index("by_hashed_code", ["hashedCode"]),
 
   uploadedAssets: defineTable({
     userId: v.id("users"),

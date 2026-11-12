@@ -6,7 +6,10 @@ import { ProfileShareDialog } from "./ProfileShareDialogs";
 import { blank, countryName, countryOptions, fields, contacts, suggestedHandle, techId } from "./profileModel";
 import { RolePicker, ContactFields, TechnologyLabel, PhotoField } from "./ProfileFields";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { useMutation, useQuery } from "convex/react";
+import { useAction, useMutation, useQuery } from "convex/react";
+import { DeleteAccountDialog } from "@stage/project-ui/settings/DeleteAccountDialog";
+import { CANCELLATION_FORM_URL } from "@stage/project-ui/settings/accountConstants";
+import { api } from "@/lib/convex";
 import {
   MapPin,
   LockSimple,
@@ -192,6 +195,20 @@ export function ProfileView({
       if(import.meta.env.DEV)localStorage.setItem('stage-profile-preview-signed-out','1');
       window.location.assign('/');
     } catch {setLogoutError('Could not log out. Please try again.');setLoggingOut(false);}
+  }
+  // Delete account (web only): same dialog and backend action as Settings → Account.
+  const deleteAccount=useAction(api.settings.deleteAccount);
+  const [deleteOpen,setDeleteOpen]=useState(false);
+  const [deleting,setDeleting]=useState(false);
+  const [deleteError,setDeleteError]=useState<string|null>(null);
+  async function confirmDeleteAccount(confirmation:string){
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      await deleteAccount({confirmation});
+      await signOut();
+      window.location.assign('/');
+    } catch(error) {setDeleteError(error instanceof Error?error.message:'Could not delete account.');setDeleting(false);}
   }
   const saveProfile = useMutation(profileApi.save);
   const setSaved = useMutation(profileApi.setSaved);
@@ -399,7 +416,12 @@ export function ProfileView({
           )}
         </div>
         <div className="identity-actions">
-          {!publicMode && <button type="button" className="profile-logout" disabled={loggingOut} onClick={()=>{setLogoutError("");setLogoutOpen(true);}}><SignOut size={16}/>{loggingOut?'Logging out…':'Log out'}</button>}
+          {!publicMode && (
+            <span className="profile-logout-menu">
+              <button type="button" className="profile-logout" disabled={loggingOut} onClick={()=>{setLogoutError("");setLogoutOpen(true);}}><SignOut size={16}/>{loggingOut?'Logging out…':'Log out'}</button>
+              <button type="button" className="profile-delete-account" onClick={()=>{setDeleteError(null);setDeleteOpen(true);}}>Delete account</button>
+            </span>
+          )}
           {!publicMode && (
             <button className="button button-neutral" onClick={edit}>
               Edit profile
@@ -761,6 +783,7 @@ export function ProfileView({
           {setup && <p>Create your profile first to save a banner.</p>}
         </Modal>
       )}
+      {deleteOpen && <DeleteAccountDialog onCancel={()=>setDeleteOpen(false)} onOpenCancellationForm={()=>window.open(CANCELLATION_FORM_URL,'_blank','noopener')} onConfirm={(confirmation)=>void confirmDeleteAccount(confirmation)} error={deleteError} isDeleting={deleting}/>}
       {logoutOpen && <ProfileConfirmationDialog id="logout-dialog" icon={<SignOut size={32} aria-hidden="true"/>} title="Are you sure you want to log out?" description="You can log back in anytime to access your profile and saved collection." label="Log out" busyLabel="Logging out…" busy={loggingOut} error={logoutError} close={()=>setLogoutOpen(false)} confirm={()=>void logOut()}/>}
       {shareOpen && <ProfileShareDialog url={shareUrl} local={Boolean(localUpdate)} published={profile.published} close={() => setShareOpen(false)} edit={() => { setShareOpen(false); edit(); }} />}
       {remove && catalog.find(item=>item.id===remove) && <RemoveProfileItemDialog item={catalog.find(item=>item.id===remove)!} busy={busy} close={()=>setRemove(null)} confirm={()=>void changeItem(remove,false)}/>}

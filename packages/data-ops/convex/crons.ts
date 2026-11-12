@@ -18,4 +18,9 @@ crons.hourly("prune finalized emails", { minuteUTC: 23 }, internal.emails.cleanu
   limit: 200,
 });
 
+// Close Research runs that never finished (Stage for Mac quit mid-run, or an AI tool never saved).
+crons.hourly("close abandoned research runs", { minuteUTC: 41 }, internal.projectAi.closeAbandonedResearchRuns, {
+  limit: 200,
+});
+
 export default crons;

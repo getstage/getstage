@@ -1,5 +1,5 @@
 import { flowsArtifactSchema, type FlowsArtifact } from "@stage/data-ops/contracts";
-import { mapFlowsArtifactToTabData } from "@/lib/project/mapFlowsArtifactToTabData";
+import { mapFlowsArtifactToTabData } from "@stage/project-ui/flows/mapFlowsArtifact";
 import type { FlowsArtifactRecord } from "@/types/project/flowsArtifactRecord";
 import { createMockFlowsArtifact, mockFlowsArtifact, MOCK_FLOWS_PROJECT_ID } from "./flowsArtifact";
 

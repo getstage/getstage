@@ -4,7 +4,7 @@ import { convexTest } from "convex-test";
 import { makeFunctionReference } from "convex/server";
 import schema from "../convex/schema";
 import { flowsMarkdown } from "../../../apps/user-application/src/lib/project/projectExportMarkdown";
-import { getEnabledProjectTabs } from "../../../apps/user-application/src/lib/project/projectTabs";
+import { getEnabledProjectTabs } from "../../project-ui/src/project/tabs";
 import { flowsArtifactSchema, type FlowsArtifact } from "../src/contracts/flows";
 import { flowsCanvasEditSchema } from "../src/contracts/flows-canvas";
 import { applyFlowsCanvasEdit, arrangeFlowBoard, getFlowCanvasBoard, validateFlowsCanvas } from "../src/domain/flows-canvas";
@@ -51,6 +51,18 @@ describe("canvas contracts and operations", () => {
     expect(added.canvas?.boards[0].positions).toContainEqual({ stepId: "review", x: 700, y: 100 });
     expect(added.canvas?.boards[0].edges).toContainEqual({ source: "payment", target: "review" });
     expect(() => applyFlowsCanvasEdit(value, { ...addStep, stepId: "other", after: "missing" })).toThrow();
+  });
+  test("removes a step with its connections and its screen, idempotently", () => {
+    const value = artifact();
+    const removeStep = { type: "removeStep" as const, flowId: "checkout", stepId: "address" };
+    const removed = applyFlowsCanvasEdit(value, removeStep);
+    expect(applyFlowsCanvasEdit(removed, removeStep)).toBe(removed);
+    expect(removed.flows[0].steps.map((step) => step.id)).toEqual(["cart", "payment"]);
+    expect(removed.flows[0].screenCount).toBe(2);
+    expect(removed.screens.map((screen) => screen.id)).toEqual(["screen-cart", "screen-payment"]);
+    expect(removed.canvas?.boards[0].positions.map((position) => position.stepId)).toEqual(["cart", "payment"]);
+    expect(removed.canvas?.boards[0].edges).toEqual([]);
+    expect(() => validateFlowsCanvas(removed)).not.toThrow();
   });
   test("adapts legacy steps deterministically without mutating or migrating on read", () => {
     const value = artifact();

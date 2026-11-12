@@ -7,7 +7,19 @@ import {
 
 export const DEFAULT_POST_AUTH_PATH = "/download/mac";
 
-const ALLOWED_POST_AUTH_PATHS = new Set([DEFAULT_POST_AUTH_PATH, "/start", "/auth/desktop", "/profile", "/setup-profile"]);
+// The MCP sign-in page (/connect-ai) and the web app must survive a login, or the AI tool's sign-in never finishes.
+const ALLOWED_POST_AUTH_PATHS = new Set([
+  DEFAULT_POST_AUTH_PATH,
+  "/start",
+  "/auth/desktop",
+  "/profile",
+  "/setup-profile",
+  "/connect-ai",
+  "/app",
+  "/app/projects",
+  "/app/integrations",
+  "/app/settings",
+]);
 const INVITE_PATH_PATTERN = /^\/invite\/[A-Za-z0-9]+$/;
 
 function toAbsoluteRedirectTarget(value: string) {

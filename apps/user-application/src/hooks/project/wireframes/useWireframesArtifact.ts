@@ -4,7 +4,7 @@ import { convexQuery } from "@convex-dev/react-query";
 import { wireframesArtifactSchema, type WireframesArtifact } from "@stage/data-ops/contracts";
 import type { Id } from "@stage/data-ops/convex/data-model";
 import { useDesktopAuth } from "@/lib/auth";
-import { mapWireframesArtifactToTabData } from "@/lib/project/mapWireframesArtifactToTabData";
+import { mapWireframesArtifactToTabData } from "@stage/project-ui/wireframes";
 import { SHOULD_QUERY_PROJECT_AI_ARTIFACTS } from "@/lib/project/shouldQueryProjectAiArtifacts";
 import { api } from "@/lib/convexApi";
 import type { WireframesArtifactRecord } from "@/types/project/wireframesArtifactRecord";

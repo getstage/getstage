@@ -7,7 +7,8 @@
 | Layer | Path | Responsibility |
 |-------|------|----------------|
 | **Transport** | `convex/*.ts`, `convex/integrations/*.ts` | Register `query` / `mutation` / `action` / `httpAction` only. Max ~300 lines per file (`schema.ts` excepted). |
-| **Handlers** | `convex/lib/<feature>/handlers/` | `*Args` validators + `*Handler(ctx, args)` with DB and side effects. |
+| **Handlers** | `convex/lib/<feature>/handlers/` (Project AI: `convex/lib/projectAi/<step>/`) | `*Args` validators + `*Handler(ctx, args)` with DB and side effects. |
+| **Workflows** | `convex/workflows/` | Background jobs (Convex Workflow + its Workpool): register the job, its steps and its onComplete. Logic stays in handlers. |
 | **Domain** | `convex/lib/<feature>/domain/`, `convex/domain/` | Pure transforms, read-model builders, no Convex exports. |
 | **Models** | `convex/models/` | Shared TypeScript types and small validators for handlers (no `ctx`). |
 | **Helpers** | `convex/helpers/` | Pure utilities: env, time, CSV parse, OAuth PKCE, external API formatters (no `ctx`, no DB). |
@@ -15,7 +16,10 @@
 
 ## Reference implementations
 
-- **Gold standard:** [`projectAi.ts`](projectAi.ts) + [`lib/projectAi/handlers/`](lib/projectAi/handlers/) + [`lib/projectAi/domain/`](lib/projectAi/domain/)
+- **Gold standard:** [`projectAi.ts`](projectAi.ts) + [`lib/projectAi/`](lib/projectAi/) + [`lib/projectAi/domain/`](lib/projectAi/domain/)
+  - One folder per step: `research/`, `strategy/`, `moodboard/`, `flows/`, `wireframes/`. `handlers.ts` is the save path shared by Stage for Mac and the web/MCP; `mcp.ts` is code only AI tools (MCP) use.
+  - `mcp/`: the cross-step AI tool code (`steps.ts` saves any step, `runStatus.ts` reports a background job).
+  - `artifacts.ts`, `chat.ts`, `context.ts`, `runs.ts`: shared across steps.
 - **Rust analogue:** `apps/stage-engine/src/` — `models/`, `helpers/`, `service/`, `repository/`, thin `server/`
 
 ## Rules
