@@ -5,8 +5,8 @@ import { getDatafastCheckoutMetadata, trackDatafastGoal } from "@/lib/datafast";
 import { BillingPeriodToggle, PLANS, PLAN_FEATURES, PlanCard, type BillingCycle, type Tier } from "@stage/project-ui/billing/planCards";
 import { SetupScreen } from "./SetupScreens";
 
-// Copy of the Mac onboarding paywall. Stripe returns to /app (success or cancel).
-export function Paywall({ title = "Pick your Stage plan", beforeCheckout }: { title?: string; beforeCheckout?: () => Promise<unknown> }) {
+// Copy of the Mac onboarding paywall. Stripe returns to returnPath (default /app), with ?billing=success when paid.
+export function Paywall({ title = "Pick your Stage plan", beforeCheckout, returnPath }: { title?: string; beforeCheckout?: () => Promise<unknown>; returnPath?: string }) {
   const createCheckoutSession = useAction(api.billing.createCheckoutSession);
   const [billingPeriod, setBillingPeriod] = useState<BillingCycle>("monthly");
   const [loadingTier, setLoadingTier] = useState<Tier>();
@@ -24,6 +24,7 @@ export function Paywall({ title = "Pick your Stage plan", beforeCheckout }: { ti
         isTrial: true,
         source: "onboarding_paywall",
         platform: "web",
+        returnPath,
         ...getDatafastCheckoutMetadata(),
       });
       if (!result.url) throw new Error("Checkout URL missing.");

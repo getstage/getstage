@@ -14,9 +14,9 @@ import { ALL_MCP_PERMISSIONS, MCP_PERMISSIONS, mcpPermissionLabel, withNeeded, w
 type ConnectRequest = { state: string; challenge: string; client: string; domain?: string; redirectHost: string; local: boolean };
 
 export const Route = createFileRoute("/connect-ai")({
-  validateSearch: (search: Record<string, unknown>): Partial<Record<"state" | "challenge" | "client" | "domain" | "redirect_host" | "local", string>> => {
+  validateSearch: (search: Record<string, unknown>): Partial<Record<"state" | "challenge" | "client" | "domain" | "redirect_host" | "local" | "billing", string>> => {
     const read = (key: string) => (typeof search[key] === "string" ? (search[key] as string) : undefined);
-    return { state: read("state"), challenge: read("challenge"), client: read("client"), domain: read("domain"), redirect_host: read("redirect_host"), local: read("local") };
+    return { state: read("state"), challenge: read("challenge"), client: read("client"), domain: read("domain"), redirect_host: read("redirect_host"), local: read("local"), billing: read("billing") };
   },
   component: ConnectAiPage,
 });
@@ -36,7 +36,11 @@ function ConnectAiPage() {
     : undefined;
 
   if (!request) return <Navigate to="/app" replace />;
-  if (!hasMcpPlan(user.plan)) return <Paywall title={`Pick a plan to connect ${request.client}`} />;
+  if (!hasMcpPlan(user.plan)) {
+    // Checkout comes back here with the same request; wait for the plan instead of showing the paywall again.
+    if (search.billing === "success") return <PageLoading />;
+    return <Paywall title={`Pick a plan to connect ${request.client}`} returnPath={`${window.location.pathname}${window.location.search}`} />;
+  }
 
   return (
     <>

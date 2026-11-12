@@ -94,7 +94,14 @@ function toMilliseconds(timestampSeconds: number) {
   return timestampSeconds * 1000;
 }
 
-function getBillingUrls(platform?: "web" | "desktop") {
+// A Stage page to come back to after web checkout (the AI tool connect page), never another site.
+function sameSiteUrl(siteUrl: string, path: string) {
+  const url = new URL(path, siteUrl);
+  if (url.origin !== new URL(siteUrl).origin) throw new Error("Checkout can only return to a Stage page.");
+  return url;
+}
+
+function getBillingUrls(platform?: "web" | "desktop", returnPath?: string) {
   const siteUrl = requireSiteUrl();
   if (platform === "desktop") {
     // Desktop checkout opens in the external browser, so return to a PUBLIC page
@@ -105,6 +112,12 @@ function getBillingUrls(platform?: "web" | "desktop") {
       cancelUrl: `${siteUrl}/billing/return?status=cancel`,
       returnUrl: `${siteUrl}/billing/return?status=done`,
     };
+  }
+  if (returnPath) {
+    const back = sameSiteUrl(siteUrl, returnPath);
+    const success = new URL(back);
+    success.searchParams.set("billing", "success");
+    return { successUrl: success.toString(), cancelUrl: back.toString(), returnUrl: back.toString() };
   }
   return {
     successUrl: `${siteUrl}/app?billing=success`,
@@ -215,6 +228,8 @@ export const createCheckoutSessionArgs = {
   datafastVisitorId: v.optional(v.string()),
   datafastSessionId: v.optional(v.string()),
   platform: v.optional(v.union(v.literal("web"), v.literal("desktop"))),
+  // Web only: the Stage page checkout returns to (default /app), e.g. the AI tool connect page with its request.
+  returnPath: v.optional(v.string()),
 };
 
 type TopupSize = "small" | "medium" | "large";
@@ -308,11 +323,12 @@ export async function createCheckoutSessionHandler(
     datafastVisitorId?: string;
     datafastSessionId?: string;
     platform?: "web" | "desktop";
+    returnPath?: string;
   },
 ): Promise<CheckoutSessionResponse> {
   const viewer = (await ctx.runQuery(internal.onboarding.getViewerContext, {})) as ViewerContext;
   const kind = args.kind ?? "subscription";
-  const urls = getBillingUrls(args.platform);
+  const urls = getBillingUrls(args.platform, args.platform === "desktop" ? undefined : args.returnPath);
   const sdk = new Stripe(requireEnv("STRIPE_SECRET_KEY"));
 
   const customerId = await resolveCustomerId(ctx, sdk, viewer);
