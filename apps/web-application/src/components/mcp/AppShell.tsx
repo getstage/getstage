@@ -5,6 +5,7 @@ import { useSettingsOverviewQuery } from "@stage/project-ui/data/useSettingsOver
 import { buildSidebarProjectsFromSummaries, getAccountInitials } from "@stage/project-ui/sidebar/projects";
 import { SidebarAccountMenu } from "@stage/project-ui/sidebar/SidebarAccountMenu";
 import { SidebarCollapseControl } from "@stage/project-ui/sidebar/SidebarCollapseControl";
+import { SidebarCreditsCard } from "@stage/project-ui/sidebar/SidebarCreditsCard";
 import { SidebarNavigation } from "@stage/project-ui/sidebar/SidebarNavigation";
 import { SidebarSearch } from "@stage/project-ui/sidebar/SidebarSearch";
 import { useSidebarSearch } from "@stage/project-ui/sidebar/useSidebarSearch";
@@ -48,6 +49,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const accountLabel = profile?.name ?? "";
   // A project uses the Mac app's full-width step screens; the other pages keep the narrow Figma column.
   const wide = pathname.startsWith("/app/projects/");
+  const openBilling = () => void navigate({ to: "/app/settings", search: { tab: "billing" } });
   const openProject = (projectId: string) => {
     search.resetSearch();
     void navigate({ to: "/app/projects/$projectId", params: { projectId } });
@@ -93,6 +95,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
         </div>
         <div className={cn("mt-auto flex w-full shrink-0 flex-col gap-[clamp(8px,2vh,16px)] pt-[clamp(8px,2vh,16px)]", collapsed && "items-center")}>
+          <SidebarCreditsCard collapsed={collapsed} onTopUp={openBilling} onManagePlan={openBilling} />
           {!collapsed ? <div className="h-px w-full shrink-0 bg-[#E5E5E5]" /> : null}
           <SidebarAccountMenu
             collapsed={collapsed}

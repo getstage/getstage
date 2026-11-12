@@ -137,6 +137,17 @@ export async function syncSubscriptionMirrorHandler(
       stripeSubscriptionId: args.stripeSubscriptionId,
       stripePriceId: args.stripePriceId,
     });
+    // Keep the row's price current, so the old (known) price can't keep counting as the plan.
+    const row = (await ctx.db.query("subscriptions").withIndex("by_user", (q) => q.eq("userId", args.userId)).collect())
+      .find((entry) => entry.stripeSubscriptionId === args.stripeSubscriptionId);
+    if (row) {
+      await ctx.db.patch(row._id, {
+        stripePriceId: args.stripePriceId,
+        status: mapSubscriptionStatus(args.stripeStatus, args.cancelAtPeriodEnd),
+        updatedAt: now(),
+      });
+    }
+    await syncUserPlan(ctx, args.userId);
     return;
   }
 
@@ -192,13 +203,26 @@ export async function syncSubscriptionMirrorHandler(
     await ctx.db.insert("subscriptions", row);
   }
 
-  const user = await ctx.db.get(args.userId);
-  if (user) {
-    await ctx.db.patch(args.userId, {
-      plan,
-      updatedAt: timestamp,
-    });
-  }
+  await syncUserPlan(ctx, args.userId);
+}
+
+// Statuses that still give the user their plan (cancelling = cancelled at period end, still paid up).
+const PLAN_STATUSES = new Set<AppSubscriptionStatus>(["active", "trialing", "cancelling", "past_due"]);
+
+/**
+ * The user's plan comes from their live subscriptions with a recognised price only (the same rule as
+ * checkout and the billing screen), so a re-synced cancelled subscription or an unconfigured price can
+ * never keep or bring back a plan. None = free.
+ */
+async function syncUserPlan(ctx: MutationCtx, userId: Id<"users">) {
+  const user = await ctx.db.get(userId);
+  if (!user) return;
+  const rows = await ctx.db.query("subscriptions").withIndex("by_user", (q) => q.eq("userId", userId)).collect();
+  const live = rows
+    .filter((row) => PLAN_STATUSES.has(row.status as AppSubscriptionStatus) && tierForPriceId(row.stripePriceId))
+    .sort((a, b) => b.updatedAt - a.updatedAt)[0];
+  const plan = (live && tierForPriceId(live.stripePriceId)) ?? "free";
+  if (user.plan !== plan) await ctx.db.patch(userId, { plan, updatedAt: now() });
 }
 
 export const markSubscriptionMirrorCanceledArgs = {
@@ -229,11 +253,5 @@ export async function markSubscriptionMirrorCanceledHandler(
     ...(args.cancelReason ? { cancelReason: args.cancelReason } : {}),
     updatedAt: timestamp,
   });
-  const user = await ctx.db.get(args.userId);
-  if (user) {
-    await ctx.db.patch(args.userId, {
-      plan: "free",
-      updatedAt: timestamp,
-    });
-  }
+  await syncUserPlan(ctx, args.userId);
 }

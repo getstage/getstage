@@ -117,8 +117,13 @@ export async function startMoodboardImportForApiHandler(
     throw new Error("Save Strategy first: the Moodboard comes after Strategy.");
   }
   await requireCredits(ctx, project.userId, CREDIT_COSTS.moodboardFallback);
-  if (args.items.some((item) => item.kind === "figma") && !(await connectedFigmaAccessToken(ctx, args.userId))) {
-    throw new Error("Connect Figma in Stage first (Integrations → Figma), then add the Figma link again.");
+  if (args.items.some((item) => item.kind === "figma")) {
+    const figma = await connectedFigmaAccessToken(ctx, args.userId);
+    if (!figma) throw new Error("Connect Figma in Stage first (Integrations → Figma), then add the Figma link again.");
+    // Stage doesn't refresh Figma tokens yet; an expired one would only come back as a 403 later.
+    if (figma.accessTokenExpiresAt !== null && figma.accessTokenExpiresAt < Date.now()) {
+      throw new Error("Your Figma connection in Stage has expired. Reconnect Figma (Integrations → Figma), then add the Figma link again.");
+    }
   }
   const runId = await createRunRecord(ctx, {
     userId: args.userId,
@@ -171,7 +176,10 @@ export async function importMoodboardItemForApiHandler(
     }
   } catch (error) {
     const label = item.kind === "refero" ? item.screen.title : item.url;
-    return { references: [], failed: `${label} (${error instanceof Error ? error.message : "could not import"})` };
+    const reason = error instanceof Error ? error.message : "could not import";
+    // The job keeps going with the other items; this line makes the failure visible in the Convex logs.
+    console.warn("Moodboard import item failed", { kind: item.kind, projectId: args.projectId, reason });
+    return { references: [], failed: `${label} (${reason})` };
   }
 }
 
