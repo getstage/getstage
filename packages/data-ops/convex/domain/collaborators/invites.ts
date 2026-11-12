@@ -3,12 +3,14 @@ import { internalMutation, internalQuery } from "../../_generated/server";
 import {
   acceptWorkspaceInviteRecord,
   createProjectInviteRecord,
+  createOwnerWorkspaceInviteRecord,
   createWorkspaceInviteRecord,
   getProjectInviteRateLimitContext,
   getResendInviteRateLimitContext,
   getWorkspaceInviteRateLimitContext,
   getWorkspaceInvitePreview,
   refreshWorkspaceInviteRecord,
+  takePendingInviteEmails,
 } from "./service";
 
 export const addRecord = internalMutation({
@@ -34,6 +36,16 @@ export const addWorkspaceRecord = internalMutation({
     tokenHash: v.string(),
   },
   handler: async (ctx, args) => createWorkspaceInviteRecord(ctx, args),
+});
+
+export const addOwnerWorkspaceRecord = internalMutation({
+  args: { ownerUserId: v.id("users"), email: v.string(), tokenHash: v.string() },
+  handler: async (ctx, args) => createOwnerWorkspaceInviteRecord(ctx, args),
+});
+
+export const takePendingEmails = internalMutation({
+  args: { ownerUserId: v.id("users") },
+  handler: async (ctx, args) => takePendingInviteEmails(ctx, args.ownerUserId),
 });
 
 export const getWorkspaceRateLimitContext = internalQuery({
