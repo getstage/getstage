@@ -15,7 +15,7 @@ import { CREDITS_EXHAUSTED_EVENT } from "@stage/project-ui/errors";
 import { CreditsExhaustedModal } from "./sidebar/CreditsExhaustedModal";
 import { SidebarAccountMenu } from "@stage/project-ui/sidebar/SidebarAccountMenu";
 import { SidebarCollapseControl } from "@stage/project-ui/sidebar/SidebarCollapseControl";
-import { SidebarCreditsCard } from "./sidebar/SidebarCreditsCard";
+import { SidebarCreditsCard } from "@stage/project-ui/sidebar/SidebarCreditsCard";
 import { SidebarNavigation } from "@stage/project-ui/sidebar/SidebarNavigation";
 import { SidebarProjectList } from "./sidebar/SidebarProjectList";
 import { SidebarSpaceSelect } from "@stage/project-ui/workspace/SidebarSpaceSelect";

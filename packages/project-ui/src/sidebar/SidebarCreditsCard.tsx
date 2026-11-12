@@ -1,6 +1,7 @@
 import { useEffect, useState, type KeyboardEvent, type MouseEvent } from "react";
-import { cn } from "@/lib/utils";
-import { useCreditSummaryQuery, useSettingsOverviewQuery } from "@/hooks/convex-data";
+import { cn } from "../cn";
+import { useCreditSummaryQuery } from "../data/useCreditSummaryQuery";
+import { useSettingsOverviewQuery } from "../data/useSettingsOverviewQuery";
 import {
   formatSubscriptionPeriodDate,
   subscriptionPeriodLabel,
@@ -11,6 +12,7 @@ import {
   formatCreditsUsedLabel,
 } from "@stage/project-ui/billing/creditUsageDisplay";
 
+// Stage for Mac's "Credits Remaining" card, shared with the web sidebar.
 type SidebarCreditsCardProps = {
   collapsed: boolean;
   onTopUp: () => void;

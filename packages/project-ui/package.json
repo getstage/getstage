@@ -105,6 +105,7 @@
     "./sidebar/ProjectSearchPreview": "./src/sidebar/ProjectSearchPreview.tsx",
     "./sidebar/SidebarNavigation": "./src/sidebar/SidebarNavigation.tsx",
     "./sidebar/SidebarAccountMenu": "./src/sidebar/SidebarAccountMenu.tsx",
+    "./sidebar/SidebarCreditsCard": "./src/sidebar/SidebarCreditsCard.tsx",
     "./sidebar/projects": "./src/sidebar/projects.ts",
     "./ui/BackButton": "./src/ui/BackButton.tsx"
   },
