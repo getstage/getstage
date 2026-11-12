@@ -25,11 +25,10 @@ import {
 import { AddFlowModal } from "./AddFlowModal";
 import { FigJamExportDialog } from "./FigJamExportDialog";
 import { FlowHeaderActions, SendToFigJamButton } from "./FlowHeaderActions";
-import { FlowRow } from "./FlowRow";
-import { FlowIcon, ScreenIcon } from "./flowsIcons";
-import { ScreenFilter } from "./ScreenFilter";
-import { ScreensPanel } from "./ScreensPanel";
+import { FlowRow } from "@stage/project-ui/flows/FlowRow";
+import { ScreensPanel } from "@stage/project-ui/flows/ScreensPanel";
 import { TabLoadingState } from "../TabLoadingState";
+import { FlowsDetailsHeader } from "@stage/project-ui/flows/FlowsDetailsHeader";
 
 type FlowsTabProps = {
   project: Project;
@@ -112,7 +111,6 @@ export function FlowsTab({ project, projectCategory, onGoToResearch, onGoToStrat
   const approvedCount = flows.filter((flow) => flow.status.toLowerCase() === "approved").length;
   const flowTotal = flows.length;
   const screenTotal = screens.length;
-  const progress = flowTotal > 0 ? (approvedCount / flowTotal) * 100 : 0;
   const flowRunBusy = flowsRun.isRunning || flowsRun.isStarting;
   const visibleRunError = artifactRecord ? null : flowsRun.error;
   const canvasVisible = activePanelTab === "flows" && showCanvas;
@@ -385,76 +383,28 @@ export function FlowsTab({ project, projectCategory, onGoToResearch, onGoToStrat
             errorMessage={figJamExport.job?.errorMessage}
             snapshotOutdated={figJamExport.job?.snapshotOutdated}
           />
-          {!canvasVisible ? <>
-          <div className="flex flex-wrap items-end justify-between gap-5">
-            <div className="min-w-0">
-              <h2 className="font-heading text-[15px] font-medium leading-[1.25] text-[#171717]">
-                {label}
-              </h2>
-              <div className="mt-3 flex flex-wrap items-center gap-3 text-[13px] font-medium leading-[1.25] text-[#171717]">
-                <div className="h-[10px] w-[65px] overflow-hidden rounded-full bg-[#E5E5E5]">
-                  <div
-                    className="h-full rounded-full bg-[#16A34A]"
-                    style={{ width: `${progress}%` }}
-                  />
-                </div>
-                <span>{approvedCount} of {flowTotal} {projectCategory === "websites" ? "sitemaps" : "flows"} approved</span>
-                <span className="h-1 w-1 rounded-full bg-[#D4D4D4]" aria-hidden="true" />
-                <span className="text-[#737373]">{screenTotal} Unique screens identified</span>
-              </div>
-            </div>
-
-            {activePanelTab === "flows" ? (
-              <div className="flex flex-wrap items-center gap-2">
-                <button type="button" onClick={() => setShowCanvas((current) => !current)} className="h-8 rounded-[6px] bg-white px-3 text-[13px] font-medium text-[#525252] shadow-sm">
-                  {showCanvas ? "View details" : "View canvas"}
-                </button>
+          {!canvasVisible ? (
+            <FlowsDetailsHeader
+              category={projectCategory}
+              flowTotal={flowTotal}
+              approvedCount={approvedCount}
+              screenTotal={screenTotal}
+              panel={activePanelTab}
+              onPanelChange={(panel) => {
+                setActivePanelTab(panel);
+                if (panel === "screens") setEditingFlowId(null);
+              }}
+              onViewCanvas={() => setShowCanvas(true)}
+              actions={
                 <FlowHeaderActions
                   diagramLabel={diagramLabel}
                   onAddFlow={() => setAddFlowOpen(true)}
                   onSendToFigJam={() => void handleSendToFigJam()}
                   sendingToFigJam={figJamExport.isExporting}
                 />
-              </div>
-            ) : null}
-          </div>
-
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div className="flex items-start gap-1 rounded-[8px] bg-white p-[2px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
-              <button
-                type="button"
-                onClick={() => setActivePanelTab("flows")}
-                className={`inline-flex h-[32px] items-center gap-2 rounded-[6px] px-3 text-[13px] font-medium leading-[1.25] transition-colors ${
-                  activePanelTab === "flows"
-                    ? "bg-[#E5E5E5] text-[#171717] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]"
-                    : "text-[#737373] hover:bg-[#F5F5F5]"
-                }`}
-              >
-                <FlowIcon />
-                {label}
-                <span className="text-[#737373]">({flowTotal})</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setActivePanelTab("screens");
-                  setEditingFlowId(null);
-                }}
-                className={`inline-flex h-[32px] items-center gap-2 rounded-[6px] px-3 text-[13px] font-medium leading-[1.25] transition-colors ${
-                  activePanelTab === "screens"
-                    ? "bg-[#E5E5E5] text-[#171717] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]"
-                    : "text-[#737373] hover:bg-[#F5F5F5]"
-                }`}
-              >
-                <ScreenIcon />
-                Screens
-                <span>({screenTotal})</span>
-              </button>
-            </div>
-
-            {activePanelTab === "screens" ? <ScreenFilter screenTotal={screenTotal} /> : null}
-          </div>
-          </> : null}
+              }
+            />
+          ) : null}
 
           {canvasVisible ? (
             <FlowsCanvas
@@ -479,53 +429,56 @@ export function FlowsTab({ project, projectCategory, onGoToResearch, onGoToStrat
                   flow={flow}
                   index={index + 1}
                   expanded={expandedFlowId === flow.id}
-                  editing={editingFlowId === flow.id}
-                  regenerating={flowRunBusy}
-                  draftSteps={draftSteps[flow.id] ?? flow.steps ?? []}
                   onToggle={() => toggleFlow(flow.id)}
-                  onBeginEdit={() => beginEdit(flow)}
-                  onRegenerate={() => void regenerateFlow(flow.id)}
-                  onDraftStepChange={(stepIndex, value) => updateDraftStep(flow.id, stepIndex, value)}
-                  onStatusChange={(status) => updateFlowStatus(flow.id, status)}
-                  onDiscard={() => discardDraft(flow.id)}
-                  onSave={() => saveDraft(flow.id)}
+                  edit={{
+                    editing: editingFlowId === flow.id,
+                    regenerating: flowRunBusy,
+                    draftSteps: draftSteps[flow.id] ?? flow.steps ?? [],
+                    onBeginEdit: () => beginEdit(flow),
+                    onRegenerate: () => void regenerateFlow(flow.id),
+                    onDraftStepChange: (stepIndex, value) => updateDraftStep(flow.id, stepIndex, value),
+                    onStatusChange: (status) => updateFlowStatus(flow.id, status),
+                    onDiscard: () => discardDraft(flow.id),
+                    onSave: () => saveDraft(flow.id),
+                  }}
                 />
               ))}
             </div>
           ) : (
             <ScreensPanel
               screens={screens}
-              editingScreenId={editingScreenId}
-              draftScreenElements={draftScreenElements}
-              onBeginEdit={(screen) => {
-                setEditingScreenId(screen.id);
-                setDraftScreenElements((currentDrafts) => ({
-                  ...currentDrafts,
-                  [screen.id]: [...screen.keyElements],
-                }));
-              }}
-              onDraftElementChange={(screenId, elementIndex, value) => {
-                setDraftScreenElements((currentDrafts) => {
-                  const currentElements = currentDrafts[screenId] ?? screens.find((screen) => screen.id === screenId)?.keyElements ?? [];
-                  return {
+              edit={{
+                editingScreenId,
+                draftScreenElements,
+                onBeginEdit: (screen) => {
+                  setEditingScreenId(screen.id);
+                  setDraftScreenElements((currentDrafts) => ({
                     ...currentDrafts,
-                    [screenId]: currentElements.map((element, index) => (index === elementIndex ? value : element)),
-                  };
-                });
-              }}
-              onRegenerate={(screen) => {
-                void regenerateScreenElements(screen.id, screen.title);
-              }}
-              regenerating={flowRunBusy}
-              onDiscard={(screenId) => {
-                setDraftScreenElements((currentDrafts) => {
-                  const { [screenId]: _discarded, ...nextDrafts } = currentDrafts;
-                  return nextDrafts;
-                });
-                setEditingScreenId(null);
-              }}
-              onSave={(screenId) => {
-                const nextScreens = screens.map((screen) => {
+                    [screen.id]: [...screen.keyElements],
+                  }));
+                },
+                onDraftElementChange: (screenId, elementIndex, value) => {
+                  setDraftScreenElements((currentDrafts) => {
+                    const currentElements = currentDrafts[screenId] ?? screens.find((screen) => screen.id === screenId)?.keyElements ?? [];
+                    return {
+                      ...currentDrafts,
+                      [screenId]: currentElements.map((element, index) => (index === elementIndex ? value : element)),
+                    };
+                  });
+                },
+                onRegenerate: (screen) => {
+                  void regenerateScreenElements(screen.id, screen.title);
+                },
+                regenerating: flowRunBusy,
+                onDiscard: (screenId) => {
+                  setDraftScreenElements((currentDrafts) => {
+                    const { [screenId]: _discarded, ...nextDrafts } = currentDrafts;
+                    return nextDrafts;
+                  });
+                  setEditingScreenId(null);
+                },
+                onSave: (screenId) => {
+                  const nextScreens = screens.map((screen) => {
                     if (screen.id !== screenId) return screen;
                     return {
                       ...screen,
@@ -534,12 +487,13 @@ export function FlowsTab({ project, projectCategory, onGoToResearch, onGoToStrat
                         .filter(Boolean),
                     };
                   });
-                setScreens(nextScreens);
-                setEditingScreenId(null);
-                void persist(flows, nextScreens).catch((error) => {
-                  setEditingScreenId(screenId);
-                  setUiError(error instanceof Error ? error.message : "Could not save screen elements.");
-                });
+                  setScreens(nextScreens);
+                  setEditingScreenId(null);
+                  void persist(flows, nextScreens).catch((error) => {
+                    setEditingScreenId(screenId);
+                    setUiError(error instanceof Error ? error.message : "Could not save screen elements.");
+                  });
+                },
               }}
             />
           )}

@@ -12,13 +12,13 @@ import {
 } from "@/lib/project/moodboardBoardState";
 import type { ProviderId } from "@stage/data-ops/contracts";
 import { api } from "@/lib/convexApi";
-import { MOODBOARD_IMAGE_ACCEPT, createImageThumbnail, uploadFileToR2 } from "@/lib/r2Uploads";
+import { MOODBOARD_IMAGE_ACCEPT, createImageThumbnail, uploadFileToR2 } from "@stage/project-ui/r2Uploads";
 import { readFileAsDataUrl } from "@/lib/utils";
 import { useProviderRun } from "@/hooks/engine/useProviderRun";
 import { useProjectAiProvider } from "@/hooks/project";
 import { formatRunFailedEvent, toRunFailureUserMessage } from "@/lib/engine/formatRunError";
 import { resolveRunModelId } from "@/lib/engine/resolveRunModelId";
-import { toUserFacingErrorMessage } from "@/lib/errors";
+import { toUserFacingErrorMessage } from "@stage/project-ui/errors";
 import type { Project } from "@/models/project/project";
 import { useMoodboardArtifact } from "./useMoodboardArtifact";
 import { useSaveMoodboardArtifact } from "./useSaveMoodboardArtifact";

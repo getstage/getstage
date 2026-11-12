@@ -5,7 +5,7 @@ import { useMutation } from "convex/react";
 import { z } from "zod";
 
 import { useProjectsQuery, useSettingsOverviewQuery } from "@/hooks/convex-data";
-import { coveringPlan } from "@/models/settings/settings";
+import { coveringPlan } from "@stage/project-ui/settings/model";
 import { api } from "@/lib/convexApi";
 import { convexQueryKeys } from "@/lib/queryKeys";
 import {
@@ -13,7 +13,7 @@ import {
   preparePortalLogoUpload,
   uploadFileToR2,
   type PreparedUpload,
-} from "@/lib/r2Uploads";
+} from "@stage/project-ui/r2Uploads";
 import { Avatar } from "@stage/project-ui";
 import { ClientPortalTabBar } from "./ClientPortalTabBar";
 

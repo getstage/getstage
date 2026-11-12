@@ -1,4 +1,4 @@
-pub mod app_secrets;
+pub mod reference_relay;
 pub mod asset_upload;
 pub mod chat_repository;
 pub mod flows_repository;

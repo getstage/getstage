@@ -6,7 +6,7 @@ import {
 } from "@shared/models/desktop";
 import { useDesktopBridge } from "@/hooks/useDesktopBridge";
 import { formatAcceleratorLabel } from "@/lib/settings/formatAcceleratorLabel";
-import { SettingsCard, SettingsRow } from "./SettingsPrimitives";
+import { SettingsCard, SettingsRow } from "@stage/project-ui/settings/SettingsPrimitives";
 
 type ShortcutField = keyof DesktopShortcutSettings;
 

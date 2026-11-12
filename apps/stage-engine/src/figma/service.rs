@@ -49,9 +49,9 @@ impl FigmaService {
         }
 
         let link = parse_figma_link(figma_url)?;
+        // A picked frame (or section) is imported as one picture, not split into its children.
         let node_ids = if let Some(node_id) = &link.node_id {
-            self.fetch_selected_node_import_ids(access_token, &link.file_key, node_id)
-                .await?
+            vec![node_id.clone()]
         } else {
             self.fetch_top_level_node_ids(access_token, &link.file_key)
                 .await?
@@ -114,44 +114,6 @@ impl FigmaService {
         let mut node_ids = Vec::new();
         collect_frame_ids(&file.document, &mut node_ids);
         node_ids.truncate(MAX_FIGMA_IMPORTS);
-        Ok(node_ids)
-    }
-
-    async fn fetch_selected_node_import_ids(
-        &self,
-        access_token: &str,
-        file_key: &str,
-        node_id: &str,
-    ) -> anyhow::Result<Vec<String>> {
-        let nodes_url =
-            format!("{FIGMA_API_BASE_URL}/files/{file_key}/nodes?ids={node_id}&depth=2");
-        let nodes = self
-            .http
-            .get(nodes_url)
-            .bearer_auth(access_token.trim())
-            .send()
-            .await
-            .context("failed to fetch selected Figma node")?;
-        let nodes = require_figma_success(nodes, "Figma selected node request")
-            .await?
-            .json::<FigmaNodesResponse>()
-            .await
-            .context("failed to parse selected Figma node response")?;
-
-        let Some(node) = nodes.nodes.get(node_id) else {
-            return Ok(vec![node_id.to_string()]);
-        };
-
-        let mut node_ids: Vec<String> = node
-            .document
-            .children
-            .iter()
-            .map(|child| child.id.clone())
-            .take(MAX_FIGMA_IMPORTS)
-            .collect();
-        if node_ids.is_empty() {
-            node_ids.push(node_id.to_string());
-        }
         Ok(node_ids)
     }
 
@@ -219,17 +181,6 @@ async fn require_figma_success(
 
 #[derive(Debug, Deserialize)]
 struct FigmaFileResponse {
-    document: FigmaNode,
-}
-
-#[derive(Debug, Deserialize)]
-struct FigmaNodesResponse {
-    #[serde(default)]
-    nodes: HashMap<String, FigmaNodeDocument>,
-}
-
-#[derive(Debug, Deserialize)]
-struct FigmaNodeDocument {
     document: FigmaNode,
 }
 

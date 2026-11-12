@@ -36,6 +36,7 @@ stage_mvp/
 - `apps/user-application/docs/AI/desktop/2026-06-08!!!-PROJECT_OPERATING_PLAN.md`
 - `docs/2026-09-30!!!-AGENTIC_SIDEBAR_MCP_PLAN.md`
 - `docs/2026-11-02!!!-WORK_PLAN.md`
+- `docs/2026-11-07!!!-WEB_APP_SAME_AS_MAC_PLAN.md`
 
 ## Rules
 

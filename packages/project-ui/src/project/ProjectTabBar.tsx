@@ -61,3 +61,17 @@ export function ProjectTitle({ name, clientName, categoryLabel }: { name: string
     </div>
   );
 }
+
+// "Client Portal ↗" in the project header. Mac opens its preview route; the web opens the project's public portal.
+export function ClientPortalButton({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="inline-flex h-[27px] shrink-0 cursor-pointer items-center gap-2 rounded-[6px] px-[10px] py-[6px] text-[13px] font-medium leading-[1.25] text-[#525252] transition-colors hover:bg-[#F5F5F5]"
+    >
+      <span className="whitespace-nowrap">Client Portal</span>
+      <img src="/logos/dashboard/redirect.svg" alt="" aria-hidden="true" className="h-[15px] w-[15px] shrink-0" />
+    </button>
+  );
+}

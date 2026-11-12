@@ -8,4 +8,4 @@ export type {
   ExportOptionConfig,
   UploadedAssetRow,
   WireframeAssetCard,
-} from "@/types/project/assetsTab";
+} from "@stage/project-ui/assets/types";

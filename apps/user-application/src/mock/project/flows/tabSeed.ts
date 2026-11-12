@@ -1,6 +1,6 @@
 import type { ProjectFlow, ProjectScreen } from "@/models/project/project";
 import { mockFlowsArtifact } from "./flowsArtifact";
-import { mapFlowToProjectFlow, mapScreenToProjectScreen } from "@/lib/project/mapFlowsArtifactToTabData";
+import { mapFlowToProjectFlow, mapScreenToProjectScreen } from "@stage/project-ui/flows/mapFlowsArtifact";
 
 export function createSeedFlows(): ProjectFlow[] {
   return mockFlowsArtifact.flows.map(mapFlowToProjectFlow);

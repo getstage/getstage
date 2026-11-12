@@ -207,6 +207,7 @@ impl ResearchRepository {
         project_id: &str,
         run_id: Option<&str>,
         message: &str,
+        cancelled: bool,
     ) -> anyhow::Result<()> {
         let Some(run_id) = run_id else {
             return Ok(());
@@ -217,6 +218,8 @@ impl ResearchRepository {
         args.insert("projectId".to_string(), Value::from(project_id.to_string()));
         args.insert("runId".to_string(), Value::from(run_id.to_string()));
         args.insert("errorMessage".to_string(), Value::from(message.to_string()));
+        // A cancellation is stored as cancelled, so it doesn't count as a failed run.
+        args.insert("cancelled".to_string(), Value::from(cancelled));
 
         let result = client
             .mutation("projectAi:failResearchRun", args)

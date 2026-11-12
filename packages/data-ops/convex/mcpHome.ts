@@ -2,7 +2,7 @@ import { v } from "convex/values";
 import { query } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 import type { QueryCtx } from "./_generated/server";
-import { requireAuthUser, requireProjectAccessOrNull } from "./_helpers";
+import { getPortalConfigByProjectId, requireAuthUser, requireProjectAccessOrNull } from "./_helpers";
 import { listAccessibleProjectDocsForUser } from "./domain/projects/readModel";
 import { WORKFLOW_STEPS } from "../src/contracts/desktop-api/project";
 import { resolveProjectCategory } from "./lib/projects/domain/projectCategory";
@@ -60,6 +60,13 @@ export const getProject = query({
     const access = await requireProjectAccessOrNull(ctx, args.projectId);
     if (!access) return null;
     const { name, clientName, type, enabledSteps } = access.project;
-    return { name, clientName, category: resolveProjectCategory(type), enabledSteps: enabledSteps ?? [...WORKFLOW_STEPS] };
+    const portal = await getPortalConfigByProjectId(ctx, args.projectId);
+    return {
+      name,
+      clientName,
+      category: resolveProjectCategory(type),
+      enabledSteps: enabledSteps ?? [...WORKFLOW_STEPS],
+      portalUrl: portal?.isEnabled ? portal.shareUrl : null,
+    };
   },
 });

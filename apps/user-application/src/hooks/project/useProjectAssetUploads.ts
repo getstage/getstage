@@ -7,10 +7,11 @@ import {
   PROJECT_ASSET_ACCEPT,
   uploadFileToR2,
   validateUploadFile,
-} from "@/lib/r2Uploads";
-import { formatUploadDate, getProjectAssetSizeError } from "@/lib/project/assetsTab";
-import { toUserFacingErrorMessage } from "@/lib/errors";
-import type { UploadedAssetRow } from "@/types/project/assetsTab";
+} from "@stage/project-ui/r2Uploads";
+import { getProjectAssetSizeError } from "@/lib/project/assetsTab";
+import { formatUploadDate, uploadedRows } from "@stage/project-ui/assets/uploads";
+import { toUserFacingErrorMessage } from "@stage/project-ui/errors";
+import type { UploadedAssetRow } from "@stage/project-ui/assets/types";
 
 export function useProjectAssetUploads(onUploaded?: () => void, projectId?: string) {
   const r2GenerateUploadUrl = useConvexMutation(api.r2.generateUploadUrl);
@@ -24,14 +25,7 @@ export function useProjectAssetUploads(onUploaded?: () => void, projectId?: stri
   const [uploadedAssets, setUploadedAssets] = useState<UploadedAssetRow[]>([]);
   const [isDragActive, setIsDragActive] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
-  const persistedRows = (persistedAssets ?? []).map((asset) => ({
-    id: asset.id,
-    title: asset.title,
-    date: formatUploadDate(asset.createdAt),
-    status: "uploaded" as const,
-    url: asset.url,
-    mimeType: asset.mimeType,
-  }));
+  const persistedRows = uploadedRows(persistedAssets ?? []);
   // `uploadedAssets` only ever holds in-flight ("uploading") and failed rows — a successful
   // upload is removed (see uploadFiles) so the reactive listProjectAssets query is the single
   // owner of every persisted asset. No name-based dedup, so two same-named files coexist.

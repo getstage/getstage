@@ -17,7 +17,7 @@ import {
   getProviderLabel,
   isAllowedDesktopOAuthReturnUrl,
 } from "../../../../helpers/integrations/oauth";
-import { encryptSecret } from "../../../../lib/credentialVault";
+import { encryptSecret } from "../../../credentialVault";
 import type {
   NativeProvider,
   ViewerContext,

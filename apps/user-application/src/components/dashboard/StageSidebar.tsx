@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import type { DashboardProject } from "@/models/dashboard/dashboard";
-import { getActiveProjectId } from "@/lib/dashboard/sidebarNav";
+import { getActiveProjectId, isSidebarNavActive, SIDEBAR_NAV_ITEMS } from "@/lib/dashboard/sidebarNav";
 import {
   logoutFromSidebar,
   navigateSidebarRoute,
@@ -10,16 +10,16 @@ import {
   openSidebarSettings,
   viewAllSidebarProjects,
 } from "@/lib/dashboard/sidebarActions";
-import { useSidebarSearch } from "@/hooks/dashboard/useSidebarSearch";
-import { CREDITS_EXHAUSTED_EVENT } from "@/lib/errors";
+import { useSidebarSearch } from "@stage/project-ui/sidebar/useSidebarSearch";
+import { CREDITS_EXHAUSTED_EVENT } from "@stage/project-ui/errors";
 import { CreditsExhaustedModal } from "./sidebar/CreditsExhaustedModal";
-import { SidebarAccountMenu } from "./sidebar/SidebarAccountMenu";
-import { SidebarCollapseControl } from "./sidebar/SidebarCollapseControl";
+import { SidebarAccountMenu } from "@stage/project-ui/sidebar/SidebarAccountMenu";
+import { SidebarCollapseControl } from "@stage/project-ui/sidebar/SidebarCollapseControl";
 import { SidebarCreditsCard } from "./sidebar/SidebarCreditsCard";
-import { SidebarNavigation } from "./sidebar/SidebarNavigation";
+import { SidebarNavigation } from "@stage/project-ui/sidebar/SidebarNavigation";
 import { SidebarProjectList } from "./sidebar/SidebarProjectList";
-import { SidebarSpaceSelect } from "./sidebar/SidebarSpaceSelect";
-import { SidebarSearch } from "./sidebar/SidebarSearch";
+import { SidebarSpaceSelect } from "@stage/project-ui/workspace/SidebarSpaceSelect";
+import { SidebarSearch } from "@stage/project-ui/sidebar/SidebarSearch";
 import { useDesktopBridge } from "@/hooks/useDesktopBridge";
 import { cn } from "@/lib/utils";
 
@@ -108,7 +108,8 @@ export function StageSidebar({
 
           <SidebarNavigation
             collapsed={collapsed}
-            pathname={pathname}
+            items={SIDEBAR_NAV_ITEMS}
+            isActive={(routeKey) => isSidebarNavActive(routeKey, pathname)}
             onNavigate={(routeKey) => navigateSidebarRoute(navigate, routeKey)}
           />
         </div>

@@ -1,4 +1,8 @@
 import { z } from "zod";
+import { dashboardProjectSchema } from "@stage/project-ui/sidebar/projects";
+
+export { dashboardProjectSchema };
+export type { DashboardProject } from "@stage/project-ui/sidebar/projects";
 
 export const dashboardMetricSchema = z.object({
   id: z.string(),
@@ -7,17 +11,6 @@ export const dashboardMetricSchema = z.object({
   label: z.string(),
 });
 
-export const dashboardProjectSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  logoLabel: z.string(),
-  accentColor: z.string(),
-  projectImageUrl: z.string().optional(),
-  clientName: z.string().optional(),
-  phaseName: z.string().optional(),
-  startDate: z.number().optional(),
-  endDate: z.number().optional(),
-});
 
 export const dashboardTaskSchema = z.object({
   id: z.string(),
@@ -52,7 +45,6 @@ export const dashboardRevenueSchema = z.object({
 });
 
 export type DashboardMetric = z.infer<typeof dashboardMetricSchema>;
-export type DashboardProject = z.infer<typeof dashboardProjectSchema>;
 export type DashboardTask = z.infer<typeof dashboardTaskSchema>;
 export type DashboardChartPoint = z.infer<typeof dashboardChartPointSchema>;
 export type DashboardPipelineStage = z.infer<typeof dashboardPipelineStageSchema>;

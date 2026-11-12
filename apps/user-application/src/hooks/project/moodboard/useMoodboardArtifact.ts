@@ -4,7 +4,7 @@ import { convexQuery } from "@convex-dev/react-query";
 import { moodboardArtifactSchema, type MoodboardArtifact } from "@stage/data-ops/contracts";
 import type { Id } from "@stage/data-ops/convex/data-model";
 import { useDesktopAuth } from "@/lib/auth";
-import { mapMoodboardArtifactToTabData } from "@/lib/project/mapMoodboardArtifactToTabData";
+import { mapMoodboardArtifactToTabData } from "@stage/project-ui/moodboard/mapMoodboardArtifact";
 import { SHOULD_QUERY_PROJECT_AI_ARTIFACTS } from "@/lib/project/shouldQueryProjectAiArtifacts";
 import { api } from "@/lib/convexApi";
 import type { MoodboardArtifactRecord } from "@/types/project/moodboardArtifactRecord";

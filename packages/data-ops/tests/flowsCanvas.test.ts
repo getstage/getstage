@@ -4,7 +4,7 @@ import { convexTest } from "convex-test";
 import { makeFunctionReference } from "convex/server";
 import schema from "../convex/schema";
 import { flowsMarkdown } from "../../../apps/user-application/src/lib/project/projectExportMarkdown";
-import { getEnabledProjectTabs } from "../../../apps/user-application/src/lib/project/projectTabs";
+import { getEnabledProjectTabs } from "../../project-ui/src/project/tabs";
 import { flowsArtifactSchema, type FlowsArtifact } from "../src/contracts/flows";
 import { flowsCanvasEditSchema } from "../src/contracts/flows-canvas";
 import { applyFlowsCanvasEdit, arrangeFlowBoard, getFlowCanvasBoard, validateFlowsCanvas } from "../src/domain/flows-canvas";

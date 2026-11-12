@@ -1,9 +1,10 @@
 import { internal } from "../_generated/api";
 import { getAuthUserId } from "@convex-dev/auth/server";
-import { enforceApiRequestRateLimit } from "../platform/rateLimits";
+import { enforceApiRequestRateLimit } from "../lib/rateLimits";
 import { ApiError } from "./errors";
 import type { ApiAuthContext, ApiContext, McpScope } from "./types";
 import type { Id } from "../_generated/dataModel";
+import { mcpPermissionLabel, permissionsForWrite } from "../../src/domain/mcpPermissions";
 
 function getBearerToken(authorizationHeader: string | undefined) {
   if (!authorizationHeader) {
@@ -36,13 +37,19 @@ function asRateLimitMessage(error: unknown) {
   return message;
 }
 
-// MCP keys: only the workspaces and access level chosen at sign-in, and only the routes the MCP tools use.
+// MCP keys: only the workspaces and per-step permissions chosen at sign-in, and only the routes the MCP tools use.
 async function enforceMcpScope(c: ApiContext, userId: Id<"users">, mcp: McpScope) {
   const path = c.req.path.replace(/\/$/, "");
   const isWrite = c.req.method !== "GET";
-  if (isWrite && mcp.access === "read") {
-    throw new ApiError(403, "This AI tool has read-only access. Connect Stage again and choose read + edit.", "mcp_read_only");
+  if (isWrite) {
+    const needed = permissionsForWrite(path);
+    if (!needed) throw new ApiError(403, "AI tools can't make this change in Stage.", "mcp_not_allowed");
+    if (!needed.some((permission) => mcp.permissions.includes(permission))) {
+      const label = needed.map(mcpPermissionLabel).join(" or ");
+      throw new ApiError(403, `This AI tool isn't allowed to do ${label}. Connect Stage again and allow ${label}.`, "mcp_permission_denied");
+    }
   }
+  if (path === "/api/v1/references/search") return;
   if (path === "/api/v1/me" || (path === "/api/v1/projects" && !isWrite)) return;
   if (path === "/api/v1/projects" || path === "/api/v1/projects/import-plan") {
     if (mcp.workspaceIds.includes(userId)) return;

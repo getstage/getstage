@@ -1,6 +1,6 @@
 import { query } from "./_generated/server";
 import { requireAuthUser } from "./_helpers";
-import { buildDashboardOverview } from "./readmodels/dashboardOverview";
+import { buildDashboardOverview } from "./lib/dashboard/overview";
 
 export const getOverview = query({
   args: {},

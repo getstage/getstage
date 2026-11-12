@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ChangeEvent, type ReactNode } from "react";
 import { StageDatePicker } from "@/components/ui/StageDatePicker";
-import { AVATAR_ACCEPT, PROJECT_MARKER_ACCEPT } from "@/lib/r2Uploads";
+import { AVATAR_ACCEPT, PROJECT_MARKER_ACCEPT } from "@stage/project-ui/r2Uploads";
 import type {
   SaveClientProfileInput,
   SaveProjectProfileInput,

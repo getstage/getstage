@@ -5,7 +5,9 @@ import type { ActionCtx } from "../_generated/server";
 import { authenticateApiKey } from "./auth";
 import { createAgentRoutes } from "./routes/agent";
 import { createAiRoutes } from "./routes/ai";
-import { handleApiError, jsonError } from "./errors";
+import { handleApiError, jsonError, validationHook } from "./errors";
+import { referenceSearchBodySchema } from "./models";
+import { zValidator } from "@hono/zod-validator";
 import { createMeRoutes } from "./routes/me";
 import { createPhaseRoutes } from "./routes/phases";
 import { createProjectRoutes } from "./routes/projects";
@@ -44,6 +46,14 @@ export function createApiApp() {
     });
 
     return c.json({ user });
+  });
+
+  // Refero screen search for AI tools (MCP search_references); Stage's key stays on the backend.
+  app.post("/api/v1/references/search", zValidator("json", referenceSearchBodySchema, validationHook), async (c) => {
+    await authenticateApiKey(c);
+    const body = c.req.valid("json");
+    const screens = await c.env.runAction(internal.projectAi.searchReferencesForApi, body);
+    return c.json({ screens });
   });
 
   app.route("/api/v1/agent", createAgentRoutes());

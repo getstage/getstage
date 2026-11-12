@@ -11,14 +11,16 @@ import { router } from "./router";
 import { useRecordAppOpened } from "./hooks/useRecordAppOpened";
 import "./styles/globals.css";
 import "./styles/desktop.css";
-import { BrandLogoProvider } from "@stage/project-ui";
-import { brandLogoUrl } from "@/config/brandfetch";
+import { BrandLogoProvider, brandfetchLogoUrl } from "@stage/project-ui";
+import { MacPlatformProvider } from "@/lib/platform";
+import { setUploadTransport } from "@stage/project-ui/r2Uploads";
 
 if (new URLSearchParams(window.location.search).get("stageWindow") === "companion") {
   document.documentElement.classList.add("stage-companion-document");
   document.body.classList.add("stage-companion-body");
 }
 
+const brandLogoUrl = brandfetchLogoUrl(import.meta.env.VITE_BRANDFETCH_CLIENT_ID);
 const rootEl = document.getElementById("root");
 
 if (!rootEl) {
@@ -42,6 +44,14 @@ function IdentifyAnalyticsUser() {
   return null;
 }
 
+// R2 uploads go through the desktop bridge when it's there (the renderer can't PUT to R2 directly).
+const putR2Upload = window.stageDesktop?.storage?.putR2Upload;
+if (putR2Upload) {
+  setUploadTransport(async ({ uploadUrl, mimeType, file }) => {
+    await putR2Upload({ uploadUrl, mimeType, bytes: new Uint8Array(await file.arrayBuffer()) });
+  });
+}
+
 ReactDOM.createRoot(rootEl).render(
   <React.StrictMode>
     <ElectronAuthProvider>
@@ -50,9 +60,11 @@ ReactDOM.createRoot(rootEl).render(
           <DesktopAuthProvider>
             <RecordAppOpenedOnAuth />
             <IdentifyAnalyticsUser />
-            <BrandLogoProvider logoUrl={brandLogoUrl}>
-              <RouterProvider router={router} />
-            </BrandLogoProvider>
+            <MacPlatformProvider>
+              <BrandLogoProvider logoUrl={brandLogoUrl}>
+                <RouterProvider router={router} />
+              </BrandLogoProvider>
+            </MacPlatformProvider>
           </DesktopAuthProvider>
         </QueryClientProvider>
       </ConvexProviderWithAuth>

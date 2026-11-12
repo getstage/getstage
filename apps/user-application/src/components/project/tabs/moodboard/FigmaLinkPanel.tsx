@@ -1,4 +1,4 @@
-import { GenerateWithAiIcon } from "./moodboardIcons";
+import { GenerateWithAiIcon } from "@stage/project-ui/moodboard/moodboardIcons";
 
 export function GenerateWithAiButton({
   disabled,

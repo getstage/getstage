@@ -6,7 +6,7 @@ import {
 import { deleteGeneratedDesignsForProject } from "../../../integrations/stitch";
 import {
   deleteAllProjectAiData,
-} from "../../../lib/projectAi/domain/projectCleanup";
+} from "../../projectAi/domain/projectCleanup";
 import { now } from "../../../helpers/time";
 import { deleteOldR2Asset } from "../../../r2";
 

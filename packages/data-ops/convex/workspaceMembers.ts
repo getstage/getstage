@@ -2,13 +2,13 @@ import { action, mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { requireAuthUser, requireWorkspaceOwner } from "./_helpers";
 import { internal } from "./_generated/api";
-import { enforceWorkspaceInviteRateLimit } from "./platform/rateLimits";
+import { enforceWorkspaceInviteRateLimit } from "./lib/rateLimits";
 import {
   buildWorkspaceInviteUrl,
   sendInviteEmail,
   toInviteErrorMessage,
-} from "./platform/inviteEmail";
-import { createInviteToken, hashInviteToken } from "./platform/inviteTokens";
+} from "./lib/invites/email";
+import { createInviteToken, hashInviteToken } from "./lib/invites/tokens";
 import {
   listPendingWorkspaceInvites,
   listWorkspaceMembers,

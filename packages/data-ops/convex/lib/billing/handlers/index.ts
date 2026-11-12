@@ -113,8 +113,9 @@ function getBillingUrls(platform?: "web" | "desktop") {
   };
 }
 
+// Called from queries and actions; a query's runQuery also fits the action's (it only adds an optional option).
 async function loadSubscriptionByUserId(
-  ctx: Pick<QueryCtx, "runQuery">,
+  ctx: Pick<ActionCtx, "runQuery">,
   userId: string,
 ): Promise<SubscriptionSnapshot> {
   const subscriptions = (await ctx.runQuery(stripeComponent.public.listSubscriptionsByUserId, {
@@ -159,7 +160,7 @@ async function loadSubscriptionByUserId(
   };
 }
 
-export async function getCurrentSubscriptionSnapshot(ctx: Pick<QueryCtx, "runQuery">, userId: string) {
+export async function getCurrentSubscriptionSnapshot(ctx: Pick<ActionCtx, "runQuery">, userId: string) {
   return loadSubscriptionByUserId(ctx, userId);
 }
 

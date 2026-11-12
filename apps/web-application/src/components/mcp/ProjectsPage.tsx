@@ -8,7 +8,8 @@ import type { Id } from "@stage/data-ops/convex/data-model";
 import { api } from "@/lib/convex";
 import { formatRelative } from "@/lib/mcp";
 import { cn } from "@/lib/utils";
-import { PageHeader, useActiveSpace } from "./AppShell";
+import { useActiveSpace } from "@stage/project-ui/workspace/useActiveSpace";
+import { PageHeader } from "./AppShell";
 
 // Projects (Figma 2495-5463, tooltip 2495-5618).
 const NEW_PROJECT_PROMPT = "Start a new Stage project for my app. Use the Stage MCP: begin with Research, then follow Stage's steps.";
@@ -31,8 +32,8 @@ function progressText(steps: Step[]) {
 }
 
 export function ProjectsPage() {
-  const { active } = useActiveSpace();
-  const projects = useQuery(api.mcpHome.listProjectProgress, active ? { ownerUserId: active.ownerUserId } : "skip");
+  const { activeId } = useActiveSpace();
+  const projects = useQuery(api.mcpHome.listProjectProgress, activeId ? { ownerUserId: activeId } : "skip");
   const [creating, setCreating] = useState(false);
 
   return (
@@ -49,7 +50,7 @@ export function ProjectsPage() {
           </span>
         }
       />
-      {creating && active ? <NewProjectForm spaceOwnerId={active.ownerUserId} onCancel={() => setCreating(false)} /> : null}
+      {creating && activeId ? <NewProjectForm spaceOwnerId={activeId} onCancel={() => setCreating(false)} /> : null}
       {projects === undefined ? null : projects.length === 0 ? (
         <p className="rounded-[12px] border-[0.5px] border-[#D4D4D4] bg-[#F5F5F5] p-5 text-center text-[13px] font-medium text-[#737373]">
           No projects yet. Ask your AI to start a new Stage project.
@@ -97,7 +98,8 @@ export function ProjectsPage() {
 // Info icon with "Progress Information" on hover or focus. The AI tool per project isn't stored yet, so that row waits.
 function ProgressInfo({ work, updatedAt }: { work: string; updatedAt: number }) {
   return (
-    <span className="group relative z-10 flex">
+    // The open one sits above the next card's icon.
+    <span className="group relative z-10 flex hover:z-20 focus-within:z-20">
       <button type="button" aria-label="Progress information" className="flex rounded-full text-[#A3A3A3] hover:text-[#525252] focus-visible:text-[#525252]">
         <img src={infoIcon} alt="" className="size-3.5" />
       </button>

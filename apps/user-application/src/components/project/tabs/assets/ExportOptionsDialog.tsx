@@ -3,7 +3,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { PairingCodeCopy } from "@/components/ui/CopyButton";
 import { EXPORT_OPTIONS } from "@/lib/project/assetsTab";
 import type { CreateFigmaExportResponse } from "@stage/data-ops/contracts";
-import type { ExportOption, ExportOptionConfig, WireframeAssetCard } from "@/types/project/assetsTab";
+import type { ExportOption, ExportOptionConfig, WireframeAssetCard } from "@stage/project-ui/assets/types";
 
 export function ExportOptionsDialog({
   asset,

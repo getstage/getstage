@@ -3,14 +3,17 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { useMutation } from "convex/react";
 import { useQuery } from "convex-helpers/react/cache/hooks";
 import {
+  assetsArtifactSchema,
   flowsArtifactSchema,
+  moodboardArtifactSchema,
   parseResearchArtifactContent,
   strategyArtifactSchema,
   wireframesArtifactSchema,
   type ProjectCategory,
 } from "@stage/data-ops/contracts";
 import type { Id } from "@stage/data-ops/convex/data-model";
-import { ProjectTabBar, ProjectTitle, type ProjectTab } from "@stage/project-ui/project";
+import { directionIdFromName } from "@stage/data-ops/domain";
+import { ClientPortalButton, ProjectTabBar, ProjectTitle, type ProjectTab } from "@stage/project-ui/project";
 import {
   CompanySnapshot,
   CompetitiveAnalysis,
@@ -23,12 +26,33 @@ import {
   UiPatterns,
   type CompetitiveView,
 } from "@stage/project-ui/research";
+import { AssetCard } from "@stage/project-ui/assets/AssetCard";
+import { AssetCategoryTabs } from "@stage/project-ui/assets/AssetCategoryTabs";
+import { DocumentsGrid } from "@stage/project-ui/assets/DocumentsGrid";
+import { mapAssetsArtifactToTabData } from "@stage/project-ui/assets/mapAssetsArtifact";
+import { buildAssetsTabData } from "@stage/project-ui/assets/tabData";
+import type { AssetView } from "@stage/project-ui/assets/types";
+import { UploadedGrid } from "@stage/project-ui/assets/UploadedGrid";
+import { uploadedRows } from "@stage/project-ui/assets/uploads";
 import { FlowsCanvasView } from "@stage/project-ui/flows";
+import { FlowRow } from "@stage/project-ui/flows/FlowRow";
+import { FlowsDetailsHeader, type FlowPanel } from "@stage/project-ui/flows/FlowsDetailsHeader";
+import { mapFlowsArtifactToTabData } from "@stage/project-ui/flows/mapFlowsArtifact";
+import { ScreensPanel } from "@stage/project-ui/flows/ScreensPanel";
 import { KanbanBoardView, mapPhase } from "@stage/project-ui/kanban";
+import { DirectionHub } from "@stage/project-ui/moodboard/DirectionHub";
+import { DirectionToggle } from "@stage/project-ui/moodboard/DirectionToggle";
+import { Header as MoodboardHeader } from "@stage/project-ui/moodboard/Header";
+import { boardDirections, getStyleGuideForDirection, mapMoodboardArtifactToTabData } from "@stage/project-ui/moodboard/mapMoodboardArtifact";
+import { MoodboardGrid } from "@stage/project-ui/moodboard/MoodboardGrid";
+import { resolveStyleGuideSpec } from "@stage/data-ops/domain/styleGuideSpec";
+import type { ThemeMode } from "@stage/project-ui/moodboard/styleGuideSpec";
+import { StyleGuideDialog } from "@stage/project-ui/moodboard/styleguide/StyleGuideDialog";
 import { StrategyProgress, StrategySectionCard } from "@stage/project-ui/strategy";
 import { buildResultCards, mapWireframesArtifactToTabData, ResultsGrid } from "@stage/project-ui/wireframes";
 import { api } from "@/lib/convex";
 import { useDismiss } from "./useDismiss";
+import { BackButton } from "@stage/project-ui/ui/BackButton";
 
 // One project on the web: the Mac app's own step screens (shared from @stage/project-ui), read-only.
 // AI runs, editing and exports stay in Stage for Mac; the user's AI tool fills the steps through the MCP.
@@ -41,8 +65,10 @@ export function ProjectView({ projectId, tab }: { projectId: Id<"projects">; tab
     return <Notice>This project doesn't exist anymore, or it isn't shared with you. <Link to="/app/projects" className="underline">Back to Projects</Link></Notice>;
   }
   if (!project) return null;
+  const { portalUrl } = project;
   return (
     <>
+      <BackButton label="Back to projects" onClick={() => void navigate({ to: "/app/projects" })} />
       <section className="project-detail-header">
         <div className="project-header-primary">
           <ProjectTitle name={project.name} clientName={project.clientName} />
@@ -59,6 +85,11 @@ export function ProjectView({ projectId, tab }: { projectId: Id<"projects">; tab
               onTabChange={(next) => void navigate({ to: "/app/projects/$projectId", params: { projectId }, search: { tab: next }, replace: true })}
             />
           </div>
+          {portalUrl ? (
+            <div className="project-header-portal flex min-w-0 items-center justify-end gap-2">
+              <ClientPortalButton onClick={() => window.open(portalUrl, "_blank", "noopener")} />
+            </div>
+          ) : null}
         </div>
       </section>
       <TabPanel projectId={projectId} tab={tab} projectName={project.name} category={project.category} />
@@ -79,9 +110,9 @@ function TabPanel({ projectId, tab, projectName, category }: { projectId: Id<"pr
     case "overview":
       return <OverviewPanel projectId={projectId} />;
     case "moodboard":
-      return <Notice>The Moodboard and Style guide are made and viewed in <MacLink />.</Notice>;
+      return <MoodboardPanel projectId={projectId} projectName={projectName} />;
     case "assets":
-      return <Notice>Exports to Figma, Paper and code are in <MacLink />.</Notice>;
+      return <AssetsPanel projectId={projectId} />;
   }
 }
 
@@ -117,6 +148,98 @@ function OverviewPanel({ projectId }: { projectId: Id<"projects"> }) {
     .sort((a, b) => a.order - b.order)
     .map((phase) => mapPhase(phase, data.tasks.filter((task) => task.phaseId === phase.id)));
   return <KanbanBoardView phases={phases} />;
+}
+
+type MoodboardView = { kind: "hub" } | { kind: "board"; direction?: string } | { kind: "style-guide"; direction: string };
+
+// Same Moodboard as Stage for Mac, read-only: the directions, their images and each direction's style guide.
+// AI tools add images and style guides through the MCP (add_to_moodboard, save_style_guide).
+function MoodboardPanel({ projectId, projectName }: { projectId: Id<"projects">; projectName: string }) {
+  const moodboard = parseSaved(useQuery(api.projectAi.getLatestMoodboardArtifact, { projectId }), moodboardArtifactSchema);
+  const [view, setView] = useState<MoodboardView>({ kind: "hub" });
+  const [mode, setMode] = useState<ThemeMode>("light");
+  if (moodboard === undefined) return null;
+  if (!moodboard) return <NotYet step="Moodboard" projectName={projectName} />;
+
+  const tabData = mapMoodboardArtifactToTabData(moodboard.data);
+  const directions = boardDirections(tabData);
+  const images = tabData.references.filter((reference) => reference.isInMoodboard);
+
+  if (view.kind === "style-guide") {
+    const guide = getStyleGuideForDirection(tabData, directionIdFromName(view.direction));
+    const references = images.filter((reference) => reference.folder === view.direction);
+    if (guide) {
+      return (
+        <StyleGuideDialog
+          spec={resolveStyleGuideSpec(guide, view.direction, references)}
+          references={references}
+          mode={mode}
+          onModeChange={setMode}
+          onBack={() => setView({ kind: "hub" })}
+        />
+      );
+    }
+  }
+
+  return (
+    <section className="flex w-full flex-col gap-1 rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
+      <MoodboardHeader description="References your AI tool or team collected, grouped in directions." />
+      {view.kind === "board" ? (
+        <div className="relative flex flex-col gap-2 rounded-[10px] bg-white p-4 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
+          <DirectionToggle activeView="all" onAll={() => setView({ kind: "board" })} onDirectionHub={() => setView({ kind: "hub" })} />
+          <MoodboardGrid items={view.direction ? images.filter((reference) => reference.folder === view.direction) : images} />
+        </div>
+      ) : (
+        <DirectionHub
+          directions={directions}
+          items={images}
+          onAll={() => setView({ kind: "board" })}
+          onOpenDirection={(direction) => setView({ kind: "board", direction })}
+          onGenerateStyleGuide={(direction) => setView({ kind: "style-guide", direction })}
+          canGenerateStyleGuide={false}
+        />
+      )}
+    </section>
+  );
+}
+
+// Same Assets tab as Stage for Mac, without uploading and exporting (those need the Mac app).
+function AssetsPanel({ projectId }: { projectId: Id<"projects"> }) {
+  const saved = parseSaved(useQuery(api.projectAi.getLatestAssetsArtifact, { projectId }), assetsArtifactSchema);
+  const wireframesRecord = useQuery(api.projectAi.getLatestWireframesArtifact, { projectId });
+  const wireframes = parseSaved(wireframesRecord, wireframesArtifactSchema);
+  const uploads = useQuery(api.r2.listProjectAssets, { projectId });
+  const [view, setView] = useState<AssetView>("wireframes");
+  if (saved === undefined || wireframes === undefined || uploads === undefined) return null;
+
+  const tabData = buildAssetsTabData({
+    saved: saved && mapAssetsArtifactToTabData(saved.data),
+    wireframes: wireframes && wireframesRecord ? { id: wireframesRecord.id, artifact: wireframes.data } : null,
+    uploadedCount: uploads.length,
+  });
+  const title = tabData.categories.find((category) => category.id === view)?.label ?? "Documents";
+  return (
+    <section className="flex w-full flex-col gap-[18px]">
+      <div className="overflow-hidden rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
+        <div className="flex flex-col gap-1">
+          <div className="flex items-end justify-between p-4">
+            <div className="flex min-w-0 flex-1 flex-col gap-4">
+              <h2 className="font-heading text-[15px] font-medium leading-[1.25] text-[#171717]">{title}</h2>
+              <AssetCategoryTabs categories={tabData.categories} activeView={view} onChange={setView} />
+            </div>
+          </div>
+          {view === "documents" ? <DocumentsGrid documents={tabData.documents} /> : null}
+          {view === "uploaded" ? <UploadedGrid uploads={uploadedRows(uploads)} /> : null}
+          {view === "wireframes" ? (
+            <div className="grid gap-1 lg:grid-cols-3">
+              {tabData.wireframeAssets.map((asset) => <AssetCard key={asset.id} asset={asset} />)}
+            </div>
+          ) : null}
+        </div>
+      </div>
+      <Notice>Uploading files and exporting to Figma, Paper or code are in <MacLink />.</Notice>
+    </section>
+  );
 }
 
 function ResearchPanel({ projectId, projectName }: { projectId: Id<"projects">; projectName: string }) {
@@ -179,11 +302,53 @@ function StrategyPanel({ projectId, projectName }: { projectId: Id<"projects">; 
   );
 }
 
+// Same as the Mac Flows tab, read-only: the canvas, or the details view with the Flows and Screens lists.
 function FlowsPanel({ projectId, projectName, category }: { projectId: Id<"projects">; projectName: string; category: ProjectCategory }) {
   const flows = parseSaved(useQuery(api.projectAi.getLatestFlowsArtifact, { projectId }), flowsArtifactSchema);
+  const [showCanvas, setShowCanvas] = useState(true);
+  const [panel, setPanel] = useState<FlowPanel>("flows");
+  const [expandedFlowId, setExpandedFlowId] = useState<string>();
   if (flows === undefined) return null;
   if (!flows) return <NotYet step="Flows" projectName={projectName} />;
-  return <FlowsCanvasView artifact={flows.data} projectCategory={category} />;
+
+  if (showCanvas && panel === "flows") {
+    return (
+      <FlowsCanvasView
+        artifact={flows.data}
+        projectCategory={category}
+        actions={<button type="button" className="flows-canvas-action" onClick={() => setShowCanvas(false)}>View details</button>}
+      />
+    );
+  }
+  const tabData = mapFlowsArtifactToTabData(flows.data);
+  return (
+    <StepPage>
+      <FlowsDetailsHeader
+        category={category}
+        flowTotal={tabData.stats.totalFlowCount}
+        approvedCount={tabData.stats.approvedFlowCount}
+        screenTotal={tabData.screens.length}
+        panel={panel}
+        onPanelChange={setPanel}
+        onViewCanvas={() => setShowCanvas(true)}
+      />
+      {panel === "flows" ? (
+        <div className="flex flex-col gap-1">
+          {tabData.flows.map((flow, index) => (
+            <FlowRow
+              key={flow.id}
+              flow={flow}
+              index={index + 1}
+              expanded={expandedFlowId === flow.id}
+              onToggle={() => setExpandedFlowId(expandedFlowId === flow.id ? undefined : flow.id)}
+            />
+          ))}
+        </div>
+      ) : (
+        <ScreensPanel screens={tabData.screens} />
+      )}
+    </StepPage>
+  );
 }
 
 function WireframesPanel({ projectId, projectName }: { projectId: Id<"projects">; projectName: string }) {

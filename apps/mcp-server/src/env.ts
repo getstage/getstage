@@ -16,4 +16,6 @@ export type StageProps = {
   userId: string;
   /** The user's MCP key for the Stage API. Revoking it in Stage disconnects the tool. */
   apiKey: string;
+  /** Steps the user allowed at sign-in (Stage enforces them too). Missing on connections from before permissions. */
+  permissions?: string[];
 };

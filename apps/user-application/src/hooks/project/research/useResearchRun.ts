@@ -16,7 +16,7 @@ import {
   formatStoredRunErrorMessage,
   toRunFailureUserMessage,
 } from "@/lib/engine/formatRunError";
-import { toUserFacingErrorMessage } from "@/lib/errors";
+import { toUserFacingErrorMessage } from "@stage/project-ui/errors";
 import { buildRunModelOptions } from "@/lib/engine/runModelOptions";
 import {
   assertProviderPreflightReady,

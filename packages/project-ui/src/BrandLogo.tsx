@@ -9,6 +9,11 @@ export function BrandLogoProvider({ logoUrl, children }: { logoUrl: LogoUrl; chi
   return <BrandLogoContext.Provider value={logoUrl}>{children}</BrandLogoContext.Provider>;
 }
 
+/** Brandfetch's logo CDN for an app's client id (from the app's env); no id, no logos. */
+export function brandfetchLogoUrl(clientId: string | undefined): LogoUrl {
+  return (domain, sizePx) => (clientId ? `https://cdn.brandfetch.io/${domain}/w/${sizePx}/h/${sizePx}?c=${clientId}` : null);
+}
+
 function normalizeBrandDomain(url: string): string | null {
   const trimmed = url.trim();
   if (!trimmed) return null;

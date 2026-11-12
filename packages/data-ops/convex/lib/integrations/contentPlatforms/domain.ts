@@ -1,6 +1,6 @@
 import type { Doc, Id } from "../../../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../../../_generated/server";
-import { decryptSecret } from "../../../lib/credentialVault";
+import { decryptSecret } from "../../credentialVault";
 import { requireProjectAccessForUserId } from "../../../helpers/access/projectAccess";
 import type {
   NativeProvider,

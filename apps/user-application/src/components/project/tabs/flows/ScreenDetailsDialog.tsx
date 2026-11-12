@@ -1,9 +1,9 @@
 import { useRef, useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import type { Screen } from "@stage/data-ops/contracts";
-import { EditIcon, HomeIcon } from "./flowsIcons";
-import { ScreenElementEditor, ScreenElementList } from "./ScreenElementList";
-import { ScreenEditActions } from "./ScreenEditActions";
+import { EditIcon, HomeIcon } from "@stage/project-ui/flows/flowsIcons";
+import { ScreenElementEditor, ScreenElementList } from "@stage/project-ui/flows/ScreenElementList";
+import { ScreenEditActions } from "@stage/project-ui/flows/ScreenEditActions";
 
 export type ScreenDetailsChange = {
   label: string;

@@ -7,7 +7,7 @@ import {
   type ValidatedResearchConfigureInput,
 } from "@/lib/project/researchConfigureInput";
 import { api } from "@/lib/convexApi";
-import { uploadFileToR2 } from "@/lib/r2Uploads";
+import { uploadFileToR2 } from "@stage/project-ui/r2Uploads";
 
 export function useSaveResearchContext(projectId: string) {
   const upsertContext = useMutation(api.projectAi.upsertContext);

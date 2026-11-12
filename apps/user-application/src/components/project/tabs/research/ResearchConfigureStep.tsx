@@ -28,7 +28,7 @@ import {
   type ResearchConfigureFormValues,
   type ValidatedResearchConfigureInput,
 } from "@/lib/project/researchConfigureInput";
-import { validateUploadFile } from "@/lib/r2Uploads";
+import { validateUploadFile } from "@stage/project-ui/r2Uploads";
 import { AiRunSettings } from "@/components/project/AiRunSettings";
 import { PlusIcon } from "@stage/project-ui/research";
 import { ResearchSkillsField } from "./ResearchSkillsField";

@@ -2,8 +2,9 @@ import { describe, expect, test } from "vitest";
 import { convexTest } from "convex-test";
 import { makeFunctionReference } from "convex/server";
 import schema from "../convex/schema";
-import stripeSchema from "../node_modules/@convex-dev/stripe/dist/component/schema.js";
+import stripeSchema from "../node_modules/@convex-dev/stripe/dist/component/schema";
 import { generateRawKey, hashKey, planAllowsKey } from "../convex/developer/apiKeys";
+import { ALL_MCP_PERMISSIONS } from "../src/domain/mcpPermissions";
 
 const modules = import.meta.glob("../convex/**/*.ts");
 const stripeModules = import.meta.glob("../node_modules/@convex-dev/stripe/dist/component/**/*.js");
@@ -29,7 +30,7 @@ async function issueCode(t: ReturnType<typeof convexTest>) {
   const codeChallenge = await challenge(verifier);
   const userId = await t.run(async (ctx) => {
     const id = await ctx.db.insert("users", { name: "Tester", plan: "pro" });
-    await ctx.db.insert("mcpConnectCodes", { userId: id, hashedCode: await hashKey(code), codeChallenge, clientName: "Claude", workspaceIds: [id], access: "read", expiresAt: Date.now() + 60_000 });
+    await ctx.db.insert("mcpConnectCodes", { userId: id, hashedCode: await hashKey(code), codeChallenge, clientName: "Claude", workspaceIds: [id], permissions: ["research"], expiresAt: Date.now() + 60_000 });
     return id;
   });
   return { code, userId };
@@ -46,7 +47,7 @@ describe("connecting an AI tool over MCP", () => {
     expect(await t.mutation(redeem, { code, verifier })).toMatchObject({ ok: true, userId: String(userId) });
     expect(await t.mutation(redeem, { code, verifier })).toEqual({ ok: false });
     const keys = await t.run((ctx) => ctx.db.query("apiKeys").collect());
-    expect(keys).toEqual([expect.objectContaining({ kind: "mcp", name: "MCP · Claude", mcpWorkspaceIds: [userId], mcpAccess: "read" })]);
+    expect(keys).toEqual([expect.objectContaining({ kind: "mcp", name: "MCP · Claude", mcpWorkspaceIds: [userId], mcpPermissions: ["research"] })]);
   });
 
   test("the key carries the chosen scope; a key without one is refused", async () => {
@@ -55,10 +56,18 @@ describe("connecting an AI tool over MCP", () => {
     const result = await t.mutation(redeem, { code, verifier });
     if (!result.ok) throw new Error("redeem failed");
     const hashedKey = await hashKey(result.apiKey);
-    expect(await t.mutation(authenticate, { hashedKey })).toMatchObject({ mcp: { access: "read", workspaceIds: [userId] } });
+    expect(await t.mutation(authenticate, { hashedKey })).toMatchObject({ mcp: { permissions: ["research"], workspaceIds: [userId] } });
 
     await t.run((ctx) => ctx.db.insert("apiKeys", { userId, hashedKey: "unscoped", name: "MCP · Old", kind: "mcp", createdAt: Date.now() }));
     expect(await t.mutation(authenticate, { hashedKey: "unscoped" })).toBeNull();
+
+    // Keys from before per-step permissions: read + edit is everything, read only is viewing.
+    await t.run(async (ctx) => {
+      await ctx.db.insert("apiKeys", { userId, hashedKey: "old-write", name: "MCP · Old", kind: "mcp", mcpWorkspaceIds: [userId], mcpAccess: "write", createdAt: Date.now() });
+      await ctx.db.insert("apiKeys", { userId, hashedKey: "old-read", name: "MCP · Old", kind: "mcp", mcpWorkspaceIds: [userId], mcpAccess: "read", createdAt: Date.now() });
+    });
+    expect(await t.mutation(authenticate, { hashedKey: "old-write" })).toMatchObject({ mcp: { permissions: ALL_MCP_PERMISSIONS } });
+    expect(await t.mutation(authenticate, { hashedKey: "old-read" })).toMatchObject({ mcp: { permissions: [] } });
   });
 
   test("a connect code only covers workspaces the user belongs to", async () => {
@@ -68,10 +77,14 @@ describe("connecting an AI tool over MCP", () => {
       await ctx.db.insert("users", { name: "Other", plan: "pro" }),
     ]);
     const asUser = t.withIdentity({ subject: `${userId}|session` });
-    const args = { codeChallenge: await challenge(verifier), clientName: "Claude", access: "write" as const };
+    const args = { codeChallenge: await challenge(verifier), clientName: "Claude", permissions: ["strategy"] };
     await expect(asUser.mutation(create, { ...args, workspaceIds: [String(otherId)] })).rejects.toThrow("don't have access");
     await expect(asUser.mutation(create, { ...args, workspaceIds: [] })).rejects.toThrow("at least one workspace");
     await expect(asUser.mutation(create, { ...args, workspaceIds: [String(userId)] })).resolves.toHaveProperty("code");
+    await expect(asUser.mutation(create, { ...args, permissions: ["delete_everything"], workspaceIds: [String(userId)] })).rejects.toThrow("Unknown permission");
+    // Strategy comes with Research, the step it is built on.
+    const codes = await t.run((ctx) => ctx.db.query("mcpConnectCodes").collect());
+    expect(codes.at(-1)?.permissions).toEqual(["research", "strategy"]);
   });
 
   test("MCP keys need any paid plan; developer API keys need Studio", () => {

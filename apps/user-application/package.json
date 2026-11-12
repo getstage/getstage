@@ -39,7 +39,7 @@
     "canvas-confetti": "^1.9.4",
     "class-variance-authority": "0.7.1",
     "clsx": "^2.1.1",
-    "convex": "1.32.0",
+    "convex": "1.48.0",
     "dotenv": "^17.4.2",
     "electron-updater": "^6.6.2",
     "emoji-picker-react": "^4.19.1",

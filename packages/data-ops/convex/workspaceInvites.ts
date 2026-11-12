@@ -2,7 +2,7 @@ import { v } from "convex/values";
 import { action } from "./_generated/server";
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
-import { hashInviteToken } from "./platform/inviteTokens";
+import { hashInviteToken } from "./lib/invites/tokens";
 
 type InvitePreview =
   | { status: "invalid" }

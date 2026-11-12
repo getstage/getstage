@@ -2,13 +2,13 @@ import type {
   DocumentAssetRow,
   ExportOptionConfig,
   WireframeAssetCard,
-} from "@/types/project/assetsTab";
+} from "@stage/project-ui/assets/types";
 import { mockAssetsArtifact } from "./assetsArtifact";
 import {
   mapDocumentAssetToRow,
   mapExportOptionToConfig,
   mapWireframeAssetToCard,
-} from "@/lib/project/mapAssetsArtifactToTabData";
+} from "@stage/project-ui/assets/mapAssetsArtifact";
 
 export function createSeedWireframeAssets(): WireframeAssetCard[] {
   return mockAssetsArtifact.wireframes.map(mapWireframeAssetToCard);

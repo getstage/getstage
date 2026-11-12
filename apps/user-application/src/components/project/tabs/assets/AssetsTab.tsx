@@ -6,13 +6,13 @@ import { useWireframeDeliveryExport } from "@/hooks/project/assets/useWireframeD
 import { useProjectAssetUploads } from "@/hooks/project/useProjectAssetUploads";
 import { api } from "@/lib/convexApi";
 import type { Project } from "@/models/project/project";
-import type { AssetView, WireframeAssetCard } from "@/types/project/assetsTab";
-import { AssetCard } from "./AssetCard";
-import { AssetCategoryTabs } from "./AssetCategoryTabs";
-import { DocumentsGrid } from "./DocumentsGrid";
+import type { AssetView, WireframeAssetCard } from "@stage/project-ui/assets/types";
+import { AssetCard } from "@stage/project-ui/assets/AssetCard";
+import { AssetCategoryTabs } from "@stage/project-ui/assets/AssetCategoryTabs";
+import { DocumentsGrid } from "@stage/project-ui/assets/DocumentsGrid";
 import { ExportOptionsDialog } from "./ExportOptionsDialog";
 import { UploadDropzone } from "./UploadDropzone";
-import { UploadedGrid } from "./UploadedGrid";
+import { UploadedGrid } from "@stage/project-ui/assets/UploadedGrid";
 import { TabLoadingState } from "../TabLoadingState";
 
 export function AssetsTab({ project }: { project: Project }) {

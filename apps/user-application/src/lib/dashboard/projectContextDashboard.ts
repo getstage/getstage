@@ -14,7 +14,8 @@ import type {
 import type { DashboardPeriod } from "@/components/dashboard/DashboardHeader";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-const PRIMARY_ACCENT = "#8782F5";
+import { PRIMARY_ACCENT } from "@stage/project-ui/sidebar/projects";
+export { buildSidebarProjectsFromSummaries } from "@stage/project-ui/sidebar/projects";
 const MUTED_ACCENT = "#d6d3d1";
 
 function getInitials(value: string) {
@@ -134,24 +135,6 @@ export function buildSidebarProjectsFromProjectContext(
   ];
 }
 
-export function buildSidebarProjectsFromSummaries(
-  summaries: ProjectSummary[],
-): DashboardProject[] {
-  return summaries.map((project) => ({
-    id: project.id,
-    name: project.name,
-    logoLabel: getInitials(project.name),
-    accentColor: PRIMARY_ACCENT,
-    projectImageUrl: project.projectImageUrl,
-    clientName: project.clientName,
-    phaseName: project.type
-      .split("-")
-      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-      .join(" "),
-    startDate: project.startDate,
-    endDate: project.endDate,
-  }));
-}
 
 export function buildDashboardMetrics(
   context: ProjectContext | null,

@@ -2,6 +2,7 @@
  * Zod schemas for Hono REST (`/api/v1/*`). Convex-internal validators live in `convex/models/`.
  */
 import { z } from "zod";
+import { detailsSectionSchema } from "../../src/contracts/research";
 import { typeOtherLabelSchema } from "../../src/shared/typeOtherLabel";
 
 const trimmedString = (field: string) =>
@@ -280,5 +281,41 @@ export const stepParamSchema = z.object({
 export const saveStepBodySchema = z.object({
   title: trimmedString("Title"),
   summary: optionalTrimmedString,
+  // Research only: the run from POST /projects/:id/research/start.
+  runId: z.string().trim().min(1).optional(),
   result: z.record(z.string(), z.unknown()),
+});
+
+// The Research form (same fields as Stage for Mac's); screenTypes are its "Screens to analyze".
+export const researchInputsBodySchema = z.object({
+  industry: trimmedString("Industry"),
+  website: optionalTrimmedString,
+  brief: z.string().trim().min(40, "Brief: what the product does, who it's for and what makes it different (at least 40 characters)"),
+  competitorUrls: z.array(z.string().trim().min(1)).max(4, "Up to 4 competitors, like the Mac form").default([]),
+  screenTypes: z.array(detailsSectionSchema).min(1).max(6),
+});
+
+export const referenceSearchBodySchema = z.object({
+  query: trimmedString("Query"),
+  // Refero: app and web screens (moodboard, app Research). Details: website sections (website Research).
+  source: z.enum(["refero", "details"]).default("refero"),
+  platform: z.enum(["web", "ios", "android"]).default("web"),
+});
+
+export const moodboardImportBodySchema = z.object({
+  screens: z.array(z.object({
+    id: trimmedString("Screen id"),
+    title: trimmedString("Screen title"),
+    sourceUrl: z.string().url().optional(),
+    thumbnailUrl: z.string().url().optional(),
+    imageUrl: z.string().url().optional(),
+  })).max(12).default([]),
+  imageUrls: z.array(z.string().url()).max(12).default([]),
+  figmaUrl: z.string().url().optional(),
+  direction: optionalTrimmedString,
+});
+
+export const styleGuideBodySchema = z.object({
+  direction: trimmedString("Direction"),
+  styleGuide: z.record(z.string(), z.unknown()),
 });

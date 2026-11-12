@@ -6,14 +6,14 @@ import {
   useUpdateProjectMutation,
 } from "@/hooks/convex-data/useProjectMutations";
 import { syncPhasesInputSchema } from "@/data-ops/schema";
-import { toUserFacingErrorMessage } from "@/lib/errors";
+import { toUserFacingErrorMessage } from "@stage/project-ui/errors";
 import { parseInputDate } from "@/lib/format";
 import { api } from "@/lib/convexApi";
 import {
   prepareClientAvatarUpload,
   prepareProjectMarkerUpload,
   uploadFileToR2,
-} from "@/lib/r2Uploads";
+} from "@stage/project-ui/r2Uploads";
 import type { Phase } from "@/models/project/project";
 
 export type SaveProjectProfileInput = {

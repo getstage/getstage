@@ -58,13 +58,13 @@ async function callback(request: Request, env: Env) {
     body: JSON.stringify({ code, verifier: data.verifier }),
   });
   if (!exchange.ok) return errorPage("This connection expired. Start connecting Stage again from your AI tool.");
-  const { apiKey, userId } = await exchange.json<StageProps>();
+  const { apiKey, userId, permissions } = await exchange.json<StageProps>();
   const { redirectTo } = await oauth.completeAuthorization({
     request: authRequest,
     userId,
     metadata: {},
     scope: authRequest.scope,
-    props: { userId, apiKey } satisfies StageProps,
+    props: { userId, apiKey, permissions } satisfies StageProps,
   });
   headers.set("Location", redirectTo);
   return new Response(null, { status: 302, headers });

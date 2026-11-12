@@ -6,6 +6,7 @@ import { getCurrentSubscriptionSnapshot } from "../billing";
 import { listActiveMembershipsForUser } from "../helpers/access/seatEntitlement";
 import type { Id } from "../_generated/dataModel";
 import { generateRawKey, hashKey, planAllowsKey } from "./apiKeys";
+import { isMcpPermission, withNeeded } from "../../src/domain/mcpPermissions";
 
 // Connecting an AI tool (Claude, Cursor, …) over MCP:
 // 1. The MCP server sends the signed-in user to the web app's connect page with a PKCE challenge.
@@ -17,14 +18,12 @@ function base64Url(bytes: ArrayBuffer) {
   return btoa(String.fromCharCode(...new Uint8Array(bytes))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
-const mcpAccessValidator = v.union(v.literal("read"), v.literal("write"));
-
 export const createConnectCode = mutation({
   args: {
     codeChallenge: v.string(),
     clientName: v.string(),
     workspaceIds: v.array(v.string()),
-    access: mcpAccessValidator,
+    permissions: v.array(v.string()),
   },
   handler: async (ctx, args) => {
     const user = await requireAuthUser(ctx);
@@ -46,6 +45,10 @@ export const createConnectCode = mutation({
       workspaceIds.push(workspaceId);
     }
     if (workspaceIds.length === 0) throw new Error("Choose at least one workspace.");
+    const unknown = args.permissions.filter((permission) => !isMcpPermission(permission));
+    if (unknown.length > 0) throw new Error(`Unknown permission: ${unknown.join(", ")}.`);
+    // A step always comes with the steps it is built on.
+    const permissions = withNeeded(args.permissions.filter(isMcpPermission));
 
     const clientName = args.clientName.trim().slice(0, 48) || "AI tool";
     const code = generateRawKey();
@@ -55,7 +58,7 @@ export const createConnectCode = mutation({
       codeChallenge: args.codeChallenge,
       clientName,
       workspaceIds,
-      access: args.access,
+      permissions,
       expiresAt: Date.now() + CODE_LIFETIME_MS,
     });
     return { code };
@@ -82,10 +85,10 @@ export const redeemConnectCode = internalMutation({
       name: `MCP · ${record.clientName}`,
       kind: "mcp",
       mcpWorkspaceIds: record.workspaceIds,
-      mcpAccess: record.access,
+      mcpPermissions: record.permissions ?? [],
       createdAt: Date.now(),
     });
-    return { ok: true as const, apiKey, userId: String(record.userId) };
+    return { ok: true as const, apiKey, userId: String(record.userId), permissions: record.permissions ?? [] };
   },
 });
 
@@ -136,5 +139,5 @@ export const exchangeConnectCode = httpAction(async (ctx, request) => {
   }
   const result = await ctx.runMutation(internal.developer.mcpConnect.redeemConnectCode, { code, verifier });
   if (!result.ok) return Response.json({ error: "invalid_grant" }, { status: 400 });
-  return Response.json({ apiKey: result.apiKey, userId: result.userId });
+  return Response.json({ apiKey: result.apiKey, userId: result.userId, permissions: result.permissions });
 });

@@ -14,7 +14,7 @@ import {
   createNotionChildPage as createStrategyNotionChildPage,
   parseStrategyArtifactContent,
 } from "../../../../helpers/integrations/notion/strategyExport";
-import { resolveResearchContentJson } from "../../../../lib/projectAi/domain/researchContent";
+import { resolveResearchContentJson } from "../../../projectAi/domain/researchContent";
 import { parseResearchArtifactContent } from "../../../../../src/contracts/parseResearchArtifact";
 import type { ViewerContext } from "../../../../models/integrations/contentPlatforms";
 import { upsertNotionArtifactDestination, getConnection } from "../domain";

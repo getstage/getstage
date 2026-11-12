@@ -1,8 +1,8 @@
 import type { Id } from "@stage/data-ops/convex/data-model";
 import { createProjectInputSchema, projectCategorySchema } from "@/data-ops/schema";
 import { parseInputDate } from "@/lib/format";
-import { uploadFileToR2 } from "@/lib/r2Uploads";
-import { getActiveSpaceOwnerId } from "@/lib/workspace/activeSpace";
+import { uploadFileToR2 } from "@stage/project-ui/r2Uploads";
+import { getActiveSpaceOwnerId } from "@stage/project-ui/workspace/activeSpace";
 import type { ProjectType } from "@/types";
 import { buildPreparedProjectPayload, type ProjectDraft } from "../../../shared/project-creation";
 

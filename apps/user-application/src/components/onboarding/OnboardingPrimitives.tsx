@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { ArrowUpRight, Eye } from "@phosphor-icons/react";
 import { motion } from "motion/react";
 import { cn } from "@/lib/utils";
-import { surfaceStyles } from "@/styles/recipes";
+import { surfaceStyles } from "@stage/project-ui/ui/recipes";
 
 export function OptionCard({
   active,

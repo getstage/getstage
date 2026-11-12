@@ -3,7 +3,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { useAction } from "convex/react";
 import type { Id } from "@stage/data-ops/convex/data-model";
 import { api } from "@/lib/convexApi";
-import { toUserFacingErrorMessage } from "@/lib/errors";
+import { toUserFacingErrorMessage } from "@stage/project-ui/errors";
 
 export function AddProjectMemberDialog({
   projectId,

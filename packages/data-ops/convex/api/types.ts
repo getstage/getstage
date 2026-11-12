@@ -1,6 +1,7 @@
 import type { Context } from "hono";
 import type { Id } from "../_generated/dataModel";
 import type { ActionCtx } from "../_generated/server";
+import type { McpPermission } from "../../src/domain/mcpPermissions";
 
 export type ApiBindings = ActionCtx;
 
@@ -9,7 +10,7 @@ export type ApiContext = Context<{
 }>;
 
 export type McpScope = {
-  access: "read" | "write";
+  permissions: McpPermission[];
   workspaceIds: Id<"users">[];
 };
 

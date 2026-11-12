@@ -11,8 +11,10 @@ import { creditWebhookEvents } from "./lib/billing/handlers/webhooks";
 import { resend } from "./lib/emails/client";
 import { unsubscribeHandler } from "./lib/emails/unsubscribe";
 import { exchangeConnectCode } from "./developer/mcpConnect";
+import { detailsProxy, referoProxy } from "./integrations/referenceProxy";
 
-const http = new HttpRouterWithHono(apiApp as HonoWithConvex<ActionCtx>);
+// convex-helpers' HonoWithConvex type also carries Hono "Variables"; the API app uses none, so the shapes match at runtime.
+const http = new HttpRouterWithHono(apiApp as unknown as HonoWithConvex<ActionCtx>);
 auth.addHttpRoutes(http);
 registerRoutes(http, (components as { stripe: StripeComponent }).stripe, {
   webhookPath: "/stripe/webhook",
@@ -60,6 +62,18 @@ http.route({
   path: "/mcp/connect/token",
   method: "POST",
   handler: exchangeConnectCode,
+});
+
+// Refero / Details MCP relays: the keys stay on the backend (Stage for Mac's engine calls these).
+http.route({
+  path: "/integrations/refero/mcp",
+  method: "POST",
+  handler: referoProxy,
+});
+http.route({
+  path: "/integrations/details/mcp",
+  method: "POST",
+  handler: detailsProxy,
 });
 
 export default http;

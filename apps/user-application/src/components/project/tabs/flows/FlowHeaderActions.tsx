@@ -1,4 +1,4 @@
-import { FigmaIcon, PlusIcon } from "./flowsIcons";
+import { FigmaIcon, PlusIcon } from "@stage/project-ui/flows/flowsIcons";
 
 export function FlowHeaderActions({
   onAddFlow,

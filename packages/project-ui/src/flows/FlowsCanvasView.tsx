@@ -1,13 +1,16 @@
+import type { ReactNode } from "react";
 import { Background, BackgroundVariant, Panel, ReactFlow, ReactFlowProvider, useReactFlow } from "@xyflow/react";
 import type { FlowsArtifact, ProjectCategory } from "@stage/data-ops/contracts";
 import { ariaLabelConfig, buildElements, CanvasButton, nodeTypes, type CanvasEdge, type CanvasNode } from "./canvasElements";
 
 // The Flows / Sitemap canvas without editing: pan, zoom and fit, same look as the Mac canvas.
-export function FlowsCanvasView(props: { artifact: FlowsArtifact; projectCategory: ProjectCategory }) {
+type Props = { artifact: FlowsArtifact; projectCategory: ProjectCategory; actions?: ReactNode };
+
+export function FlowsCanvasView(props: Props) {
   return <ReactFlowProvider><ReadOnlyCanvas {...props} /></ReactFlowProvider>;
 }
 
-function ReadOnlyCanvas({ artifact, projectCategory }: { artifact: FlowsArtifact; projectCategory: ProjectCategory }) {
+function ReadOnlyCanvas({ artifact, projectCategory, actions }: Props) {
   const label = projectCategory === "websites" ? "Sitemap" : "Flows";
   const { nodes, edges } = buildElements(artifact, label);
   const { zoomIn, zoomOut } = useReactFlow<CanvasNode, CanvasEdge>();
@@ -29,6 +32,7 @@ function ReadOnlyCanvas({ artifact, projectCategory }: { artifact: FlowsArtifact
         proOptions={{ hideAttribution: true }}
       >
         <Background variant={BackgroundVariant.Dots} gap={24} size={1} color="#C4C4C4" />
+        {actions ? <Panel position="top-right" className="flows-canvas-actions">{actions}</Panel> : null}
         <Panel position="bottom-right" className="flows-canvas-controls" role="group" aria-label="Zoom">
           <CanvasButton label="Zoom in" icon="zoom-in" onClick={() => void zoomIn()} />
           <CanvasButton label="Zoom out" icon="zoom-out" onClick={() => void zoomOut()} />

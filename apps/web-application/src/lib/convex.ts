@@ -7,5 +7,6 @@ if (!convexUrl) {
   throw new Error("Missing VITE_CONVEX_URL in the app environment.");
 }
 
-export const convex = new ConvexReactClient(convexUrl);
+// No "leave page?" prompt: Stage never holds unsaved user input in a pending request (every save is explicit).
+export const convex = new ConvexReactClient(convexUrl, { unsavedChangesWarning: false });
 export { api };

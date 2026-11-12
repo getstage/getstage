@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { CaretDown, CaretUp, Cube, Layout, SlidersHorizontal, Waves } from "@phosphor-icons/react";
 import type { StyleGuideSpec } from "@stage/data-ops/contracts";
-import { ColorInput, Divider, Field, Icon, Range, Section, Segmented, Select, TextInput, TextLink, ValueChip } from "./fields";
-import { FontField, MODES, type FontSectionProps, type SectionProps } from "./sections";
-import { specimenSize } from "./preview/specimenSize";
+import { ColorInput, Divider, Field, Icon, Range, Section, Segmented, Select, TextInput, TextLink, ValueChip } from "@stage/project-ui/moodboard/styleguide/fields";
+import { MODES } from "@stage/project-ui/moodboard/styleguide/StyleGuideDialog";
+import { FontField, type FontSectionProps, type SectionProps } from "./sections";
+import { specimenSize } from "@stage/project-ui/moodboard/styleguide/preview/specimenSize";
 
 const SAMPLE = "Build something people want.";
 

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useAction } from "convex/react";
 import { api } from "@/lib/convex";
 import { getDatafastCheckoutMetadata, trackDatafastGoal } from "@/lib/datafast";
-import { BillingPeriodToggle, PLANS, PLAN_FEATURES, PlanCard, type BillingCycle, type Tier } from "./planCards";
+import { BillingPeriodToggle, PLANS, PLAN_FEATURES, PlanCard, type BillingCycle, type Tier } from "@stage/project-ui/billing/planCards";
 import { SetupScreen } from "./SetupScreens";
 
 // Copy of the Mac onboarding paywall. Stripe returns to /app (success or cancel).

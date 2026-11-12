@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from "react";
-import { toUserFacingErrorMessage } from "@/lib/errors";
-import type { ExportOption, WireframeAssetCard } from "@/types/project/assetsTab";
+import { toUserFacingErrorMessage } from "@stage/project-ui/errors";
+import type { ExportOption, WireframeAssetCard } from "@stage/project-ui/assets/types";
 
 export function useWireframeDeliveryExport(projectId: string) {
   const [message, setMessage] = useState<string | null>(null);

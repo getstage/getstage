@@ -7,7 +7,7 @@ import {
   PlanCard,
   type BillingCycle,
   type Tier,
-} from "@/components/subscriptions/planCards";
+} from "@stage/project-ui/billing/planCards";
 
 type OnboardingPaywallProps = {
   onStartTrial: (billingCycle: BillingCycle, tier: Tier) => void;

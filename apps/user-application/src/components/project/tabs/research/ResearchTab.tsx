@@ -19,9 +19,9 @@ import { useSaveResearchArtifact } from "@/hooks/project/research/useSaveResearc
 import { useResearchTab } from "@/hooks/project";
 import { applyResearchTabEdits } from "@/lib/project/applyResearchTabEdits";
 import { RESEARCH_RUN_FAILED_USER_MESSAGE } from "@/lib/engine/formatRunError";
-import { toUserFacingErrorMessage } from "@/lib/errors";
+import { toUserFacingErrorMessage } from "@stage/project-ui/errors";
 import { cn } from "@/lib/utils";
-import { PhotoLightbox } from "@/components/project/PhotoLightbox";
+import { PhotoLightbox } from "@stage/project-ui/ui/PhotoLightbox";
 import { AddSectionEditor } from "../strategy/AddSectionEditor";
 import { NotionParentPageDialog } from "./NotionParentPageDialog";
 import { GenerateStrategyRunDialog } from "@/components/project/GenerateStrategyRunDialog";

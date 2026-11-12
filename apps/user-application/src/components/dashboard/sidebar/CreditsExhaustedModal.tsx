@@ -3,7 +3,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { useAction as useConvexAction } from "convex/react";
 import { api } from "@/lib/convexApi";
 import { useCreditSummaryQuery, useSettingsOverviewQuery } from "@/hooks/convex-data";
-import { toUserFacingErrorMessage } from "@/lib/errors";
+import { toUserFacingErrorMessage } from "@stage/project-ui/errors";
 import { openExternalLink } from "@/lib/settings/openExternalLink";
 
 type CreditsExhaustedModalProps = {

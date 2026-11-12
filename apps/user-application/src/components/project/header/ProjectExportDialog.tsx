@@ -18,7 +18,7 @@ import {
   useWireframesArtifact,
 } from "@/hooks/project";
 import { api } from "@/lib/convexApi";
-import { toUserFacingErrorMessage } from "@/lib/errors";
+import { toUserFacingErrorMessage } from "@stage/project-ui/errors";
 import {
   PROJECT_EXPORT_SECTIONS,
   buildProjectExport,

@@ -16,13 +16,21 @@ import {
   toggleTaskForUser,
 } from "../domain/projectService";
 import { normalizePhaseId, normalizeProjectId, normalizeTaskId } from "./access";
+import { normalizeEmailAddress } from "../../../userEmails";
 
 export const createProjectForApi = internalMutation({
   args: {
     userId: v.id("users"),
     ...createProjectArgsValidator,
   },
-  handler: async (ctx, args) => createProjectForUser(ctx, args),
+  handler: async (ctx, args) => {
+    // An AI tool can't pick a client from a list: when a client with this email already exists,
+    // the project goes to that client (the Mac app would make the user pick it).
+    const email = args.clientEmail && normalizeEmailAddress(args.clientEmail);
+    const clients = email ? await ctx.db.query("clients").withIndex("by_user", (q) => q.eq("userId", args.userId)).collect() : [];
+    const sameEmail = clients.find((client) => client.email && normalizeEmailAddress(client.email) === email);
+    return createProjectForUser(ctx, sameEmail ? { ...args, clientName: sameEmail.name } : args);
+  },
 });
 
 export const addPhaseForApi = internalMutation({

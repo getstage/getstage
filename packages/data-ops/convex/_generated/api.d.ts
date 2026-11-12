@@ -73,6 +73,7 @@ import type * as integrations_googleSheets from "../integrations/googleSheets.js
 import type * as integrations_loopsOtp from "../integrations/loopsOtp.js";
 import type * as integrations_notionResearchExport from "../integrations/notionResearchExport.js";
 import type * as integrations_notionStrategyExport from "../integrations/notionStrategyExport.js";
+import type * as integrations_referenceProxy from "../integrations/referenceProxy.js";
 import type * as integrations_resendAudience from "../integrations/resendAudience.js";
 import type * as integrations_stitch from "../integrations/stitch.js";
 import type * as integrations_stripeConnect from "../integrations/stripeConnect.js";
@@ -86,6 +87,7 @@ import type * as lib_builderProfiles_fields from "../lib/builderProfiles/fields.
 import type * as lib_credentialVault from "../lib/credentialVault.js";
 import type * as lib_credits_priceConfig from "../lib/credits/priceConfig.js";
 import type * as lib_credits_service from "../lib/credits/service.js";
+import type * as lib_dashboard_overview from "../lib/dashboard/overview.js";
 import type * as lib_desktop_handlers_index from "../lib/desktop/handlers/index.js";
 import type * as lib_emails_client from "../lib/emails/client.js";
 import type * as lib_emails_config from "../lib/emails/config.js";
@@ -103,6 +105,11 @@ import type * as lib_integrations_googleSheets_handlers_connection from "../lib/
 import type * as lib_integrations_googleSheets_handlers_import from "../lib/integrations/googleSheets/handlers/import.js";
 import type * as lib_integrations_stitch_handlers_index from "../lib/integrations/stitch/handlers/index.js";
 import type * as lib_integrations_stripeConnect_handlers_index from "../lib/integrations/stripeConnect/handlers/index.js";
+import type * as lib_invites_email from "../lib/invites/email.js";
+import type * as lib_invites_tokens from "../lib/invites/tokens.js";
+import type * as lib_projectAi_artifacts from "../lib/projectAi/artifacts.js";
+import type * as lib_projectAi_chat from "../lib/projectAi/chat.js";
+import type * as lib_projectAi_context from "../lib/projectAi/context.js";
 import type * as lib_projectAi_domain_artifactStore from "../lib/projectAi/domain/artifactStore.js";
 import type * as lib_projectAi_domain_attachArtifactAssets from "../lib/projectAi/domain/attachArtifactAssets.js";
 import type * as lib_projectAi_domain_contextStore from "../lib/projectAi/domain/contextStore.js";
@@ -115,17 +122,17 @@ import type * as lib_projectAi_domain_researchContent from "../lib/projectAi/dom
 import type * as lib_projectAi_domain_runStore from "../lib/projectAi/domain/runStore.js";
 import type * as lib_projectAi_domain_time from "../lib/projectAi/domain/time.js";
 import type * as lib_projectAi_domain_validators from "../lib/projectAi/domain/validators.js";
-import type * as lib_projectAi_handlers_api from "../lib/projectAi/handlers/api.js";
-import type * as lib_projectAi_handlers_artifacts from "../lib/projectAi/handlers/artifacts.js";
-import type * as lib_projectAi_handlers_chat from "../lib/projectAi/handlers/chat.js";
-import type * as lib_projectAi_handlers_context from "../lib/projectAi/handlers/context.js";
-import type * as lib_projectAi_handlers_flows from "../lib/projectAi/handlers/flows.js";
-import type * as lib_projectAi_handlers_flowsCanvas from "../lib/projectAi/handlers/flowsCanvas.js";
-import type * as lib_projectAi_handlers_moodboard from "../lib/projectAi/handlers/moodboard.js";
-import type * as lib_projectAi_handlers_research from "../lib/projectAi/handlers/research.js";
-import type * as lib_projectAi_handlers_runs from "../lib/projectAi/handlers/runs.js";
-import type * as lib_projectAi_handlers_strategy from "../lib/projectAi/handlers/strategy.js";
-import type * as lib_projectAi_handlers_wireframes from "../lib/projectAi/handlers/wireframes.js";
+import type * as lib_projectAi_flows_canvas from "../lib/projectAi/flows/canvas.js";
+import type * as lib_projectAi_flows_handlers from "../lib/projectAi/flows/handlers.js";
+import type * as lib_projectAi_mcp_runStatus from "../lib/projectAi/mcp/runStatus.js";
+import type * as lib_projectAi_mcp_steps from "../lib/projectAi/mcp/steps.js";
+import type * as lib_projectAi_moodboard_handlers from "../lib/projectAi/moodboard/handlers.js";
+import type * as lib_projectAi_moodboard_mcp from "../lib/projectAi/moodboard/mcp.js";
+import type * as lib_projectAi_research_handlers from "../lib/projectAi/research/handlers.js";
+import type * as lib_projectAi_research_mcp from "../lib/projectAi/research/mcp.js";
+import type * as lib_projectAi_runs from "../lib/projectAi/runs.js";
+import type * as lib_projectAi_strategy_handlers from "../lib/projectAi/strategy/handlers.js";
+import type * as lib_projectAi_wireframes_handlers from "../lib/projectAi/wireframes/handlers.js";
 import type * as lib_projects_domain_delete from "../lib/projects/domain/delete.js";
 import type * as lib_projects_domain_projectCategory from "../lib/projects/domain/projectCategory.js";
 import type * as lib_projects_domain_projectService from "../lib/projects/domain/projectService.js";
@@ -135,6 +142,11 @@ import type * as lib_projects_handlers_queries from "../lib/projects/handlers/qu
 import type * as lib_projects_handlers_ui from "../lib/projects/handlers/ui.js";
 import type * as lib_r2_domain from "../lib/r2/domain.js";
 import type * as lib_r2_handlers from "../lib/r2/handlers.js";
+import type * as lib_rateLimits from "../lib/rateLimits.js";
+import type * as lib_references_details from "../lib/references/details.js";
+import type * as lib_references_figma from "../lib/references/figma.js";
+import type * as lib_references_imageUrl from "../lib/references/imageUrl.js";
+import type * as lib_references_refero from "../lib/references/refero.js";
 import type * as lib_rewards_handlers from "../lib/rewards/handlers.js";
 import type * as lib_settings_githubImport from "../lib/settings/githubImport.js";
 import type * as lib_settings_handlers_index from "../lib/settings/handlers/index.js";
@@ -147,21 +159,20 @@ import type * as models_integrations_stitch from "../models/integrations/stitch.
 import type * as models_integrations_stripeConnect from "../models/integrations/stripeConnect.js";
 import type * as models_projects_validators from "../models/projects/validators.js";
 import type * as onboarding from "../onboarding.js";
-import type * as platform_inviteEmail from "../platform/inviteEmail.js";
-import type * as platform_inviteTokens from "../platform/inviteTokens.js";
-import type * as platform_rateLimits from "../platform/rateLimits.js";
 import type * as portal from "../portal.js";
 import type * as presence from "../presence.js";
 import type * as projectAi from "../projectAi.js";
 import type * as projects from "../projects.js";
 import type * as r2 from "../r2.js";
-import type * as readmodels_dashboardOverview from "../readmodels/dashboardOverview.js";
 import type * as rewards from "../rewards.js";
 import type * as settings from "../settings.js";
 import type * as tasks from "../tasks.js";
 import type * as userEmails from "../userEmails.js";
 import type * as users from "../users.js";
 import type * as viewer from "../viewer.js";
+import type * as workflows_jobs from "../workflows/jobs.js";
+import type * as workflows_moodboardImport from "../workflows/moodboardImport.js";
+import type * as workflows_research from "../workflows/research.js";
 import type * as workspaceInvites from "../workspaceInvites.js";
 import type * as workspaceMembers from "../workspaceMembers.js";
 
@@ -237,6 +248,7 @@ declare const fullApi: ApiFromModules<{
   "integrations/loopsOtp": typeof integrations_loopsOtp;
   "integrations/notionResearchExport": typeof integrations_notionResearchExport;
   "integrations/notionStrategyExport": typeof integrations_notionStrategyExport;
+  "integrations/referenceProxy": typeof integrations_referenceProxy;
   "integrations/resendAudience": typeof integrations_resendAudience;
   "integrations/stitch": typeof integrations_stitch;
   "integrations/stripeConnect": typeof integrations_stripeConnect;
@@ -250,6 +262,7 @@ declare const fullApi: ApiFromModules<{
   "lib/credentialVault": typeof lib_credentialVault;
   "lib/credits/priceConfig": typeof lib_credits_priceConfig;
   "lib/credits/service": typeof lib_credits_service;
+  "lib/dashboard/overview": typeof lib_dashboard_overview;
   "lib/desktop/handlers/index": typeof lib_desktop_handlers_index;
   "lib/emails/client": typeof lib_emails_client;
   "lib/emails/config": typeof lib_emails_config;
@@ -267,6 +280,11 @@ declare const fullApi: ApiFromModules<{
   "lib/integrations/googleSheets/handlers/import": typeof lib_integrations_googleSheets_handlers_import;
   "lib/integrations/stitch/handlers/index": typeof lib_integrations_stitch_handlers_index;
   "lib/integrations/stripeConnect/handlers/index": typeof lib_integrations_stripeConnect_handlers_index;
+  "lib/invites/email": typeof lib_invites_email;
+  "lib/invites/tokens": typeof lib_invites_tokens;
+  "lib/projectAi/artifacts": typeof lib_projectAi_artifacts;
+  "lib/projectAi/chat": typeof lib_projectAi_chat;
+  "lib/projectAi/context": typeof lib_projectAi_context;
   "lib/projectAi/domain/artifactStore": typeof lib_projectAi_domain_artifactStore;
   "lib/projectAi/domain/attachArtifactAssets": typeof lib_projectAi_domain_attachArtifactAssets;
   "lib/projectAi/domain/contextStore": typeof lib_projectAi_domain_contextStore;
@@ -279,17 +297,17 @@ declare const fullApi: ApiFromModules<{
   "lib/projectAi/domain/runStore": typeof lib_projectAi_domain_runStore;
   "lib/projectAi/domain/time": typeof lib_projectAi_domain_time;
   "lib/projectAi/domain/validators": typeof lib_projectAi_domain_validators;
-  "lib/projectAi/handlers/api": typeof lib_projectAi_handlers_api;
-  "lib/projectAi/handlers/artifacts": typeof lib_projectAi_handlers_artifacts;
-  "lib/projectAi/handlers/chat": typeof lib_projectAi_handlers_chat;
-  "lib/projectAi/handlers/context": typeof lib_projectAi_handlers_context;
-  "lib/projectAi/handlers/flows": typeof lib_projectAi_handlers_flows;
-  "lib/projectAi/handlers/flowsCanvas": typeof lib_projectAi_handlers_flowsCanvas;
-  "lib/projectAi/handlers/moodboard": typeof lib_projectAi_handlers_moodboard;
-  "lib/projectAi/handlers/research": typeof lib_projectAi_handlers_research;
-  "lib/projectAi/handlers/runs": typeof lib_projectAi_handlers_runs;
-  "lib/projectAi/handlers/strategy": typeof lib_projectAi_handlers_strategy;
-  "lib/projectAi/handlers/wireframes": typeof lib_projectAi_handlers_wireframes;
+  "lib/projectAi/flows/canvas": typeof lib_projectAi_flows_canvas;
+  "lib/projectAi/flows/handlers": typeof lib_projectAi_flows_handlers;
+  "lib/projectAi/mcp/runStatus": typeof lib_projectAi_mcp_runStatus;
+  "lib/projectAi/mcp/steps": typeof lib_projectAi_mcp_steps;
+  "lib/projectAi/moodboard/handlers": typeof lib_projectAi_moodboard_handlers;
+  "lib/projectAi/moodboard/mcp": typeof lib_projectAi_moodboard_mcp;
+  "lib/projectAi/research/handlers": typeof lib_projectAi_research_handlers;
+  "lib/projectAi/research/mcp": typeof lib_projectAi_research_mcp;
+  "lib/projectAi/runs": typeof lib_projectAi_runs;
+  "lib/projectAi/strategy/handlers": typeof lib_projectAi_strategy_handlers;
+  "lib/projectAi/wireframes/handlers": typeof lib_projectAi_wireframes_handlers;
   "lib/projects/domain/delete": typeof lib_projects_domain_delete;
   "lib/projects/domain/projectCategory": typeof lib_projects_domain_projectCategory;
   "lib/projects/domain/projectService": typeof lib_projects_domain_projectService;
@@ -299,6 +317,11 @@ declare const fullApi: ApiFromModules<{
   "lib/projects/handlers/ui": typeof lib_projects_handlers_ui;
   "lib/r2/domain": typeof lib_r2_domain;
   "lib/r2/handlers": typeof lib_r2_handlers;
+  "lib/rateLimits": typeof lib_rateLimits;
+  "lib/references/details": typeof lib_references_details;
+  "lib/references/figma": typeof lib_references_figma;
+  "lib/references/imageUrl": typeof lib_references_imageUrl;
+  "lib/references/refero": typeof lib_references_refero;
   "lib/rewards/handlers": typeof lib_rewards_handlers;
   "lib/settings/githubImport": typeof lib_settings_githubImport;
   "lib/settings/handlers/index": typeof lib_settings_handlers_index;
@@ -311,21 +334,20 @@ declare const fullApi: ApiFromModules<{
   "models/integrations/stripeConnect": typeof models_integrations_stripeConnect;
   "models/projects/validators": typeof models_projects_validators;
   onboarding: typeof onboarding;
-  "platform/inviteEmail": typeof platform_inviteEmail;
-  "platform/inviteTokens": typeof platform_inviteTokens;
-  "platform/rateLimits": typeof platform_rateLimits;
   portal: typeof portal;
   presence: typeof presence;
   projectAi: typeof projectAi;
   projects: typeof projects;
   r2: typeof r2;
-  "readmodels/dashboardOverview": typeof readmodels_dashboardOverview;
   rewards: typeof rewards;
   settings: typeof settings;
   tasks: typeof tasks;
   userEmails: typeof userEmails;
   users: typeof users;
   viewer: typeof viewer;
+  "workflows/jobs": typeof workflows_jobs;
+  "workflows/moodboardImport": typeof workflows_moodboardImport;
+  "workflows/research": typeof workflows_research;
   workspaceInvites: typeof workspaceInvites;
   workspaceMembers: typeof workspaceMembers;
 }>;
@@ -357,826 +379,10 @@ export declare const internal: FilterApi<
 >;
 
 export declare const components: {
-  r2: {
-    lib: {
-      deleteMetadata: FunctionReference<
-        "mutation",
-        "internal",
-        { bucket: string; key: string },
-        null
-      >;
-      deleteObject: FunctionReference<
-        "mutation",
-        "internal",
-        {
-          accessKeyId: string;
-          bucket: string;
-          endpoint: string;
-          key: string;
-          secretAccessKey: string;
-        },
-        null
-      >;
-      deleteR2Object: FunctionReference<
-        "action",
-        "internal",
-        {
-          accessKeyId: string;
-          bucket: string;
-          endpoint: string;
-          key: string;
-          secretAccessKey: string;
-        },
-        null
-      >;
-      getMetadata: FunctionReference<
-        "query",
-        "internal",
-        {
-          accessKeyId: string;
-          bucket: string;
-          endpoint: string;
-          key: string;
-          secretAccessKey: string;
-        },
-        {
-          bucket: string;
-          bucketLink: string;
-          contentType?: string;
-          key: string;
-          lastModified: string;
-          link: string;
-          sha256?: string;
-          size?: number;
-          url: string;
-        } | null
-      >;
-      listMetadata: FunctionReference<
-        "query",
-        "internal",
-        {
-          accessKeyId: string;
-          bucket: string;
-          cursor?: string;
-          endpoint: string;
-          limit?: number;
-          secretAccessKey: string;
-        },
-        {
-          continueCursor: string;
-          isDone: boolean;
-          page: Array<{
-            bucket: string;
-            bucketLink: string;
-            contentType?: string;
-            key: string;
-            lastModified: string;
-            link: string;
-            sha256?: string;
-            size?: number;
-            url: string;
-          }>;
-          pageStatus?: null | "SplitRecommended" | "SplitRequired";
-          splitCursor?: null | string;
-        }
-      >;
-      store: FunctionReference<
-        "action",
-        "internal",
-        {
-          accessKeyId: string;
-          bucket: string;
-          endpoint: string;
-          secretAccessKey: string;
-          url: string;
-        },
-        any
-      >;
-      syncMetadata: FunctionReference<
-        "action",
-        "internal",
-        {
-          accessKeyId: string;
-          bucket: string;
-          endpoint: string;
-          key: string;
-          onComplete?: string;
-          secretAccessKey: string;
-        },
-        null
-      >;
-      upsertMetadata: FunctionReference<
-        "mutation",
-        "internal",
-        {
-          bucket: string;
-          contentType?: string;
-          key: string;
-          lastModified: string;
-          link: string;
-          sha256?: string;
-          size?: number;
-        },
-        { isNew: boolean }
-      >;
-    };
-  };
-  rateLimiter: {
-    lib: {
-      checkRateLimit: FunctionReference<
-        "query",
-        "internal",
-        {
-          config:
-            | {
-                capacity?: number;
-                kind: "token bucket";
-                maxReserved?: number;
-                period: number;
-                rate: number;
-                shards?: number;
-                start?: null;
-              }
-            | {
-                capacity?: number;
-                kind: "fixed window";
-                maxReserved?: number;
-                period: number;
-                rate: number;
-                shards?: number;
-                start?: number;
-              };
-          count?: number;
-          key?: string;
-          name: string;
-          reserve?: boolean;
-          throws?: boolean;
-        },
-        { ok: true; retryAfter?: number } | { ok: false; retryAfter: number }
-      >;
-      clearAll: FunctionReference<
-        "mutation",
-        "internal",
-        { before?: number },
-        null
-      >;
-      getServerTime: FunctionReference<"mutation", "internal", {}, number>;
-      getValue: FunctionReference<
-        "query",
-        "internal",
-        {
-          config:
-            | {
-                capacity?: number;
-                kind: "token bucket";
-                maxReserved?: number;
-                period: number;
-                rate: number;
-                shards?: number;
-                start?: null;
-              }
-            | {
-                capacity?: number;
-                kind: "fixed window";
-                maxReserved?: number;
-                period: number;
-                rate: number;
-                shards?: number;
-                start?: number;
-              };
-          key?: string;
-          name: string;
-          sampleShards?: number;
-        },
-        {
-          config:
-            | {
-                capacity?: number;
-                kind: "token bucket";
-                maxReserved?: number;
-                period: number;
-                rate: number;
-                shards?: number;
-                start?: null;
-              }
-            | {
-                capacity?: number;
-                kind: "fixed window";
-                maxReserved?: number;
-                period: number;
-                rate: number;
-                shards?: number;
-                start?: number;
-              };
-          shard: number;
-          ts: number;
-          value: number;
-        }
-      >;
-      rateLimit: FunctionReference<
-        "mutation",
-        "internal",
-        {
-          config:
-            | {
-                capacity?: number;
-                kind: "token bucket";
-                maxReserved?: number;
-                period: number;
-                rate: number;
-                shards?: number;
-                start?: null;
-              }
-            | {
-                capacity?: number;
-                kind: "fixed window";
-                maxReserved?: number;
-                period: number;
-                rate: number;
-                shards?: number;
-                start?: number;
-              };
-          count?: number;
-          key?: string;
-          name: string;
-          reserve?: boolean;
-          throws?: boolean;
-        },
-        { ok: true; retryAfter?: number } | { ok: false; retryAfter: number }
-      >;
-      resetRateLimit: FunctionReference<
-        "mutation",
-        "internal",
-        { key?: string; name: string },
-        null
-      >;
-    };
-    time: {
-      getServerTime: FunctionReference<"mutation", "internal", {}, number>;
-    };
-  };
-  stripe: {
-    private: {
-      handleCheckoutSessionCompleted: FunctionReference<
-        "mutation",
-        "internal",
-        {
-          metadata?: any;
-          mode: string;
-          stripeCheckoutSessionId: string;
-          stripeCustomerId?: string;
-        },
-        null
-      >;
-      handleCustomerCreated: FunctionReference<
-        "mutation",
-        "internal",
-        {
-          email?: string;
-          metadata?: any;
-          name?: string;
-          stripeCustomerId: string;
-        },
-        null
-      >;
-      handleCustomerUpdated: FunctionReference<
-        "mutation",
-        "internal",
-        {
-          email?: string;
-          metadata?: any;
-          name?: string;
-          stripeCustomerId: string;
-        },
-        null
-      >;
-      handleInvoiceCreated: FunctionReference<
-        "mutation",
-        "internal",
-        {
-          amountDue: number;
-          amountPaid: number;
-          created: number;
-          status: string;
-          stripeCustomerId: string;
-          stripeInvoiceId: string;
-          stripeSubscriptionId?: string;
-        },
-        null
-      >;
-      handleInvoicePaid: FunctionReference<
-        "mutation",
-        "internal",
-        { amountPaid: number; stripeInvoiceId: string },
-        null
-      >;
-      handleInvoicePaymentFailed: FunctionReference<
-        "mutation",
-        "internal",
-        { stripeInvoiceId: string },
-        null
-      >;
-      handlePaymentIntentSucceeded: FunctionReference<
-        "mutation",
-        "internal",
-        {
-          amount: number;
-          created: number;
-          currency: string;
-          metadata?: any;
-          status: string;
-          stripeCustomerId?: string;
-          stripePaymentIntentId: string;
-        },
-        null
-      >;
-      handleSubscriptionCreated: FunctionReference<
-        "mutation",
-        "internal",
-        {
-          cancelAt?: number;
-          cancelAtPeriodEnd: boolean;
-          currentPeriodEnd: number;
-          metadata?: any;
-          priceId: string;
-          quantity?: number;
-          status: string;
-          stripeCustomerId: string;
-          stripeSubscriptionId: string;
-        },
-        null
-      >;
-      handleSubscriptionDeleted: FunctionReference<
-        "mutation",
-        "internal",
-        { stripeSubscriptionId: string },
-        null
-      >;
-      handleSubscriptionUpdated: FunctionReference<
-        "mutation",
-        "internal",
-        {
-          cancelAt?: number;
-          cancelAtPeriodEnd: boolean;
-          currentPeriodEnd: number;
-          metadata?: any;
-          priceId?: string;
-          quantity?: number;
-          status: string;
-          stripeSubscriptionId: string;
-        },
-        null
-      >;
-      updatePaymentCustomer: FunctionReference<
-        "mutation",
-        "internal",
-        { stripeCustomerId: string; stripePaymentIntentId: string },
-        null
-      >;
-      updateSubscriptionQuantityInternal: FunctionReference<
-        "mutation",
-        "internal",
-        { quantity: number; stripeSubscriptionId: string },
-        null
-      >;
-    };
-    public: {
-      createOrUpdateCustomer: FunctionReference<
-        "mutation",
-        "internal",
-        {
-          email?: string;
-          metadata?: any;
-          name?: string;
-          stripeCustomerId: string;
-        },
-        string
-      >;
-      getCustomer: FunctionReference<
-        "query",
-        "internal",
-        { stripeCustomerId: string },
-        {
-          email?: string;
-          metadata?: any;
-          name?: string;
-          stripeCustomerId: string;
-        } | null
-      >;
-      getPayment: FunctionReference<
-        "query",
-        "internal",
-        { stripePaymentIntentId: string },
-        {
-          amount: number;
-          created: number;
-          currency: string;
-          metadata?: any;
-          orgId?: string;
-          status: string;
-          stripeCustomerId?: string;
-          stripePaymentIntentId: string;
-          userId?: string;
-        } | null
-      >;
-      getSubscription: FunctionReference<
-        "query",
-        "internal",
-        { stripeSubscriptionId: string },
-        {
-          cancelAt?: number;
-          cancelAtPeriodEnd: boolean;
-          currentPeriodEnd: number;
-          metadata?: any;
-          orgId?: string;
-          priceId: string;
-          quantity?: number;
-          status: string;
-          stripeCustomerId: string;
-          stripeSubscriptionId: string;
-          userId?: string;
-        } | null
-      >;
-      getSubscriptionByOrgId: FunctionReference<
-        "query",
-        "internal",
-        { orgId: string },
-        {
-          cancelAt?: number;
-          cancelAtPeriodEnd: boolean;
-          currentPeriodEnd: number;
-          metadata?: any;
-          orgId?: string;
-          priceId: string;
-          quantity?: number;
-          status: string;
-          stripeCustomerId: string;
-          stripeSubscriptionId: string;
-          userId?: string;
-        } | null
-      >;
-      listInvoices: FunctionReference<
-        "query",
-        "internal",
-        { stripeCustomerId: string },
-        Array<{
-          amountDue: number;
-          amountPaid: number;
-          created: number;
-          orgId?: string;
-          status: string;
-          stripeCustomerId: string;
-          stripeInvoiceId: string;
-          stripeSubscriptionId?: string;
-          userId?: string;
-        }>
-      >;
-      listInvoicesByOrgId: FunctionReference<
-        "query",
-        "internal",
-        { orgId: string },
-        Array<{
-          amountDue: number;
-          amountPaid: number;
-          created: number;
-          orgId?: string;
-          status: string;
-          stripeCustomerId: string;
-          stripeInvoiceId: string;
-          stripeSubscriptionId?: string;
-          userId?: string;
-        }>
-      >;
-      listInvoicesByUserId: FunctionReference<
-        "query",
-        "internal",
-        { userId: string },
-        Array<{
-          amountDue: number;
-          amountPaid: number;
-          created: number;
-          orgId?: string;
-          status: string;
-          stripeCustomerId: string;
-          stripeInvoiceId: string;
-          stripeSubscriptionId?: string;
-          userId?: string;
-        }>
-      >;
-      listPayments: FunctionReference<
-        "query",
-        "internal",
-        { stripeCustomerId: string },
-        Array<{
-          amount: number;
-          created: number;
-          currency: string;
-          metadata?: any;
-          orgId?: string;
-          status: string;
-          stripeCustomerId?: string;
-          stripePaymentIntentId: string;
-          userId?: string;
-        }>
-      >;
-      listPaymentsByOrgId: FunctionReference<
-        "query",
-        "internal",
-        { orgId: string },
-        Array<{
-          amount: number;
-          created: number;
-          currency: string;
-          metadata?: any;
-          orgId?: string;
-          status: string;
-          stripeCustomerId?: string;
-          stripePaymentIntentId: string;
-          userId?: string;
-        }>
-      >;
-      listPaymentsByUserId: FunctionReference<
-        "query",
-        "internal",
-        { userId: string },
-        Array<{
-          amount: number;
-          created: number;
-          currency: string;
-          metadata?: any;
-          orgId?: string;
-          status: string;
-          stripeCustomerId?: string;
-          stripePaymentIntentId: string;
-          userId?: string;
-        }>
-      >;
-      listSubscriptions: FunctionReference<
-        "query",
-        "internal",
-        { stripeCustomerId: string },
-        Array<{
-          cancelAt?: number;
-          cancelAtPeriodEnd: boolean;
-          currentPeriodEnd: number;
-          metadata?: any;
-          orgId?: string;
-          priceId: string;
-          quantity?: number;
-          status: string;
-          stripeCustomerId: string;
-          stripeSubscriptionId: string;
-          userId?: string;
-        }>
-      >;
-      listSubscriptionsByUserId: FunctionReference<
-        "query",
-        "internal",
-        { userId: string },
-        Array<{
-          cancelAt?: number;
-          cancelAtPeriodEnd: boolean;
-          currentPeriodEnd: number;
-          metadata?: any;
-          orgId?: string;
-          priceId: string;
-          quantity?: number;
-          status: string;
-          stripeCustomerId: string;
-          stripeSubscriptionId: string;
-          userId?: string;
-        }>
-      >;
-      updateSubscriptionMetadata: FunctionReference<
-        "mutation",
-        "internal",
-        {
-          metadata: any;
-          orgId?: string;
-          stripeSubscriptionId: string;
-          userId?: string;
-        },
-        null
-      >;
-      updateSubscriptionQuantity: FunctionReference<
-        "action",
-        "internal",
-        { apiKey: string; quantity: number; stripeSubscriptionId: string },
-        null
-      >;
-    };
-  };
-  resend: {
-    lib: {
-      cancelEmail: FunctionReference<
-        "mutation",
-        "internal",
-        { emailId: string },
-        null
-      >;
-      cleanupAbandonedEmails: FunctionReference<
-        "mutation",
-        "internal",
-        { olderThan?: number },
-        null
-      >;
-      cleanupOldEmails: FunctionReference<
-        "mutation",
-        "internal",
-        { olderThan?: number },
-        null
-      >;
-      createManualEmail: FunctionReference<
-        "mutation",
-        "internal",
-        {
-          bcc?: Array<string> | string;
-          cc?: Array<string> | string;
-          from: string;
-          headers?: Array<{ name: string; value: string }>;
-          replyTo?: Array<string>;
-          subject: string;
-          to: Array<string> | string;
-        },
-        string
-      >;
-      get: FunctionReference<
-        "query",
-        "internal",
-        { emailId: string },
-        {
-          bcc?: Array<string>;
-          bounced?: boolean;
-          cc?: Array<string>;
-          clicked?: boolean;
-          complained: boolean;
-          createdAt: number;
-          deliveryDelayed?: boolean;
-          errorMessage?: string;
-          failed?: boolean;
-          finalizedAt: number;
-          from: string;
-          headers?: Array<{ name: string; value: string }>;
-          html?: string;
-          opened: boolean;
-          replyTo: Array<string>;
-          resendId?: string;
-          segment: number;
-          status:
-            | "waiting"
-            | "queued"
-            | "cancelled"
-            | "sent"
-            | "delivered"
-            | "delivery_delayed"
-            | "bounced"
-            | "failed";
-          subject?: string;
-          template?: {
-            id: string;
-            variables?: Record<string, string | number>;
-          };
-          text?: string;
-          to: Array<string>;
-        } | null
-      >;
-      getStatus: FunctionReference<
-        "query",
-        "internal",
-        { emailId: string },
-        {
-          bounced: boolean;
-          clicked: boolean;
-          complained: boolean;
-          deliveryDelayed: boolean;
-          errorMessage: string | null;
-          failed: boolean;
-          opened: boolean;
-          status:
-            | "waiting"
-            | "queued"
-            | "cancelled"
-            | "sent"
-            | "delivered"
-            | "delivery_delayed"
-            | "bounced"
-            | "failed";
-        } | null
-      >;
-      handleEmailEvent: FunctionReference<
-        "mutation",
-        "internal",
-        { event: any },
-        null
-      >;
-      sendEmail: FunctionReference<
-        "mutation",
-        "internal",
-        {
-          bcc?: Array<string>;
-          cc?: Array<string>;
-          from: string;
-          headers?: Array<{ name: string; value: string }>;
-          html?: string;
-          options: {
-            apiKey: string;
-            initialBackoffMs: number;
-            onEmailEvent?: { fnHandle: string };
-            retryAttempts: number;
-            testMode: boolean;
-          };
-          replyTo?: Array<string>;
-          subject?: string;
-          template?: {
-            id: string;
-            variables?: Record<string, string | number>;
-          };
-          text?: string;
-          to: Array<string>;
-        },
-        string
-      >;
-      updateManualEmail: FunctionReference<
-        "mutation",
-        "internal",
-        {
-          emailId: string;
-          errorMessage?: string;
-          resendId?: string;
-          status:
-            | "waiting"
-            | "queued"
-            | "cancelled"
-            | "sent"
-            | "delivered"
-            | "delivery_delayed"
-            | "bounced"
-            | "failed";
-        },
-        null
-      >;
-    };
-  };
-  presence: {
-    public: {
-      disconnect: FunctionReference<
-        "mutation",
-        "internal",
-        { scheduled?: boolean; sessionToken: string },
-        null
-      >;
-      heartbeat: FunctionReference<
-        "mutation",
-        "internal",
-        {
-          interval?: number;
-          roomId: string;
-          sessionId: string;
-          userId: string;
-        },
-        { roomToken: string; sessionToken: string }
-      >;
-      list: FunctionReference<
-        "query",
-        "internal",
-        { limit?: number; roomToken: string },
-        Array<{
-          data?: any;
-          lastDisconnected: number;
-          online: boolean;
-          userId: string;
-        }>
-      >;
-      listRoom: FunctionReference<
-        "query",
-        "internal",
-        { limit?: number; onlineOnly?: boolean; roomId: string },
-        Array<{ lastDisconnected: number; online: boolean; userId: string }>
-      >;
-      listUser: FunctionReference<
-        "query",
-        "internal",
-        { limit?: number; onlineOnly?: boolean; userId: string },
-        Array<{ lastDisconnected: number; online: boolean; roomId: string }>
-      >;
-      removeRoom: FunctionReference<
-        "mutation",
-        "internal",
-        { roomId: string },
-        null
-      >;
-      removeRoomUser: FunctionReference<
-        "mutation",
-        "internal",
-        { roomId: string; userId: string },
-        null
-      >;
-      updateRoomUser: FunctionReference<
-        "mutation",
-        "internal",
-        { data?: any; roomId: string; userId: string },
-        null
-      >;
-    };
-  };
+  r2: import("@convex-dev/r2/_generated/component.js").ComponentApi<"r2">;
+  rateLimiter: import("@convex-dev/rate-limiter/_generated/component.js").ComponentApi<"rateLimiter">;
+  stripe: import("@convex-dev/stripe/_generated/component.js").ComponentApi<"stripe">;
+  resend: import("@convex-dev/resend/_generated/component.js").ComponentApi<"resend">;
+  presence: import("@convex-dev/presence/_generated/component.js").ComponentApi<"presence">;
+  workflow: import("@convex-dev/workflow/_generated/component.js").ComponentApi<"workflow">;
 };

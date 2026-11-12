@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { MoodboardStyleGuide } from "@stage/data-ops/contracts";
-import type { MoodboardItem } from "@/types/project/moodboardTab";
-import { readableOn, resolveStyleGuideSpec, shadcnThemeVars, styleGuideDesignMarkdown } from "./styleGuideSpec";
+import type { MoodboardItem } from "@stage/project-ui/moodboard/types";
+import { readableOn, resolveStyleGuideSpec, styleGuideDesignMarkdown } from "@stage/data-ops/domain/styleGuideSpec";
+import { shadcnThemeVars } from "@stage/project-ui/moodboard/styleGuideSpec";
 
 const guide = {
   id: "guide-1",

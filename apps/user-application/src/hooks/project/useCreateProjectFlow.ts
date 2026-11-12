@@ -3,10 +3,10 @@ import { useMutation as useConvexMutation } from "convex/react";
 import { projectDetailSchema } from "@stage/data-ops";
 import { createProjectFromDraft } from "@/features/project-creation/createProjectFromDraft";
 import { useProjectDraft } from "@/features/project-creation/useProjectDraft";
-import { useClientsQuery } from "@/hooks/convex-data/useClientsQuery";
+import { useClientsQuery } from "@stage/project-ui/data/useClientsQuery";
 import { AI_ROADMAPS } from "@/lib/constants";
 import { api } from "@/lib/convexApi";
-import { isProjectUpgradeRequiredError, toUserFacingErrorMessage } from "@/lib/errors";
+import { isProjectUpgradeRequiredError, toUserFacingErrorMessage } from "@stage/project-ui/errors";
 import {
   basicDetailsFormSchema,
   clientDetailsFormSchema,

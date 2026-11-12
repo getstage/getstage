@@ -1,18 +1,18 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { useQuery } from "convex/react";
 import type { MoodboardStyleGuide } from "@stage/data-ops/contracts";
 import { useStyleGuideEditor, type StyleGuideSaveState } from "@/hooks/project/moodboard/useStyleGuideEditor";
 import { useStyleGuideFontUpload } from "@/hooks/project/moodboard/useStyleGuideFontUpload";
 import { useRoomPresence, type RoomMember } from "@/hooks/project/useRoomPresence";
 import { api } from "@/lib/convexApi";
-import { ensureStyleGuideFonts } from "@/lib/fonts/uploadedFonts";
-import { resolveStyleGuideSpec, styleGuideDesignMarkdown, type ThemeMode } from "@/lib/project/styleGuideSpec";
-import type { MoodboardItem } from "@/types/project/moodboardTab";
+import { resolveStyleGuideSpec } from "@stage/data-ops/domain/styleGuideSpec";
+import type { ThemeMode } from "@stage/project-ui/moodboard/styleGuideSpec";
+import type { MoodboardItem } from "@stage/project-ui/moodboard/types";
 import { cn } from "@/lib/utils";
 import { AdvancedSection } from "./AdvancedSection";
-import { ColorsSection, FontsSection, IntentSection, MODES, ReferencesSection, RulesSection, ShapeSection } from "./sections";
-import { Divider, Icon, Segmented } from "./fields";
-import { StyleGuidePreview } from "./StyleGuidePreview";
+import { ColorsSection, FontsSection, IntentSection, ReferencesSection, RulesSection, ShapeSection } from "./sections";
+import { Divider } from "@stage/project-ui/moodboard/styleguide/fields";
+import { HeaderButton, StyleGuideDialog } from "@stage/project-ui/moodboard/styleguide/StyleGuideDialog";
 
 type Props = {
   projectId: string;
@@ -29,13 +29,6 @@ const SAVE_LABEL: Record<StyleGuideSaveState["kind"], string> = {
   saving: "Saving…",
   failed: "Not saved",
 };
-
-function downloadDesignMarkdown(name: string, markdown: string) {
-  const url = URL.createObjectURL(new Blob([markdown], { type: "text/markdown" }));
-  const link = Object.assign(document.createElement("a"), { href: url, download: `${name || "style-guide"}-DESIGN.md` });
-  link.click();
-  URL.revokeObjectURL(url);
-}
 
 function Avatars({ members, size = 24 }: { members: RoomMember[]; size?: number }) {
   return (
@@ -80,19 +73,9 @@ function StyleGuideEditorView({ projectId, directionId, directionName, guide, re
   const { spec, update, resetToGenerated, saveState } = useStyleGuideEditor(projectId, directionId, serverSpec);
   const { others, setFocus } = useRoomPresence(`styleguide:${projectId}:${directionId}`, userId);
   const [mode, setMode] = useState<ThemeMode>(spec.layout.theme);
-  const [tab, setTab] = useState<"screen" | "markdown">("screen");
-  const markdown = useMemo(() => styleGuideDesignMarkdown(spec, references), [spec, references]);
   const uploadFont = useStyleGuideFontUpload(projectId);
   const section = { spec, update };
   const fontSection = { ...section, uploadFont };
-
-  useEffect(() => ensureStyleGuideFonts(spec.fonts), [spec.fonts]);
-
-  useEffect(() => {
-    const onKey = (event: KeyboardEvent) => event.key === "Escape" && onBack();
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onBack]);
 
   const sections = [
     ["intent", <IntentSection {...section} />],
@@ -105,81 +88,34 @@ function StyleGuideEditorView({ projectId, directionId, directionName, guide, re
   ] as const;
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-label={`${spec.intent.name} style guide`}
-      className="fixed inset-0 z-40 flex items-center justify-center bg-black/10 px-[clamp(16px,4.6vw,67px)] py-[clamp(16px,6vh,65px)] backdrop-blur-[5px]"
-      onMouseDown={(event) => event.target === event.currentTarget && onBack()}
-    >
-      <div className="flex h-full max-h-[894px] w-full max-w-[1306px] flex-col overflow-hidden rounded-[12px] border-[0.5px] border-neutral-300 bg-neutral-100 p-1 shadow-stage-control">
-        <header className="flex flex-wrap items-center justify-between gap-2 p-3">
-          <div className="flex min-w-0 flex-col font-medium leading-[1.5]">
-            <h2 className="truncate text-[15px] text-neutral-950">{spec.intent.name} — Style Guide</h2>
-            {spec.intent.line ? <p className="truncate text-[13px] text-neutral-600">{spec.intent.line}</p> : null}
-          </div>
-          <div className="flex flex-wrap items-center gap-1 py-[3px] text-[13px] font-medium">
-            <Avatars members={others} />
-            <span
-              role="status"
-              title={saveState.kind === "failed" ? saveState.message : undefined}
-              className={cn("px-2.5 py-[5px]", saveState.kind === "failed" ? "text-red-500" : "text-neutral-400")}
-            >
-              {SAVE_LABEL[saveState.kind]}
-            </span>
-            <button type="button" onClick={resetToGenerated} className="px-2.5 py-[5px] text-red-500 hover:opacity-80">
-              Reset to generated
-            </button>
-            <HeaderButton icon="regenerate-all" onClick={onRegenerateAll}>Regenerate All</HeaderButton>
-            <HeaderButton icon="export" onClick={() => downloadDesignMarkdown(spec.intent.name, markdown)}>Export</HeaderButton>
-          </div>
-        </header>
-
-        <div className="flex min-h-0 flex-1 gap-6 rounded-[8px] border-[0.5px] border-neutral-300 bg-white p-3 shadow-stage-control">
-          <div className="flex w-[clamp(340px,48%,613px)] shrink-0 flex-col gap-8 overflow-y-auto pr-8">
-            {sections.map(([id, node], index) => (
-              <div key={id} className="flex flex-col gap-8">
-                {index > 0 ? <Divider /> : null}
-                <Focusable id={id} members={others} onFocus={setFocus}>{node}</Focusable>
-              </div>
-            ))}
-          </div>
-
-          <div className="w-0 self-stretch border-l-[0.5px] border-neutral-300" />
-
-          <div className="flex min-w-0 flex-1 flex-col gap-2">
-            <div className="flex items-center justify-between gap-2">
-              <Segmented
-                label="Preview"
-                fit
-                value={tab}
-                options={[{ value: "screen", label: "Screen" }, { value: "markdown", label: "DESIGN.md" }]}
-                onChange={setTab}
-              />
-              {tab === "screen" ? <Segmented label="Preview mode" fit value={mode} options={MODES} onChange={setMode} /> : null}
-            </div>
-            <div className="min-h-0 flex-1 overflow-y-auto rounded-[8px] bg-neutral-100 p-3 shadow-stage-field">
-              {tab === "screen" ? (
-                <StyleGuidePreview spec={spec} mode={mode} />
-              ) : (
-                <pre className="font-mono text-[12px] whitespace-pre-wrap text-neutral-800">{markdown}</pre>
-              )}
-            </div>
-          </div>
+    <StyleGuideDialog
+      spec={spec}
+      references={references}
+      mode={mode}
+      onModeChange={setMode}
+      onBack={onBack}
+      headerControls={
+        <>
+          <Avatars members={others} />
+          <span
+            role="status"
+            title={saveState.kind === "failed" ? saveState.message : undefined}
+            className={cn("px-2.5 py-[5px]", saveState.kind === "failed" ? "text-red-500" : "text-neutral-400")}
+          >
+            {SAVE_LABEL[saveState.kind]}
+          </span>
+          <button type="button" onClick={resetToGenerated} className="px-2.5 py-[5px] text-red-500 hover:opacity-80">
+            Reset to generated
+          </button>
+          <HeaderButton icon="regenerate-all" onClick={onRegenerateAll}>Regenerate All</HeaderButton>
+        </>
+      }
+      editor={sections.map(([id, node], index) => (
+        <div key={id} className="flex flex-col gap-8">
+          {index > 0 ? <Divider /> : null}
+          <Focusable id={id} members={others} onFocus={setFocus}>{node}</Focusable>
         </div>
-      </div>
-    </div>
-  );
-}
-
-function HeaderButton({ icon, onClick, children }: { icon: string; onClick: () => void; children: ReactNode }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="flex items-center gap-1.5 rounded-[6px] border-[0.5px] border-neutral-300 bg-neutral-200 py-[5px] pr-2.5 pl-[9px] text-neutral-700 hover:bg-neutral-300/60"
-    >
-      <Icon name={icon} /> {children}
-    </button>
+      ))}
+    />
   );
 }

@@ -1,5 +1,5 @@
 import { useNavigate } from "@tanstack/react-router";
-import stageLogoLight from "@/assets/logos/stage-logo-light.png";
+import stageLogoLight from "@stage/project-ui/assets/stage-logo-light.png";
 import { BasicDetailsStep } from "./create/BasicDetailsStep";
 import { ClientDetailsStep } from "./create/ClientDetailsStep";
 import { ArrowLeftIcon } from "./create/CreateProjectPrimitives";

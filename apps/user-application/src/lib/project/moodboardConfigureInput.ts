@@ -4,7 +4,7 @@ import {
   type MoodboardUploadedFile,
 } from "@stage/data-ops/contracts";
 import type { Project } from "@/models/project/project";
-import type { MoodboardMode } from "@/types/project/moodboardTab";
+import type { MoodboardMode } from "@stage/project-ui/moodboard/types";
 import { z } from "zod";
 
 const MAX_NOTES_LENGTH = 2000;

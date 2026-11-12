@@ -5,7 +5,7 @@ import {
   useProjectsQuery,
   useSettingsOverviewQuery,
 } from "@/hooks/convex-data";
-import { coveringPlan } from "@/models/settings/settings";
+import { coveringPlan } from "@stage/project-ui/settings/model";
 import { useDesktopSession } from "@/hooks/engine/useDesktopSession";
 
 type SessionProgress = { userId: string; completed: boolean; checkoutReturned: boolean };

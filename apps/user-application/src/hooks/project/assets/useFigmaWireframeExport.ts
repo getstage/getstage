@@ -3,8 +3,8 @@ import { useQuery } from "convex/react";
 import type { CreateFigmaExportResponse } from "@stage/data-ops/contracts";
 import type { Id } from "@stage/data-ops/convex/data-model";
 import { api } from "@/lib/convexApi";
-import { toUserFacingErrorMessage } from "@/lib/errors";
-import type { WireframeAssetCard } from "@/types/project/assetsTab";
+import { toUserFacingErrorMessage } from "@stage/project-ui/errors";
+import type { WireframeAssetCard } from "@stage/project-ui/assets/types";
 
 export function useFigmaWireframeExport(projectId: string) {
   const [request, setRequest] = useState<CreateFigmaExportResponse | null>(null);

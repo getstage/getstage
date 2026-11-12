@@ -21,7 +21,7 @@ import {
 } from "@/components/onboarding/steps/OnboardingSetupSteps";
 import type { OnboardingAnswers } from "@/features/onboarding/model";
 import { PROJECT_CATEGORIES, PROJECT_TYPES, PROJECT_TYPE_ICONS } from "@/lib/constants";
-import { AVATAR_ACCEPT, PROJECT_MARKER_ACCEPT } from "@/lib/r2Uploads";
+import { AVATAR_ACCEPT, PROJECT_MARKER_ACCEPT } from "@stage/project-ui/r2Uploads";
 import { cn } from "@/lib/utils";
 import type { UseProjectDraftResult } from "@/features/project-creation/useProjectDraft";
 import type { OnboardingStepId } from "@/features/onboarding/model";

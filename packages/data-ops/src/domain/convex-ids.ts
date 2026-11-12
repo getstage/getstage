@@ -1,4 +1,5 @@
-import type { Id, TableNames } from "../../convex/_generated/dataModel";
+// GenericId (what Convex's Id<T> is) keeps the schema out of this package's build.
+import type { GenericId as Id } from "convex/values";
 
 /** Snapshot and fixture ids used in UI mocks — never valid Convex document ids. */
 const MOCK_DOCUMENT_ID_PATTERN =
@@ -15,7 +16,7 @@ export function isConvexDocumentId(value: string): boolean {
   return value.length >= 10;
 }
 
-export function parseConvexId<TableName extends TableNames>(
+export function parseConvexId<TableName extends string>(
   value: string | undefined | null,
 ): Id<TableName> | null {
   if (!value || !isConvexDocumentId(value)) return null;

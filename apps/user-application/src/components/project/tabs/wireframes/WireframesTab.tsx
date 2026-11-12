@@ -9,7 +9,7 @@ import { useWireframeDeliveryExport } from "@/hooks/project/assets/useWireframeD
 import { api } from "@/lib/convexApi";
 import { buildResultCards, hasDisplayableWireframeResults, type WireframesTabData, ResultsGrid } from "@stage/project-ui/wireframes";
 import type { Project, ProjectScreen } from "@/models/project/project";
-import type { WireframeAssetCard } from "@/types/project/assetsTab";
+import type { WireframeAssetCard } from "@stage/project-ui/assets/types";
 import { ExportOptionsDialog } from "../assets/ExportOptionsDialog";
 import { TabLoadingState } from "../TabLoadingState";
 import { CanvasShell } from "./CanvasShell";

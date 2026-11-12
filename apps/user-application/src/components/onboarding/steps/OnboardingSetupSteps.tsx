@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from "react";
 import { ArrowRight, Plus } from "@phosphor-icons/react";
-import stageLogo from "@/assets/logos/stage-logo-light.png";
+import stageLogo from "@stage/project-ui/assets/stage-logo-light.png";
 import friendsIcon from "@/assets/onboarding/icons/friends.svg";
 import googleIcon from "@/assets/onboarding/icons/google.svg";
 import instagramIcon from "@/assets/onboarding/icons/instagram.svg";

@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type DragEvent } from "react";
 import { DEFAULT_PHASES, AI_ROADMAPS } from "@/lib/constants";
 import { getDefaultProjectTimeline } from "@/lib/project/createProjectDates";
-import { prepareClientAvatarUpload, prepareProjectMarkerUpload } from "@/lib/r2Uploads";
-import { toUserFacingErrorMessage } from "@/lib/errors";
+import { prepareClientAvatarUpload, prepareProjectMarkerUpload } from "@stage/project-ui/r2Uploads";
+import { toUserFacingErrorMessage } from "@stage/project-ui/errors";
 import type { ProjectCategory } from "@/types";
 import {
   buildRoadmapPreview,

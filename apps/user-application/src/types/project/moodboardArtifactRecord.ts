@@ -1,5 +1,5 @@
 import type { MoodboardArtifact } from "@stage/data-ops/contracts";
-import type { MoodboardTabData } from "@/types/project/moodboardTab";
+import type { MoodboardTabData } from "@stage/project-ui/moodboard/types";
 
 export type MoodboardArtifactRecord = {
   id: string;

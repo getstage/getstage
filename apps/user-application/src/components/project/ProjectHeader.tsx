@@ -5,7 +5,7 @@ import type {
   SaveClientProfileInput,
   SaveProjectProfileInput,
 } from "@/hooks/project";
-import { ProjectTabBar, ProjectTitle } from "@stage/project-ui/project";
+import { ClientPortalButton, ProjectTabBar, ProjectTitle } from "@stage/project-ui/project";
 import type { Phase, Project, ProjectTab } from "@/models/project/project";
 import type { ProjectModal, ProjectTimeline } from "@/types/project/projectHeader";
 import { ProjectActionsMenu } from "./header/ProjectActionsMenu";
@@ -143,24 +143,9 @@ export function ProjectHeader({
         </div>
 
         <div className="project-header-portal flex min-w-0 items-center justify-end gap-2">
-          <button
-            type="button"
-            onClick={() =>
-              void navigate({
-                to: "/client-portal/$projectId/preview",
-                params: { projectId: project.id },
-              })
-            }
-            className="inline-flex h-[27px] shrink-0 cursor-pointer items-center gap-2 rounded-[6px] px-[10px] py-[6px] text-[13px] font-medium leading-[1.25] text-[#525252] transition-colors hover:bg-[#F5F5F5]"
-          >
-            <span className="whitespace-nowrap">Client Portal</span>
-            <img
-              src="/logos/dashboard/redirect.svg"
-              alt=""
-              aria-hidden="true"
-              className="h-[15px] w-[15px] shrink-0"
-            />
-          </button>
+          <ClientPortalButton
+            onClick={() => void navigate({ to: "/client-portal/$projectId/preview", params: { projectId: project.id } })}
+          />
         </div>
       </div>
 

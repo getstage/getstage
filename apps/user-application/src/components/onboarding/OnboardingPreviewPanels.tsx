@@ -1,6 +1,6 @@
 import { ArrowRight } from "@phosphor-icons/react";
 import onboardingPreview from "@/assets/onboarding/onboarding.webp";
-import stageLogo from "@/assets/logos/stage-logo-light.png";
+import stageLogo from "@stage/project-ui/assets/stage-logo-light.png";
 
 export function AlmostSetupPreview({
   onContinue,

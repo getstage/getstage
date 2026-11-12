@@ -1,8 +1,8 @@
 import { useCallback } from "react";
 import { useMutation } from "convex/react";
 import { api } from "@/lib/convexApi";
-import { familyFromFileName, type UploadedFont } from "@/lib/fonts/uploadedFonts";
-import { uploadFileToR2 } from "@/lib/r2Uploads";
+import { familyFromFileName, type UploadedFont } from "@stage/project-ui/fonts/uploadedFonts";
+import { uploadFileToR2 } from "@stage/project-ui/r2Uploads";
 
 /**
  * Uploads a font file for a project's Style Guide. The font is registered from the

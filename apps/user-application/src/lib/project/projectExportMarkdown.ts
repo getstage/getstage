@@ -6,8 +6,8 @@ import type {
   StrategyArtifact,
   WireframesArtifact,
 } from "@stage/data-ops/contracts";
-import { mapReferenceToItem } from "../../types/project/moodboardTab";
-import { resolveStyleGuideSpec, styleGuideDesignMarkdown } from "./styleGuideSpec";
+import { mapReferenceToItem } from "@stage/project-ui/moodboard/types";
+import { resolveStyleGuideSpec, styleGuideDesignMarkdown } from "@stage/data-ops/domain/styleGuideSpec";
 
 type AssetPathMap = ReadonlyMap<string, string>;
 type UploadedAsset = { title: string; url: string | null; mimeType?: string };

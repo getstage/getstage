@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { PhotoLightbox } from "@/components/project/PhotoLightbox";
+import { PhotoLightbox } from "@stage/project-ui/ui/PhotoLightbox";
 import { formatUploadedFileSize, mockUploadedFiles } from "@/mock/project/moodboard";
-import { FolderUploadIcon, TrashIcon } from "./moodboardIcons";
+import { FolderUploadIcon, TrashIcon } from "@stage/project-ui/moodboard/moodboardIcons";
 
 type UploadedFile = { id: string; name: string; sizeBytes: number; previewUrl?: string };
 

@@ -9,6 +9,7 @@ import { useAuth } from "@/lib/auth";
 import { api } from "@/lib/convex";
 import { getMcpOrigin, hasMcpPlan } from "@/lib/mcp";
 import stageLogo from "@/assets/logos/stage-logo-light.png";
+import { ALL_MCP_PERMISSIONS, MCP_PERMISSIONS, mcpPermissionLabel, withNeeded, withoutDependents, type McpPermission } from "@stage/data-ops/domain/mcpPermissions";
 
 type ConnectRequest = { state: string; challenge: string; client: string; domain?: string; redirectHost: string; local: boolean };
 
@@ -63,7 +64,10 @@ function ApproveConnection({ request, mcpOrigin }: { request: ConnectRequest; mc
   const createCode = useMutation(api.developer.mcpConnect.createConnectCode);
   const spaces = useQuery(api.workspaceMembers.listSpaces);
   const [picked, setPicked] = useState<Set<string>>();
-  const [access, setAccess] = useState<"read" | "write">("write");
+  // Everything allowed by default; the user unticks what the tool may not do.
+  const [permissions, setPermissions] = useState<McpPermission[]>(ALL_MCP_PERMISSIONS);
+  const togglePermission = (id: McpPermission) =>
+    setPermissions((current) => (current.includes(id) ? withoutDependents(current, id) : withNeeded([...current, id])));
   const [status, setStatus] = useState<{ kind: "idle" } | { kind: "connecting" } | { kind: "error"; message: string }>({ kind: "idle" });
   const workspaceIds = picked ?? new Set(spaces?.filter((space) => space.role === "owner").map((space) => space.ownerUserId));
   const toggleWorkspace = (id: string) => {
@@ -86,7 +90,7 @@ function ApproveConnection({ request, mcpOrigin }: { request: ConnectRequest; mc
         codeChallenge: request.challenge,
         clientName: request.client,
         workspaceIds: [...workspaceIds],
-        access,
+        permissions,
       });
       finish({ code });
     } catch (error) {
@@ -98,7 +102,7 @@ function ApproveConnection({ request, mcpOrigin }: { request: ConnectRequest; mc
     <>
       <h1 className="text-[21px] font-semibold leading-[1.2] text-[#0A0A0A]">Allow {request.client} to use Stage?</h1>
       <p className="mt-2.5 text-[13px] font-medium leading-[1.5] text-[#525252]">
-        {request.client} will {access === "write" ? "read and save work to" : "only read"} the projects in the workspaces you choose.
+        {request.client} can view the projects in the workspaces you choose, and do only the steps you allow below.
       </p>
       <fieldset className="mt-5 w-full">
         <legend className="mb-2 text-[12px] font-semibold text-[#171717]">Workspaces</legend>
@@ -110,11 +114,24 @@ function ApproveConnection({ request, mcpOrigin }: { request: ConnectRequest; mc
         ))}
       </fieldset>
       <fieldset className="mt-4 w-full">
-        <legend className="mb-2 text-[12px] font-semibold text-[#171717]">Access</legend>
-        {([["write", "Read and edit"], ["read", "Read only"]] as const).map(([value, label]) => (
-          <label key={value} className="flex items-center gap-2 py-1 text-[13px] font-medium text-[#404040]">
-            <input type="radio" name="access" checked={access === value} onChange={() => setAccess(value)} className="accent-[#463FBA]" />
-            {label}
+        <legend className="mb-2 text-[12px] font-semibold text-[#171717]">Permissions</legend>
+        <label className="flex items-start gap-2 py-1 text-[13px] font-medium text-[#404040]">
+          <input type="checkbox" checked disabled className="mt-[3px] accent-[#463FBA]" />
+          <span>View projects and results <span className="text-[#737373]">· always on</span></span>
+        </label>
+        {MCP_PERMISSIONS.map((permission) => (
+          <label key={permission.id} className="flex items-start gap-2 py-1 text-[13px] font-medium text-[#404040]">
+            <input type="checkbox" checked={permissions.includes(permission.id)} onChange={() => togglePermission(permission.id)} className="mt-[3px] accent-[#463FBA]" />
+            <span className="flex flex-col">
+              <span>
+                {permission.label}
+                {permission.usesCredits ? <span className="ml-1.5 rounded-[4px] bg-[#EEEDFD] px-1.5 py-px text-[11px] text-[#463FBA]">Uses credits</span> : null}
+              </span>
+              <span className="text-[12px] text-[#737373]">
+                {permission.description}
+                {permission.needs.length > 0 ? ` Needs ${permission.needs.map(mcpPermissionLabel).join(" and ")}.` : ""}
+              </span>
+            </span>
           </label>
         ))}
       </fieldset>

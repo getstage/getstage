@@ -1,4 +1,4 @@
-import { PlusIcon } from "./moodboardIcons";
+import { PlusIcon } from "@stage/project-ui/moodboard/moodboardIcons";
 
 export function FolderTabs({
   folders,

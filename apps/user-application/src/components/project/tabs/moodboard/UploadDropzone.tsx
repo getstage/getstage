@@ -1,4 +1,4 @@
-import { FolderUploadIcon } from "./moodboardIcons";
+import { FolderUploadIcon } from "@stage/project-ui/moodboard/moodboardIcons";
 
 export function UploadDropzone({
   accept,

@@ -12,7 +12,7 @@ import {
 } from "@/lib/settings/providerCliHints";
 import type { IntegrationRowModel } from "@/types/settings/integrations";
 import { ProviderUpdatesBanner } from "./ProviderUpdatesBanner";
-import { SettingsIcon } from "./SettingsIcons";
+import { SettingsIcon } from "@stage/project-ui/settings/SettingsIcons";
 import { ToolConnectionDialogs } from "./ToolConnectionDialogs";
 import {
   ComponentsHubPanel,

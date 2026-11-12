@@ -39,9 +39,10 @@ impl ReferoService {
         self.client.is_configured()
     }
 
-    pub fn with_token(&self, token: String) -> Result<Self, ReferoClientError> {
+    /// The same service against another MCP endpoint (Stage's backend relay) with another bearer token.
+    pub fn with_endpoint(&self, mcp_url: String, token: String) -> Result<Self, ReferoClientError> {
         Ok(Self {
-            client: ReferoClient::from_parts(self.client.mcp_url().to_string(), Some(token))?,
+            client: ReferoClient::from_parts(mcp_url, Some(token))?,
         })
     }
 

@@ -1,7 +1,7 @@
 import { useMemo, useState, type ReactNode } from "react";
 import { SkillDetailPanel } from "./SkillDetailPanel";
 import { useSkillHubPrefs } from "@/hooks/settings/useSkillHubPrefs";
-import { toUserFacingErrorMessage } from "@/lib/errors";
+import { toUserFacingErrorMessage } from "@stage/project-ui/errors";
 import {
   COMPONENT_PACK_CATALOG,
   DISCOVER_SKILL_CATALOG,

@@ -3,6 +3,7 @@ import { mutation, query, internalQuery, internalMutation } from "../_generated/
 import { requireAuthUser } from "../_helpers";
 import { getCurrentSubscriptionSnapshot } from "../billing";
 import type { Doc } from "../_generated/dataModel";
+import { ALL_MCP_PERMISSIONS, isMcpPermission } from "../../src/domain/mcpPermissions";
 
 const KEY_PREFIX = "stg_";
 const KEY_BYTE_LENGTH = 32;
@@ -125,9 +126,14 @@ export const revoke = mutation({
 // --- Internal functions (for API auth in HTTP actions) ---
 
 // An MCP key without a stored scope never acts: the user has to connect again and choose.
+// Keys from before per-step permissions: read + edit allowed everything, read only viewing.
 function mcpScope(apiKey: Doc<"apiKeys">) {
-  if (!apiKey.mcpAccess || !apiKey.mcpWorkspaceIds || apiKey.mcpWorkspaceIds.length === 0) return undefined;
-  return { access: apiKey.mcpAccess, workspaceIds: apiKey.mcpWorkspaceIds };
+  if (!apiKey.mcpWorkspaceIds || apiKey.mcpWorkspaceIds.length === 0) return undefined;
+  if (!apiKey.mcpPermissions && !apiKey.mcpAccess) return undefined;
+  const permissions = apiKey.mcpPermissions
+    ? apiKey.mcpPermissions.filter(isMcpPermission)
+    : apiKey.mcpAccess === "write" ? ALL_MCP_PERMISSIONS : [];
+  return { permissions, workspaceIds: apiKey.mcpWorkspaceIds };
 }
 
 export const getUserByHashedKey = internalQuery({

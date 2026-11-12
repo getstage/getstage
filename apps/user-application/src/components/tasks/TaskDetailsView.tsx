@@ -20,14 +20,14 @@ import {
 } from "@/hooks/convex-data";
 import { setProjectBackDestination } from "@/lib/projectBackDestination";
 import { formatInputDate } from "@/lib/format";
-import { toUserFacingErrorMessage } from "@/lib/errors";
+import { toUserFacingErrorMessage } from "@stage/project-ui/errors";
 import { api } from "@/lib/convexApi";
 import {
   getNormalizedMimeType,
   TASK_ATTACHMENT_ACCEPT,
   uploadFileToR2,
   validateUploadFile,
-} from "@/lib/r2Uploads";
+} from "@stage/project-ui/r2Uploads";
 import type { Attachment } from "@/types";
 
 type DetailPicker = "assignee" | "phase" | null;
