@@ -12,6 +12,7 @@ import {
   emptyMoodboardArtifact,
   mergeStyleGuide,
   normalizeStyleGuide,
+  repairFontFamily,
   researchReferenceIds,
 } from "../../../../src/domain/moodboard";
 import { CREDIT_COSTS, recordUsage, requireCredits } from "../../credits/service";
@@ -210,7 +211,7 @@ export const moodboardImportFinishedArgs = { workflowId: vWorkflowId, result: vR
 /** Keeps the import's outcome on the run (imported, failed items), or fails the run with the reason. */
 export async function moodboardImportFinishedHandler(ctx: MutationCtx, args: { result: RunResult; context: { runId: Id<"projectAiRuns"> } }) {
   const run = await ctx.db.get(args.context.runId);
-  if (!run) return;
+  if (!run || run.status === "cancelled") return; // the user cancelled it meanwhile
   const timestamp = now();
   if (args.result.kind !== "success") {
     const reason = args.result.kind === "failed" ? args.result.error : "The import was cancelled.";
@@ -249,6 +250,8 @@ export async function appendMoodboardReferencesForApiHandler(
   args: { userId: Id<"users">; projectId: Id<"projects">; runId: Id<"projectAiRuns">; referencesJson: string; importMode: "ai" | "url" | "figma"; direction?: string },
 ) {
   const access = await requireProjectAccessForUserId(ctx, args);
+  // Cancelled while the images were downloading: add nothing, charge nothing.
+  if ((await ctx.db.get(args.runId))?.status !== "running") throw new Error("The import was cancelled.");
   const moodboard = appendMoodboardReferences(
     await loadMoodboard(ctx, args.projectId, "Project moodboard"),
     JSON.parse(args.referencesJson) as StagedReference[],
@@ -295,8 +298,10 @@ export async function saveStyleGuideForApiHandler(
     category: resolveProjectCategory(access.project.type),
     researchReferenceIds: parsedResearch?.success ? researchReferenceIds(parsedResearch.data) : [],
   });
-  // Stored where the Mac's Style Guide editor keeps its edits, so the editor, web and DESIGN.md all show it.
-  const styleGuide = { ...normalized, spec };
+  // Stored where the Mac's Style Guide editor keeps its edits, so the editor, web and DESIGN.md all show it;
+  // its fonts follow the same rule as the generated guide.
+  const fonts = { ...spec.fonts, heading: repairFontFamily(spec.fonts.heading), body: repairFontFamily(spec.fonts.body) };
+  const styleGuide = { ...normalized, spec: { ...spec, fonts } };
   await saveMoodboardResult(ctx, access, {
     projectId: args.projectId,
     title: moodboard.title,
