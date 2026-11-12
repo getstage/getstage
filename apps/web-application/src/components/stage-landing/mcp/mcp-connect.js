@@ -41,7 +41,7 @@ export function mountMcpGuide(endpoint) {
         <div class="mcp-setup-slot"><div class="mcp-code-control" hidden><span id="mcp-code-label" class="mcp-code-label">MCP server URL</span><div class="mcp-code-box"><code id="mcp-code" tabindex="0" aria-labelledby="mcp-code-label"></code><button type="button" class="mcp-copy" aria-label="Copy setup value">${icons.copy}<span>Copy URL</span></button></div></div><span class="mcp-copy-status" role="status" aria-live="polite"></span></div>
       </section>
       <div class="mcp-action-slot"></div>
-      <p class="mcp-footer">Needs a Stage account. <a href="https://getstage.co/auth?mode=signup" target="_blank" rel="noopener noreferrer">Create one</a></p>
+      <p class="mcp-footer">Needs a Stage account. <a href="/auth?mode=signup" target="_blank" rel="noopener noreferrer">Create one</a></p>
       </div>
     </div>`;
   document.body.append(dialog);

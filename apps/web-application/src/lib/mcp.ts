@@ -10,6 +10,11 @@ export function getMcpOrigin(): string | undefined {
   return MCP_ORIGINS[window.location.hostname];
 }
 
+/** The server URL people paste into their AI tool (landing page guide); other hosts show the live one. */
+export function mcpServerUrl() {
+  return `${getMcpOrigin() ?? MCP_ORIGINS["getstage.co"]}/mcp`;
+}
+
 // Same rule as the backend (`planAllowsKey("mcp", …)`): every paid plan includes the MCP.
 export function hasMcpPlan(plan: string) {
   return plan === "start" || plan === "pro" || plan === "team";
