@@ -192,13 +192,23 @@ export async function syncSubscriptionMirrorHandler(
     await ctx.db.insert("subscriptions", row);
   }
 
-  const user = await ctx.db.get(args.userId);
-  if (user) {
-    await ctx.db.patch(args.userId, {
-      plan,
-      updatedAt: timestamp,
-    });
-  }
+  await syncUserPlan(ctx, args.userId);
+}
+
+// Statuses that still give the user their plan (cancelling = cancelled at period end, still paid up).
+const PLAN_STATUSES = new Set<AppSubscriptionStatus>(["active", "trialing", "cancelling", "past_due"]);
+
+/**
+ * The user's plan comes from their live subscriptions only, so re-syncing an old cancelled one (a late
+ * webhook or a backfill) can never bring a plan back. No live subscription = free.
+ */
+async function syncUserPlan(ctx: MutationCtx, userId: Id<"users">) {
+  const user = await ctx.db.get(userId);
+  if (!user) return;
+  const rows = await ctx.db.query("subscriptions").withIndex("by_user", (q) => q.eq("userId", userId)).collect();
+  const live = rows.filter((row) => PLAN_STATUSES.has(row.status as AppSubscriptionStatus)).sort((a, b) => b.updatedAt - a.updatedAt)[0];
+  const plan = live?.plan ?? "free";
+  if (user.plan !== plan) await ctx.db.patch(userId, { plan, updatedAt: now() });
 }
 
 export const markSubscriptionMirrorCanceledArgs = {
@@ -229,11 +239,5 @@ export async function markSubscriptionMirrorCanceledHandler(
     ...(args.cancelReason ? { cancelReason: args.cancelReason } : {}),
     updatedAt: timestamp,
   });
-  const user = await ctx.db.get(args.userId);
-  if (user) {
-    await ctx.db.patch(args.userId, {
-      plan: "free",
-      updatedAt: timestamp,
-    });
-  }
+  await syncUserPlan(ctx, args.userId);
 }
