@@ -24,3 +24,14 @@ test("syncing a cancelled subscription never brings the plan back; a live one ke
   await t.mutation(sync, syncArgs(userId, "sub_old", "canceled"));
   expect((await t.run((ctx) => ctx.db.get(userId)))?.plan).toBe("start");
 });
+
+test("a live subscription that moves to an unconfigured price no longer counts as a plan", async () => {
+  const t = convexTest(schema, modules);
+  const userId = await t.run((ctx) => ctx.db.insert("users", { name: "Owner", plan: "free" }));
+
+  await t.mutation(sync, syncArgs(userId, "sub_1", "active"));
+  expect((await t.run((ctx) => ctx.db.get(userId)))?.plan).toBe("start");
+
+  await t.mutation(sync, { ...syncArgs(userId, "sub_1", "active"), stripePriceId: "price_not_configured" });
+  expect((await t.run((ctx) => ctx.db.get(userId)))?.plan).toBe("free");
+});
