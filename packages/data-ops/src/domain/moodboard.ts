@@ -92,9 +92,10 @@ const BANNED_FONT_FAMILIES = new Set([
 ]);
 const DEFAULT_FONT_FAMILY = "Geist";
 
-function isBannedFontFamily(family: string) {
+/** The font a style guide may use: banned system / AI-default families become Geist. */
+export function repairFontFamily(family: string) {
   const primary = (family.split(",")[0] ?? "").trim().replace(/^["']|["']$/g, "").trim().toLowerCase();
-  return primary === "" || BANNED_FONT_FAMILIES.has(primary);
+  return primary === "" || BANNED_FONT_FAMILIES.has(primary) ? DEFAULT_FONT_FAMILY : family;
 }
 
 /** Research ids a style guide may cite: source references, then UI pattern examples (max 32, no repeats). */
@@ -123,7 +124,7 @@ export function normalizeStyleGuide(
     componentSwatchCount: generated.componentSwatchCount,
     typography: {
       ...generated.typography,
-      fontFamily: isBannedFontFamily(generated.typography.fontFamily) ? DEFAULT_FONT_FAMILY : generated.typography.fontFamily,
+      fontFamily: repairFontFamily(generated.typography.fontFamily),
     },
     projectCategory: context.category,
     categoryConventions: CATEGORY_CONVENTIONS[context.category],

@@ -6,6 +6,7 @@ import {
   emptyMoodboardArtifact,
   mergeStyleGuide,
   normalizeStyleGuide,
+  repairFontFamily,
   researchReferenceIds,
 } from "../src/domain/moodboard";
 
@@ -51,5 +52,11 @@ describe("moodboard domain", () => {
       sourceReferences: [{ id: "a", provider: "website", label: "A" }, { id: "a", provider: "website", label: "A" }],
       uiPatterns: [{ id: "g", title: "G", recognizedPatterns: [], examples: [{ id: "e", title: "E", sourceReferenceId: "b" }, { id: "f", title: "F", sourceReferenceId: null }] }],
     })).toEqual(["a", "b"]);
+  });
+
+  it("repairs banned fonts the same way everywhere a style guide keeps one", () => {
+    expect(repairFontFamily("Inter, sans-serif")).toBe("Geist");
+    expect(repairFontFamily("'Helvetica Neue'")).toBe("Geist");
+    expect(repairFontFamily("Space Grotesk")).toBe("Space Grotesk");
   });
 });
