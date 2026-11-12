@@ -137,6 +137,7 @@ export async function syncSubscriptionMirrorHandler(
       stripeSubscriptionId: args.stripeSubscriptionId,
       stripePriceId: args.stripePriceId,
     });
+    await syncUserPlan(ctx, args.userId);
     return;
   }
 
