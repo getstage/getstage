@@ -20,7 +20,13 @@ export const Route = createFileRoute("/app/_authed")({
   validateSearch: (search: Record<string, unknown>): { billing?: "success" | "cancel" } => ({
     billing: search.billing === "success" || search.billing === "cancel" ? search.billing : undefined,
   }),
-  component: AppLayout,
+  // The cache keeps each page's queries alive for a few minutes after leaving it, so going back is instant.
+  // It wraps onboarding too: its connect step shows the same connect card as the app.
+  component: () => (
+    <ConvexQueryCacheProvider>
+      <AppLayout />
+    </ConvexQueryCacheProvider>
+  ),
 });
 
 function AppLayout() {
@@ -53,16 +59,13 @@ function AppLayout() {
     );
   }
 
-  // The cache keeps each page's queries alive for a few minutes after leaving it, so going back is instant.
   return (
-    <ConvexQueryCacheProvider>
-      <WebPlatformProvider>
-        <AppShell>
-          <Helmet><meta name="robots" content="noindex, nofollow" /></Helmet>
-          <Outlet />
-        </AppShell>
-      </WebPlatformProvider>
-    </ConvexQueryCacheProvider>
+    <WebPlatformProvider>
+      <AppShell>
+        <Helmet><meta name="robots" content="noindex, nofollow" /></Helmet>
+        <Outlet />
+      </AppShell>
+    </WebPlatformProvider>
   );
 }
 
