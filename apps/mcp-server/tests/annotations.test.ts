@@ -1,16 +1,34 @@
-import { describe, expect, it } from "vitest";
-import { TOOLS } from "../src/annotations";
-import { STEPS } from "../src/steps";
+import { McpServer } from "@modelcontextprotocol/server";
+import { describe, expect, it, vi } from "vitest";
+import { TOOLS, about } from "../src/annotations";
+
+// The server module calls the Stage API through the Worker runtime; the tool list doesn't need it.
+vi.mock("../src/stageApi", () => ({ StageApiError: class extends Error {}, stageApi: vi.fn() }));
+vi.mock("agents/mcp/server", () => ({ getMcpAuthContext: () => undefined }));
+
+const { createServer } = await import("../src/server");
+
+// What the server really registers (all tools: no per-step permissions in this context).
+function registeredTools() {
+  const register = vi.spyOn(McpServer.prototype, "registerTool");
+  createServer();
+  const tools = Object.fromEntries(register.mock.calls.map(([name, config]) => [name, config as { title?: string; annotations?: object }]));
+  register.mockRestore();
+  return tools;
+}
 
 describe("MCP tool annotations", () => {
-  it("cover all 17 tools, including every step's save tool", () => {
+  const registered = registeredTools();
+
+  it("the server registers exactly the 17 annotated tools", () => {
+    expect(Object.keys(registered).sort()).toEqual(Object.keys(TOOLS).sort());
     expect(Object.keys(TOOLS)).toHaveLength(17);
-    for (const { tool } of Object.values(STEPS)) expect(TOOLS).toHaveProperty(tool);
   });
 
-  it.each(Object.entries(TOOLS))("%s has a title and explicit hints", (_name, entry) => {
-    expect(entry.title).toBeTruthy();
-    for (const hint of ["readOnlyHint", "destructiveHint", "openWorldHint"] as const) expect(typeof entry[hint]).toBe("boolean");
-    if (entry.readOnlyHint) expect(entry.destructiveHint).toBe(false);
+  it.each(Object.keys(TOOLS) as (keyof typeof TOOLS)[])("%s is registered with its title and explicit hints", (name) => {
+    expect(registered[name]).toMatchObject(about(name));
+    const { readOnlyHint, destructiveHint, openWorldHint } = TOOLS[name];
+    for (const hint of [readOnlyHint, destructiveHint, openWorldHint]) expect(typeof hint).toBe("boolean");
+    if (readOnlyHint) expect(destructiveHint).toBe(false);
   });
 });
