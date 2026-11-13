@@ -1,7 +1,8 @@
-import type Stripe from "stripe";
+import Stripe from "stripe";
 import type { GenericActionCtx, GenericDataModel } from "convex/server";
 import { components, internal } from "../../../_generated/api";
 import type { Id } from "../../../_generated/dataModel";
+import { requireEnv } from "../../../helpers/env";
 import {
   cancelReasonFromStripeSubscription,
   trialStartedAtMsFromStripe,
@@ -140,6 +141,19 @@ async function handleCheckoutCompleted(ctx: WebhookCtx, event: Stripe.Event) {
   }
 
   const isTrial = session.metadata?.isTrial === "true";
+  // A promotion code skips the trial: the plan starts now and invoice.paid grants its full credits.
+  // Stripe can deliver the event twice; only a subscription still on its trial is changed.
+  if (isTrial && session.discounts?.length && typeof session.subscription === "string") {
+    const stripe = new Stripe(requireEnv("STRIPE_SECRET_KEY"));
+    const subscription = await stripe.subscriptions.retrieve(session.subscription);
+    if (subscription.status === "trialing") await stripe.subscriptions.update(subscription.id, { trial_end: "now" });
+    await mirrorAppSubscription(ctx, session.subscription, {
+      userId,
+      metadata: session.metadata ?? undefined,
+    });
+    return;
+  }
+
   if (isTrial) {
     await ctx.runMutation(internal.credits.grantCreditsForOwner, {
       ownerUserId: userId,
