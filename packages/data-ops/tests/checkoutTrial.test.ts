@@ -31,14 +31,15 @@ function fakeCtx(syncedSubscription: object | null = null) {
   return { ctx: ctx as never, grants };
 }
 
-function checkoutCompleted(id: string, discounts: object[]) {
+// Stripe puts a code typed in at Checkout on the subscription; the session's own discounts stay empty.
+function checkoutCompleted(id: string) {
   return {
     id,
     type: "checkout.session.completed",
     data: {
       object: {
         subscription: "sub_1",
-        discounts,
+        discounts: [],
         metadata: { userId: USER, priceId: "price_studio", isTrial: "true" },
       },
     },
@@ -52,17 +53,17 @@ beforeEach(() => {
 
 describe("trial checkout with a promotion code", () => {
   test("ends the trial now and grants no trial credits", async () => {
-    stripe.retrieve.mockResolvedValue({ id: "sub_1", status: "trialing" });
+    stripe.retrieve.mockResolvedValue({ id: "sub_1", status: "trialing", discounts: ["di_1"] });
     const { ctx, grants } = fakeCtx();
-    await creditWebhookEvents["checkout.session.completed"](ctx, checkoutCompleted("evt_1", [{ promotion_code: "promo_1" }]));
+    await creditWebhookEvents["checkout.session.completed"](ctx, checkoutCompleted("evt_1"));
     expect(stripe.update).toHaveBeenCalledWith("sub_1", { trial_end: "now" });
     expect(grants()).toEqual([]);
   });
 
   test("a repeated event leaves an already started plan alone", async () => {
-    stripe.retrieve.mockResolvedValue({ id: "sub_1", status: "active" });
+    stripe.retrieve.mockResolvedValue({ id: "sub_1", status: "active", discounts: ["di_1"] });
     const { ctx, grants } = fakeCtx();
-    await creditWebhookEvents["checkout.session.completed"](ctx, checkoutCompleted("evt_1", [{ promotion_code: "promo_1" }]));
+    await creditWebhookEvents["checkout.session.completed"](ctx, checkoutCompleted("evt_1"));
     expect(stripe.update).not.toHaveBeenCalled();
     expect(grants()).toEqual([]);
   });
@@ -77,9 +78,10 @@ describe("trial checkout with a promotion code", () => {
 
 describe("trial checkout without a code", () => {
   test("keeps the trial and grants the trial credits once per event", async () => {
+    stripe.retrieve.mockResolvedValue({ id: "sub_1", status: "trialing", discounts: [] });
     const { ctx, grants } = fakeCtx();
-    await creditWebhookEvents["checkout.session.completed"](ctx, checkoutCompleted("evt_3", []));
-    expect(stripe.retrieve).not.toHaveBeenCalled();
+    await creditWebhookEvents["checkout.session.completed"](ctx, checkoutCompleted("evt_3"));
+    expect(stripe.update).not.toHaveBeenCalled();
     expect(grants()).toEqual([{ ownerUserId: USER, credits: 150, reason: "trial_grant", idempotencyKey: "evt_3" }]);
   });
 });
