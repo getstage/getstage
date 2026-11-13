@@ -13,7 +13,7 @@ const COMMON = `A project's phases (Discovery, Design, …) are the client's tim
 
 export const STEPS = {
   research: {
-    tool: "save_research",
+    tool: "save_research" as const,
     artifactKind: "researchArtifact",
     title: "Research",
     // Stage builds uiPatterns from the screens start_research collected; the AI adds what it recognizes in them.
@@ -33,7 +33,7 @@ export const STEPS = {
 - opportunities: 3–5, each with a title of 2–4 words, description one sentence (max 25 words), sourceSection one of summary, companySnapshot, competitiveAnalysis, uiPatterns, targetUsers.`,
   },
   strategy: {
-    tool: "save_strategy",
+    tool: "save_strategy" as const,
     artifactKind: "strategyArtifact",
     title: "Strategy",
     input: strategyArtifactSchema.omit(ENVELOPE),
@@ -46,7 +46,7 @@ export const STEPS = {
 - table rows are arrays: [label, value].`,
   },
   flows: {
-    tool: "save_flows",
+    tool: "save_flows" as const,
     artifactKind: "flowsArtifact",
     title: "Flows",
     input: flowsArtifactSchema.omit(ENVELOPE),
@@ -57,7 +57,7 @@ export const STEPS = {
 - If Flows were saved before, keep every flow id, step id, screen id and connection; only refine labels, descriptions and screen elements. Stage keeps the saved canvas.`,
   },
   generate: {
-    tool: "save_wireframes",
+    tool: "save_wireframes" as const,
     artifactKind: "wireframesArtifact",
     title: "Wireframes",
     input: wireframesArtifactSchema.omit(ENVELOPE),
