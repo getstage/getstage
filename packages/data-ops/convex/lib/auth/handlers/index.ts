@@ -332,10 +332,49 @@ const Demo = ConvexCredentials({
   },
 });
 
+// One password login for the app-directory reviewers (Claude, ChatGPT). Both values live only in the
+// Convex dashboard; deleting either turns the login off. There is no sign-up or reset: the password is
+// whatever REVIEWER_PASSWORD says.
+const REVIEWER_PROVIDER_ID = "reviewer";
+
+async function sameSecret(a: string, b: string) {
+  const encoder = new TextEncoder();
+  const hash = async (value: string) => new Uint8Array(await crypto.subtle.digest("SHA-256", encoder.encode(value)));
+  const [x, y] = await Promise.all([hash(a), hash(b)]);
+  // Both are 32-byte digests, so this compares every byte and takes the same time on a mismatch.
+  return x.reduce((diff, byte, i) => diff | (byte ^ (y[i] ?? 0)), 0) === 0;
+}
+
+const Reviewer = ConvexCredentials({
+  id: REVIEWER_PROVIDER_ID,
+  authorize: async (params, ctx: GenericActionCtxWithAuthConfig<any>) => {
+    const reviewerEmail = normalizeEmailAddress(getEnv("REVIEWER_EMAIL") ?? "");
+    const reviewerPassword = getEnv("REVIEWER_PASSWORD") ?? "";
+    const email = normalizeEmailAddress(String(params.email ?? ""));
+    const password = String(params.password ?? "");
+    if (!reviewerEmail || !reviewerPassword || email !== reviewerEmail || !(await sameSecret(password, reviewerPassword))) {
+      return null;
+    }
+
+    const account = { id: reviewerEmail };
+    const existing = await retrieveAccount(ctx, { provider: REVIEWER_PROVIDER_ID, account }).catch(() => null);
+    const { user } =
+      existing ??
+      (await createAccount(ctx, {
+        provider: REVIEWER_PROVIDER_ID,
+        account,
+        profile: { email: reviewerEmail },
+        shouldLinkViaEmail: false,
+        shouldLinkViaPhone: false,
+      }));
+    return { userId: user._id };
+  },
+});
+
 // Stopgap until the desktop refresh-token retry flow ships.
 const DESKTOP_JWT_DURATION_MS = 30 * 24 * 60 * 60 * 1000;
 
-export const authProviders = DEMO_AUTH_ENABLED ? [Google, LoopsOTP, Demo] : [Google, LoopsOTP];
+export const authProviders = DEMO_AUTH_ENABLED ? [Google, LoopsOTP, Reviewer, Demo] : [Google, LoopsOTP, Reviewer];
 
 export const authJwt = {
   durationMs: DESKTOP_JWT_DURATION_MS,

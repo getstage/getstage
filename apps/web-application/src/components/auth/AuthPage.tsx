@@ -69,11 +69,14 @@ export function AuthPage() {
   const [step, setStep] = useState<Step>("email");
   const [authMode, setAuthMode] = useState<AuthMode>(mode ?? "signup");
   const [email, setEmail] = useState("");
+  // Password sign-in exists only for the app-directory reviewer account.
+  const [withPassword, setWithPassword] = useState(false);
+  const [password, setPassword] = useState("");
   const [code, setCode] = useState(["", "", "", "", "", ""]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [googleRedirecting, setGoogleRedirecting] = useState(false);
-  const activeAuthFlowRef = useRef<null | "email" | "code" | "google" | "demo">(null);
+  const activeAuthFlowRef = useRef<null | "email" | "code" | "google" | "demo" | "password">(null);
   const showDemoSignIn =
     typeof window !== "undefined" ? isDemoAuthEnabledForHostname(window.location.hostname) : true;
 
@@ -110,6 +113,10 @@ export function AuthPage() {
     }
 
     const normalizedEmail = parsed.data.email;
+    if (withPassword) {
+      await handlePasswordSignIn(normalizedEmail);
+      return;
+    }
 
     setError("");
     activeAuthFlowRef.current = "email";
@@ -129,6 +136,26 @@ export function AuthPage() {
       );
     } finally {
       if (activeAuthFlowRef.current === "email") {
+        activeAuthFlowRef.current = null;
+      }
+      setLoading(false);
+    }
+  }
+
+  async function handlePasswordSignIn(normalizedEmail: string) {
+    setError("");
+    activeAuthFlowRef.current = "password";
+    setLoading(true);
+    try {
+      const formData = new FormData();
+      formData.set("email", normalizedEmail);
+      formData.set("password", password);
+      await signIn("reviewer", formData);
+      continueAfterAuth(redirectTo);
+    } catch {
+      setError("That email and password don't match.");
+    } finally {
+      if (activeAuthFlowRef.current === "password") {
         activeAuthFlowRef.current = null;
       }
       setLoading(false);
@@ -381,7 +408,7 @@ export function AuthPage() {
                             {authMode === "login" ? "Welcome back to Stage" : "Create your Stage account"}
                           </h1>
                           <p className="mt-1.5 text-[14px] leading-[1.5] font-medium text-[#525252] lg:mt-2.5 lg:text-[13px]">
-                            Enter your email. We’ll send you a sign-in code.
+                            {withPassword ? "Enter your email and password." : "Enter your email. We’ll send you a sign-in code."}
                           </p>
                         </div>
 
@@ -409,6 +436,29 @@ export function AuthPage() {
                                   )}
                                 />
                               </div>
+                              {withPassword ? (
+                                <div className="flex flex-col gap-2">
+                                  <label
+                                    htmlFor="auth-password"
+                                    className="block text-[14px] leading-[1.21] font-medium text-[#171717] lg:text-[13px]"
+                                  >
+                                    Password
+                                  </label>
+                                  <input
+                                    id="auth-password"
+                                    name="password"
+                                    type="password"
+                                    autoComplete="current-password"
+                                    value={password}
+                                    onChange={(event) => setPassword(event.target.value)}
+                                    placeholder="Enter your password"
+                                    className={cn(
+                                      "h-[35px] w-full rounded-[6px] border border-transparent bg-[#F5F5F5] px-3 text-[13px] font-normal text-[#171717] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] outline-none ring-0 transition-colors placeholder:text-[#737373] focus:border-[#D4D4D4] focus:bg-white focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 lg:text-[12px] lg:font-medium",
+                                      error && "border-destructive/50",
+                                    )}
+                                  />
+                                </div>
+                              ) : null}
                             </div>
                           </div>
 
@@ -421,10 +471,10 @@ export function AuthPage() {
                             disabled={loading}
                             className="mt-3 inline-flex h-[38px] w-full cursor-pointer items-center justify-center rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7B76DF] to-[#463FBA] px-4 text-[14px] font-medium text-[#FAFAFA] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-opacity hover:opacity-95 disabled:cursor-default disabled:opacity-50 lg:h-9 lg:text-[13px]"
                           >
-                            {loading && activeAuthFlowRef.current === "email" ? (
+                            {loading && (activeAuthFlowRef.current === "email" || activeAuthFlowRef.current === "password") ? (
                               <span className="mr-2 inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
                             ) : null}
-                            Send sign-in code
+                            {withPassword ? "Sign in" : "Send sign-in code"}
                           </button>
                         </form>
 
@@ -555,6 +605,19 @@ export function AuthPage() {
                       className="cursor-pointer text-[#0A0A0A] underline underline-offset-2 disabled:cursor-default disabled:opacity-50"
                     >
                       {authMode === "login" ? "Sign up" : "Log in"}
+                    </button>
+                    <span className="text-[#525252]">·</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setWithPassword(!withPassword);
+                        setPassword("");
+                        setError("");
+                      }}
+                      disabled={loading}
+                      className="cursor-pointer text-[#525252] underline underline-offset-2 disabled:cursor-default disabled:opacity-50"
+                    >
+                      {withPassword ? "Use a sign-in code" : "Use a password"}
                     </button>
                   </div>
                 ) : (
