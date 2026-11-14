@@ -37,9 +37,25 @@ export const BLOG_META = {
     "Tutorials, case studies and tools for designing products with AI: research, visual direction, flows and briefs your coding agent follows.",
 };
 
+export const MCP_META = {
+  title: "Connect Stage to Claude, ChatGPT and your coding agent - Stage",
+  description: "Connect Stage to Claude, ChatGPT, Claude Code, Codex or Cursor over MCP. Your AI runs research, strategy, moodboard, flows and wireframes in your Stage project, then builds from one brief.",
+};
+
+export const LEGAL_META = {
+  terms: {
+    title: "Terms of Service",
+    description: "The terms that govern your access to and use of Stage, including accounts, subscriptions, client portals, integrations, and third-party tools.",
+  },
+  privacy: {
+    title: "Privacy Policy",
+    description: "How Stage collects, uses, shares, and protects personal data across the website, product, desktop app, client portals, and integrations.",
+  },
+};
+
 // Every public marketing page that is pre-rendered.
 export const marketingPaths = [
-  "/", "/download",
+  "/", "/download", "/mcp", "/privacy", "/terms",
   "/marketplace", "/component-libraries", "/skills", "/tools",
   ...marketplaceCatalog.filter(item => item.type !== "Tools").map(item => "/" + item.id),
   ...pages.map((page) => pagePath(page.slug)),
@@ -93,6 +109,19 @@ function isoDuration(length: string) {
 
 export function metaForPath(path: string): PageMeta | null {
   path=path.replace(/\/+$/, "") || "/";
+  if (path === "/mcp" || path === "/terms" || path === "/privacy") {
+    const copy = path === "/mcp" ? MCP_META : LEGAL_META[path === "/terms" ? "terms" : "privacy"];
+    const title = path === "/mcp" ? copy.title : `${copy.title} - Stage`;
+    return {
+      path,
+      title,
+      description: copy.description,
+      image: DEFAULT_OG_IMAGE,
+      type: "website",
+      noIndex: false,
+      jsonLd: withContext([{ "@type": "WebPage", name: title, url: absoluteUrl(path) }]),
+    };
+  }
   const resource = marketplaceCatalog.find(item => "/" + item.id === path && item.type !== "Tools");
   const category = ({"/marketplace":"Marketplace","/component-libraries":"Component libraries","/skills":"Skills","/tools":"Tools"} as Record<string,string>)[path];
   if(resource || category) {

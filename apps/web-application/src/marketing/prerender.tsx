@@ -5,6 +5,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { BlogIndexPage, BlogPostPage } from "@/components/marketing/BlogPages";
 import { ContentPage } from "@/components/marketing/ContentPage";
 import { UseCasePage, UseCasesIndexPage } from "@/components/marketing/UseCasePages";
+import { LegalPage } from "@/components/legal/LegalPage";
+import { McpGuidePage } from "@/components/marketing/McpGuidePage";
 
 // SSR entry for scripts/prerender-marketing.mjs. Renders the same components the
 // SPA mounts, so crawlers and link previews get the full page without JavaScript.
@@ -15,6 +17,8 @@ export { SITE_URL, absoluteUrl } from "./site";
 function pageForPath(path: string) {
   if(path === "/")return <StageLandingPage/>;
   if(path === "/download")return <StageDownloadPage/>;
+  if (path === "/mcp") return <McpGuidePage />;
+  if (path === "/privacy" || path === "/terms") return <LegalPage kind={path === "/privacy" ? "privacy" : "terms"} />;
   if(path === "/marketplace") return <MarketplacePage overview />;
   if(path === "/component-libraries") return <MarketplacePage />;
   if(path === "/skills") return <MarketplacePage category="Skills" />;

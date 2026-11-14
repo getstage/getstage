@@ -60,7 +60,9 @@ export function SiteFooter() {
             <a href="/#pricing">Pricing</a>
             <a href="/#faq">FAQ</a>
             <a href="/auth?mode=login&redirect=%2Fprofile">Log in</a>
-            <button data-destination="legal">Legal</button>
+            <a href="/privacy">Privacy</a>
+            <a href="/terms">Terms</a>
+            <a href="/mcp">MCP</a>
             <a href="mailto:hello@getstage.co">Contact</a>
             <a
               href="https://www.instagram.com/getstage.co/"

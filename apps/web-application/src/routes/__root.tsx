@@ -1,9 +1,12 @@
-import { useLayoutEffect } from "react";
+import { useEffect, useLayoutEffect } from "react";
 import { RouteSeo } from "@/marketing/RouteSeo";
 import {
   createRootRouteWithContext,
+  Link,
+  notFound,
   Outlet,
   redirect,
+  useNavigate,
   type ErrorComponentProps,
 } from "@tanstack/react-router";
 import type { QueryClient } from "@tanstack/react-query";
@@ -30,13 +33,42 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 
     const lockRedirect = getWebRouteLockRedirect(location.pathname);
 
+    if (lockRedirect === "/") throw notFound();
     if (lockRedirect) {
       throw redirect({ to: lockRedirect, replace: true });
     }
   },
   component: RootLayout,
   errorComponent: RootErrorBoundary,
+  notFoundComponent: NotFoundPage,
 });
+
+const NOT_FOUND_REDIRECT_MS = 3000;
+
+function NotFoundPage() {
+  const navigate = useNavigate();
+  useEffect(() => {
+    const timer = window.setTimeout(() => void navigate({ to: "/", replace: true }), NOT_FOUND_REDIRECT_MS);
+    return () => window.clearTimeout(timer);
+  }, [navigate]);
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-bg px-6">
+      <div className="w-full max-w-[480px] rounded-[24px] border border-border-subtle bg-white p-8 shadow-[0_18px_60px_rgba(15,23,42,0.08)]">
+        <h1 className="font-heading text-[28px] font-semibold text-text-primary">Page not found</h1>
+        <p className="mt-3 text-[15px] leading-[1.6] text-text-secondary">
+          This page doesn't exist. Taking you back to Stage…
+        </p>
+        <Link
+          to="/"
+          replace
+          className="mt-6 inline-block rounded-[10px] bg-text-primary px-4 py-2 text-[14px] font-medium text-white transition-colors hover:bg-text-primary/90"
+        >
+          Back to Stage
+        </Link>
+      </div>
+    </div>
+  );
+}
 
 function RootLayout() {
   useLayoutEffect(() => {

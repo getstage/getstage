@@ -60,7 +60,14 @@ function renderDocument(template, { meta, body, absoluteUrl }) {
     (file) => `<link rel="stylesheet" href="/landing-preview/${file}" />`,
   ).join("\n  ");
   html = setTag(html, /<\/head>/, `  ${styles}\n</head>`);
-  html = setTag(html, /<body>/, `<body class="${meta.path === '/' ? '' : meta.path === '/download' ? 'download-page' : 'content-page'}">`);
+  const bodyClass = {
+    "/": "",
+    "/download": "download-page",
+    "/mcp": "legal-page mcp-guide-page",
+    "/privacy": "legal-page",
+    "/terms": "legal-page",
+  }[meta.path] ?? "content-page";
+  html = setTag(html, /<body>/, `<body class="${bodyClass}">`);
   html = setTag(html, /<div id="root"><\/div>/, `<div id="root">${body}</div>`);
   return html;
 }

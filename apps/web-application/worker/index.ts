@@ -78,8 +78,10 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
     const missingPublicPage=isHtml&&(getWebRouteLockRedirect(pathname)==="/"||(/^\/(blog|use-cases|skills|component-libraries)(\/|$)/.test(pathname)&&!publicMeta));
     if(missingPublicPage&&assetResponse.status===200){
       headers.set('X-Robots-Tag','noindex, follow');
-      headers.set('Content-Type','text/html; charset=utf-8');
-      return new Response('<!doctype html><html lang="en"><head><meta name="robots" content="noindex"><title>Page not found | Stage</title></head><body><main><h1>Page not found</h1><p>This page is unavailable.</p><a href="/">Return to Stage</a></main></body></html>',{status:404,headers});
+      // The app shows its own "Page not found" and goes back home.
+      assetUrl.pathname="/app-shell";
+      const shell=await env.ASSETS.fetch(new Request(assetUrl,request));
+      return new Response(shell.body,{status:404,headers});
     }
 
     if (
