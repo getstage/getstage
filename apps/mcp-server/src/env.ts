@@ -9,6 +9,8 @@ export type Env = {
   STAGE_APP_ORIGIN: string;
   /** Convex HTTP actions: the Stage API and the connect-code exchange. */
   CONVEX_SITE_ORIGIN: string;
+  /** OpenAI's domain-verification token for the ChatGPT plugin directory (secret, production only). */
+  OPENAI_APPS_CHALLENGE?: string;
 };
 
 /** Stored encrypted with each grant; tools read it from the auth context. */

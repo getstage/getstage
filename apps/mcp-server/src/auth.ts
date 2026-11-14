@@ -76,6 +76,9 @@ export const authHandler = {
     try {
       if (request.method === "GET" && pathname === "/authorize") return await authorize(request, env);
       if (request.method === "GET" && pathname === "/callback") return await callback(request, env);
+      if (request.method === "GET" && pathname === "/.well-known/openai-apps-challenge" && env.OPENAI_APPS_CHALLENGE) {
+        return new Response(env.OPENAI_APPS_CHALLENGE, { headers: { "Content-Type": "text/plain" } });
+      }
       if (pathname === "/") return Response.redirect(new URL("/connect-ai", env.STAGE_APP_ORIGIN).toString(), 302);
       return new Response("Not found", { status: 404 });
     } catch (error) {

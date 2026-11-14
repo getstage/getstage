@@ -8,7 +8,7 @@ import { staleSteps } from "@stage/data-ops/domain/aiStepRules";
 import { resolveStyleGuideSpec, styleGuideDesignMarkdown } from "@stage/data-ops/domain/styleGuideSpec";
 import { moodboardArtifactSchema } from "@stage/data-ops/contracts";
 import { about } from "./annotations";
-import { MOODBOARD_GUIDE, RESEARCH_INPUTS, STEP_GUIDE, STEPS, STYLE_GUIDE, stepToolInput } from "./steps";
+import { INSTRUCTIONS, RESEARCH_INPUTS, STEPS, STYLE_GUIDE, stepToolInput } from "./steps";
 
 type ToolResult = { content: { type: "text"; text: string }[]; isError?: boolean };
 
@@ -42,7 +42,7 @@ function styleGuides(content: unknown) {
 }
 
 export function createServer() {
-  const server = new McpServer({ name: "Stage", version: "0.2.0" }, { instructions: STEP_GUIDE });
+  const server = new McpServer({ name: "Stage", version: "0.2.0" }, { instructions: INSTRUCTIONS });
   // Only list the tools the user allowed at sign-in; Stage refuses the rest anyway.
   // Connections from before per-step permissions list everything (their key still limits them).
   const granted = (getMcpAuthContext()?.props as StageProps | undefined)?.permissions;
@@ -93,7 +93,7 @@ export function createServer() {
         inputSchema: z.object({
           name: z.string().min(1),
           clientName: z.string().min(1).describe("Client or company the work is for; the user's own name for personal work."),
-          clientEmail: z.string().email().describe("Client's email (Stage uses it for the client portal). Ask the user; for personal work use their own email from whoami."),
+          clientEmail: z.string().email().describe("Client's email, used for the client portal. For personal work, the user's own email (see whoami)."),
           type: z.enum(["websites", "web-apps", "ios-apps"]),
           startDate: z.string().date().describe("YYYY-MM-DD"),
           endDate: z.string().date().describe("YYYY-MM-DD, on or after startDate"),
@@ -113,7 +113,7 @@ export function createServer() {
   if (allowed("research")) {
     server.registerTool(
       "set_research_inputs",
-      { ...about("set_research_inputs"), description: "Save the project's Research form. Ask the user for what you don't know; don't invent competitors.", inputSchema: z.object({ projectId, inputs: RESEARCH_INPUTS }) },
+      { ...about("set_research_inputs"), description: "Save the project's Research form (industry, website, brief, competitors, screens to analyze). It replaces the saved form, which Stage for Mac shares. No credits.", inputSchema: z.object({ projectId, inputs: RESEARCH_INPUTS }) },
       ({ projectId, inputs }) => run(() => stageApi(`/projects/${encodeURIComponent(projectId)}/research/inputs`, inputs)),
     );
   }
@@ -123,7 +123,7 @@ export function createServer() {
       "start_research",
       {
         ...about("start_research"),
-        description: "Start Research the way Stage for Mac does: Stage collects real UI pattern screens for each screen type (Refero for apps, Details for websites) in the background and returns a runId at once. Then call get_run_status every few seconds until it says ready (usually under a minute); it returns the groups with screenshots. Uses the same credits as a Mac Research run, charged when save_research succeeds.",
+        description: "Start Research from the saved Research form, like Stage for Mac: Stage collects real UI pattern screens for each screen type (Refero for apps, Details for websites) in the background and returns a runId at once. get_run_status reports progress and returns the groups with screenshots when ready, usually within a minute. Needs 27 credits available; they are charged when save_research succeeds.",
         inputSchema: z.object({ projectId }),
       },
       ({ projectId }) => run(() => stageApi(`/projects/${encodeURIComponent(projectId)}/research/start`, {})),
@@ -134,7 +134,7 @@ export function createServer() {
     "get_run_status",
     {
       ...about("get_run_status"),
-      description: "Progress of a background job you started (start_research, add_to_moodboard): running, ready (Research screens collected, with the groups), done, or failed with the reason. Its \"next\" field says what to do.",
+      description: "Status of a background job from start_research or add_to_moodboard: running, ready (Research screens collected, with the groups), done (with what was added and what failed), or failed with the reason. The \"next\" field names the tool that continues the job.",
       inputSchema: z.object({ projectId, runId: z.string().min(1).describe("The runId start_research or add_to_moodboard returned.") }),
     },
     ({ projectId, runId }) => run(() => stageApi(`/projects/${encodeURIComponent(projectId)}/runs/${encodeURIComponent(runId)}`)),
@@ -147,7 +147,7 @@ export function createServer() {
       tool,
       {
         ...about(tool),
-        description: `Save the ${title} step of a Stage project. It replaces the previous ${title}.\n${instructions}\n${STEP_GUIDE}`,
+        description: `Save the ${title} step of a Stage project. It replaces the previous ${title}.\n${instructions}`,
         inputSchema,
       },
       ({ projectId, summary, result, ...rest }: { projectId: string; summary?: string; result: z.infer<typeof input>; runId?: string }) =>
@@ -164,7 +164,7 @@ export function createServer() {
     "get_build_brief",
     {
       ...about("get_build_brief"),
-      description: "Everything Stage knows to build the product, in one spec: the project, Strategy, the Style guide(s) from the Moodboard with each direction's DESIGN.md, Flows (screens and how they connect) and Wireframes (screen sections and HTML designs). Use it as the source of truth when you build. This is Delivery for AI tools; Figma and Paper exports are in Stage for Mac.",
+      description: "Everything Stage knows to build the product, in one spec: the project, Strategy, the Style guide(s) from the Moodboard with each direction's DESIGN.md, Flows (screens and how they connect) and Wireframes (screen sections and HTML designs), plus which steps are missing or stale. Read-only, no credits. This is step 6, Delivery, for AI tools; Figma and Paper exports are in Stage for Mac.",
       inputSchema: z.object({ projectId }),
     },
     ({ projectId }) => run(async () => {
@@ -197,7 +197,7 @@ export function createServer() {
       "search_references",
       {
         ...about("search_references"),
-        description: `Search real product screens. source "refero": app and web screens (moodboard, and Research UI patterns for web and iOS apps). source "details": real website sections (Research UI patterns for website projects). Returns id, title, product, thumbnailUrl and sourceUrl.\n${MOODBOARD_GUIDE}`,
+        description: `Search real product screens. source "refero": app and web screens (moodboard, and Research UI patterns for web and iOS apps). source "details": real website sections (Research UI patterns for website projects). Returns matching screens with id, title, product, thumbnailUrl and sourceUrl. Read-only, no credits.`,
         inputSchema: z.object({
           query: z.string().min(1).describe("What to look for, e.g. \"fintech dashboard with dense tables\" or \"pricing section with plan toggle\"."),
           source: z.enum(["refero", "details"]).default("refero").describe("details only for Research on website projects; refero for everything else."),
@@ -213,7 +213,7 @@ export function createServer() {
       "add_to_moodboard",
       {
         ...about("add_to_moodboard"),
-        description: `Add images to a project's moodboard (after Strategy). Pass Refero screens exactly as search_references returned them, direct image links (PNG, JPG, WebP, GIF, max 10 MB) and/or a Figma link (a file, board or frame; uses the Figma account connected in Stage, up to 12 frames). Stage imports them in the background, stores its own copy of each image and returns a runId at once; call get_run_status until it says done (it lists what was added and what failed, with the reason). With a direction name, the images go into that direction (created if new); its style guide comes next.\n${MOODBOARD_GUIDE}`,
+        description: "Import images into a named direction of a project's moodboard (step 3; requires saved Strategy). Accepts Refero screens as search_references returned them, direct image links (PNG, JPG, WebP, GIF, max 10 MB) and/or a Figma link (a file, board or frame; uses the Figma account connected in Stage, up to 12 frames). The direction is created if new. Stage imports in the background, stores its own copy of each image and returns a runId at once; get_run_status reports what was added and what failed. Needs 4 credits available; they are charged when the images are added, like an import in Stage for Mac.",
         inputSchema: z.object({
           projectId,
           direction: z.string().min(1).describe("Direction name, e.g. \"Calm Editorial\". Reuse the same name to add more images to it."),
@@ -237,7 +237,7 @@ export function createServer() {
       "save_style_guide",
       {
         ...about("save_style_guide"),
-        description: `Save the style guide for one moodboard direction. It replaces that direction's previous style guide. Wireframes use it.\n${STYLE_GUIDE.instructions}\n${STEP_GUIDE}`,
+        description: `Save the style guide for one moodboard direction. It replaces that direction's previous style guide.\n${STYLE_GUIDE.instructions}`,
         inputSchema: z.object({
           projectId,
           direction: z.string().min(1).describe("The direction name used in add_to_moodboard."),
