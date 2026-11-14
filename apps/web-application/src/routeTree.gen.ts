@@ -15,6 +15,7 @@ import { Route as SetupProfileRouteImport } from './routes/setup-profile'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as OpenclawRouteImport } from './routes/openclaw'
+import { Route as McpRouteImport } from './routes/mcp'
 import { Route as DownloadRouteImport } from './routes/download'
 import { Route as DocsRouteImport } from './routes/docs'
 import { Route as ConnectAiRouteImport } from './routes/connect-ai'
@@ -87,6 +88,11 @@ const PrivacyRoute = PrivacyRouteImport.update({
 const OpenclawRoute = OpenclawRouteImport.update({
   id: '/openclaw',
   path: '/openclaw',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const McpRoute = McpRouteImport.update({
+  id: '/mcp',
+  path: '/mcp',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DownloadRoute = DownloadRouteImport.update({
@@ -315,6 +321,7 @@ export interface FileRoutesByFullPath {
   '/connect-ai': typeof ConnectAiRoute
   '/docs': typeof DocsRoute
   '/download': typeof DownloadRouteWithChildren
+  '/mcp': typeof McpRoute
   '/openclaw': typeof OpenclawRoute
   '/privacy': typeof PrivacyRoute
   '/profile': typeof ProfileRoute
@@ -364,6 +371,7 @@ export interface FileRoutesByTo {
   '/connect-ai': typeof ConnectAiRoute
   '/docs': typeof DocsRoute
   '/download': typeof DownloadRouteWithChildren
+  '/mcp': typeof McpRoute
   '/openclaw': typeof OpenclawRoute
   '/privacy': typeof PrivacyRoute
   '/profile': typeof ProfileRoute
@@ -415,6 +423,7 @@ export interface FileRoutesById {
   '/connect-ai': typeof ConnectAiRoute
   '/docs': typeof DocsRoute
   '/download': typeof DownloadRouteWithChildren
+  '/mcp': typeof McpRoute
   '/openclaw': typeof OpenclawRoute
   '/privacy': typeof PrivacyRoute
   '/profile': typeof ProfileRoute
@@ -467,6 +476,7 @@ export interface FileRouteTypes {
     | '/connect-ai'
     | '/docs'
     | '/download'
+    | '/mcp'
     | '/openclaw'
     | '/privacy'
     | '/profile'
@@ -516,6 +526,7 @@ export interface FileRouteTypes {
     | '/connect-ai'
     | '/docs'
     | '/download'
+    | '/mcp'
     | '/openclaw'
     | '/privacy'
     | '/profile'
@@ -566,6 +577,7 @@ export interface FileRouteTypes {
     | '/connect-ai'
     | '/docs'
     | '/download'
+    | '/mcp'
     | '/openclaw'
     | '/privacy'
     | '/profile'
@@ -618,6 +630,7 @@ export interface RootRouteChildren {
   ConnectAiRoute: typeof ConnectAiRoute
   DocsRoute: typeof DocsRoute
   DownloadRoute: typeof DownloadRouteWithChildren
+  McpRoute: typeof McpRoute
   OpenclawRoute: typeof OpenclawRoute
   PrivacyRoute: typeof PrivacyRoute
   ProfileRoute: typeof ProfileRoute
@@ -684,6 +697,13 @@ declare module '@tanstack/react-router' {
       path: '/openclaw'
       fullPath: '/openclaw'
       preLoaderRoute: typeof OpenclawRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/mcp': {
+      id: '/mcp'
+      path: '/mcp'
+      fullPath: '/mcp'
+      preLoaderRoute: typeof McpRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/download': {
@@ -1103,6 +1123,7 @@ const rootRouteChildren: RootRouteChildren = {
   ConnectAiRoute: ConnectAiRoute,
   DocsRoute: DocsRoute,
   DownloadRoute: DownloadRouteWithChildren,
+  McpRoute: McpRoute,
   OpenclawRoute: OpenclawRoute,
   PrivacyRoute: PrivacyRoute,
   ProfileRoute: ProfileRoute,

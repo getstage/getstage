@@ -15,6 +15,7 @@ import {
   Sun,
   WarningCircle,
 } from "@phosphor-icons/react";
+import { useCopyClipboard } from "@/hooks/useCopyClipboard";
 import stageLogo from "@/assets/logos/stage-logo-light.png";
 import { cn } from "@/lib/utils";
 import {
@@ -165,25 +166,6 @@ function useDarkMode() {
   }, []);
 
   return [dark, setDark] as const;
-}
-
-function useCopyClipboard() {
-  const [copiedKey, setCopiedKey] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!copiedKey) return;
-    const t = window.setTimeout(() => setCopiedKey(null), 1800);
-    return () => window.clearTimeout(t);
-  }, [copiedKey]);
-
-  const copy = useCallback((key: string, value: string) => {
-    navigator.clipboard
-      .writeText(value)
-      .then(() => setCopiedKey(key))
-      .catch(() => setCopiedKey(null));
-  }, []);
-
-  return { copiedKey, copy };
 }
 
 /* ─── sub-components ─── */
@@ -937,6 +919,10 @@ export function ApiDocsPage() {
           className="flex-1 overflow-y-auto overflow-x-hidden px-6 py-8 sm:px-8 lg:px-12"
         >
           <div className="mx-auto max-w-5xl pb-24">
+            <p className="mb-6 text-sm text-slate-600 dark:text-slate-300">
+              Looking to connect Stage to Claude, ChatGPT or your coding agent? Read the{" "}
+              <a href="/mcp" className="font-medium text-violet-700 underline dark:text-violet-300">MCP guide</a>.
+            </p>
             <SectionContent
               sectionId={activeId}
               scrollToId={scrollToId}

@@ -10,6 +10,7 @@ export const PUBLIC_WEB_PATHS: ReadonlySet<string> = new Set([
   "/open",
   "/terms",
   "/privacy",
+  "/mcp",
   "/use-cases",
   "/blog",
   "/marketplace",
