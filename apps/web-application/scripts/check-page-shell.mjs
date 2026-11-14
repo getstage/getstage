@@ -15,6 +15,7 @@ for (const [pathname, expected] of [
   ['/auth/signup-brand.png','/auth/signup-brand.png'],
   ['/auth/auth-cta.webp','/auth/auth-cta.webp'],
   ['/','/'], ['/download','/download'], ['/component-libraries','/component-libraries'],
+  ['/mcp','/mcp'], ['/privacy','/privacy'], ['/terms','/terms'],
 ]) {
   let requested;
   const response = await worker.fetch(new Request(`https://getstage.co${pathname}`), {
@@ -37,4 +38,4 @@ assert.doesNotMatch(shell,/stage-landing-page|rel="stylesheet" href="\/landing-p
 const home = await readFile('dist/index.html','utf8');
 assert.match(home,/stage-landing-page/);
 assert.match(home,/rel="stylesheet" href="\/landing-preview\//);
-console.log('Page shell checks passed: 12 routes, private robots, clean app shell and prerendered homepage.');
+console.log('Page shell checks passed: 15 routes, private robots, clean app shell and prerendered homepage.');
