@@ -37,7 +37,7 @@ const STEP_RESULT_SCHEMA = {
 function stepError(error: unknown, fallback: string) {
   const message = error instanceof Error ? publicMessage(error.message) : fallback;
   if (message.includes("not found")) return error;
-  if (message === "insufficient_credits") return new ApiError(402, "Not enough Stage credits for this. Top up in Settings → Billing & Credits.", "insufficient_credits");
+  if (message === "insufficient_credits") return new ApiError(402, "This Stage account doesn't have enough credits for this.", "insufficient_credits");
   return new ApiError(400, message, "step_not_saved");
 }
 

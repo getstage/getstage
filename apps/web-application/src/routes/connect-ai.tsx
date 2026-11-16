@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Warning } from "@phosphor-icons/react";
 import { Navigate, createFileRoute } from "@tanstack/react-router";
 import { Helmet } from "react-helmet-async";
@@ -12,6 +12,17 @@ import stageLogo from "@/assets/logos/stage-logo-light.png";
 import { ALL_MCP_PERMISSIONS, MCP_PERMISSIONS, mcpPermissionLabel, withNeeded, withoutDependents, type McpPermission } from "@stage/data-ops/domain/mcpPermissions";
 
 type ConnectRequest = { state: string; challenge: string; client: string; domain?: string; redirectHost: string; local: boolean };
+
+// ChatGPT may not show plans or checkout (OpenAI's commerce rules), so accounts without a plan get a plain message there.
+const OPENAI_REDIRECT_HOST = /(^|\.)(chatgpt\.com|openai\.com)$/;
+
+/** Back to the AI tool through the MCP server: with a code to finish connecting, without one to cancel. */
+function finishConnection(mcpOrigin: string, state: string, params: Record<string, string> = {}) {
+  const callback = new URL("/callback", mcpOrigin);
+  callback.searchParams.set("state", state);
+  for (const [key, value] of Object.entries(params)) callback.searchParams.set(key, value);
+  window.location.assign(callback.toString());
+}
 
 export const Route = createFileRoute("/connect-ai")({
   validateSearch: (search: Record<string, unknown>): Partial<Record<"state" | "challenge" | "client" | "domain" | "redirect_host" | "local" | "billing", string>> => {
@@ -36,12 +47,43 @@ function ConnectAiPage() {
     : undefined;
 
   if (!request) return <Navigate to="/app" replace />;
+  if (!hasMcpPlan(user.plan) && OPENAI_REDIRECT_HOST.test(request.redirectHost)) {
+    return (
+      <ConnectFrame>
+        <h1 className="text-[21px] font-semibold leading-[1.2] text-[#0A0A0A]">Stage isn't available for this account</h1>
+        <p className="mt-2.5 text-[13px] font-medium leading-[1.5] text-[#525252]">
+          This Stage account does not have access to the {request.client} integration.
+        </p>
+        {mcpOrigin ? (
+          <button
+            type="button"
+            onClick={() => finishConnection(mcpOrigin, request.state, { error: "access_denied" })}
+            className="mt-5 h-9 rounded-[8px] bg-[#0A0A0A] px-4 text-[13px] font-semibold text-white"
+          >
+            Back to {request.client}
+          </button>
+        ) : null}
+      </ConnectFrame>
+    );
+  }
   if (!hasMcpPlan(user.plan)) {
     // Checkout comes back here with the same request; wait for the plan instead of showing the paywall again.
     if (search.billing === "success") return <PageLoading />;
     return <Paywall title={`Pick a plan to connect ${request.client}`} returnPath={`${window.location.pathname}${window.location.search}`} />;
   }
 
+  return (
+    <ConnectFrame>
+      {!mcpOrigin ? (
+        <p className="text-[13px] font-medium text-[#DC2626]">Connecting AI tools isn't available on this address.</p>
+      ) : (
+        <ApproveConnection request={request} mcpOrigin={mcpOrigin} />
+      )}
+    </ConnectFrame>
+  );
+}
+
+function ConnectFrame({ children }: { children: ReactNode }) {
   return (
     <>
       <Helmet>
@@ -52,11 +94,7 @@ function ConnectAiPage() {
         <div className="flex min-h-[calc(100dvh-8px)] items-center justify-center rounded-[8px] bg-white px-4 py-12">
           <div className="flex w-full max-w-[420px] flex-col items-start">
             <img src={stageLogo} alt="Stage" className="mb-5 h-[23px] w-auto" />
-            {!mcpOrigin ? (
-              <p className="text-[13px] font-medium text-[#DC2626]">Connecting AI tools isn't available on this address.</p>
-            ) : (
-              <ApproveConnection request={request} mcpOrigin={mcpOrigin} />
-            )}
+            {children}
           </div>
         </div>
       </div>
@@ -80,12 +118,7 @@ function ApproveConnection({ request, mcpOrigin }: { request: ConnectRequest; mc
     setPicked(next);
   };
 
-  const finish = (params: Record<string, string>) => {
-    const callback = new URL("/callback", mcpOrigin);
-    callback.searchParams.set("state", request.state);
-    for (const [key, value] of Object.entries(params)) callback.searchParams.set(key, value);
-    window.location.assign(callback.toString());
-  };
+  const finish = (params: Record<string, string>) => finishConnection(mcpOrigin, request.state, params);
 
   const approve = async () => {
     setStatus({ kind: "connecting" });
