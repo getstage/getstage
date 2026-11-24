@@ -10,16 +10,52 @@ import { moodboardArtifactSchema } from "@stage/data-ops/contracts";
 import { about } from "./annotations";
 import { INSTRUCTIONS, RESEARCH_INPUTS, STEPS, STYLE_GUIDE, stepToolInput } from "./steps";
 
-type ToolResult = { content: { type: "text"; text: string }[]; isError?: boolean };
+type ToolContent = { type: "text"; text: string } | { type: "image"; data: string; mimeType: string };
+type ToolResult = { content: ToolContent[]; isError?: boolean };
 
 // Tool errors go back to the model as text so it can tell the user or retry.
-async function run(action: () => Promise<unknown>): Promise<ToolResult> {
+async function run<T>(action: () => Promise<T>, pictures?: (value: T) => Promise<ToolContent[]>): Promise<ToolResult> {
   try {
-    return { content: [{ type: "text", text: JSON.stringify(await action(), null, 2) }] };
+    const value = await action();
+    return { content: [{ type: "text", text: JSON.stringify(value, null, 2) }, ...(pictures ? await pictures(value) : [])] };
   } catch (error) {
     if (error instanceof StageApiError) return { content: [{ type: "text", text: error.message }], isError: true };
     throw error;
   }
+}
+
+// Screens found by search_references come back as pictures too, so the chat shows them
+// and the AI can judge what they look like, not only their titles.
+const PREVIEW_LIMIT = 8;
+const PREVIEW_MAX_BYTES = 2_000_000;
+const PREVIEW_TYPES = new Set(["image/png", "image/jpeg", "image/webp", "image/gif"]);
+
+async function preview(url: string | undefined): Promise<ToolContent | null> {
+  if (!url) return null;
+  try {
+    const response = await fetch(url);
+    const mimeType = response.headers.get("Content-Type")?.split(";")[0]?.trim() ?? "";
+    if (!response.ok || !PREVIEW_TYPES.has(mimeType)) return null;
+    const bytes = await response.arrayBuffer();
+    if (bytes.byteLength > PREVIEW_MAX_BYTES) return null;
+    let binary = "";
+    const view = new Uint8Array(bytes);
+    for (let start = 0; start < view.length; start += 0x8000) binary += String.fromCharCode(...view.subarray(start, start + 0x8000));
+    return { type: "image", data: btoa(binary), mimeType };
+  } catch {
+    return null;
+  }
+}
+
+type FoundScreens = { screens: { title: string; thumbnailUrl?: string }[] };
+
+async function screenPictures({ screens }: FoundScreens): Promise<ToolContent[]> {
+  const shown = screens.slice(0, PREVIEW_LIMIT);
+  const images = await Promise.all(shown.map((screen) => preview(screen.thumbnailUrl)));
+  return shown.flatMap((screen, index) => {
+    const image = images[index];
+    return image ? [{ type: "text" as const, text: `${index + 1}. ${screen.title}` }, image] : [];
+  });
 }
 
 const STEP = z.enum(["research", "strategy", "moodboard", "styleguide", "flows", "generate", "delivery"]);
@@ -197,14 +233,14 @@ export function createServer() {
       "search_references",
       {
         ...about("search_references"),
-        description: `Search real product screens. source "refero": app and web screens (moodboard, and Research UI patterns for web and iOS apps). source "details": real website sections (Research UI patterns for website projects). Returns matching screens with id, title, product, thumbnailUrl and sourceUrl. Read-only, no credits.`,
+        description: `Search real product screens. source "refero": app and web screens (moodboard, and Research UI patterns for web and iOS apps). source "details": real website sections (Research UI patterns for website projects). Returns matching screens with id, title, product, thumbnailUrl and sourceUrl, plus a picture of the first ${PREVIEW_LIMIT}, each labelled with its number and title. Read-only, no credits.`,
         inputSchema: z.object({
           query: z.string().min(1).describe("What to look for, e.g. \"fintech dashboard with dense tables\" or \"pricing section with plan toggle\"."),
           source: z.enum(["refero", "details"]).default("refero").describe("details only for Research on website projects; refero for everything else."),
           platform: z.enum(["web", "ios", "android"]).default("web").describe("Refero only."),
         }),
       },
-      (body) => run(() => stageApi("/references/search", body)),
+      (body) => run(async () => (await stageApi("/references/search", body)) as FoundScreens, screenPictures),
     );
   }
 
