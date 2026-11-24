@@ -9,13 +9,15 @@ import { resolveStyleGuideSpec, styleGuideDesignMarkdown } from "@stage/data-ops
 import { moodboardArtifactSchema } from "@stage/data-ops/contracts";
 import { about } from "./annotations";
 import { INSTRUCTIONS, RESEARCH_INPUTS, STEPS, STYLE_GUIDE, stepToolInput } from "./steps";
+import { type FoundScreens, PREVIEW_LIMIT, type ToolContent, screenPictures } from "./previews";
 
-type ToolResult = { content: { type: "text"; text: string }[]; isError?: boolean };
+type ToolResult = { content: ToolContent[]; isError?: boolean };
 
 // Tool errors go back to the model as text so it can tell the user or retry.
-async function run(action: () => Promise<unknown>): Promise<ToolResult> {
+async function run<T>(action: () => Promise<T>, pictures?: (value: T) => Promise<ToolContent[]>): Promise<ToolResult> {
   try {
-    return { content: [{ type: "text", text: JSON.stringify(await action(), null, 2) }] };
+    const value = await action();
+    return { content: [{ type: "text", text: JSON.stringify(value, null, 2) }, ...(pictures ? await pictures(value) : [])] };
   } catch (error) {
     if (error instanceof StageApiError) return { content: [{ type: "text", text: error.message }], isError: true };
     throw error;
@@ -197,14 +199,14 @@ export function createServer() {
       "search_references",
       {
         ...about("search_references"),
-        description: `Search real product screens. source "refero": app and web screens (moodboard, and Research UI patterns for web and iOS apps). source "details": real website sections (Research UI patterns for website projects). Returns matching screens with id, title, product, thumbnailUrl and sourceUrl. Read-only, no credits.`,
+        description: `Search real product screens. source "refero": app and web screens (moodboard, and Research UI patterns for web and iOS apps). source "details": real website sections (Research UI patterns for website projects). Returns matching screens with id, title, product, thumbnailUrl and sourceUrl, plus a picture of the first ${PREVIEW_LIMIT}, each labelled with its number and title. Read-only, no credits.`,
         inputSchema: z.object({
           query: z.string().min(1).describe("What to look for, e.g. \"fintech dashboard with dense tables\" or \"pricing section with plan toggle\"."),
           source: z.enum(["refero", "details"]).default("refero").describe("details only for Research on website projects; refero for everything else."),
           platform: z.enum(["web", "ios", "android"]).default("web").describe("Refero only."),
         }),
       },
-      (body) => run(() => stageApi("/references/search", body)),
+      (body) => run(async () => (await stageApi("/references/search", body)) as FoundScreens, screenPictures),
     );
   }
 
