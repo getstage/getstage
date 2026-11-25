@@ -216,7 +216,20 @@ impl ResearchWorkflow {
                 tracing::info!(run_id = %run_id, project_id, "building Details context");
                 let details_started = std::time::Instant::now();
                 let details = self.resolve_details(&auth_token).await?;
-                let mut context = details.research_context(&input).await?;
+                // Without Details credits Research still runs, only without the website pattern references.
+                let mut context = match details.research_context(&input).await {
+                    Ok(context) => context,
+                    Err(error) if error.is_out_of_credits() => {
+                        tracing::warn!(run_id = %run_id, project_id, %error, "Details is out of credits; Research runs without UI pattern references");
+                        crate::models::refero::ReferoContext {
+                            query: String::new(),
+                            references: Vec::new(),
+                            category_searches: Vec::new(),
+                            fetched_at: crate::helpers::time::now_millis(),
+                        }
+                    }
+                    Err(error) => return Err(error.into()),
+                };
                 let persisted = persist_prepared_context_images(
                     &uploader,
                     &auth_token,

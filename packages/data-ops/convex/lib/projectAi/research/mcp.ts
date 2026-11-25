@@ -8,7 +8,7 @@ import { referenceSearches, takeUniqueScreens, type ReferenceGroup, type Referen
 import { CREDIT_COSTS, requireCredits } from "../../credits/service";
 import { resolveProjectCategory } from "../../projects/domain/projectCategory";
 import { searchDetailsInspirations } from "../../references/details";
-import { searchReferoScreens } from "../../references/refero";
+import { ReferenceOutOfCreditsError, searchReferoScreens } from "../../references/refero";
 import { upsertContextRecord } from "../domain/contextStore";
 import { getContextRecord } from "../domain/records";
 import { createRunRecord, findRunningRunForProjectModule } from "../domain/runStore";
@@ -117,22 +117,34 @@ export async function startResearchForApiHandler(ctx: MutationCtx, args: Access)
 
 export const searchReferenceGroupForApiArgs = { search: searchValidator };
 
-/** One step of the job: the screens for one screen type (Refero for apps, Details for websites). */
-export async function searchReferenceGroupForApiHandler(_ctx: ActionCtx, { search }: { search: ReferenceSearch }): Promise<ReferenceScreen[]> {
-  const found = search.source === "details" ? await searchDetailsInspirations(search.query) : await searchReferoScreens(search.query, search.platform);
-  return found.map(({ id, title, productName, sourceUrl, thumbnailUrl }) => ({ id, title, productName, sourceUrl, thumbnailUrl }));
+/**
+ * One step of the job: the screens for one screen type (Refero for apps, Details for websites).
+ * null when Details is out of credits: Research then runs without that screen type's patterns.
+ */
+export async function searchReferenceGroupForApiHandler(_ctx: ActionCtx, { search }: { search: ReferenceSearch }): Promise<ReferenceScreen[] | null> {
+  try {
+    const found = search.source === "details" ? await searchDetailsInspirations(search.query) : await searchReferoScreens(search.query, search.platform);
+    return found.map(({ id, title, productName, sourceUrl, thumbnailUrl }) => ({ id, title, productName, sourceUrl, thumbnailUrl }));
+  } catch (error) {
+    if (search.source === "details" && error instanceof ReferenceOutOfCreditsError) return null;
+    throw error;
+  }
 }
 
 export const collectResearchReferencesArgs = { runId: v.id("projectAiRuns"), searches: v.array(searchValidator) };
 
-/** The job: every screen type searched in parallel (within the job pool's limit), each search retried on errors. */
+/** The job: every screen type searched in parallel (within the job pool's limit), each search retried on errors; screen types Details had no credits for are left out. */
 export async function collectResearchReferencesHandler(
   step: WorkflowCtx,
   args: { runId: Id<"projectAiRuns">; searches: ReferenceSearch[] },
 ): Promise<string> {
   const found = await Promise.all(args.searches.map((search) => step.runAction(internal.workflows.research.searchGroup, { search })));
-  const unique = takeUniqueScreens(found);
-  const groups: ReferenceGroup[] = args.searches.map((search, index) => ({ id: search.id, title: search.title, screens: unique[index] ?? [] }));
+  const searched = args.searches.flatMap((search, index) => {
+    const screens = found[index];
+    return screens ? [{ search, screens }] : [];
+  });
+  const unique = takeUniqueScreens(searched.map(({ screens }) => screens));
+  const groups: ReferenceGroup[] = searched.map(({ search }, index) => ({ id: search.id, title: search.title, screens: unique[index] ?? [] }));
   return JSON.stringify(groups);
 }
 
@@ -148,7 +160,7 @@ export async function researchReferencesCollectedHandler(
   const groups = args.result.kind === "success" ? (JSON.parse(args.result.returnValue as string) as ReferenceGroup[]) : null;
   const reason = !groups
     ? `Stage couldn't collect the reference screens: ${args.result.kind === "failed" ? args.result.error : "the job was cancelled"}.`
-    : groups.every((group) => group.screens.length === 0) ? "Refero and Details returned no screens for this project. Start Research again in a minute." : null;
+    : groups.length > 0 && groups.every((group) => group.screens.length === 0) ? "Refero and Details returned no screens for this project. Start Research again in a minute." : null;
   const timestamp = now();
   if (reason) {
     await ctx.db.patch(run._id, { status: "failed", errorMessage: reason, completedAt: timestamp, updatedAt: timestamp });

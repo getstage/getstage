@@ -24,6 +24,9 @@ export function isObject(value: Json): value is JsonObject {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+/** Refero or Details refused because Stage's account has no credits left (402) or hit its limit (429). */
+export class ReferenceOutOfCreditsError extends Error {}
+
 /** Calls a tool on Refero's or Details' MCP server with Stage's key. */
 export async function callReferenceTool(source: ReferenceSource, name: string, args: JsonObject): Promise<Json> {
   const upstream = referenceUpstream(source);
@@ -34,6 +37,7 @@ export async function callReferenceTool(source: ReferenceSource, name: string, a
     headers: { Authorization: `Bearer ${upstream.token}`, "Content-Type": "application/json", Accept: "application/json, text/event-stream" },
     body: JSON.stringify({ jsonrpc: "2.0", id: Date.now(), method: "tools/call", params: { name, arguments: args } }),
   });
+  if (response.status === 402 || response.status === 429) throw new ReferenceOutOfCreditsError(`${label} is out of credits (status ${response.status}).`);
   if (!response.ok) throw new Error(`${label} request failed with status ${response.status}.`);
   const body = (await response.json()) as { result?: Json; error?: { message?: string } };
   if (body.error) throw new Error(`${label} tool call failed: ${body.error.message ?? "unknown error"}`);

@@ -289,7 +289,8 @@ fn details_section_query(section: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{DEFAULT_DETAILS_SECTIONS, details_section_search_requests};
+    use super::{DEFAULT_DETAILS_SECTIONS, DetailsServiceError, details_section_search_requests};
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
     #[test]
     fn searches_use_selected_sections() {
@@ -299,6 +300,29 @@ mod tests {
             details_section_search_requests(&[]),
             DEFAULT_DETAILS_SECTIONS.map(str::to_string)
         );
+    }
+
+    /// The error a Details call gives when the server answers with `status`.
+    async fn error_for(status: &str) -> DetailsServiceError {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let address = listener.local_addr().unwrap();
+        let reply = format!("HTTP/1.1 {status}\r\ncontent-length: 0\r\nconnection: close\r\n\r\n");
+        tokio::spawn(async move {
+            let (mut socket, _) = listener.accept().await.unwrap();
+            let mut request = [0u8; 1024];
+            let _ = socket.read(&mut request).await;
+            socket.write_all(reply.as_bytes()).await.unwrap();
+        });
+        let response = reqwest::get(format!("http://{address}")).await.unwrap();
+        DetailsServiceError::Http(response.error_for_status().unwrap_err())
+    }
+
+    #[tokio::test]
+    async fn only_no_credits_and_rate_limits_count_as_out_of_credits() {
+        assert!(error_for("429 Too Many Requests").await.is_out_of_credits());
+        assert!(error_for("402 Payment Required").await.is_out_of_credits());
+        assert!(!error_for("401 Unauthorized").await.is_out_of_credits());
+        assert!(!error_for("500 Internal Server Error").await.is_out_of_credits());
     }
 }
 
@@ -339,4 +363,11 @@ pub enum DetailsServiceError {
 
     #[error("Details inspiration {0} did not include a usable still image")]
     MissingMedia(String),
+}
+
+impl DetailsServiceError {
+    /// Details refused because Stage's account has no credits left (402) or hit its limit (429).
+    pub fn is_out_of_credits(&self) -> bool {
+        matches!(self, Self::Http(error) if matches!(error.status().map(|status| status.as_u16()), Some(402 | 429)))
+    }
 }
