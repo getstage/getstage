@@ -199,9 +199,11 @@ pub enum ResearchSourceProvider {
 #[derive(Clone, Copy, Debug, Default, Deserialize, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ResearchUiPatternProvider {
+    /// Research saved before Mobbin replaced Refero (STA-62).
     #[default]
     Refero,
     Details,
+    Mobbin,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]

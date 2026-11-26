@@ -13,7 +13,7 @@ use crate::models::refero::{
     ReferoPlatform, ReferoReference, ReferoReferenceKind, ReferoSearchRequest,
 };
 use crate::models::runs::{RunEvent, RunStatus, StartRunRequest};
-use crate::refero::parse::{infer_image_mime, is_synthetic_reference_id, looks_like_image_bytes};
+use crate::refero::parse::{infer_image_mime, looks_like_image_bytes};
 use crate::refero::service::{ReferoService, infer_refero_file_name};
 use crate::runs::RunEventSink;
 
@@ -113,7 +113,7 @@ impl MoodboardWorkflow {
                 match source {
                     "figma" => "Import Figma images",
                     "url" | "image-url" => "Import image URL",
-                    _ => "Search Refero screens",
+                    _ => "Search Mobbin screens",
                 },
             );
 
@@ -213,7 +213,7 @@ impl MoodboardWorkflow {
             }
 
             let image_key =
-                upload_refero_screen_image(&refero, &uploader, auth_token, project_id, screen)
+                upload_refero_screen_image(&uploader, auth_token, project_id, screen)
                     .await;
             // Prefer https CDN/render URLs for display fields. R2 keys belong in
             // imageAssetKey so Convex can resolve them — putting a key in imageUrl
@@ -235,7 +235,7 @@ impl MoodboardWorkflow {
 
         if references.is_empty() {
             return Err(WorkflowError::InvalidRequest(
-                "Refero found screens but no images could be loaded. Try another query or import screenshots manually.".to_string(),
+                "Mobbin found screens but no images could be loaded. Try another query or import screenshots manually.".to_string(),
             ));
         }
 
@@ -254,7 +254,7 @@ impl MoodboardWorkflow {
         }
 
         self.refero
-            .with_endpoint(self.relay.refero_url(), auth_token.to_string())
+            .with_endpoint(self.relay.mobbin_url(), auth_token.to_string())
             .map_err(|error| WorkflowError::InvalidRequest(error.to_string()))
     }
 
@@ -348,13 +348,12 @@ impl MoodboardWorkflow {
 }
 
 async fn upload_refero_screen_image(
-    refero: &ReferoService,
     uploader: &ConvexAssetUploader,
     auth_token: &str,
     project_id: &str,
     screen: &mut ReferoReference,
 ) -> Option<String> {
-    let bytes = fetch_refero_screen_bytes(refero, screen).await?;
+    let bytes = fetch_refero_screen_bytes(screen).await?;
 
     let mime_type = infer_image_mime(&bytes);
     let file_name = infer_refero_file_name(&screen.id, mime_type);
@@ -378,30 +377,9 @@ async fn upload_refero_screen_image(
 }
 
 async fn fetch_refero_screen_bytes(
-    refero: &ReferoService,
     screen: &ReferoReference,
 ) -> Option<Vec<u8>> {
-    // Prefer the full-resolution MCP screenshot (image_size=full), matching Research.
-    // The search CDN URLs are only low-res `_thumb.jpg` previews, so use them as a fallback.
-    if !is_synthetic_reference_id(&screen.id) {
-        match refero.fetch_screen_image_bytes(&screen.id).await {
-            Ok(bytes) if looks_like_image_bytes(&bytes) => return Some(bytes),
-            Ok(_) => {
-                tracing::warn!(
-                    screen_id = %screen.id,
-                    "Refero MCP returned non-image bytes for moodboard import"
-                );
-            }
-            Err(error) => {
-                tracing::warn!(
-                    screen_id = %screen.id,
-                    %error,
-                    "Moodboard Refero MCP full-image fetch failed; falling back to CDN URLs"
-                );
-            }
-        }
-    }
-
+    // The search's image link is the full screenshot; the thumbnail is the fallback.
     for url in [screen.image_url.as_deref(), screen.thumbnail_url.as_deref()] {
         let Some(url) = url.filter(|value| value.starts_with("https://")) else {
             continue;
@@ -412,7 +390,7 @@ async fn fetch_refero_screen_bytes(
                 tracing::info!(
                     screen_id = %screen.id,
                     source_url = %url,
-                    "Moodboard Refero image loaded from search CDN URL fallback"
+                    "Moodboard screen image loaded"
                 );
                 return Some(image.bytes);
             }
@@ -421,7 +399,7 @@ async fn fetch_refero_screen_bytes(
                     screen_id = %screen.id,
                     source_url = %url,
                     %error,
-                    "Moodboard Refero CDN image fetch failed"
+                    "Moodboard screen image fetch failed"
                 );
             }
         }
@@ -926,6 +904,9 @@ fn user_message(error: &WorkflowError) -> String {
             message.clone()
         }
         WorkflowError::Convex(_) => "Stage could not save the moodboard import.".to_string(),
-        WorkflowError::Refero(_) => "Refero could not prepare moodboard screens.".to_string(),
+        WorkflowError::Refero(error) if error.is_unavailable() => {
+            "Connect Mobbin in Settings → Integrations to search screens.".to_string()
+        }
+        WorkflowError::Refero(_) => "Mobbin could not prepare moodboard screens.".to_string(),
     }
 }

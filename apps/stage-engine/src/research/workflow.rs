@@ -202,7 +202,7 @@ impl ResearchWorkflow {
             let ui_pattern_provider = if input.project_category == ProjectCategory::Websites {
                 ResearchUiPatternProvider::Details
             } else {
-                ResearchUiPatternProvider::Refero
+                ResearchUiPatternProvider::Mobbin
             };
             let (bundle, image_keys, pattern_screenshots) = if input.project_category == ProjectCategory::Websites {
                 self.tool_started(
@@ -219,8 +219,8 @@ impl ResearchWorkflow {
                 // Without Details credits Research still runs, only without the website pattern references.
                 let mut context = match details.research_context(&input).await {
                     Ok(context) => context,
-                    Err(error) if error.is_out_of_credits() => {
-                        tracing::warn!(run_id = %run_id, project_id, %error, "Details is out of credits; Research runs without UI pattern references");
+                    Err(error) if error.is_unavailable() => {
+                        tracing::warn!(run_id = %run_id, project_id, %error, "Details can't be used for this account; Research runs without UI pattern references");
                         crate::models::refero::ReferoContext {
                             query: String::new(),
                             references: Vec::new(),
@@ -263,7 +263,7 @@ impl ResearchWorkflow {
                     provider_id,
                     &sink,
                     "refero-context",
-                    "Search Refero examples",
+                    "Search Mobbin screens",
                 );
                 tracing::info!(run_id = %run_id, project_id, "building Refero context");
                 let refero_started = std::time::Instant::now();
@@ -534,7 +534,7 @@ impl ResearchWorkflow {
 
         self.research
             .refero()
-            .with_endpoint(self.relay.refero_url(), auth_token.to_string())
+            .with_endpoint(self.relay.mobbin_url(), auth_token.to_string())
             .map_err(|error| WorkflowError::InvalidRequest(error.to_string()))
     }
 

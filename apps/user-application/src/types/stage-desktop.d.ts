@@ -1,3 +1,4 @@
+import type { DesktopOAuthProvider } from "@shared/models/desktop";
 import type {
   ActiveAppInfo,
   CaptureWindowRequest,
@@ -114,7 +115,7 @@ export type StageDesktopApi = {
     openExternal: (url: string) => Promise<void>;
   };
   integrations: {
-    getOAuthReturnUrl: (provider: "figma" | "notion") => Promise<string>;
+    getOAuthReturnUrl: (provider: DesktopOAuthProvider) => Promise<string>;
     onOAuthCompleted: (callback: (result: IntegrationOAuthResult) => void) => () => void;
   };
   billing: {

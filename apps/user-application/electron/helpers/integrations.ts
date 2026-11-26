@@ -1,4 +1,5 @@
 import { app } from "electron";
+import { DESKTOP_OAUTH_PROVIDERS, type DesktopOAuthProvider } from "@shared/models/desktop";
 import {
   DEV_DESKTOP_AUTH_CALLBACK_HOST,
   DEV_DESKTOP_AUTH_CALLBACK_PORT,
@@ -8,7 +9,11 @@ import {
 export const DESKTOP_INTEGRATIONS_HOST = "integrations";
 export const DEV_DESKTOP_INTEGRATIONS_BASE = `http://${DEV_DESKTOP_AUTH_CALLBACK_HOST}:${DEV_DESKTOP_AUTH_CALLBACK_PORT}/integrations`;
 
-export type NativeIntegrationProvider = "figma" | "notion";
+export type NativeIntegrationProvider = DesktopOAuthProvider;
+
+export function isNativeIntegrationProvider(value: unknown): value is NativeIntegrationProvider {
+  return DESKTOP_OAUTH_PROVIDERS.includes(value as NativeIntegrationProvider);
+}
 
 export function getDesktopIntegrationReturnUrl(provider: NativeIntegrationProvider) {
   if (!app.isPackaged) {
@@ -19,30 +24,17 @@ export function getDesktopIntegrationReturnUrl(provider: NativeIntegrationProvid
 }
 
 function getProviderFromIntegrationUrl(url: URL): NativeIntegrationProvider | null {
-  if (url.protocol === `${STAGE_PROTOCOL}:` && url.hostname === DESKTOP_INTEGRATIONS_HOST) {
-    if (url.pathname === "/figma") {
-      return "figma";
-    }
-    if (url.pathname === "/notion") {
-      return "notion";
-    }
-    return null;
-  }
-
-  if (
+  const packaged = url.protocol === `${STAGE_PROTOCOL}:` && url.hostname === DESKTOP_INTEGRATIONS_HOST;
+  const dev =
     url.protocol === "http:" &&
     url.hostname === DEV_DESKTOP_AUTH_CALLBACK_HOST &&
-    url.port === String(DEV_DESKTOP_AUTH_CALLBACK_PORT)
-  ) {
-    if (url.pathname === "/integrations/figma") {
-      return "figma";
-    }
-    if (url.pathname === "/integrations/notion") {
-      return "notion";
-    }
-  }
-
-  return null;
+    url.port === String(DEV_DESKTOP_AUTH_CALLBACK_PORT);
+  const provider = packaged
+    ? url.pathname.replace(/^\//, "")
+    : dev
+      ? url.pathname.replace(/^\/integrations\//, "")
+      : null;
+  return isNativeIntegrationProvider(provider) ? provider : null;
 }
 
 export function isStageIntegrationUrl(value: string) {

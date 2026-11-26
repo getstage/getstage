@@ -29,6 +29,8 @@ import { ResearchActions } from "./ResearchActions";
 import { ResearchConfigureStep } from "./ResearchConfigureStep";
 import { ResearchSkillReport } from "./ResearchSkillReport";
 
+const PREVIEW_LABEL = { refero: "Refero screen", details: "Details inspiration", mobbin: "Mobbin screen" } as const;
+
 export function ResearchTab({
   project,
   projectCategory,
@@ -355,6 +357,12 @@ export function ResearchTab({
               onGroupsChange={(uiPatternGroups) => updateDraftTabData({ uiPatternGroups })}
               onRegenerate={() => void handleRegenerateSection("uiPatterns")}
             />
+            {tabData.uiPatternGroups.length === 0 && !isEditing ? (
+              <p className="text-[13px] text-[#525252]">
+                No UI patterns in this Research. Connect Mobbin in Settings → Integrations for UI patterns, then regenerate.
+              </p>
+            ) : null}
+
             <Divider />
             <TargetUsers
               users={tabData.targetUsers}
@@ -417,7 +425,7 @@ export function ResearchTab({
       {openPhoto ? (
         <PhotoLightbox
           src={openPhoto}
-          label={`${tabData.uiPatternProvider === "details" ? "Details inspiration" : "Refero screen"} preview`}
+          label={`${PREVIEW_LABEL[tabData.uiPatternProvider]} preview`}
           onClose={() => setOpenPhoto(null)}
         />
       ) : null}

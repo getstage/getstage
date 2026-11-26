@@ -1,3 +1,4 @@
+import type { DesktopOAuthProvider } from "@shared/models/desktop";
 import { contextBridge, ipcRenderer } from "electron";
 import { IPC_CHANNELS } from "@shared/ipc/channels";
 import type {
@@ -170,7 +171,7 @@ const stageDesktop = {
       ipcRenderer.invoke(IPC_CHANNELS.shellOpenExternal, url),
   },
   integrations: {
-    getOAuthReturnUrl: (provider: "figma" | "notion") =>
+    getOAuthReturnUrl: (provider: DesktopOAuthProvider) =>
       ipcRenderer.invoke(IPC_CHANNELS.integrationsGetOAuthReturnUrl, provider),
     onOAuthCompleted: (callback: (result: IntegrationOAuthResult) => void) => {
       const listener = (_event: Electron.IpcRendererEvent, result: IntegrationOAuthResult) => {

@@ -1,3 +1,4 @@
+import { isNativeIntegrationProvider } from "./helpers/integrations";
 import { mkdir, writeFile } from "node:fs/promises";
 import { basename, resolve, sep } from "node:path";
 import { app, BrowserWindow, clipboard, dialog, ipcMain, shell, type WebContents } from "electron";
@@ -578,8 +579,8 @@ export function registerIpcHandlers({
   });
 
   ipcMain.handle(IPC_CHANNELS.integrationsGetOAuthReturnUrl, (_event, provider: unknown) => {
-    if (provider !== "figma" && provider !== "notion") {
-      throw new Error("Integration provider must be figma or notion.");
+    if (!isNativeIntegrationProvider(provider)) {
+      throw new Error("Unknown integration provider.");
     }
 
     return integrationsController.getOAuthReturnUrl(provider);

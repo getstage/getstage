@@ -294,101 +294,6 @@ pub fn string_array_field(value: &Value, keys: &[&str]) -> Vec<String> {
         .unwrap_or_default()
 }
 
-pub fn decode_image_bytes(raw: &Value) -> Option<Vec<u8>> {
-    if let Some(bytes) = raw.as_array() {
-        for item in bytes {
-            if let Some(decoded) = decode_image_bytes(item) {
-                return Some(decoded);
-            }
-        }
-
-        if !bytes.iter().all(Value::is_number) {
-            return None;
-        }
-
-        return Some(
-            bytes
-                .iter()
-                .filter_map(|v| v.as_u64().map(|n| n as u8))
-                .collect(),
-        );
-    }
-
-    if let Some(structured) = raw.get("structuredContent")
-        && let Some(decoded) = decode_image_bytes(structured)
-    {
-        return Some(decoded);
-    }
-
-    if let Some(result) = raw.get("result")
-        && let Some(decoded) = decode_image_bytes(result)
-    {
-        return Some(decoded);
-    }
-
-    if let Some(text) = raw.as_str() {
-        if text.starts_with("data:") {
-            let payload = text.split_once(',').map(|(_, data)| data).unwrap_or(text);
-            return base64_decode(payload);
-        }
-        return base64_decode(text);
-    }
-
-    if let Some(content) = raw.get("content")
-        && let Some(decoded) = decode_image_bytes(content)
-    {
-        return Some(decoded);
-    }
-
-    for key in ["data", "image", "bytes", "base64"] {
-        if let Some(value) = raw.get(key)
-            && let Some(decoded) = decode_image_bytes(value)
-        {
-            return Some(decoded);
-        }
-    }
-
-    if let Some(uri) = raw.get("uri").and_then(Value::as_str)
-        && uri.starts_with("data:")
-    {
-        return decode_image_bytes(&Value::String(uri.to_string()));
-    }
-
-    None
-}
-
-fn base64_decode(input: &str) -> Option<Vec<u8>> {
-    const TABLE: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-    let cleaned: String = input.chars().filter(|c| !c.is_whitespace()).collect();
-    if cleaned.is_empty() {
-        return None;
-    }
-
-    let mut bytes = Vec::with_capacity(cleaned.len() * 3 / 4);
-    let mut buffer = 0u32;
-    let mut bits = 0;
-
-    for ch in cleaned.chars() {
-        if ch == '=' {
-            break;
-        }
-        let value = TABLE.iter().position(|&byte| byte as char == ch)? as u32;
-        buffer = (buffer << 6) | value;
-        bits += 6;
-        if bits >= 8 {
-            bits -= 8;
-            bytes.push((buffer >> bits) as u8);
-            buffer &= (1 << bits) - 1;
-        }
-    }
-
-    if bytes.is_empty() {
-        return None;
-    }
-
-    Some(bytes)
-}
-
 pub fn infer_image_mime(bytes: &[u8]) -> &'static str {
     if bytes.starts_with(&[0x89, b'P', b'N', b'G']) {
         "image/png"
@@ -426,17 +331,6 @@ pub fn reference_id(value: &Value, kind: &str, index: usize) -> String {
     id.unwrap_or_else(|| format!("{kind}-{index}"))
 }
 
-/// Fallback ids we generate when Refero MCP omits a real screen/flow id.
-pub fn is_synthetic_reference_id(id: &str) -> bool {
-    let Some((prefix, suffix)) = id.split_once('-') else {
-        return false;
-    };
-
-    matches!(prefix, "screen" | "flow" | "style")
-        && !suffix.is_empty()
-        && suffix.chars().all(|c| c.is_ascii_digit())
-}
-
 pub fn looks_like_image_bytes(bytes: &[u8]) -> bool {
     if bytes.len() < 12 {
         return false;
@@ -465,30 +359,6 @@ mod tests {
 
         let parsed = unwrap_mcp_tool_result(&raw);
         assert!(parsed.as_array().is_some());
-    }
-
-    #[test]
-    fn decodes_image_from_mcp_content_array() {
-        let raw = json!({
-            "content": [{
-                "type": "image",
-                "mimeType": "image/png",
-                "data": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJ"
-            }]
-        });
-
-        let bytes = decode_image_bytes(&raw).unwrap();
-
-        assert!(looks_like_image_bytes(&bytes));
-    }
-
-    #[test]
-    fn detects_synthetic_reference_ids() {
-        assert!(is_synthetic_reference_id("screen-0"));
-        assert!(is_synthetic_reference_id("flow-3"));
-        assert!(!is_synthetic_reference_id(
-            "550e8400-e29b-41d4-a716-446655440000"
-        ));
     }
 
     #[test]

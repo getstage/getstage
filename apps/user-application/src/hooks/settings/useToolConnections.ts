@@ -18,6 +18,13 @@ import {
 import { isProviderCliReady } from "@/lib/settings/providerCliSetup";
 import { openExternalLink } from "@/lib/settings/openExternalLink";
 import type { IntegrationRowModel } from "@/types/settings/integrations";
+import { DESKTOP_OAUTH_PROVIDERS, type DesktopOAuthProvider } from "@shared/models/desktop";
+
+const NATIVE_LABEL: Record<DesktopOAuthProvider, string> = { figma: "Figma", notion: "Notion", mobbin: "Mobbin", details: "Details" };
+
+function isDesktopOAuthProvider(id: string): id is DesktopOAuthProvider {
+  return DESKTOP_OAUTH_PROVIDERS.includes(id as DesktopOAuthProvider);
+}
 
 // One place for connecting tools (Claude/Codex CLIs, Figma, Notion, Paper, Google Sheets).
 // Used by Settings → Integrations and the onboarding Tech Stack step.
@@ -55,12 +62,16 @@ export function useToolConnections() {
   );
   const nativeIntegrationRows = useMemo(
     () => [
+      nativeIntegrationToRow("mobbin", nativeConnectionStatus?.mobbin ?? null),
+      nativeIntegrationToRow("details", nativeConnectionStatus?.details ?? null),
       nativeIntegrationToRow("figma", nativeConnectionStatus?.figma ?? null),
       nativeIntegrationToRow("notion", nativeConnectionStatus?.notion ?? null),
       paperIntegrationToRow(paperStatus, paperStatusPending),
       googleSheetsIntegrationToRow(sheetConnectionStatus?.googleSheet ?? null),
     ],
     [
+      nativeConnectionStatus?.mobbin,
+      nativeConnectionStatus?.details,
       nativeConnectionStatus?.figma,
       nativeConnectionStatus?.notion,
       paperStatus,
@@ -110,7 +121,7 @@ export function useToolConnections() {
       }
 
       if (result.status === "error") {
-        window.alert(`Could not connect ${result.provider === "figma" ? "Figma" : "Notion"}.`);
+        window.alert(`Could not connect ${NATIVE_LABEL[result.provider]}.`);
         return;
       }
 
@@ -145,7 +156,7 @@ export function useToolConnections() {
         return;
       }
 
-      if (integration.nativeIntegrationId === "figma" || integration.nativeIntegrationId === "notion") {
+      if (integration.nativeIntegrationId && isDesktopOAuthProvider(integration.nativeIntegrationId)) {
         if (integration.connected) {
           await disconnectNativeConnection({ provider: integration.nativeIntegrationId });
           return;

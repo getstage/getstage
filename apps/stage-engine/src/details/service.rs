@@ -318,11 +318,11 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn only_no_credits_and_rate_limits_count_as_out_of_credits() {
-        assert!(error_for("429 Too Many Requests").await.is_out_of_credits());
-        assert!(error_for("402 Payment Required").await.is_out_of_credits());
-        assert!(!error_for("401 Unauthorized").await.is_out_of_credits());
-        assert!(!error_for("500 Internal Server Error").await.is_out_of_credits());
+    async fn only_account_refusals_count_as_unavailable() {
+        for status in ["401 Unauthorized", "402 Payment Required", "428 Precondition Required", "429 Too Many Requests"] {
+            assert!(error_for(status).await.is_unavailable(), "{status}");
+        }
+        assert!(!error_for("500 Internal Server Error").await.is_unavailable());
     }
 }
 
@@ -366,8 +366,9 @@ pub enum DetailsServiceError {
 }
 
 impl DetailsServiceError {
-    /// Details refused because Stage's account has no credits left (402) or hit its limit (429).
-    pub fn is_out_of_credits(&self) -> bool {
-        matches!(self, Self::Http(error) if matches!(error.status().map(|status| status.as_u16()), Some(402 | 429)))
+    /// Details can't be used for this account: not connected in Stage (428), signed out (401),
+    /// out of credits (402) or over its limit (429).
+    pub fn is_unavailable(&self) -> bool {
+        matches!(self, Self::Http(error) if matches!(error.status().map(|status| status.as_u16()), Some(401 | 402 | 428 | 429)))
     }
 }
