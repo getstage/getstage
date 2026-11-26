@@ -2,7 +2,8 @@ import type { ProjectCategory } from "../contracts/desktop-api/project";
 import { DEFAULT_DETAILS_SECTIONS, DEFAULT_REFERO_APP_SECTIONS, type ResearchUiPatternGroup } from "../contracts/research";
 
 // UI pattern references for Research collected by Stage (MCP), the way Stage for Mac's engine does it:
-// one search per screen type (Refero for apps, Details for websites), then the groups the Research screen shows.
+// one search per screen type in the user's connected library (Mobbin for apps; Details, else Mobbin, for websites),
+// then the groups the Research screen shows. No library connected: no searches, Research runs without patterns.
 // Port of `apps/stage-engine/src/research/{context,refero_assets,ui_pattern_insights}.rs` and
 // `apps/stage-engine/src/details/service.rs`; keep both in step.
 
@@ -22,15 +23,18 @@ export type ResearchSearchInput = {
 export type ReferenceSearch = {
   id: string;
   title: string;
-  source: "refero" | "details";
+  /** Mobbin screens (apps), Mobbin sections or Details (websites). */
+  source: "mobbin-screens" | "mobbin-sections" | "details";
   platform: "web" | "ios";
   query: string;
 };
 
-export type ReferenceScreen = { id: string; title: string; productName?: string; sourceUrl?: string; thumbnailUrl?: string };
-export type ReferenceGroup = { id: string; title: string; screens: ReferenceScreen[] };
+export type ConnectedLibraries = { mobbin: boolean; details: boolean };
 
-// Fixed Refero queries per standard screen type (the engine's `build_category_query`).
+export type ReferenceScreen = { id: string; title: string; productName?: string; sourceUrl?: string; thumbnailUrl?: string };
+export type ReferenceGroup = { id: string; title: string; provider: "mobbin" | "details"; screens: ReferenceScreen[] };
+
+// Fixed queries per standard screen type (the engine's `build_category_query`).
 const APP_PATTERNS: Record<string, { web: string; ios: string }> = {
   Onboarding: { web: "account signup onboarding wizard first run", ios: "mobile app onboarding signup first run" },
   Homepage: { web: "web app homepage product overview", ios: "mobile app home feed main screen" },
@@ -65,12 +69,15 @@ function groupId(title: string) {
   return `ui-patterns-${title.toLowerCase().replace(/[^a-z0-9]/g, "-")}`;
 }
 
-/** The searches a Research run makes, one per screen type, exactly as the Mac engine builds them. */
-export function referenceSearches(input: ResearchSearchInput): ReferenceSearch[] {
+/** The searches a Research run makes, one per screen type, as the Mac engine builds them; none without a connected library. */
+export function referenceSearches(input: ResearchSearchInput, libraries: ConnectedLibraries): ReferenceSearch[] {
   if (input.category === "websites") {
+    const source = libraries.details ? "details" : libraries.mobbin ? "mobbin-sections" : null;
+    if (!source) return [];
     const sections = input.screenTypes.length > 0 ? input.screenTypes.slice(0, 5) : DEFAULT_DETAILS_SECTIONS;
-    return sections.map((section) => ({ id: groupId(section), title: section, source: "details", platform: "web", query: `marketing website ${section} section` }));
+    return sections.map((section) => ({ id: groupId(section), title: section, source, platform: "web", query: `marketing website ${section} section` }));
   }
+  if (!libraries.mobbin) return [];
   const platform = input.category === "ios-apps" ? "ios" : "web";
   // Like the engine: any type it doesn't know (e.g. a website section) falls back to the five defaults.
   const allKnown = input.screenTypes.length > 0 && input.screenTypes.every((type) => APP_SCREEN_TYPES.has(type));
@@ -78,7 +85,7 @@ export function referenceSearches(input: ResearchSearchInput): ReferenceSearch[]
   const qualifier = [input.industry.trim(), projectDescriptor(input)].filter(Boolean).join(" ");
   return types.map((type) => {
     const pattern = APP_PATTERNS[type]?.[platform] ?? `${platform === "ios" ? "mobile app" : "web app"} ${type} interface`;
-    return { id: groupId(type), title: type, source: "refero", platform, query: `${pattern} ${qualifier}`.trim() };
+    return { id: groupId(type), title: type, source: "mobbin-screens", platform, query: `${pattern} ${qualifier}`.trim() };
   });
 }
 

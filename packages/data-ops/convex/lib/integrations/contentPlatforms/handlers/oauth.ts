@@ -17,17 +17,29 @@ import {
   getProviderLabel,
   isAllowedDesktopOAuthReturnUrl,
 } from "../../../../helpers/integrations/oauth";
+import {
+  DESIGN_LIBRARY_MCP,
+  designLibraryAuthorizeUrl,
+  designLibraryEndpoints,
+  exchangeDesignLibraryCode,
+  registerDesignLibraryClient,
+} from "../../../../helpers/integrations/designLibraryOAuth";
 import { encryptSecret } from "../../../credentialVault";
 import type {
+  DesignLibrary,
   NativeProvider,
   ViewerContext,
 } from "../../../../models/integrations/contentPlatforms";
-import { FIGMA_OAUTH_SCOPES } from "../../../../models/integrations/contentPlatforms";
+import { FIGMA_OAUTH_SCOPES, nativeProviderValidator } from "../../../../models/integrations/contentPlatforms";
 
 export const startOAuthConnectArgs = {
-  provider: v.union(v.literal("notion"), v.literal("figma")),
+  provider: nativeProviderValidator,
   returnUrl: v.optional(v.string()),
 };
+
+function isDesignLibrary(provider: NativeProvider): provider is DesignLibrary {
+  return provider === "mobbin" || provider === "details";
+}
 
 export async function startOAuthConnectHandler(
   ctx: ActionCtx,
@@ -40,6 +52,23 @@ export async function startOAuthConnectHandler(
     args.returnUrl && isAllowedDesktopOAuthReturnUrl(args.returnUrl, args.provider)
       ? args.returnUrl
       : undefined;
+
+  if (isDesignLibrary(args.provider)) {
+    requireSiteUrl();
+    const endpoints = await designLibraryEndpoints(args.provider);
+    const clientId = await registerDesignLibraryClient(args.provider, endpoints);
+    const pkce = await generatePkcePair();
+    await ctx.runMutation(internal.integrations.contentPlatforms.upsertPendingConnectionForOAuth, {
+      userId: viewer.userId,
+      provider: args.provider,
+      oauthState,
+      pkceVerifier: pkce.verifier,
+      oauthReturnUrl,
+      oauthClientId: clientId,
+      requestedAt: timestamp,
+    });
+    return { url: designLibraryAuthorizeUrl(args.provider, endpoints, { clientId, state: oauthState, codeChallenge: pkce.challenge }) };
+  }
 
   if (args.provider === "notion") {
     requireEnv("NOTION_CLIENT_ID");
@@ -134,7 +163,23 @@ export async function handleProviderCallback(ctx: ActionCtx, provider: NativePro
   try {
     const completedAt = now();
 
-    if (provider === "notion") {
+    if (isDesignLibrary(provider)) {
+      if (!connection.oauthClientId || !connection.pkceVerifier) throw new Error("Start connecting again from Integrations.");
+      const tokens = await exchangeDesignLibraryCode(provider, await designLibraryEndpoints(provider), {
+        clientId: connection.oauthClientId,
+        code,
+        codeVerifier: connection.pkceVerifier,
+      });
+      const encrypted = await encryptSecret(JSON.stringify({ accessToken: tokens.accessToken, refreshToken: tokens.refreshToken ?? null }));
+      await ctx.runMutation(internal.integrations.contentPlatforms.completeConnectionFromOAuth, {
+        connectionId: connection._id,
+        displayName: DESIGN_LIBRARY_MCP[provider].label,
+        encryptedTokenPayload: encrypted.encryptedValue,
+        encryptionIv: encrypted.encryptionIv,
+        accessTokenExpiresAt: tokens.expiresAt,
+        completedAt,
+      });
+    } else if (provider === "notion") {
       const tokenResponse = await exchangeNotionCodeForToken(code);
       const encrypted = await encryptSecret(
         JSON.stringify({
@@ -211,4 +256,12 @@ export async function notionConnectCallbackHandler(ctx: ActionCtx, req: Request)
 
 export async function figmaConnectCallbackHandler(ctx: ActionCtx, req: Request) {
   return handleProviderCallback(ctx, "figma", req);
+}
+
+export async function mobbinConnectCallbackHandler(ctx: ActionCtx, req: Request) {
+  return handleProviderCallback(ctx, "mobbin", req);
+}
+
+export async function detailsConnectCallbackHandler(ctx: ActionCtx, req: Request) {
+  return handleProviderCallback(ctx, "details", req);
 }

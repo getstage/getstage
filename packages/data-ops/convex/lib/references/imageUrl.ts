@@ -1,4 +1,3 @@
-import { imageMimeType, looksLikeImage } from "./refero";
 
 // Downloads an image link for the moodboard with the engine's checks
 // (`apps/stage-engine/src/moodboard/workflow.rs`: http(s) only, no local/private hosts, real image bytes, 10 MB max).
@@ -80,4 +79,23 @@ export async function downloadImage(raw: string) {
   if (!looksLikeImage(bytes)) throw new Error("Paste a direct PNG, JPG, WebP, or GIF image URL.");
   const title = url.pathname.split("/").filter((segment) => segment.trim()).pop() ?? url.hostname;
   return { url: url.toString(), title, bytes, mimeType: imageMimeType(bytes) };
+}
+
+export function looksLikeImage(bytes: Uint8Array) {
+  const startsWith = (...prefix: number[]) => prefix.every((byte, index) => bytes[index] === byte);
+  const ascii = (start: number, text: string) => [...text].every((char, index) => bytes[start + index] === char.charCodeAt(0));
+  return bytes.length >= 12 && (
+    startsWith(0x89, 0x50, 0x4e, 0x47) ||
+    startsWith(0xff, 0xd8, 0xff) ||
+    (ascii(0, "RIFF") && ascii(8, "WEBP")) ||
+    ascii(0, "GIF87a") ||
+    ascii(0, "GIF89a")
+  );
+}
+
+export function imageMimeType(bytes: Uint8Array) {
+  if (bytes[0] === 0xff && bytes[1] === 0xd8) return "image/jpeg";
+  if (bytes[0] === 0x52 && bytes[8] === 0x57) return "image/webp";
+  if (bytes[0] === 0x47) return "image/gif";
+  return "image/png";
 }

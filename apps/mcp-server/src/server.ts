@@ -125,7 +125,7 @@ export function createServer() {
       "start_research",
       {
         ...about("start_research"),
-        description: "Start Research from the saved Research form, like Stage for Mac: Stage collects real UI pattern screens for each screen type (Refero for apps, Details for websites) in the background and returns a runId at once. get_run_status reports progress and returns the groups with screenshots when ready, usually within a minute. Needs 27 credits available; they are charged when save_research succeeds.",
+        description: "Start Research from the saved Research form, like Stage for Mac: Stage collects real UI pattern screens for each screen type from the user's own Mobbin account (apps) or Details account, else Mobbin (websites), in the background and returns a runId at once. With neither connected, Research runs without UI pattern references and the response's note says so. get_run_status reports progress and returns the groups with screenshots when ready, usually within a minute. Needs 27 credits available; they are charged when save_research succeeds.",
         inputSchema: z.object({ projectId }),
       },
       ({ projectId }) => run(() => stageApi(`/projects/${encodeURIComponent(projectId)}/research/start`, {})),
@@ -199,11 +199,11 @@ export function createServer() {
       "search_references",
       {
         ...about("search_references"),
-        description: `Search real product screens. source "refero": app and web screens (moodboard, and Research UI patterns for web and iOS apps). source "details": real website sections (Research UI patterns for website projects). Returns matching screens with id, title, product, thumbnailUrl and sourceUrl, plus a picture of the first ${PREVIEW_LIMIT}, each labelled with its number and title. Read-only, no credits.`,
+        description: `Search real product screens in the user's own Mobbin or Details account (connected in Stage → Integrations; searches use that account's credits). source "mobbin-screens": app and web screens. "mobbin-sections": website sections. "details": website sections from Details. Returns matching screens with id, title, product, thumbnailUrl and sourceUrl, plus a picture of the first ${PREVIEW_LIMIT}, each labelled with its number and title. Read-only; no Stage credits.`,
         inputSchema: z.object({
           query: z.string().min(1).describe("What to look for, e.g. \"fintech dashboard with dense tables\" or \"pricing section with plan toggle\"."),
-          source: z.enum(["refero", "details"]).default("refero").describe("details only for Research on website projects; refero for everything else."),
-          platform: z.enum(["web", "ios", "android"]).default("web").describe("Refero only."),
+          source: z.enum(["mobbin-screens", "mobbin-sections", "details"]).default("mobbin-screens"),
+          platform: z.enum(["web", "ios"]).default("web").describe("mobbin-screens only."),
         }),
       },
       (body) => run(async () => (await stageApi("/references/search", body)) as FoundScreens, screenPictures),
@@ -215,7 +215,7 @@ export function createServer() {
       "add_to_moodboard",
       {
         ...about("add_to_moodboard"),
-        description: "Import images into a named direction of a project's moodboard (step 3; requires saved Strategy). Accepts Refero screens as search_references returned them, direct image links (PNG, JPG, WebP, GIF, max 10 MB) and/or a Figma link (a file, board or frame; uses the Figma account connected in Stage, up to 12 frames). The direction is created if new. Stage imports in the background, stores its own copy of each image and returns a runId at once; get_run_status reports what was added and what failed. Needs 4 credits available; they are charged when the images are added, like an import in Stage for Mac.",
+        description: "Import images into a named direction of a project's moodboard (step 3; requires saved Strategy). Accepts Mobbin or Details screens as search_references returned them, direct image links (PNG, JPG, WebP, GIF, max 10 MB) and/or a Figma link (a file, board or frame; uses the Figma account connected in Stage, up to 12 frames). The direction is created if new. Stage imports in the background, stores its own copy of each image and returns a runId at once; get_run_status reports what was added and what failed. Needs 4 credits available; they are charged when the images are added, like an import in Stage for Mac.",
         inputSchema: z.object({
           projectId,
           direction: z.string().min(1).describe("Direction name, e.g. \"Calm Editorial\". Reuse the same name to add more images to it."),

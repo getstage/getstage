@@ -6,12 +6,12 @@ import { components } from "./_generated/api";
 import { auth } from "./auth";
 import { apiApp } from "./api";
 import { connectCallback, connectWebhook } from "./integrations/stripeConnect";
-import { figmaConnectCallback, notionConnectCallback } from "./integrations/contentPlatforms";
+import { detailsConnectCallback, figmaConnectCallback, mobbinConnectCallback, notionConnectCallback } from "./integrations/contentPlatforms";
 import { creditWebhookEvents } from "./lib/billing/handlers/webhooks";
 import { resend } from "./lib/emails/client";
 import { unsubscribeHandler } from "./lib/emails/unsubscribe";
 import { exchangeConnectCode } from "./developer/mcpConnect";
-import { detailsProxy, referoProxy } from "./integrations/referenceProxy";
+import { detailsProxy, mobbinProxy, referoProxy } from "./integrations/referenceProxy";
 
 // convex-helpers' HonoWithConvex type also carries Hono "Variables"; the API app uses none, so the shapes match at runtime.
 const http = new HttpRouterWithHono(apiApp as unknown as HonoWithConvex<ActionCtx>);
@@ -40,6 +40,16 @@ http.route({
   method: "GET",
   handler: figmaConnectCallback,
 });
+http.route({
+  path: "/integrations/mobbin/callback",
+  method: "GET",
+  handler: mobbinConnectCallback,
+});
+http.route({
+  path: "/integrations/details/callback",
+  method: "GET",
+  handler: detailsConnectCallback,
+});
 
 // Resend delivery feedback (delivered/bounced/opened) → updates scheduledEmails
 // rows via the onEmailEvent callback. Create this webhook in the Resend dashboard
@@ -64,7 +74,7 @@ http.route({
   handler: exchangeConnectCode,
 });
 
-// Refero / Details MCP relays: the keys stay on the backend (Stage for Mac's engine calls these).
+// Design library MCP relays for Stage for Mac's engine: Mobbin and Details with the user's own account, Refero with Stage's key.
 http.route({
   path: "/integrations/refero/mcp",
   method: "POST",
@@ -74,6 +84,11 @@ http.route({
   path: "/integrations/details/mcp",
   method: "POST",
   handler: detailsProxy,
+});
+http.route({
+  path: "/integrations/mobbin/mcp",
+  method: "POST",
+  handler: mobbinProxy,
 });
 
 export default http;

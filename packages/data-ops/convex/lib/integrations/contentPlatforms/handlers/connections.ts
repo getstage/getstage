@@ -6,6 +6,7 @@ import type {
   QueryCtx as PublicQueryCtx,
 } from "../../../../_generated/server";
 import { requireAuthUser } from "../../../../_helpers";
+import { type NativeProvider, nativeProviderValidator } from "../../../../models/integrations/contentPlatforms";
 import { now } from "../../../../helpers/time";
 import {
   decryptTokenPayload,
@@ -14,7 +15,7 @@ import {
 } from "../domain";
 
 export const disconnectConnectionArgs = {
-  provider: v.union(v.literal("notion"), v.literal("figma")),
+  provider: nativeProviderValidator,
 };
 
 export const getConnectionByOAuthStateArgs = {
@@ -23,10 +24,11 @@ export const getConnectionByOAuthStateArgs = {
 
 export const upsertPendingConnectionForOAuthArgs = {
   userId: v.id("users"),
-  provider: v.union(v.literal("notion"), v.literal("figma")),
+  provider: nativeProviderValidator,
   oauthState: v.string(),
   pkceVerifier: v.optional(v.string()),
   oauthReturnUrl: v.optional(v.string()),
+  oauthClientId: v.optional(v.string()),
   requestedAt: v.number(),
 };
 
@@ -54,25 +56,19 @@ export const markConnectionErrorByStateArgs = {
 
 export const getConnectionTokenForProviderArgs = {
   userId: v.id("users"),
-  provider: v.union(v.literal("notion"), v.literal("figma")),
+  provider: nativeProviderValidator,
 };
 
 export async function getNativeConnectionStatusHandler(ctx: PublicQueryCtx) {
   const user = await requireAuthUser(ctx);
-  const [notion, figma] = await Promise.all([
-    getConnection(ctx, user._id, "notion"),
-    getConnection(ctx, user._id, "figma"),
-  ]);
-
-  return {
-    notion: formatConnectionSummary(notion),
-    figma: formatConnectionSummary(figma),
-  };
+  const summary = async (provider: NativeProvider) => formatConnectionSummary(await getConnection(ctx, user._id, provider));
+  const [notion, figma, mobbin, details] = await Promise.all([summary("notion"), summary("figma"), summary("mobbin"), summary("details")]);
+  return { notion, figma, mobbin, details };
 }
 
 export async function disconnectConnectionHandler(
   ctx: PublicMutationCtx,
-  args: { provider: "notion" | "figma" },
+  args: { provider: NativeProvider },
 ) {
   const user = await requireAuthUser(ctx);
   const existing = await getConnection(ctx, user._id, args.provider);
@@ -110,10 +106,11 @@ export async function upsertPendingConnectionForOAuthHandler(
   ctx: MutationCtx,
   args: {
     userId: Doc<"users">["_id"];
-    provider: "notion" | "figma";
+    provider: NativeProvider;
     oauthState: string;
     pkceVerifier?: string;
     oauthReturnUrl?: string;
+    oauthClientId?: string;
     requestedAt: number;
   },
 ) {
@@ -125,6 +122,7 @@ export async function upsertPendingConnectionForOAuthHandler(
       oauthState: args.oauthState,
       pkceVerifier: args.pkceVerifier,
       oauthReturnUrl: args.oauthReturnUrl,
+      oauthClientId: args.oauthClientId,
       lastError: undefined,
       updatedAt: args.requestedAt,
     });
@@ -138,6 +136,7 @@ export async function upsertPendingConnectionForOAuthHandler(
     oauthState: args.oauthState,
     pkceVerifier: args.pkceVerifier,
     oauthReturnUrl: args.oauthReturnUrl,
+    oauthClientId: args.oauthClientId,
     createdAt: args.requestedAt,
     updatedAt: args.requestedAt,
   });
@@ -212,7 +211,7 @@ export async function markConnectionErrorByStateHandler(
 
 export async function getConnectionTokenForProviderHandler(
   ctx: PublicQueryCtx,
-  args: { userId: Doc<"users">["_id"]; provider: "notion" | "figma" },
+  args: { userId: Doc<"users">["_id"]; provider: NativeProvider },
 ) {
   const record = await getConnection(ctx, args.userId, args.provider);
   if (!record) {
@@ -230,5 +229,36 @@ export async function getConnectionTokenForProviderHandler(
     refreshToken: tokens?.refreshToken ?? null,
     accessTokenExpiresAt: record.accessTokenExpiresAt ?? null,
     scopes: record.scopes ?? [],
+    oauthClientId: record.oauthClientId ?? null,
   };
+}
+
+export const storeRenewedTokensArgs = {
+  connectionId: v.id("nativeIntegrationConnections"),
+  encryptedTokenPayload: v.string(),
+  encryptionIv: v.string(),
+  accessTokenExpiresAt: v.optional(v.number()),
+};
+
+/** Keeps the renewed login of a Mobbin or Details connection. */
+export async function storeRenewedTokensHandler(
+  ctx: MutationCtx,
+  args: { connectionId: Doc<"nativeIntegrationConnections">["_id"]; encryptedTokenPayload: string; encryptionIv: string; accessTokenExpiresAt?: number },
+) {
+  const { connectionId, ...tokens } = args;
+  await ctx.db.patch(connectionId, { ...tokens, lastError: undefined, updatedAt: now() });
+}
+
+export const markConnectionExpiredArgs = { connectionId: v.id("nativeIntegrationConnections"), message: v.string() };
+
+/** The library no longer accepts the login (revoked or expired): the user has to connect again. */
+export async function markConnectionExpiredHandler(ctx: MutationCtx, args: { connectionId: Doc<"nativeIntegrationConnections">["_id"]; message: string }) {
+  await ctx.db.patch(args.connectionId, {
+    status: "error",
+    lastError: args.message,
+    encryptedTokenPayload: undefined,
+    encryptionIv: undefined,
+    accessTokenExpiresAt: undefined,
+    updatedAt: now(),
+  });
 }

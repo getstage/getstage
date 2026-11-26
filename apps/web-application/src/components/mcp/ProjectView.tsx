@@ -270,7 +270,19 @@ function ResearchPanel({ projectId, projectName }: { projectId: Id<"projects">; 
             onOpenPhoto={(src) => window.open(src, "_blank", "noopener")}
           />
         </>
-      ) : null}
+      ) : (
+        <>
+          <Divider />
+          {/* Research ran without a connected design library, so it has no UI patterns. */}
+          <p className="text-[13px] text-[#525252]">
+            No UI patterns in this Research.{" "}
+            <Link to="/app/integrations" className="font-medium text-[#171717] underline underline-offset-2">
+              Connect Mobbin for UI patterns
+            </Link>
+            , then run Research again.
+          </p>
+        </>
+      )}
       <Divider />
       <TargetUsers users={data.targetUsers} isEditing={false} />
       <Divider />

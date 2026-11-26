@@ -1,15 +1,14 @@
+import { getAuthUserId } from "@convex-dev/auth/server";
 import { httpAction } from "../_generated/server";
+import { DESIGN_LIBRARY_MCP } from "../helpers/integrations/designLibraryOAuth";
+import type { DesignLibrary } from "../models/integrations/contentPlatforms";
+import { designLibraryToken } from "../lib/references/designLibraries";
 
-// Refero and Details are MCP servers paid with Stage's keys. Stage for Mac's engine (and the backend's own
-// reference search) reach them through these routes, so the keys never leave the backend.
-// The caller authenticates with their own Stage session; only MCP tool traffic is forwarded.
+// Stage for Mac's engine reaches the design libraries through these routes, so no token ever leaves the backend.
+// Mobbin and Details: the signed-in user's own account (connected in Integrations). Refero: Stage's key, only
+// for Mac builds from before Mobbin. The caller authenticates with their Stage session; only MCP tool traffic is forwarded.
 
-const UPSTREAM = {
-  refero: { url: "https://api.refero.design/mcp", tokenEnv: "REFERO_MCP_TOKEN", urlEnv: "REFERO_MCP_URL" },
-  details: { url: "https://api.details.so/mcp", tokenEnv: "DETAILS_MCP_TOKEN", urlEnv: "DETAILS_MCP_URL" },
-} as const;
-
-export type ReferenceSource = keyof typeof UPSTREAM;
+const REFERO = { url: "https://api.refero.design/mcp", tokenEnv: "REFERO_MCP_TOKEN", urlEnv: "REFERO_MCP_URL" } as const;
 
 const FORWARDED_METHODS = new Set(["initialize", "notifications/initialized", "tools/list", "tools/call"]);
 
@@ -17,10 +16,9 @@ function env(name: string) {
   return (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env?.[name]?.trim();
 }
 
-export function referenceUpstream(source: ReferenceSource) {
-  const { url, tokenEnv, urlEnv } = UPSTREAM[source];
-  const token = env(tokenEnv);
-  return token ? { url: env(urlEnv) || url, token } : null;
+function referoUpstream() {
+  const token = env(REFERO.tokenEnv);
+  return token ? { url: env(REFERO.urlEnv) || REFERO.url, token } : null;
 }
 
 function forwardedHeaders(request: Request, names: string[]) {
@@ -37,11 +35,20 @@ function jsonRpcError(status: number, message: string) {
   });
 }
 
-function referenceProxy(source: ReferenceSource) {
+function referenceProxy(source: DesignLibrary | "refero") {
   return httpAction(async (ctx, request) => {
-    if (!(await ctx.auth.getUserIdentity())) return jsonRpcError(401, "Sign in to Stage first.");
-    const upstream = referenceUpstream(source);
-    if (!upstream) return jsonRpcError(503, `${source === "refero" ? "Refero" : "Details"} is not configured for this Stage deployment.`);
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return jsonRpcError(401, "Sign in to Stage first.");
+    let upstream: { url: string; token: string } | null;
+    if (source === "refero") {
+      upstream = referoUpstream();
+      if (!upstream) return jsonRpcError(503, "Refero is not configured for this Stage deployment.");
+    } else {
+      const token = await designLibraryToken(ctx, userId, source);
+      // 428: the engine then runs Research without UI pattern references.
+      if (!token) return jsonRpcError(428, `Connect ${DESIGN_LIBRARY_MCP[source].label} in Stage → Integrations for UI pattern references.`);
+      upstream = { url: DESIGN_LIBRARY_MCP[source].url, token };
+    }
 
     const body = await request.text();
     let method: unknown;
@@ -71,3 +78,4 @@ function referenceProxy(source: ReferenceSource) {
 
 export const referoProxy = referenceProxy("refero");
 export const detailsProxy = referenceProxy("details");
+export const mobbinProxy = referenceProxy("mobbin");

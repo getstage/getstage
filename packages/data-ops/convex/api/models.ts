@@ -297,9 +297,9 @@ export const researchInputsBodySchema = z.object({
 
 export const referenceSearchBodySchema = z.object({
   query: trimmedString("Query"),
-  // Refero: app and web screens (moodboard, app Research). Details: website sections (website Research).
-  source: z.enum(["refero", "details"]).default("refero"),
-  platform: z.enum(["web", "ios", "android"]).default("web"),
+  // The user's own accounts: Mobbin app and web screens or website sections; Details website sections.
+  source: z.enum(["mobbin-screens", "mobbin-sections", "details"]).default("mobbin-screens"),
+  platform: z.enum(["web", "ios"]).default("web"),
 });
 
 export const moodboardImportBodySchema = z.object({

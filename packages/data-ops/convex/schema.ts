@@ -377,6 +377,8 @@ const artifactDestinationRequestedVia = v.union(
 const nativeIntegrationProvider = v.union(
   v.literal("notion"),
   v.literal("figma"),
+  v.literal("mobbin"),
+  v.literal("details"),
 );
 
 const nativeIntegrationStatus = v.union(
@@ -790,6 +792,8 @@ export default defineSchema({
     oauthState: v.optional(v.string()),
     pkceVerifier: v.optional(v.string()),
     oauthReturnUrl: v.optional(v.string()),
+    // Mobbin and Details: the client id Stage registered with their sign-in server, needed to renew the token.
+    oauthClientId: v.optional(v.string()),
     connectedAt: v.optional(v.number()),
     lastSyncedAt: v.optional(v.number()),
     lastError: v.optional(v.string()),
