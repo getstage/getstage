@@ -1,5 +1,9 @@
+import type { ActionCtx } from "../../_generated/server";
+import { libraryFetch } from "../../lib/references/libraryFetch";
 import type { DesignLibrary } from "../../models/integrations/contentPlatforms";
 import { getCallbackUrl } from "./oauth";
+
+type Ctx = Pick<ActionCtx, "runAction">;
 
 // Mobbin and Details are MCP servers that each user signs in to with their own account (standard MCP
 // authorization): Stage finds their sign-in server, registers itself there (no approval needed), and
@@ -14,25 +18,25 @@ type Endpoints = { authorizationEndpoint: string; tokenEndpoint: string; registr
 
 export type DesignLibraryTokens = { accessToken: string; refreshToken?: string; expiresAt?: number };
 
-async function getJson(url: string): Promise<Record<string, unknown> | null> {
-  const response = await fetch(url, { headers: { Accept: "application/json" } });
+async function getJson(ctx: Ctx, url: string): Promise<Record<string, unknown> | null> {
+  const response = await libraryFetch(ctx, url, { headers: { Accept: "application/json" } });
   return response.ok ? ((await response.json()) as Record<string, unknown>) : null;
 }
 
 /** The first metadata document found at the well-known paths (path-specific first, as the MCP spec says). */
-async function firstJson(urls: string[]) {
+async function firstJson(ctx: Ctx, urls: string[]) {
   for (const url of urls) {
-    const json = await getJson(url);
+    const json = await getJson(ctx, url);
     if (json) return json;
   }
   return null;
 }
 
 /** The library's sign-in endpoints, read from its own metadata. */
-export async function designLibraryEndpoints(library: DesignLibrary): Promise<Endpoints> {
+export async function designLibraryEndpoints(ctx: Ctx, library: DesignLibrary): Promise<Endpoints> {
   const { label, url } = DESIGN_LIBRARY_MCP[library];
   const server = new URL(url);
-  const resource = await firstJson([
+  const resource = await firstJson(ctx, [
     `${server.origin}/.well-known/oauth-protected-resource${server.pathname}`,
     `${server.origin}/.well-known/oauth-protected-resource`,
   ]);
@@ -40,7 +44,7 @@ export async function designLibraryEndpoints(library: DesignLibrary): Promise<En
   if (!issuer) throw new Error(`${label} didn't say where to sign in.`);
   const issuerUrl = new URL(issuer);
   const path = issuerUrl.pathname.replace(/\/$/, "");
-  const metadata = await firstJson([
+  const metadata = await firstJson(ctx, [
     `${issuerUrl.origin}/.well-known/oauth-authorization-server${path}`,
     `${issuerUrl.origin}/.well-known/openid-configuration${path}`,
     `${issuer.replace(/\/$/, "")}/.well-known/oauth-authorization-server`,
@@ -55,8 +59,8 @@ export async function designLibraryEndpoints(library: DesignLibrary): Promise<En
 }
 
 /** Registers Stage with the library's sign-in server; returns Stage's client id there. */
-export async function registerDesignLibraryClient(library: DesignLibrary, endpoints: Endpoints) {
-  const response = await fetch(endpoints.registrationEndpoint, {
+export async function registerDesignLibraryClient(ctx: Ctx, library: DesignLibrary, endpoints: Endpoints) {
+  const response = await libraryFetch(ctx, endpoints.registrationEndpoint, {
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "application/json" },
     body: JSON.stringify({
@@ -88,11 +92,11 @@ export function designLibraryAuthorizeUrl(library: DesignLibrary, endpoints: End
   return url.toString();
 }
 
-async function requestTokens(library: DesignLibrary, tokenEndpoint: string, params: Record<string, string>): Promise<DesignLibraryTokens> {
-  const response = await fetch(tokenEndpoint, {
+async function requestTokens(ctx: Ctx, library: DesignLibrary, tokenEndpoint: string, params: Record<string, string>): Promise<DesignLibraryTokens> {
+  const response = await libraryFetch(ctx, tokenEndpoint, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded", Accept: "application/json" },
-    body: new URLSearchParams({ ...params, resource: DESIGN_LIBRARY_MCP[library].url }),
+    body: new URLSearchParams({ ...params, resource: DESIGN_LIBRARY_MCP[library].url }).toString(),
   });
   const body = (await response.json().catch(() => null)) as { access_token?: unknown; refresh_token?: unknown; expires_in?: unknown; error?: unknown } | null;
   if (!response.ok || typeof body?.access_token !== "string") {
@@ -105,8 +109,8 @@ async function requestTokens(library: DesignLibrary, tokenEndpoint: string, para
   };
 }
 
-export function exchangeDesignLibraryCode(library: DesignLibrary, endpoints: Endpoints, args: { clientId: string; code: string; codeVerifier: string }) {
-  return requestTokens(library, endpoints.tokenEndpoint, {
+export function exchangeDesignLibraryCode(ctx: Ctx, library: DesignLibrary, endpoints: Endpoints, args: { clientId: string; code: string; codeVerifier: string }) {
+  return requestTokens(ctx, library, endpoints.tokenEndpoint, {
     grant_type: "authorization_code",
     code: args.code,
     redirect_uri: getCallbackUrl(library),
@@ -115,9 +119,9 @@ export function exchangeDesignLibraryCode(library: DesignLibrary, endpoints: End
   });
 }
 
-export async function refreshDesignLibraryTokens(library: DesignLibrary, args: { clientId: string; refreshToken: string }) {
-  const { tokenEndpoint } = await designLibraryEndpoints(library);
-  const tokens = await requestTokens(library, tokenEndpoint, { grant_type: "refresh_token", refresh_token: args.refreshToken, client_id: args.clientId });
+export async function refreshDesignLibraryTokens(ctx: Ctx, library: DesignLibrary, args: { clientId: string; refreshToken: string }) {
+  const { tokenEndpoint } = await designLibraryEndpoints(ctx, library);
+  const tokens = await requestTokens(ctx, library, tokenEndpoint, { grant_type: "refresh_token", refresh_token: args.refreshToken, client_id: args.clientId });
   // Some servers keep the refresh token unchanged and don't send it again.
   return { ...tokens, refreshToken: tokens.refreshToken ?? args.refreshToken };
 }

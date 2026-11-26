@@ -3,6 +3,7 @@ import { httpAction } from "../_generated/server";
 import { DESIGN_LIBRARY_MCP } from "../helpers/integrations/designLibraryOAuth";
 import type { DesignLibrary } from "../models/integrations/contentPlatforms";
 import { designLibraryToken } from "../lib/references/designLibraries";
+import { libraryFetch } from "../lib/references/libraryFetch";
 
 // Stage for Mac's engine reaches the design libraries through these routes, so no token ever leaves the backend.
 // Mobbin and Details: the signed-in user's own account (connected in Integrations). Refero: Stage's key, only
@@ -59,7 +60,7 @@ function referenceProxy(source: DesignLibrary | "refero") {
     }
     if (typeof method !== "string" || !FORWARDED_METHODS.has(method)) return jsonRpcError(400, "This MCP method isn't forwarded.");
 
-    const response = await fetch(upstream.url, {
+    const init = {
       method: "POST",
       headers: {
         Authorization: `Bearer ${upstream.token}`,
@@ -68,7 +69,9 @@ function referenceProxy(source: DesignLibrary | "refero") {
         ...forwardedHeaders(request, ["Mcp-Session-Id", "MCP-Protocol-Version"]),
       },
       body,
-    });
+    };
+    // The libraries go through the Node.js runtime (Convex's default runtime can't reach Mobbin).
+    const response = source === "refero" ? await fetch(upstream.url, init) : await libraryFetch(ctx, upstream.url, init);
     const headers = new Headers({ "Content-Type": response.headers.get("Content-Type") ?? "application/json" });
     const session = response.headers.get("Mcp-Session-Id");
     if (session) headers.set("Mcp-Session-Id", session);

@@ -55,8 +55,8 @@ export async function startOAuthConnectHandler(
 
   if (isDesignLibrary(args.provider)) {
     requireSiteUrl();
-    const endpoints = await designLibraryEndpoints(args.provider);
-    const clientId = await registerDesignLibraryClient(args.provider, endpoints);
+    const endpoints = await designLibraryEndpoints(ctx, args.provider);
+    const clientId = await registerDesignLibraryClient(ctx, args.provider, endpoints);
     const pkce = await generatePkcePair();
     await ctx.runMutation(internal.integrations.contentPlatforms.upsertPendingConnectionForOAuth, {
       userId: viewer.userId,
@@ -165,7 +165,7 @@ export async function handleProviderCallback(ctx: ActionCtx, provider: NativePro
 
     if (isDesignLibrary(provider)) {
       if (!connection.oauthClientId || !connection.pkceVerifier) throw new Error("Start connecting again from Integrations.");
-      const tokens = await exchangeDesignLibraryCode(provider, await designLibraryEndpoints(provider), {
+      const tokens = await exchangeDesignLibraryCode(ctx, provider, await designLibraryEndpoints(ctx, provider), {
         clientId: connection.oauthClientId,
         code,
         codeVerifier: connection.pkceVerifier,

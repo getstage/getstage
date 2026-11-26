@@ -1,3 +1,6 @@
+import type { ActionCtx } from "../../_generated/server";
+import { libraryFetch } from "./libraryFetch";
+
 // Calling a tool on a design library's MCP server (Mobbin, Details) and reading its answer.
 
 export type Json = unknown;
@@ -16,8 +19,8 @@ export class LibraryUnavailableError extends Error {}
 export type LibraryServer = { label: string; url: string; token: string };
 
 /** Calls one tool with the user's token; the server may answer as JSON or as an event stream. */
-export async function callLibraryTool(server: LibraryServer, name: string, args: JsonObject): Promise<Json> {
-  const response = await fetch(server.url, {
+export async function callLibraryTool(ctx: Pick<ActionCtx, "runAction">, server: LibraryServer, name: string, args: JsonObject): Promise<Json> {
+  const response = await libraryFetch(ctx, server.url, {
     method: "POST",
     headers: { Authorization: `Bearer ${server.token}`, "Content-Type": "application/json", Accept: "application/json, text/event-stream" },
     body: JSON.stringify({ jsonrpc: "2.0", id: Date.now(), method: "tools/call", params: { name, arguments: args } }),

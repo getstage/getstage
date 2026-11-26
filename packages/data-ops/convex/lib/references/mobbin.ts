@@ -1,3 +1,4 @@
+import type { ActionCtx } from "../../_generated/server";
 import { DESIGN_LIBRARY_MCP } from "../../helpers/integrations/designLibraryOAuth";
 import { callLibraryTool, isObject, stringField, unwrapToolResult, type JsonObject } from "./mcpTools";
 
@@ -25,10 +26,10 @@ function toScreen(item: JsonObject): LibraryScreen | null {
   return { id, title: productName ?? "Mobbin screen", productName, sourceUrl: stringField(item, ["mobbin_url", "url"]), thumbnailUrl: imageUrl, imageUrl };
 }
 
-export async function searchMobbin(token: string, search: MobbinSearch): Promise<LibraryScreen[]> {
+export async function searchMobbin(ctx: Pick<ActionCtx, "runAction">, token: string, search: MobbinSearch): Promise<LibraryScreen[]> {
   const { label, url } = DESIGN_LIBRARY_MCP.mobbin;
   const args = search.kind === "screens" ? { query: search.query, platform: search.platform } : { query: search.query };
-  const raw = unwrapToolResult(await callLibraryTool({ label, url, token }, `search_${search.kind}`, args));
+  const raw = unwrapToolResult(await callLibraryTool(ctx, { label, url, token }, `search_${search.kind}`, args));
   const items = isObject(raw) ? raw[search.kind] : null;
   if (!Array.isArray(items)) throw new Error(`Mobbin's search answer couldn't be read: ${JSON.stringify(raw).slice(0, 200)}`);
   return items.filter(isObject).map(toScreen).filter((screen): screen is LibraryScreen => screen !== null).slice(0, MAX_SEARCH_RESULTS);

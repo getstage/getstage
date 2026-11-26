@@ -71,6 +71,7 @@ import type * as helpers_time from "../helpers/time.js";
 import type * as http from "../http.js";
 import type * as integrations_contentPlatforms from "../integrations/contentPlatforms.js";
 import type * as integrations_googleSheets from "../integrations/googleSheets.js";
+import type * as integrations_libraryFetch from "../integrations/libraryFetch.js";
 import type * as integrations_loopsOtp from "../integrations/loopsOtp.js";
 import type * as integrations_notionResearchExport from "../integrations/notionResearchExport.js";
 import type * as integrations_notionStrategyExport from "../integrations/notionStrategyExport.js";
@@ -148,6 +149,7 @@ import type * as lib_references_designLibraries from "../lib/references/designLi
 import type * as lib_references_details from "../lib/references/details.js";
 import type * as lib_references_figma from "../lib/references/figma.js";
 import type * as lib_references_imageUrl from "../lib/references/imageUrl.js";
+import type * as lib_references_libraryFetch from "../lib/references/libraryFetch.js";
 import type * as lib_references_mcpTools from "../lib/references/mcpTools.js";
 import type * as lib_references_mobbin from "../lib/references/mobbin.js";
 import type * as lib_rewards_handlers from "../lib/rewards/handlers.js";
@@ -249,6 +251,7 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   "integrations/contentPlatforms": typeof integrations_contentPlatforms;
   "integrations/googleSheets": typeof integrations_googleSheets;
+  "integrations/libraryFetch": typeof integrations_libraryFetch;
   "integrations/loopsOtp": typeof integrations_loopsOtp;
   "integrations/notionResearchExport": typeof integrations_notionResearchExport;
   "integrations/notionStrategyExport": typeof integrations_notionStrategyExport;
@@ -326,6 +329,7 @@ declare const fullApi: ApiFromModules<{
   "lib/references/details": typeof lib_references_details;
   "lib/references/figma": typeof lib_references_figma;
   "lib/references/imageUrl": typeof lib_references_imageUrl;
+  "lib/references/libraryFetch": typeof lib_references_libraryFetch;
   "lib/references/mcpTools": typeof lib_references_mcpTools;
   "lib/references/mobbin": typeof lib_references_mobbin;
   "lib/rewards/handlers": typeof lib_rewards_handlers;

@@ -1,3 +1,4 @@
+import type { ActionCtx } from "../../_generated/server";
 import { DESIGN_LIBRARY_MCP } from "../../helpers/integrations/designLibraryOAuth";
 import { callLibraryTool, isObject, stringField, unwrapToolResult, type Json, type JsonObject } from "./mcpTools";
 import type { LibraryScreen } from "./mobbin";
@@ -36,8 +37,8 @@ function toInspiration(item: JsonObject): DetailsInspiration | null {
 }
 
 /** Real website sections (hero, pricing, footer…) for a query, like the Mac's Research on website projects. */
-export async function searchDetailsInspirations(token: string, query: string): Promise<DetailsInspiration[]> {
+export async function searchDetailsInspirations(ctx: Pick<ActionCtx, "runAction">, token: string, query: string): Promise<DetailsInspiration[]> {
   const { label, url } = DESIGN_LIBRARY_MCP.details;
-  const raw = await callLibraryTool({ label, url, token }, "search_inspirations", { query });
+  const raw = await callLibraryTool(ctx, { label, url, token }, "search_inspirations", { query });
   return hits(raw).map(toInspiration).filter((hit): hit is DetailsInspiration => hit !== null).slice(0, MAX_SEARCH_RESULTS);
 }

@@ -22,7 +22,7 @@ export async function designLibraryToken(ctx: ActionCtx, userId: Id<"users">, li
   if (!connection.refreshToken || !connection.oauthClientId) return null;
 
   try {
-    const tokens = await refreshDesignLibraryTokens(library, { clientId: connection.oauthClientId, refreshToken: connection.refreshToken });
+    const tokens = await refreshDesignLibraryTokens(ctx, library, { clientId: connection.oauthClientId, refreshToken: connection.refreshToken });
     const encrypted = await encryptSecret(JSON.stringify({ accessToken: tokens.accessToken, refreshToken: tokens.refreshToken }));
     await ctx.runMutation(internal.integrations.contentPlatforms.storeRenewedTokens, {
       connectionId: connection.connectionId,
@@ -46,5 +46,5 @@ export type LibrarySearch = ({ library: "mobbin" } & MobbinSearch) | { library: 
 export async function searchDesignLibrary(ctx: ActionCtx, userId: Id<"users">, search: LibrarySearch): Promise<LibraryScreen[]> {
   const token = await designLibraryToken(ctx, userId, search.library);
   if (!token) throw new LibraryUnavailableError(`Connect ${DESIGN_LIBRARY_MCP[search.library].label} in Stage → Integrations to search it.`);
-  return search.library === "details" ? searchDetailsInspirations(token, search.query) : searchMobbin(token, search);
+  return search.library === "details" ? searchDetailsInspirations(ctx, token, search.query) : searchMobbin(ctx, token, search);
 }
