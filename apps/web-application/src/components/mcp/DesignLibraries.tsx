@@ -32,20 +32,25 @@ const BUTTON = "rounded-[6px] border-[0.5px] border-[#D4D4D4] bg-white px-2.5 py
 
 /** Research without UI patterns: says which library the project type needs and connects it in one click. */
 export function UiPatternsEmptyState({ category }: { category: ProjectCategory }) {
+  const status = useQuery(api.integrations.contentPlatforms.getNativeConnectionStatus);
   const { connect, error } = useConnectLibrary();
   const libraries: DesignLibrary[] = category === "websites" ? ["details"] : ["mobbin", "refero"];
   const needed = category === "websites" ? "Details" : "Mobbin or Refero";
+  const results = category === "websites" ? "website sections" : "screens";
+  const connected = libraries.find((library) => status?.[library]?.status === "active");
+  if (status === undefined) return null;
   return (
     <section className="flex flex-col gap-3 rounded-[8px] border border-dashed border-[#D4D4D4] bg-[#FAFAFA] p-5">
       <div className="flex flex-col gap-1">
         <h2 className="text-[15px] font-medium text-[#171717]">UI Patterns</h2>
         <p className="text-[13px] text-[#525252]">
-          This Research has no UI patterns because no {needed} account is connected. Connect yours, then run Research again to get
-          real {category === "websites" ? "website sections" : "screens"} as UI patterns.
+          {connected
+            ? `${LIBRARY_LABEL[connected]} returned no ${results} for this Research, for example because your account is out of credits or over its limit. Run Research again later.`
+            : `This Research has no UI patterns because no ${needed} account is connected. Connect yours, then run Research again to get real ${results} as UI patterns.`}
         </p>
       </div>
       <div className="flex gap-2">
-        {libraries.map((library) => (
+        {connected ? null : libraries.map((library) => (
           <button key={library} type="button" className={BUTTON} onClick={() => void connect(library)}>
             Connect {LIBRARY_LABEL[library]}
           </button>

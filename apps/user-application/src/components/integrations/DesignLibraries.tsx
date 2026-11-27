@@ -35,17 +35,22 @@ function useConnectLibrary() {
 
 /** Research without UI patterns: what's missing for this project type, and Connect buttons that start right away. */
 export function UiPatternsEmptyState({ projectCategory }: { projectCategory: ProjectCategory }) {
+  const status = useQuery(api.integrations.contentPlatforms.getNativeConnectionStatus, {});
   const { connect, error } = useConnectLibrary();
   const website = projectCategory === "websites";
   const libraries: DesignLibrary[] = website ? ["details"] : ["mobbin", "refero"];
+  const results = website ? "website sections" : "screens";
+  const connected = libraries.find((library) => status?.[library]?.status === "active");
+  if (status === undefined) return null;
   return (
     <section className="flex flex-col gap-3 rounded-[8px] border border-dashed border-[#D4D4D4] bg-[#FAFAFA] p-5">
       <p className="text-[13px] text-[#525252]">
-        No UI patterns yet: Research needs your {website ? "Details" : "Mobbin or Refero"} account for real{" "}
-        {website ? "website sections" : "screens"}. Connect it, then run Research again.
+        {connected
+          ? `${LABEL[connected]} returned no ${results} for this Research, for example because your account is out of credits or over its limit. Run Research again later.`
+          : `No UI patterns yet: Research needs your ${website ? "Details" : "Mobbin or Refero"} account for real ${results}. Connect it, then run Research again.`}
       </p>
       <div className="flex gap-2">
-        {libraries.map((library) => (
+        {connected ? null : libraries.map((library) => (
           <button key={library} type="button" className={BUTTON} onClick={() => void connect(library)}>
             Connect {LABEL[library]}
           </button>

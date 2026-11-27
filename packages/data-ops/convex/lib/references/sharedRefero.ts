@@ -23,22 +23,26 @@ export function sharedReferoKey() {
   return getEnv("REFERO_MCP_TOKEN")?.trim() || null;
 }
 
-/** Whether the user may still use Stage's shared Refero key (before counting this lookup). */
-export async function sharedReferoAvailable(ctx: QueryCtx | MutationCtx, userId: Id<"users">, now = Date.now()) {
+/**
+ * Whether the user may still use Stage's shared Refero key (before counting this lookup). An own Mobbin or Refero
+ * account ends it, except on the Mac relay: Mac builds from before STA-62 only know Refero, so there the shared key
+ * keeps standing in until the user connects Refero itself (newer builds use the Mobbin relay instead).
+ */
+export async function sharedReferoAvailable(ctx: QueryCtx | MutationCtx, userId: Id<"users">, { relay = false, now = Date.now() } = {}) {
   if (now > SHARED_REFERO_ENDS_AT || !sharedReferoKey()) return false;
   const user = await ctx.db.get(userId);
   if (!user || user._creationTime >= EXISTING_USERS_BEFORE) return false;
   const [mobbin, refero] = await Promise.all([getConnection(ctx, userId, "mobbin"), getConnection(ctx, userId, "refero")]);
-  if (mobbin?.status === "active" || refero?.status === "active") return false;
+  if (refero?.status === "active" || (!relay && mobbin?.status === "active")) return false;
   const usage = await ctx.db.query("sharedReferoUsage").withIndex("by_user", (q) => q.eq("userId", userId)).unique();
   return (usage?.lookups ?? 0) < lookupLimit();
 }
 
-export const claimSharedReferoLookupArgs = { userId: v.id("users") };
+export const claimSharedReferoLookupArgs = { userId: v.id("users"), relay: v.optional(v.boolean()) };
 
 /** Counts one lookup on the shared key; false when the user may not use it (any more). */
-export async function claimSharedReferoLookupHandler(ctx: MutationCtx, { userId }: { userId: Id<"users"> }) {
-  if (!(await sharedReferoAvailable(ctx, userId))) return false;
+export async function claimSharedReferoLookupHandler(ctx: MutationCtx, { userId, relay }: { userId: Id<"users">; relay?: boolean }) {
+  if (!(await sharedReferoAvailable(ctx, userId, { relay }))) return false;
   const usage = await ctx.db.query("sharedReferoUsage").withIndex("by_user", (q) => q.eq("userId", userId)).unique();
   if (usage) await ctx.db.patch(usage._id, { lookups: usage.lookups + 1, updatedAt: Date.now() });
   else await ctx.db.insert("sharedReferoUsage", { userId, lookups: 1, updatedAt: Date.now() });
@@ -46,10 +50,10 @@ export async function claimSharedReferoLookupHandler(ctx: MutationCtx, { userId 
 }
 
 /** Stage's shared Refero key for this lookup, or null when the user's grace period doesn't cover it. */
-export async function sharedReferoToken(ctx: Pick<ActionCtx, "runMutation">, userId: Id<"users">) {
+export async function sharedReferoToken(ctx: Pick<ActionCtx, "runMutation">, userId: Id<"users">, { relay = false } = {}) {
   const key = sharedReferoKey();
   if (!key) return null;
-  return (await ctx.runMutation(internal.integrations.sharedRefero.claimLookup, { userId })) ? key : null;
+  return (await ctx.runMutation(internal.integrations.sharedRefero.claimLookup, { userId, relay })) ? key : null;
 }
 
 export const sharedReferoStatusArgs = {};

@@ -30,7 +30,7 @@ function referenceProxy(source: DesignLibrary) {
   return httpAction(async (ctx, request) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) return jsonRpcError(401, "Sign in to Stage first.");
-    const token = (await designLibraryToken(ctx, userId, source)) ?? (source === "refero" ? await sharedReferoToken(ctx, userId) : null);
+    const token = (await designLibraryToken(ctx, userId, source)) ?? (source === "refero" ? await sharedReferoToken(ctx, userId, { relay: true }) : null);
     // 428: the engine then runs Research without UI pattern references.
     if (!token) return jsonRpcError(428, `Connect ${DESIGN_LIBRARY_MCP[source].label} in Stage → Integrations for UI pattern references.`);
     const upstream = { url: DESIGN_LIBRARY_MCP[source].url, token };

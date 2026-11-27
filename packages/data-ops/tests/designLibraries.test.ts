@@ -19,6 +19,7 @@ function setup() {
 
 const searchGroup = makeFunctionReference<"action">("workflows/research:searchGroup");
 const collected = makeFunctionReference<"mutation">("workflows/research:collected");
+const claimLookup = makeFunctionReference<"mutation">("integrations/sharedRefero:claimLookup");
 const appSearch = { id: "ui-patterns-pricing", title: "Pricing", source: "mobbin-screens" as const, platform: "web" as const, query: "pricing page" };
 
 // What Mobbin's search_sections / search_screens answered in the 2026-11-26 test.
@@ -200,5 +201,13 @@ describe("Stage's shared Refero access (until 31 December)", () => {
     const userId = await seedUser(t, {});
     vi.stubGlobal("fetch", vi.fn(async () => json(referoAnswer)));
     await expect(t.action(searchGroup, { userId, search: referoSearch })).resolves.toBeNull();
+  });
+
+  test("the Mac relay keeps it with Mobbin connected, for Mac builds that only know Refero", async () => {
+    vi.stubEnv("REFERO_MCP_TOKEN", "stage-key");
+    const t = setup();
+    const userId = await seedUser(t, {});
+    await expect(t.mutation(claimLookup, { userId, relay: true })).resolves.toBe(true);
+    await expect(t.mutation(claimLookup, { userId })).resolves.toBe(false);
   });
 });

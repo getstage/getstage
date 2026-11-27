@@ -13,9 +13,8 @@ use crate::models::refero::{
 
 use super::client::{ReferoClient, ReferoClientError};
 use super::parse::{
-    extract_reference_values, infer_extension,
-    looks_like_image_bytes, nested_string_field, reference_id, refero_tags, string_array_field,
-    string_field,
+    extract_reference_values, infer_extension, looks_like_image_bytes, nested_string_field,
+    reference_id, refero_tags, string_array_field, string_field,
 };
 
 const MAX_REFERO_SEARCH_RESULTS: u8 = 12;
@@ -55,7 +54,9 @@ impl ScreenLibrary {
 
     fn arguments(self, request: &ReferoSearchRequest) -> Value {
         match self {
-            Self::Mobbin => json!({ "query": request.query, "platform": platform_to_library_value(request.platform) }),
+            Self::Mobbin => {
+                json!({ "query": request.query, "platform": platform_to_library_value(request.platform) })
+            }
             Self::Refero => json!({
                 "query": request.query,
                 "platform": platform_to_refero_value(request.platform),
@@ -77,7 +78,11 @@ pub struct ReferoService {
 
 impl ReferoService {
     pub fn new(client: ReferoClient) -> Self {
-        Self { client, library: ScreenLibrary::default(), media: media_client() }
+        Self {
+            client,
+            library: ScreenLibrary::default(),
+            media: media_client(),
+        }
     }
 
     pub fn is_configured(&self) -> bool {
@@ -85,7 +90,12 @@ impl ReferoService {
     }
 
     /// The same service against the library's relay with the user's Stage session.
-    pub fn with_endpoint(&self, library: ScreenLibrary, mcp_url: String, token: String) -> Result<Self, ReferoClientError> {
+    pub fn with_endpoint(
+        &self,
+        library: ScreenLibrary,
+        mcp_url: String,
+        token: String,
+    ) -> Result<Self, ReferoClientError> {
         Ok(Self {
             client: ReferoClient::from_parts(mcp_url, Some(token))?,
             library,
@@ -99,6 +109,10 @@ impl ReferoService {
             library: self.library,
             media: self.media.clone(),
         }
+    }
+
+    pub fn library(&self) -> ScreenLibrary {
+        self.library
     }
 
     pub fn call_count(&self) -> usize {
@@ -217,7 +231,10 @@ impl ReferoService {
     ) -> Result<Vec<ReferoReference>, ReferoServiceError> {
         let raw = self
             .client
-            .call_tool(self.library.tool(ReferoReferenceKind::Screen), self.library.arguments(request))
+            .call_tool(
+                self.library.tool(ReferoReferenceKind::Screen),
+                self.library.arguments(request),
+            )
             .await?;
 
         let records = extract_reference_values(&raw);
@@ -244,7 +261,10 @@ impl ReferoService {
     ) -> Result<Vec<ReferoReference>, ReferoServiceError> {
         let raw = self
             .client
-            .call_tool(self.library.tool(ReferoReferenceKind::Flow), self.library.arguments(request))
+            .call_tool(
+                self.library.tool(ReferoReferenceKind::Flow),
+                self.library.arguments(request),
+            )
             .await?;
 
         let records = extract_reference_values(&raw);
@@ -306,11 +326,14 @@ impl ReferoService {
         let missing = || ReferoServiceError::MissingImage {
             reference_id: reference.id.clone(),
         };
-        let url = [reference.image_url.as_deref(), reference.thumbnail_url.as_deref()]
-            .into_iter()
-            .flatten()
-            .find(|url| url.starts_with("https://"))
-            .ok_or_else(missing)?;
+        let url = [
+            reference.image_url.as_deref(),
+            reference.thumbnail_url.as_deref(),
+        ]
+        .into_iter()
+        .flatten()
+        .find(|url| url.starts_with("https://"))
+        .ok_or_else(missing)?;
         let response = self
             .media
             .get(url)
@@ -318,7 +341,10 @@ impl ReferoService {
             .await
             .and_then(reqwest::Response::error_for_status)
             .map_err(|_| missing())?;
-        if response.content_length().is_some_and(|length| length > MAX_IMAGE_BYTES) {
+        if response
+            .content_length()
+            .is_some_and(|length| length > MAX_IMAGE_BYTES)
+        {
             return Err(missing());
         }
         let bytes = response.bytes().await.map_err(|_| missing())?;
@@ -340,7 +366,9 @@ impl ReferoService {
                     break;
                 }
                 // Skip flows and already-hydrated screens.
-                if reference.kind != ReferoReferenceKind::Screen || reference.raw_image_bytes.is_some() {
+                if reference.kind != ReferoReferenceKind::Screen
+                    || reference.raw_image_bytes.is_some()
+                {
                     continue;
                 }
 
@@ -514,7 +542,14 @@ fn normalize_reference(value: &Value, kind: ReferoReferenceKind, index: usize) -
     let product_name = nested_string_field(value, &["site", "name"]).or_else(|| {
         string_field(
             value,
-            &["app_name", "site_name", "productName", "appName", "companyName", "product"],
+            &[
+                "app_name",
+                "site_name",
+                "productName",
+                "appName",
+                "companyName",
+                "product",
+            ],
         )
     });
     // Mobbin names the app, not the screen.
@@ -640,8 +675,14 @@ mod tests {
         assert_eq!(screen.id, "f30de5ce-54ed-4daf-befe-d30c53d53ab4");
         assert_eq!(screen.title, "Mercury");
         assert_eq!(screen.product_name.as_deref(), Some("Mercury"));
-        assert_eq!(screen.source_url.as_deref(), Some("https://mobbin.com/screens/f30de5ce"));
-        assert_eq!(screen.image_url.as_deref(), Some("https://mobbin.com/api/mcp/short/BxWWwjak"));
+        assert_eq!(
+            screen.source_url.as_deref(),
+            Some("https://mobbin.com/screens/f30de5ce")
+        );
+        assert_eq!(
+            screen.image_url.as_deref(),
+            Some("https://mobbin.com/api/mcp/short/BxWWwjak")
+        );
     }
 
     #[test]
@@ -652,9 +693,18 @@ mod tests {
             limit: 4,
             tags: Vec::new(),
         };
-        assert_eq!(ScreenLibrary::Mobbin.tool(ReferoReferenceKind::Screen), "search_screens");
-        assert_eq!(ScreenLibrary::Refero.tool(ReferoReferenceKind::Flow), "refero_search_flows");
-        assert_eq!(ScreenLibrary::Mobbin.arguments(&request), json!({ "query": "pricing", "platform": "ios" }));
+        assert_eq!(
+            ScreenLibrary::Mobbin.tool(ReferoReferenceKind::Screen),
+            "search_screens"
+        );
+        assert_eq!(
+            ScreenLibrary::Refero.tool(ReferoReferenceKind::Flow),
+            "refero_search_flows"
+        );
+        assert_eq!(
+            ScreenLibrary::Mobbin.arguments(&request),
+            json!({ "query": "pricing", "platform": "ios" })
+        );
         assert_eq!(
             ScreenLibrary::Refero.arguments(&request),
             json!({ "query": "pricing", "platform": "android", "response_format": "json" })
