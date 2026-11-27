@@ -9,12 +9,16 @@ type Ctx = Pick<ActionCtx, "runAction">;
 // authorization): Stage finds their sign-in server, registers itself there (no approval needed), and
 // signs the user in with PKCE. Tested against both servers on 2026-11-26.
 
-export const DESIGN_LIBRARY_MCP: Record<DesignLibrary, { label: string; url: string }> = {
-  mobbin: { label: "Mobbin", url: "https://api.mobbin.com/mcp" },
-  details: { label: "Details", url: "https://api.details.so/mcp" },
+export const DESIGN_LIBRARY_MCP: Record<DesignLibrary, { label: string; url: string; scope: string }> = {
+  mobbin: { label: "Mobbin", url: "https://api.mobbin.com/mcp", scope: "openid" },
+  refero: { label: "Refero", url: "https://api.refero.design/mcp", scope: "read files:read" },
+  details: { label: "Details", url: "https://api.details.so/mcp", scope: "openid" },
 };
 
 type Endpoints = { authorizationEndpoint: string; tokenEndpoint: string; registrationEndpoint: string };
+
+/** The library rejected the login (e.g. an invalid or revoked refresh token): the user has to connect again. */
+export class SignInRejectedError extends Error {}
 
 export type DesignLibraryTokens = { accessToken: string; refreshToken?: string; expiresAt?: number };
 
@@ -84,7 +88,7 @@ export function designLibraryAuthorizeUrl(library: DesignLibrary, endpoints: End
   url.searchParams.set("response_type", "code");
   url.searchParams.set("client_id", args.clientId);
   url.searchParams.set("redirect_uri", getCallbackUrl(library));
-  url.searchParams.set("scope", "openid");
+  url.searchParams.set("scope", DESIGN_LIBRARY_MCP[library].scope);
   url.searchParams.set("state", args.state);
   url.searchParams.set("code_challenge", args.codeChallenge);
   url.searchParams.set("code_challenge_method", "S256");
@@ -100,7 +104,10 @@ async function requestTokens(ctx: Ctx, library: DesignLibrary, tokenEndpoint: st
   });
   const body = (await response.json().catch(() => null)) as { access_token?: unknown; refresh_token?: unknown; expires_in?: unknown; error?: unknown } | null;
   if (!response.ok || typeof body?.access_token !== "string") {
-    throw new Error(`${DESIGN_LIBRARY_MCP[library].label} sign-in failed (${typeof body?.error === "string" ? body.error : `status ${response.status}`}).`);
+    const reason = typeof body?.error === "string" ? body.error : `status ${response.status}`;
+    // The server said no to this login (as opposed to being unreachable or failing for a moment).
+    if (response.status === 400 || response.status === 401) throw new SignInRejectedError(`${DESIGN_LIBRARY_MCP[library].label} sign-in was rejected (${reason}).`);
+    throw new Error(`${DESIGN_LIBRARY_MCP[library].label} sign-in failed (${reason}).`);
   }
   return {
     accessToken: body.access_token,

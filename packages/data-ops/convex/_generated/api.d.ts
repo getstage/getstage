@@ -77,6 +77,7 @@ import type * as integrations_notionResearchExport from "../integrations/notionR
 import type * as integrations_notionStrategyExport from "../integrations/notionStrategyExport.js";
 import type * as integrations_referenceProxy from "../integrations/referenceProxy.js";
 import type * as integrations_resendAudience from "../integrations/resendAudience.js";
+import type * as integrations_sharedRefero from "../integrations/sharedRefero.js";
 import type * as integrations_stitch from "../integrations/stitch.js";
 import type * as integrations_stripeConnect from "../integrations/stripeConnect.js";
 import type * as lib_aiCredentials_handlers_index from "../lib/aiCredentials/handlers/index.js";
@@ -122,6 +123,7 @@ import type * as lib_projectAi_domain_r2Keys from "../lib/projectAi/domain/r2Key
 import type * as lib_projectAi_domain_records from "../lib/projectAi/domain/records.js";
 import type * as lib_projectAi_domain_researchContent from "../lib/projectAi/domain/researchContent.js";
 import type * as lib_projectAi_domain_runStore from "../lib/projectAi/domain/runStore.js";
+import type * as lib_projectAi_domain_storeImage from "../lib/projectAi/domain/storeImage.js";
 import type * as lib_projectAi_domain_time from "../lib/projectAi/domain/time.js";
 import type * as lib_projectAi_domain_validators from "../lib/projectAi/domain/validators.js";
 import type * as lib_projectAi_flows_canvas from "../lib/projectAi/flows/canvas.js";
@@ -152,6 +154,8 @@ import type * as lib_references_imageUrl from "../lib/references/imageUrl.js";
 import type * as lib_references_libraryFetch from "../lib/references/libraryFetch.js";
 import type * as lib_references_mcpTools from "../lib/references/mcpTools.js";
 import type * as lib_references_mobbin from "../lib/references/mobbin.js";
+import type * as lib_references_refero from "../lib/references/refero.js";
+import type * as lib_references_sharedRefero from "../lib/references/sharedRefero.js";
 import type * as lib_rewards_handlers from "../lib/rewards/handlers.js";
 import type * as lib_settings_githubImport from "../lib/settings/githubImport.js";
 import type * as lib_settings_handlers_index from "../lib/settings/handlers/index.js";
@@ -257,6 +261,7 @@ declare const fullApi: ApiFromModules<{
   "integrations/notionStrategyExport": typeof integrations_notionStrategyExport;
   "integrations/referenceProxy": typeof integrations_referenceProxy;
   "integrations/resendAudience": typeof integrations_resendAudience;
+  "integrations/sharedRefero": typeof integrations_sharedRefero;
   "integrations/stitch": typeof integrations_stitch;
   "integrations/stripeConnect": typeof integrations_stripeConnect;
   "lib/aiCredentials/handlers/index": typeof lib_aiCredentials_handlers_index;
@@ -302,6 +307,7 @@ declare const fullApi: ApiFromModules<{
   "lib/projectAi/domain/records": typeof lib_projectAi_domain_records;
   "lib/projectAi/domain/researchContent": typeof lib_projectAi_domain_researchContent;
   "lib/projectAi/domain/runStore": typeof lib_projectAi_domain_runStore;
+  "lib/projectAi/domain/storeImage": typeof lib_projectAi_domain_storeImage;
   "lib/projectAi/domain/time": typeof lib_projectAi_domain_time;
   "lib/projectAi/domain/validators": typeof lib_projectAi_domain_validators;
   "lib/projectAi/flows/canvas": typeof lib_projectAi_flows_canvas;
@@ -332,6 +338,8 @@ declare const fullApi: ApiFromModules<{
   "lib/references/libraryFetch": typeof lib_references_libraryFetch;
   "lib/references/mcpTools": typeof lib_references_mcpTools;
   "lib/references/mobbin": typeof lib_references_mobbin;
+  "lib/references/refero": typeof lib_references_refero;
+  "lib/references/sharedRefero": typeof lib_references_sharedRefero;
   "lib/rewards/handlers": typeof lib_rewards_handlers;
   "lib/settings/githubImport": typeof lib_settings_githubImport;
   "lib/settings/handlers/index": typeof lib_settings_handlers_index;

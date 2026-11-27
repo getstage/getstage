@@ -3,6 +3,7 @@ import noise from "@/assets/home/noise.png";
 import stageMarkWhite from "@/assets/home/stage-mark-white.svg";
 import { Link } from "@tanstack/react-router";
 import { Card, PageHeader, StatusBadge } from "./AppShell";
+import { ConnectLibrariesCard } from "./DesignLibraries";
 import { MCP_TOOLS, McpConnectCard, useMcpConnections, type McpToolId } from "./McpConnectCard";
 
 // Dashboard (Figma 2491-4955).
@@ -39,6 +40,8 @@ export function Dashboard({ tool }: { tool?: McpToolId }) {
       </section>
 
       <McpConnectCard initialTool={tool} />
+
+      <ConnectLibrariesCard />
 
       <Card title="Your Integrations" aside={<Link to="/app/integrations" className="text-[13px] font-medium leading-[1.5] text-[#525252] underline">Manage Integrations</Link>}>
         {MCP_TOOLS.filter((tool) => tool.icon).map((tool) => (

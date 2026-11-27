@@ -267,7 +267,7 @@ impl ResearchWorkflow {
                 );
                 tracing::info!(run_id = %run_id, project_id, "building Refero context");
                 let refero_started = std::time::Instant::now();
-                let refero = self.resolve_refero(&auth_token).await?;
+                let refero = self.resolve_refero(&auth_token, project_id).await?;
                 let research = ResearchService::new(refero.clone());
                 let mut bundle = research.build_prompt_bundle(input.clone()).await?;
                 let persisted = persist_refero_context_images(
@@ -527,15 +527,15 @@ impl ResearchWorkflow {
         }
     }
 
-    async fn resolve_refero(&self, auth_token: &str) -> Result<ReferoService, WorkflowError> {
-        if self.research.refero().is_configured() {
-            return Ok(self.research.refero().with_fresh_call_counter());
-        }
-
-        self.research
-            .refero()
-            .with_endpoint(self.relay.mobbin_url(), auth_token.to_string())
-            .map_err(|error| WorkflowError::InvalidRequest(error.to_string()))
+    async fn resolve_refero(&self, auth_token: &str, project_id: &str) -> Result<ReferoService, WorkflowError> {
+        resolve_screen_library(
+            self.research.refero(),
+            &self.relay,
+            self.repository.deployment_url(),
+            auth_token,
+            project_id,
+        )
+        .await
     }
 
     async fn resolve_details(&self, auth_token: &str) -> Result<DetailsService, WorkflowError> {
@@ -854,4 +854,21 @@ fn user_message(error: &WorkflowError) -> String {
             "The AI response did not match the Research artifact format.".to_string()
         }
     }
+}
+
+/// The user's screen library (Mobbin or Refero) for this project, through Stage's relay. With neither connected
+/// the Mobbin relay answers "not connected" and Research runs without UI pattern references.
+async fn resolve_screen_library(
+    base: &ReferoService,
+    relay: &crate::convex_store::reference_relay::ReferenceRelay,
+    deployment_url: &str,
+    auth_token: &str,
+    project_id: &str,
+) -> Result<ReferoService, WorkflowError> {
+    let library = crate::convex_store::screen_library::fetch_screen_library(deployment_url, auth_token, project_id)
+        .await
+        .map_err(WorkflowError::Convex)?
+        .unwrap_or_default();
+    base.with_endpoint(library, relay.screens_url(library), auth_token.to_string())
+        .map_err(|error| WorkflowError::InvalidRequest(error.to_string()))
 }

@@ -14,7 +14,11 @@ export function isObject(value: Json): value is JsonObject {
  * The library can't be used for this user right now: not connected, signed out (401), out of credits (402)
  * or over its limit (429). Research then runs without UI pattern references instead of failing.
  */
-export class LibraryUnavailableError extends Error {}
+export class LibraryUnavailableError extends Error {
+  constructor(message: string, readonly status?: number) {
+    super(message);
+  }
+}
 
 export type LibraryServer = { label: string; url: string; token: string };
 
@@ -25,7 +29,7 @@ export async function callLibraryTool(ctx: Pick<ActionCtx, "runAction">, server:
     headers: { Authorization: `Bearer ${server.token}`, "Content-Type": "application/json", Accept: "application/json, text/event-stream" },
     body: JSON.stringify({ jsonrpc: "2.0", id: Date.now(), method: "tools/call", params: { name, arguments: args } }),
   });
-  if ([401, 402, 429].includes(response.status)) throw new LibraryUnavailableError(`${server.label} refused the search (status ${response.status}).`);
+  if ([401, 402, 429].includes(response.status)) throw new LibraryUnavailableError(`${server.label} refused the search (status ${response.status}).`, response.status);
   if (!response.ok) throw new Error(`${server.label} request failed with status ${response.status}.`);
   const text = await response.text();
   const json = text.trimStart().startsWith("{") ? text : text.split("\n").filter((line) => line.startsWith("data:")).map((line) => line.slice(5)).pop();

@@ -70,12 +70,27 @@ describe("Research with the user's own design library", () => {
     const stranger = await seedUser(t);
     await expect(t.action(searchGroup, { userId: stranger, search: appSearch })).resolves.toBeNull();
     const userId = await seedUser(t, {});
-    for (const status of [401, 402, 429]) {
+    for (const status of [402, 429]) {
       vi.stubGlobal("fetch", vi.fn(async () => json({}, status)));
       await expect(t.action(searchGroup, { userId, search: appSearch })).resolves.toBeNull();
     }
     vi.stubGlobal("fetch", vi.fn(async () => json({}, 500)));
     await expect(t.action(searchGroup, { userId, search: appSearch })).rejects.toThrow("Mobbin request failed with status 500.");
+    // A rejected login is skipped too, and Integrations then asks to connect again.
+    vi.stubGlobal("fetch", vi.fn(async () => json({}, 401)));
+    await expect(t.action(searchGroup, { userId, search: appSearch })).resolves.toBeNull();
+    const connection = await t.run((ctx) => ctx.db.query("nativeIntegrationConnections").first());
+    expect(connection).toMatchObject({ status: "error", lastError: "Mobbin signed Stage out. Connect it again in Integrations." });
+  });
+
+  test("a renewal that fails for a moment keeps the login", async () => {
+    const t = setup();
+    const userId = await seedUser(t, { expiresAt: Date.now() - 1000, refreshToken: "refresh-1" });
+    vi.stubGlobal("fetch", vi.fn(async () => json({}, 503)));
+    await expect(t.action(searchGroup, { userId, search: appSearch })).resolves.toBeNull();
+    const connection = await t.run((ctx) => ctx.db.query("nativeIntegrationConnections").first());
+    expect(connection?.status).toBe("active");
+    expect(connection?.encryptedTokenPayload).toBeTruthy();
   });
 
   test("an expired login is renewed before searching", async () => {
@@ -139,5 +154,51 @@ describe("Connecting Mobbin in Integrations", () => {
     expect(connection).toMatchObject({ status: "active", displayName: "Mobbin", oauthClientId: "stage-client" });
     expect(connection?.pkceVerifier).toBeUndefined();
     expect(connection?.encryptedTokenPayload).toBeTruthy();
+  });
+});
+
+describe("Stage's shared Refero access (until 31 December)", () => {
+  // An account from before the switch to own accounts, during the grace period.
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-11-20T12:00:00Z"));
+  });
+  afterEach(() => vi.useRealTimers());
+
+  test("ends on 31 December", async () => {
+    vi.stubEnv("REFERO_MCP_TOKEN", "stage-key");
+    const t = setup();
+    const userId = await seedUser(t);
+    vi.setSystemTime(new Date("2027-01-01T00:00:01Z"));
+    vi.stubGlobal("fetch", vi.fn(async () => json({})));
+    await expect(t.action(searchGroup, { userId, search: { ...appSearch, source: "refero-screens" as const } })).resolves.toBeNull();
+  });
+
+  const referoSearch = { ...appSearch, source: "refero-screens" as const };
+  const referoAnswer = { jsonrpc: "2.0", id: 1, result: { structuredContent: { records: [{ uuid: "r1", title: "Pricing", thumbnail_url: "https://images.refero.design/r1.jpg", site: { name: "Linear" } }] } } };
+
+  test("an existing user without their own account searches Refero with Stage's key, up to the per-user limit", async () => {
+    vi.stubEnv("REFERO_MCP_TOKEN", "stage-key");
+    vi.stubEnv("SHARED_REFERO_LOOKUP_LIMIT", "2");
+    const t = setup();
+    const userId = await seedUser(t);
+    const fetch = vi.fn(async () => json(referoAnswer));
+    vi.stubGlobal("fetch", fetch);
+    await expect(t.action(searchGroup, { userId, search: referoSearch })).resolves.toHaveLength(1);
+    await expect(t.action(searchGroup, { userId, search: referoSearch })).resolves.toHaveLength(1);
+    await expect(t.action(searchGroup, { userId, search: referoSearch })).resolves.toBeNull();
+    expect(fetch).toHaveBeenCalledTimes(2);
+    const [, init] = fetch.mock.calls[0] as unknown as [string, RequestInit];
+    expect((init.headers as Record<string, string>).Authorization).toBe("Bearer stage-key");
+    const usage = await t.run((ctx) => ctx.db.query("sharedReferoUsage").first());
+    expect(usage?.lookups).toBe(2);
+  });
+
+  test("no shared access once the user connects their own Mobbin", async () => {
+    vi.stubEnv("REFERO_MCP_TOKEN", "stage-key");
+    const t = setup();
+    const userId = await seedUser(t, {});
+    vi.stubGlobal("fetch", vi.fn(async () => json(referoAnswer)));
+    await expect(t.action(searchGroup, { userId, search: referoSearch })).resolves.toBeNull();
   });
 });

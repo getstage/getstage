@@ -104,9 +104,9 @@ export function IntegrationsPage() {
   );
 }
 
-type ConnectableTool = "mobbin" | "details" | "figma";
+type ConnectableTool = "mobbin" | "refero" | "details" | "figma";
 
-const TOOL_LABEL: Record<ConnectableTool, string> = { mobbin: "Mobbin", details: "Details", figma: "Figma" };
+const TOOL_LABEL: Record<ConnectableTool, string> = { mobbin: "Mobbin", refero: "Refero", details: "Details", figma: "Figma" };
 
 function DesignTools() {
   const status = useQuery(api.integrations.contentPlatforms.getNativeConnectionStatus);
@@ -147,6 +147,10 @@ function DesignTools() {
         icon="/logos/integrations/mobbin.svg"
         iconClassName="h-[7.367px] w-4"
         {...row("mobbin", "Your Mobbin account: real app and web screens for Research UI patterns and moodboards (Pro plan)")}
+      />
+      <ToolRow
+        icon="/logos/refero.svg"
+        {...row("refero", "Your Refero account: real app and web screens for Research UI patterns and moodboards")}
       />
       <ToolRow {...row("details", "Your Details account: real website sections for website Research (Pro plan)")} />
       <ToolRow icon={figmaIcon} iconClassName="h-[13.5px] w-[9px]" {...row("figma", "Native design export and handoff")} />

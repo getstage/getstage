@@ -202,7 +202,7 @@ impl MoodboardWorkflow {
             limit: MOODBOARD_IMPORT_LIMIT,
             tags: Vec::new(),
         };
-        let refero = self.resolve_refero(auth_token).await?;
+        let refero = self.resolve_refero(auth_token, project_id).await?;
         let mut screens = refero.search_screens(&search).await?;
         let uploader = ConvexAssetUploader::new(self.repository.deployment_url().to_string());
         let mut references = Vec::new();
@@ -248,13 +248,17 @@ impl MoodboardWorkflow {
         Ok(references)
     }
 
-    async fn resolve_refero(&self, auth_token: &str) -> Result<ReferoService, WorkflowError> {
-        if self.refero.is_configured() {
-            return Ok(self.refero.clone());
-        }
-
+    async fn resolve_refero(&self, auth_token: &str, project_id: &str) -> Result<ReferoService, WorkflowError> {
+        let library = crate::convex_store::screen_library::fetch_screen_library(
+            self.repository.deployment_url(),
+            auth_token,
+            project_id,
+        )
+        .await
+        .map_err(|error| WorkflowError::InvalidRequest(error.to_string()))?
+        .unwrap_or_default();
         self.refero
-            .with_endpoint(self.relay.mobbin_url(), auth_token.to_string())
+            .with_endpoint(library, self.relay.screens_url(library), auth_token.to_string())
             .map_err(|error| WorkflowError::InvalidRequest(error.to_string()))
     }
 

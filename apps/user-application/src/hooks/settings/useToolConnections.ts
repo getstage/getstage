@@ -20,7 +20,7 @@ import { openExternalLink } from "@/lib/settings/openExternalLink";
 import type { IntegrationRowModel } from "@/types/settings/integrations";
 import { DESKTOP_OAUTH_PROVIDERS, type DesktopOAuthProvider } from "@shared/models/desktop";
 
-const NATIVE_LABEL: Record<DesktopOAuthProvider, string> = { figma: "Figma", notion: "Notion", mobbin: "Mobbin", details: "Details" };
+const NATIVE_LABEL: Record<DesktopOAuthProvider, string> = { figma: "Figma", notion: "Notion", mobbin: "Mobbin", refero: "Refero", details: "Details" };
 
 function isDesktopOAuthProvider(id: string): id is DesktopOAuthProvider {
   return DESKTOP_OAUTH_PROVIDERS.includes(id as DesktopOAuthProvider);
@@ -63,6 +63,7 @@ export function useToolConnections() {
   const nativeIntegrationRows = useMemo(
     () => [
       nativeIntegrationToRow("mobbin", nativeConnectionStatus?.mobbin ?? null),
+      nativeIntegrationToRow("refero", nativeConnectionStatus?.refero ?? null),
       nativeIntegrationToRow("details", nativeConnectionStatus?.details ?? null),
       nativeIntegrationToRow("figma", nativeConnectionStatus?.figma ?? null),
       nativeIntegrationToRow("notion", nativeConnectionStatus?.notion ?? null),
@@ -71,6 +72,7 @@ export function useToolConnections() {
     ],
     [
       nativeConnectionStatus?.mobbin,
+      nativeConnectionStatus?.refero,
       nativeConnectionStatus?.details,
       nativeConnectionStatus?.figma,
       nativeConnectionStatus?.notion,

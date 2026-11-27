@@ -28,6 +28,13 @@ const INTEGRATION_ICON_SRC = {
   figma: "/logos/integrations/figma.svg",
   notion: "/logos/integrations/notion.svg",
   mobbin: "/logos/integrations/mobbin.svg",
+  refero: "/logos/refero.svg",
+};
+
+const LIBRARY_ICON: Record<"mobbin" | "refero" | "details", string | undefined> = {
+  mobbin: INTEGRATION_ICON_SRC.mobbin,
+  refero: INTEGRATION_ICON_SRC.refero,
+  details: undefined,
 };
 
 function ConnectedBadge() {
@@ -58,7 +65,7 @@ function IntegrationRow({
   actionLabel,
   onAction,
 }: {
-  iconSrc: string;
+  iconSrc?: string;
   label: string;
   connected?: boolean;
   actionLabel?: string;
@@ -67,7 +74,7 @@ function IntegrationRow({
   return (
     <li className="flex items-center justify-between gap-3">
       <div className="flex min-w-0 items-center gap-2">
-        <img src={iconSrc} alt="" className="h-4 w-4 shrink-0 object-contain" />
+        {iconSrc ? <img src={iconSrc} alt="" className="h-4 w-4 shrink-0 object-contain" /> : <span className="h-4 w-4 shrink-0" />}
         <span className="truncate text-[13px] font-medium text-[#171717]">{label}</span>
       </div>
       {connected ? <ConnectedBadge /> : actionLabel ? <ConnectButton onClick={onAction}>{actionLabel}</ConnectButton> : null}
@@ -75,22 +82,22 @@ function IntegrationRow({
   );
 }
 
-type OAuthTool = "figma" | "notion" | "mobbin";
-const OAUTH_TOOL_LABEL: Record<OAuthTool, string> = { figma: "Figma", notion: "Notion", mobbin: "Mobbin" };
+type OAuthTool = "figma" | "notion" | "mobbin" | "refero" | "details";
+const OAUTH_TOOL_LABEL: Record<OAuthTool, string> = { figma: "Figma", notion: "Notion", mobbin: "Mobbin", refero: "Refero", details: "Details" };
 
 function IntegrationConnectingState({ tool }: { tool: OAuthTool }) {
   const label = OAUTH_TOOL_LABEL[tool];
-  const iconSrc = INTEGRATION_ICON_SRC[tool];
+  const iconSrc = tool === "details" ? undefined : INTEGRATION_ICON_SRC[tool];
 
   return (
     <FigmaOnboardingFrame className="py-[22px]">
       <div className="flex w-full flex-col items-center justify-center py-[22px] text-center">
         <div className="flex flex-col items-center gap-3">
-          <img
+          {iconSrc ? <img
             src={iconSrc}
             alt=""
             className={cn(tool === "figma" ? "h-7 w-[19px]" : tool === "mobbin" ? "h-[13px] w-7" : "h-6 w-[23px]", "object-contain")}
-          />
+          /> : null}
           <h3 className="text-[21px] leading-[1.2] font-semibold text-[#0A0A0A]">
             Connecting {label}
           </h3>
@@ -231,7 +238,7 @@ export function FigmaIntegrationConfig({
     (claudeConnection?.status === "connected" && claudeConnection.stageApiVerified);
   const figmaConnected = nativeConnectionStatus?.figma?.status === "active";
   const notionConnected = nativeConnectionStatus?.notion?.status === "active";
-  const mobbinConnected = nativeConnectionStatus?.mobbin?.status === "active";
+  const libraryConnected = (library: "mobbin" | "refero" | "details") => nativeConnectionStatus?.[library]?.status === "active";
 
   useEffect(() => {
     if (!window.stageDesktop?.integrations?.onOAuthCompleted) return;
@@ -291,7 +298,7 @@ export function FigmaIntegrationConfig({
       <FigmaStepHeader
         step="claude"
         title="Configure your integration"
-        subtitle="Connect Claude or Codex via Terminal, then Mobbin, Figma and Notion with your own accounts."
+        subtitle="Connect Claude or Codex via Terminal, then your own inspiration library (Mobbin, Refero or Details), Figma and Notion."
         showProgress={false}
       />
       <div className="mt-6 space-y-3">
@@ -315,13 +322,16 @@ export function FigmaIntegrationConfig({
         </FigmaSection>
         <FigmaSection label="Select tools you want to integrate">
           <ul className="space-y-4">
-            <IntegrationRow
-              iconSrc={INTEGRATION_ICON_SRC.mobbin}
-              label="Mobbin"
-              connected={mobbinConnected}
-              actionLabel="Connect Mobbin"
-              onAction={() => void showConnecting("mobbin")}
-            />
+            {(["mobbin", "refero", "details"] as const).map((library) => (
+              <IntegrationRow
+                key={library}
+                iconSrc={LIBRARY_ICON[library]}
+                label={OAUTH_TOOL_LABEL[library]}
+                connected={libraryConnected(library)}
+                actionLabel={`Connect ${OAUTH_TOOL_LABEL[library]}`}
+                onAction={() => void showConnecting(library)}
+              />
+            ))}
             <IntegrationRow
               iconSrc={INTEGRATION_ICON_SRC.figma}
               label="Figma"

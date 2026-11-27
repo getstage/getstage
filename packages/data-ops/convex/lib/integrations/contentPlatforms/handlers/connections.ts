@@ -62,8 +62,8 @@ export const getConnectionTokenForProviderArgs = {
 export async function getNativeConnectionStatusHandler(ctx: PublicQueryCtx) {
   const user = await requireAuthUser(ctx);
   const summary = async (provider: NativeProvider) => formatConnectionSummary(await getConnection(ctx, user._id, provider));
-  const [notion, figma, mobbin, details] = await Promise.all([summary("notion"), summary("figma"), summary("mobbin"), summary("details")]);
-  return { notion, figma, mobbin, details };
+  const [notion, figma, mobbin, refero, details] = await Promise.all([summary("notion"), summary("figma"), summary("mobbin"), summary("refero"), summary("details")]);
+  return { notion, figma, mobbin, refero, details };
 }
 
 export async function disconnectConnectionHandler(
@@ -230,11 +230,14 @@ export async function getConnectionTokenForProviderHandler(
     accessTokenExpiresAt: record.accessTokenExpiresAt ?? null,
     scopes: record.scopes ?? [],
     oauthClientId: record.oauthClientId ?? null,
+    // Changes whenever the login changes; renewals carry it so they never overwrite a newer login.
+    version: record.updatedAt,
   };
 }
 
 export const storeRenewedTokensArgs = {
   connectionId: v.id("nativeIntegrationConnections"),
+  version: v.number(),
   encryptedTokenPayload: v.string(),
   encryptionIv: v.string(),
   accessTokenExpiresAt: v.optional(v.number()),
@@ -243,16 +246,20 @@ export const storeRenewedTokensArgs = {
 /** Keeps the renewed login of a Mobbin or Details connection. */
 export async function storeRenewedTokensHandler(
   ctx: MutationCtx,
-  args: { connectionId: Doc<"nativeIntegrationConnections">["_id"]; encryptedTokenPayload: string; encryptionIv: string; accessTokenExpiresAt?: number },
+  args: { connectionId: Doc<"nativeIntegrationConnections">["_id"]; version: number; encryptedTokenPayload: string; encryptionIv: string; accessTokenExpiresAt?: number },
 ) {
-  const { connectionId, ...tokens } = args;
+  const { connectionId, version, ...tokens } = args;
+  const current = await ctx.db.get(connectionId);
+  if (current?.updatedAt !== version) return; // reconnected (or disconnected) meanwhile
   await ctx.db.patch(connectionId, { ...tokens, lastError: undefined, updatedAt: now() });
 }
 
-export const markConnectionExpiredArgs = { connectionId: v.id("nativeIntegrationConnections"), message: v.string() };
+export const markConnectionExpiredArgs = { connectionId: v.id("nativeIntegrationConnections"), version: v.number(), message: v.string() };
 
 /** The library no longer accepts the login (revoked or expired): the user has to connect again. */
-export async function markConnectionExpiredHandler(ctx: MutationCtx, args: { connectionId: Doc<"nativeIntegrationConnections">["_id"]; message: string }) {
+export async function markConnectionExpiredHandler(ctx: MutationCtx, args: { connectionId: Doc<"nativeIntegrationConnections">["_id"]; version: number; message: string }) {
+  const current = await ctx.db.get(args.connectionId);
+  if (current?.updatedAt !== args.version) return; // reconnected meanwhile
   await ctx.db.patch(args.connectionId, {
     status: "error",
     lastError: args.message,

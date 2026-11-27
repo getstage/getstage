@@ -6,7 +6,7 @@ import { components } from "./_generated/api";
 import { auth } from "./auth";
 import { apiApp } from "./api";
 import { connectCallback, connectWebhook } from "./integrations/stripeConnect";
-import { detailsConnectCallback, figmaConnectCallback, mobbinConnectCallback, notionConnectCallback } from "./integrations/contentPlatforms";
+import { detailsConnectCallback, figmaConnectCallback, mobbinConnectCallback, notionConnectCallback, referoConnectCallback } from "./integrations/contentPlatforms";
 import { creditWebhookEvents } from "./lib/billing/handlers/webhooks";
 import { resend } from "./lib/emails/client";
 import { unsubscribeHandler } from "./lib/emails/unsubscribe";
@@ -44,6 +44,11 @@ http.route({
   path: "/integrations/mobbin/callback",
   method: "GET",
   handler: mobbinConnectCallback,
+});
+http.route({
+  path: "/integrations/refero/callback",
+  method: "GET",
+  handler: referoConnectCallback,
 });
 http.route({
   path: "/integrations/details/callback",

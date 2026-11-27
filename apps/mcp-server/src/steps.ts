@@ -114,6 +114,8 @@ export const RESEARCH_INPUTS = z.object({
   competitorUrls: z.array(z.string()).max(4).default([]).describe("Up to 4 competitor websites"),
   screenTypes: z.array(z.enum(RESEARCH_REFERENCE_SECTIONS)).min(1).max(6)
     .describe("Screens to analyze. Apps: e.g. Onboarding, Homepage, Pricing, Checkout, Dashboard, Settings. Websites: e.g. Hero, Features, Social Proof, Pricing, Contact."),
+  screenLibrary: z.enum(["mobbin", "refero"]).optional()
+    .describe("App projects, only when get_research_inputs lists screenLibraryChoices: the user's pick between their Mobbin and Refero accounts."),
 });
 
 /** A save tool's input. Research saves into the run start_research opened; the other steps have no run. */

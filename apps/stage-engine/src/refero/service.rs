@@ -34,28 +34,61 @@ fn media_client() -> reqwest::Client {
         .unwrap_or_default()
 }
 
-// The screen library behind Research and the moodboard: the user's own Mobbin account, reached through
-// Stage's relay (`/integrations/mobbin/mcp`). Named Refero from before Mobbin replaced it (STA-62).
+/// The user's screen library for app Research and the moodboard (STA-62/STA-78).
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, serde::Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum ScreenLibrary {
+    #[default]
+    Mobbin,
+    Refero,
+}
+
+impl ScreenLibrary {
+    fn tool(self, kind: ReferoReferenceKind) -> &'static str {
+        match (self, kind) {
+            (Self::Mobbin, ReferoReferenceKind::Flow) => "search_flows",
+            (Self::Mobbin, _) => "search_screens",
+            (Self::Refero, ReferoReferenceKind::Flow) => "refero_search_flows",
+            (Self::Refero, _) => "refero_search_screens",
+        }
+    }
+
+    fn arguments(self, request: &ReferoSearchRequest) -> Value {
+        match self {
+            Self::Mobbin => json!({ "query": request.query, "platform": platform_to_library_value(request.platform) }),
+            Self::Refero => json!({
+                "query": request.query,
+                "platform": platform_to_refero_value(request.platform),
+                "response_format": "json",
+            }),
+        }
+    }
+}
+
+// The screen library behind Research and the moodboard: the user's own Mobbin or Refero account, reached
+// through Stage's relay (`/integrations/<library>/mcp`). The type keeps the Refero name it started with.
 #[derive(Clone, Debug)]
 pub struct ReferoService {
     client: ReferoClient,
+    library: ScreenLibrary,
     /// Downloads the screens' images; never sends the user's token to the image host.
     media: reqwest::Client,
 }
 
 impl ReferoService {
     pub fn new(client: ReferoClient) -> Self {
-        Self { client, media: media_client() }
+        Self { client, library: ScreenLibrary::default(), media: media_client() }
     }
 
     pub fn is_configured(&self) -> bool {
         self.client.is_configured()
     }
 
-    /// The same service against another MCP endpoint (Stage's backend relay) with another bearer token.
-    pub fn with_endpoint(&self, mcp_url: String, token: String) -> Result<Self, ReferoClientError> {
+    /// The same service against the library's relay with the user's Stage session.
+    pub fn with_endpoint(&self, library: ScreenLibrary, mcp_url: String, token: String) -> Result<Self, ReferoClientError> {
         Ok(Self {
             client: ReferoClient::from_parts(mcp_url, Some(token))?,
+            library,
             media: self.media.clone(),
         })
     }
@@ -63,6 +96,7 @@ impl ReferoService {
     pub fn with_fresh_call_counter(&self) -> Self {
         Self {
             client: self.client.with_fresh_call_counter(),
+            library: self.library,
             media: self.media.clone(),
         }
     }
@@ -183,13 +217,7 @@ impl ReferoService {
     ) -> Result<Vec<ReferoReference>, ReferoServiceError> {
         let raw = self
             .client
-            .call_tool(
-                "search_screens",
-                json!({
-                    "query": request.query,
-                    "platform": platform_to_library_value(request.platform),
-                }),
-            )
+            .call_tool(self.library.tool(ReferoReferenceKind::Screen), self.library.arguments(request))
             .await?;
 
         let records = extract_reference_values(&raw);
@@ -216,13 +244,7 @@ impl ReferoService {
     ) -> Result<Vec<ReferoReference>, ReferoServiceError> {
         let raw = self
             .client
-            .call_tool(
-                "search_flows",
-                json!({
-                    "query": request.query,
-                    "platform": platform_to_library_value(request.platform),
-                }),
-            )
+            .call_tool(self.library.tool(ReferoReferenceKind::Flow), self.library.arguments(request))
             .await?;
 
         let records = extract_reference_values(&raw);
@@ -466,6 +488,14 @@ fn category_keywords(category: ReferoUiPatternCategory) -> &'static [&'static st
     }
 }
 
+fn platform_to_refero_value(platform: ReferoPlatform) -> &'static str {
+    match platform {
+        ReferoPlatform::Web | ReferoPlatform::Unknown => "web",
+        ReferoPlatform::Ios => "ios",
+        ReferoPlatform::Android => "android",
+    }
+}
+
 /// Mobbin has web and iOS screens; Android projects get the iOS ones (closest mobile patterns).
 fn platform_to_library_value(platform: ReferoPlatform) -> &'static str {
     match platform {
@@ -612,6 +642,23 @@ mod tests {
         assert_eq!(screen.product_name.as_deref(), Some("Mercury"));
         assert_eq!(screen.source_url.as_deref(), Some("https://mobbin.com/screens/f30de5ce"));
         assert_eq!(screen.image_url.as_deref(), Some("https://mobbin.com/api/mcp/short/BxWWwjak"));
+    }
+
+    #[test]
+    fn speaks_each_librarys_tools() {
+        let request = ReferoSearchRequest {
+            query: "pricing".to_string(),
+            platform: ReferoPlatform::Android,
+            limit: 4,
+            tags: Vec::new(),
+        };
+        assert_eq!(ScreenLibrary::Mobbin.tool(ReferoReferenceKind::Screen), "search_screens");
+        assert_eq!(ScreenLibrary::Refero.tool(ReferoReferenceKind::Flow), "refero_search_flows");
+        assert_eq!(ScreenLibrary::Mobbin.arguments(&request), json!({ "query": "pricing", "platform": "ios" }));
+        assert_eq!(
+            ScreenLibrary::Refero.arguments(&request),
+            json!({ "query": "pricing", "platform": "android", "response_format": "json" })
+        );
     }
 
     #[test]

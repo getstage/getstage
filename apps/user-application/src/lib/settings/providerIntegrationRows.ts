@@ -51,6 +51,7 @@ type GoogleSheetConnectionSummary = {
 
 const NATIVE_INTEGRATIONS: Record<DesktopOAuthProvider, { label: string; description: string; icon: string }> = {
   mobbin: { label: "Mobbin", description: "Your Mobbin account: real app and web screens for Research UI patterns and moodboards", icon: "mobbin" },
+  refero: { label: "Refero", description: "Your Refero account: real app and web screens for Research UI patterns and moodboards", icon: "refero" },
   details: { label: "Details", description: "Your Details account: real website sections for website Research", icon: "document" },
   figma: { label: "Figma", description: "Native design export and handoff", icon: "figma" },
   notion: { label: "Notion", description: "Native document export and review", icon: "document" },

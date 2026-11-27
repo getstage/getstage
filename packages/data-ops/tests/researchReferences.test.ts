@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { buildUiPatterns, groupPatternInsights, referenceSearches, takeUniqueScreens } from "../src/domain/researchReferences";
+import { buildUiPatterns, groupPatternInsights, referenceSearches, screenLibraryChoices, takeUniqueScreens } from "../src/domain/researchReferences";
 
 const input = { industry: "SaaS", brief: "A board for one product squad to plan issues with the weekly cycle", screenTypes: [] as string[] };
-const both = { mobbin: true, details: true };
+const both = { mobbin: true, refero: false, details: true, sharedRefero: false };
+const none = { mobbin: false, refero: false, details: false, sharedRefero: false };
 
 describe("Research references (engine port)", () => {
   it("searches Mobbin screens per app screen type with the engine's queries", () => {
@@ -24,12 +25,23 @@ describe("Research references (engine port)", () => {
       { id: "ui-patterns-hero", title: "Hero", source: "details", platform: "web", query: "marketing website Hero section" },
       { id: "ui-patterns-pricing", title: "Pricing", source: "details", platform: "web", query: "marketing website Pricing section" },
     ]);
-    expect(referenceSearches(website, { mobbin: true, details: false }).map((search) => search.source)).toEqual(["mobbin-sections", "mobbin-sections"]);
+    expect(referenceSearches(website, { ...none, mobbin: true }).map((search) => search.source)).toEqual(["mobbin-sections", "mobbin-sections"]);
   });
 
   it("makes no searches when no library that fits is connected (Research runs without UI patterns)", () => {
-    expect(referenceSearches({ ...input, category: "web-apps" }, { mobbin: false, details: true })).toEqual([]);
-    expect(referenceSearches({ ...input, category: "websites" }, { mobbin: false, details: false })).toEqual([]);
+    expect(referenceSearches({ ...input, category: "web-apps" }, { ...none, details: true })).toEqual([]);
+    expect(referenceSearches({ ...input, category: "websites" }, none)).toEqual([]);
+  });
+
+  it("uses the user's pick when both Mobbin and Refero are connected, else the one they have", () => {
+    const app = { ...input, category: "web-apps" as const };
+    const sources = (libraries: typeof none, choice?: "mobbin" | "refero") => [...new Set(referenceSearches(app, libraries, choice).map((search) => search.source))];
+    expect(sources({ ...none, mobbin: true, refero: true }, "refero")).toEqual(["refero-screens"]);
+    expect(sources({ ...none, mobbin: true, refero: true })).toEqual(["mobbin-screens"]);
+    expect(sources({ ...none, refero: true }, "mobbin")).toEqual(["refero-screens"]);
+    expect(sources({ ...none, sharedRefero: true })).toEqual(["refero-screens"]);
+    expect(screenLibraryChoices({ ...none, mobbin: true, refero: true })).toEqual(["mobbin", "refero"]);
+    expect(screenLibraryChoices({ ...none, mobbin: true })).toBeNull();
   });
 
   it("never repeats a screen across groups and keeps 4 per group", () => {

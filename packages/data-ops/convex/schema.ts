@@ -378,6 +378,7 @@ const nativeIntegrationProvider = v.union(
   v.literal("notion"),
   v.literal("figma"),
   v.literal("mobbin"),
+  v.literal("refero"),
   v.literal("details"),
 );
 
@@ -773,6 +774,13 @@ export default defineSchema({
     .index("by_user", ["userId"])
     .index("by_user_provider_client", ["userId", "provider", "client"]),
 
+  // Lookups each user made on Stage's shared Refero key during the grace period (STA-78).
+  sharedReferoUsage: defineTable({
+    userId: v.id("users"),
+    lookups: v.number(),
+    updatedAt: v.number(),
+  }).index("by_user", ["userId"]),
+
   nativeIntegrationConnections: defineTable({
     userId: v.id("users"),
     provider: nativeIntegrationProvider,
@@ -844,6 +852,8 @@ export default defineSchema({
       ),
     ),
     notes: v.optional(v.string()),
+    // Which of the user's screen libraries Research uses for app projects, when both are connected.
+    screenLibrary: v.optional(v.union(v.literal("mobbin"), v.literal("refero"))),
     strategyFocusAreas: v.optional(v.array(v.string())),
     strategyGenerateNotes: v.optional(v.string()),
     lastProviderId: v.optional(v.union(v.literal("claude"), v.literal("codex"))),

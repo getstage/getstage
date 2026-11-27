@@ -38,7 +38,7 @@ export const startOAuthConnectArgs = {
 };
 
 function isDesignLibrary(provider: NativeProvider): provider is DesignLibrary {
-  return provider === "mobbin" || provider === "details";
+  return provider === "mobbin" || provider === "refero" || provider === "details";
 }
 
 export async function startOAuthConnectHandler(
@@ -260,6 +260,10 @@ export async function figmaConnectCallbackHandler(ctx: ActionCtx, req: Request) 
 
 export async function mobbinConnectCallbackHandler(ctx: ActionCtx, req: Request) {
   return handleProviderCallback(ctx, "mobbin", req);
+}
+
+export async function referoConnectCallbackHandler(ctx: ActionCtx, req: Request) {
+  return handleProviderCallback(ctx, "refero", req);
 }
 
 export async function detailsConnectCallbackHandler(ctx: ActionCtx, req: Request) {

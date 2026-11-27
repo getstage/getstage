@@ -28,6 +28,7 @@ import { GenerateStrategyRunDialog } from "@/components/project/GenerateStrategy
 import { ResearchActions } from "./ResearchActions";
 import { ResearchConfigureStep } from "./ResearchConfigureStep";
 import { ResearchSkillReport } from "./ResearchSkillReport";
+import { UiPatternsEmptyState } from "@/components/integrations/DesignLibraries";
 
 const PREVIEW_LABEL = { refero: "Refero screen", details: "Details inspiration", mobbin: "Mobbin screen" } as const;
 
@@ -357,11 +358,7 @@ export function ResearchTab({
               onGroupsChange={(uiPatternGroups) => updateDraftTabData({ uiPatternGroups })}
               onRegenerate={() => void handleRegenerateSection("uiPatterns")}
             />
-            {tabData.uiPatternGroups.length === 0 && !isEditing ? (
-              <p className="text-[13px] text-[#525252]">
-                No UI patterns in this Research. Connect Mobbin in Settings → Integrations for UI patterns, then regenerate.
-              </p>
-            ) : null}
+            {tabData.uiPatternGroups.length === 0 && !isEditing ? <UiPatternsEmptyState projectCategory={projectCategory} /> : null}
 
             <Divider />
             <TargetUsers

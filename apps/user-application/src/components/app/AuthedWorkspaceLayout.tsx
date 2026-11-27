@@ -6,6 +6,7 @@ import { useDesktopBridge } from "@/hooks/useDesktopBridge";
 import { WorkspaceFrame } from "@/components/app/WorkspaceFrame";
 import { convexQueryKeys } from "@/lib/queryKeys";
 import { shouldRenderWorkspaceChrome } from "@/lib/app/chromeRules";
+import { SharedAccessBanner } from "@/components/integrations/DesignLibraries";
 
 const OnboardingModal = lazy(() =>
   import("@/components/onboarding/OnboardingModal").then((module) => ({
@@ -74,6 +75,7 @@ export function AuthedWorkspaceLayout() {
       {shouldRenderChrome ? (
         <WorkspaceFrame>
           <Outlet />
+          <SharedAccessBanner />
         </WorkspaceFrame>
       ) : (
         <Outlet />

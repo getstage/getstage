@@ -54,6 +54,8 @@ export async function upsertContextRecord(
     briefAttachmentR2ObjectKey?: string | null;
     briefAttachments?: Array<{ name: string; r2ObjectKey: string }> | null;
     notes?: string;
+    /** Left out: keeps the saved choice. */
+    screenLibrary?: "mobbin" | "refero";
   },
 ) {
   const existing = await getContextRecord(ctx, args.projectId);
@@ -94,6 +96,7 @@ export async function upsertContextRecord(
     briefAttachmentR2ObjectKey: nextBriefAttachmentKey,
     ...(hasBriefList ? { briefAttachments: nextBriefFiles ?? [] } : {}),
     notes: normalizeOptional(args.notes),
+    screenLibrary: args.screenLibrary ?? existing?.screenLibrary,
     updatedAt: timestamp,
   };
 

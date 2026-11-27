@@ -1,13 +1,13 @@
 import { v } from "convex/values";
 import type { Id } from "../../_generated/dataModel";
 
-export const DESIGN_LIBRARIES = ["mobbin", "details"] as const;
+export const DESIGN_LIBRARIES = ["mobbin", "refero", "details"] as const;
 /** Libraries of real screens a user connects with their own account (and credits) for Research and the moodboard. */
 export type DesignLibrary = (typeof DESIGN_LIBRARIES)[number];
 export type NativeProvider = "notion" | "figma" | DesignLibrary;
 
-export const nativeProviderValidator = v.union(v.literal("notion"), v.literal("figma"), v.literal("mobbin"), v.literal("details"));
-export const designLibraryValidator = v.union(v.literal("mobbin"), v.literal("details"));
+export const nativeProviderValidator = v.union(v.literal("notion"), v.literal("figma"), v.literal("mobbin"), v.literal("refero"), v.literal("details"));
+export const designLibraryValidator = v.union(v.literal("mobbin"), v.literal("refero"), v.literal("details"));
 
 export type ViewerContext = {
   userId: Id<"users">;
@@ -54,5 +54,6 @@ export const getNativeConnectionStatusReturns = v.object({
   notion: nativeConnectionSummaryValidator,
   figma: nativeConnectionSummaryValidator,
   mobbin: nativeConnectionSummaryValidator,
+  refero: nativeConnectionSummaryValidator,
   details: nativeConnectionSummaryValidator,
 });

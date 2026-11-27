@@ -109,6 +109,10 @@ export const mobbinConnectCallback = httpAction(async (ctx, req) => {
   return oauthHandlers.mobbinConnectCallbackHandler(ctx, req);
 });
 
+export const referoConnectCallback = httpAction(async (ctx, req) => {
+  return oauthHandlers.referoConnectCallbackHandler(ctx, req);
+});
+
 export const detailsConnectCallback = httpAction(async (ctx, req) => {
   return oauthHandlers.detailsConnectCallbackHandler(ctx, req);
 });

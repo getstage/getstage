@@ -293,12 +293,13 @@ export const researchInputsBodySchema = z.object({
   brief: z.string().trim().min(40, "Brief: what the product does, who it's for and what makes it different (at least 40 characters)"),
   competitorUrls: z.array(z.string().trim().min(1)).max(4, "Up to 4 competitors, like the Mac form").default([]),
   screenTypes: z.array(detailsSectionSchema).min(1).max(6),
+  screenLibrary: z.enum(["mobbin", "refero"]).optional(),
 });
 
 export const referenceSearchBodySchema = z.object({
   query: trimmedString("Query"),
-  // The user's own accounts: Mobbin app and web screens or website sections; Details website sections.
-  source: z.enum(["mobbin-screens", "mobbin-sections", "details"]).default("mobbin-screens"),
+  // The user's own accounts: Mobbin or Refero app and web screens, Mobbin or Details website sections.
+  source: z.enum(["mobbin-screens", "refero-screens", "mobbin-sections", "details"]).default("mobbin-screens"),
   platform: z.enum(["web", "ios"]).default("web"),
 });
 

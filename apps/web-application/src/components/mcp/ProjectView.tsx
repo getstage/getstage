@@ -53,6 +53,7 @@ import { buildResultCards, mapWireframesArtifactToTabData, ResultsGrid } from "@
 import { api } from "@/lib/convex";
 import { useDismiss } from "./useDismiss";
 import { BackButton } from "@stage/project-ui/ui/BackButton";
+import { UiPatternsEmptyState } from "./DesignLibraries";
 
 // One project on the web: the Mac app's own step screens (shared from @stage/project-ui), read-only.
 // AI runs, editing and exports stay in Stage for Mac; the user's AI tool fills the steps through the MCP.
@@ -100,7 +101,7 @@ export function ProjectView({ projectId, tab }: { projectId: Id<"projects">; tab
 function TabPanel({ projectId, tab, projectName, category }: { projectId: Id<"projects">; tab: ProjectTab; projectName: string; category: ProjectCategory }) {
   switch (tab) {
     case "research":
-      return <ResearchPanel projectId={projectId} projectName={projectName} />;
+      return <ResearchPanel projectId={projectId} projectName={projectName} category={category} />;
     case "strategy":
       return <StrategyPanel projectId={projectId} projectName={projectName} />;
     case "flows":
@@ -242,7 +243,7 @@ function AssetsPanel({ projectId }: { projectId: Id<"projects"> }) {
   );
 }
 
-function ResearchPanel({ projectId, projectName }: { projectId: Id<"projects">; projectName: string }) {
+function ResearchPanel({ projectId, projectName, category }: { projectId: Id<"projects">; projectName: string; category: ProjectCategory }) {
   const saved = useQuery(api.projectAi.getLatestResearchArtifact, { projectId });
   const [view, setView] = useState<CompetitiveView>("card");
   const [openGroup, setOpenGroup] = useState<string | null>(null);
@@ -273,14 +274,7 @@ function ResearchPanel({ projectId, projectName }: { projectId: Id<"projects">; 
       ) : (
         <>
           <Divider />
-          {/* Research ran without a connected design library, so it has no UI patterns. */}
-          <p className="text-[13px] text-[#525252]">
-            No UI patterns in this Research.{" "}
-            <Link to="/app/integrations" className="font-medium text-[#171717] underline underline-offset-2">
-              Connect Mobbin for UI patterns
-            </Link>
-            , then run Research again.
-          </p>
+          <UiPatternsEmptyState category={category} />
         </>
       )}
       <Divider />
