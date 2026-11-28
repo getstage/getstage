@@ -18,7 +18,6 @@ import {
   isAllowedDesktopOAuthReturnUrl,
 } from "../../../../helpers/integrations/oauth";
 import {
-  DESIGN_LIBRARY_MCP,
   designLibraryAuthorizeUrl,
   designLibraryEndpoints,
   exchangeDesignLibraryCode,
@@ -173,7 +172,6 @@ export async function handleProviderCallback(ctx: ActionCtx, provider: NativePro
       const encrypted = await encryptSecret(JSON.stringify({ accessToken: tokens.accessToken, refreshToken: tokens.refreshToken ?? null }));
       await ctx.runMutation(internal.integrations.contentPlatforms.completeConnectionFromOAuth, {
         connectionId: connection._id,
-        displayName: DESIGN_LIBRARY_MCP[provider].label,
         encryptedTokenPayload: encrypted.encryptedValue,
         encryptionIv: encrypted.encryptionIv,
         accessTokenExpiresAt: tokens.expiresAt,

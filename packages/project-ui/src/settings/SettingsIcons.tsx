@@ -74,6 +74,9 @@ export function SettingsIcon({ name, className = "h-[18px] w-[18px]" }: IconProp
     mobbin: (
       <img src="/logos/integrations/mobbin.svg" alt="" aria-hidden="true" className={className} />
     ),
+    details: (
+      <img src="/logos/integrations/details.png" alt="" aria-hidden="true" className={className} />
+    ),
     figma: (
       <img src="/logos/integrations/figma.svg" alt="" aria-hidden="true" className={className} />
     ),

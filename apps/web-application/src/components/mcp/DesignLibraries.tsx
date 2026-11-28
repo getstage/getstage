@@ -100,10 +100,10 @@ export function SharedAccessBanner() {
   );
 }
 
-const LIBRARY_DETAIL: Record<DesignLibrary, { icon?: string; detail: string }> = {
+const LIBRARY_DETAIL: Record<DesignLibrary, { icon: string; detail: string }> = {
   mobbin: { icon: "/logos/integrations/mobbin.svg", detail: "App and web screens for Research UI patterns and moodboards" },
   refero: { icon: "/logos/refero.svg", detail: "App and web screens for Research UI patterns and moodboards" },
-  details: { detail: "Website sections for website Research" },
+  details: { icon: "/logos/integrations/details.png", detail: "Website sections for website Research" },
 };
 
 /** Onboarding, right after the AI tool: connect the user's own inspiration library (Stage's credits are never used). */
@@ -122,7 +122,7 @@ export function ConnectLibrariesCard() {
           <div key={library} className="flex items-center justify-between gap-3">
             <span className="flex min-w-0 items-center gap-2">
               <span className="flex size-4 shrink-0 items-center justify-center">
-                {LIBRARY_DETAIL[library].icon ? <img src={LIBRARY_DETAIL[library].icon} alt="" className="max-h-4 max-w-4" /> : null}
+                <img src={LIBRARY_DETAIL[library].icon} alt="" className="max-h-4 max-w-4" />
               </span>
               <span className="flex min-w-0 flex-col">
                 <span className="text-[13px] font-medium text-[#171717]">{LIBRARY_LABEL[library]}</span>

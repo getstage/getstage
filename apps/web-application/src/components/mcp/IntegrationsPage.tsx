@@ -152,7 +152,7 @@ function DesignTools() {
         icon="/logos/refero.svg"
         {...row("refero", "Your Refero account: real app and web screens for Research UI patterns and moodboards")}
       />
-      <ToolRow {...row("details", "Your Details account: real website sections for website Research (Pro plan)")} />
+      <ToolRow icon="/logos/integrations/details.png" {...row("details", "Your Details account: real website sections for website Research (Pro plan)")} />
       <ToolRow icon={figmaIcon} iconClassName="h-[13.5px] w-[9px]" {...row("figma", "Native design export and handoff")} />
       <ToolRow
         icon={paperIcon}

@@ -152,7 +152,7 @@ describe("Connecting Mobbin in Integrations", () => {
     expect(response.status).toBe(302);
     expect(response.headers.get("Location")).toBe("https://testing.getstage.co/app/integrations?integration=mobbin&integration_status=connected");
     const connection = await t.run((ctx) => ctx.db.get(connectionId));
-    expect(connection).toMatchObject({ status: "active", displayName: "Mobbin", oauthClientId: "stage-client" });
+    expect(connection).toMatchObject({ status: "active", oauthClientId: "stage-client" });
     expect(connection?.pkceVerifier).toBeUndefined();
     expect(connection?.encryptedTokenPayload).toBeTruthy();
   });
