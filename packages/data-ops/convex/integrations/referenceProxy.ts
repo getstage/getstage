@@ -1,27 +1,16 @@
+import { getAuthUserId } from "@convex-dev/auth/server";
 import { httpAction } from "../_generated/server";
+import { DESIGN_LIBRARY_MCP } from "../helpers/integrations/designLibraryOAuth";
+import type { DesignLibrary } from "../models/integrations/contentPlatforms";
+import { designLibraryToken } from "../lib/references/designLibraries";
+import { libraryFetch } from "../lib/references/libraryFetch";
+import { sharedReferoToken } from "../lib/references/sharedRefero";
 
-// Refero and Details are MCP servers paid with Stage's keys. Stage for Mac's engine (and the backend's own
-// reference search) reach them through these routes, so the keys never leave the backend.
-// The caller authenticates with their own Stage session; only MCP tool traffic is forwarded.
-
-const UPSTREAM = {
-  refero: { url: "https://api.refero.design/mcp", tokenEnv: "REFERO_MCP_TOKEN", urlEnv: "REFERO_MCP_URL" },
-  details: { url: "https://api.details.so/mcp", tokenEnv: "DETAILS_MCP_TOKEN", urlEnv: "DETAILS_MCP_URL" },
-} as const;
-
-export type ReferenceSource = keyof typeof UPSTREAM;
+// Stage for Mac's engine reaches the design libraries through these routes, so no token ever leaves the backend:
+// the signed-in user's own account (connected in Integrations); Refero falls back to Stage's shared key during
+// the grace period (STA-78). The caller authenticates with their Stage session; only MCP tool traffic is forwarded.
 
 const FORWARDED_METHODS = new Set(["initialize", "notifications/initialized", "tools/list", "tools/call"]);
-
-function env(name: string) {
-  return (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env?.[name]?.trim();
-}
-
-export function referenceUpstream(source: ReferenceSource) {
-  const { url, tokenEnv, urlEnv } = UPSTREAM[source];
-  const token = env(tokenEnv);
-  return token ? { url: env(urlEnv) || url, token } : null;
-}
 
 function forwardedHeaders(request: Request, names: string[]) {
   return Object.fromEntries(names.flatMap((name) => {
@@ -37,11 +26,14 @@ function jsonRpcError(status: number, message: string) {
   });
 }
 
-function referenceProxy(source: ReferenceSource) {
+function referenceProxy(source: DesignLibrary) {
   return httpAction(async (ctx, request) => {
-    if (!(await ctx.auth.getUserIdentity())) return jsonRpcError(401, "Sign in to Stage first.");
-    const upstream = referenceUpstream(source);
-    if (!upstream) return jsonRpcError(503, `${source === "refero" ? "Refero" : "Details"} is not configured for this Stage deployment.`);
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return jsonRpcError(401, "Sign in to Stage first.");
+    const token = (await designLibraryToken(ctx, userId, source)) ?? (source === "refero" ? await sharedReferoToken(ctx, userId, { relay: true }) : null);
+    // 428: the engine then runs Research without UI pattern references.
+    if (!token) return jsonRpcError(428, `Connect ${DESIGN_LIBRARY_MCP[source].label} in Stage → Integrations for UI pattern references.`);
+    const upstream = { url: DESIGN_LIBRARY_MCP[source].url, token };
 
     const body = await request.text();
     let method: unknown;
@@ -52,7 +44,7 @@ function referenceProxy(source: ReferenceSource) {
     }
     if (typeof method !== "string" || !FORWARDED_METHODS.has(method)) return jsonRpcError(400, "This MCP method isn't forwarded.");
 
-    const response = await fetch(upstream.url, {
+    const init = {
       method: "POST",
       headers: {
         Authorization: `Bearer ${upstream.token}`,
@@ -61,7 +53,9 @@ function referenceProxy(source: ReferenceSource) {
         ...forwardedHeaders(request, ["Mcp-Session-Id", "MCP-Protocol-Version"]),
       },
       body,
-    });
+    };
+    // The libraries go through the Node.js runtime (Convex's default runtime can't reach Mobbin).
+    const response = await libraryFetch(ctx, upstream.url, init);
     const headers = new Headers({ "Content-Type": response.headers.get("Content-Type") ?? "application/json" });
     const session = response.headers.get("Mcp-Session-Id");
     if (session) headers.set("Mcp-Session-Id", session);
@@ -71,3 +65,4 @@ function referenceProxy(source: ReferenceSource) {
 
 export const referoProxy = referenceProxy("refero");
 export const detailsProxy = referenceProxy("details");
+export const mobbinProxy = referenceProxy("mobbin");

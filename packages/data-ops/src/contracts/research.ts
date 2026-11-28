@@ -277,7 +277,7 @@ export const researchArtifactSchema = z.object({
   companySnapshot: z.array(researchCompanySnapshotRowSchema).min(1).default([]),
   competitiveAnalysis: researchCompetitiveAnalysisSchema,
   uiPatterns: z.array(researchUiPatternGroupSchema).default([]),
-  uiPatternProvider: z.enum(["refero", "details"]).optional(),
+  uiPatternProvider: z.enum(["refero", "details", "mobbin"]).optional(),
   targetUsers: z.array(researchTargetUserSchema).min(1).default([]),
   opportunities: z.array(researchOpportunitySchema).min(1).default([]),
   customSections: z.array(researchCustomSectionSchema).default([]),

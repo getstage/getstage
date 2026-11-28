@@ -68,6 +68,15 @@ export function SettingsIcon({ name, className = "h-[18px] w-[18px]" }: IconProp
     code: (
       <img src="/logos/integrations/codex.svg" alt="" aria-hidden="true" className={className} />
     ),
+    refero: (
+      <img src="/logos/refero.svg" alt="" aria-hidden="true" className={className} />
+    ),
+    mobbin: (
+      <img src="/logos/integrations/mobbin.svg" alt="" aria-hidden="true" className={className} />
+    ),
+    details: (
+      <img src="/logos/integrations/details.png" alt="" aria-hidden="true" className={className} />
+    ),
     figma: (
       <img src="/logos/integrations/figma.svg" alt="" aria-hidden="true" className={className} />
     ),

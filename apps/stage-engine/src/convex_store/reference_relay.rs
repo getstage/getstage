@@ -1,8 +1,9 @@
 use crate::config::ConvexConfig;
+use crate::refero::service::ScreenLibrary;
 
-/// Where the engine reaches Refero and Details: Stage's backend relays (`/integrations/{refero,details}/mcp`),
-/// which add Stage's keys server-side. The engine authenticates with the user's Stage session, so the keys
-/// never reach the desktop app.
+/// Where the engine reaches Mobbin, Refero and Details: Stage's backend relays (`/integrations/<library>/mcp`),
+/// which use the account the user connected in Integrations. The engine authenticates with the user's Stage
+/// session, so no token reaches the desktop app.
 #[derive(Clone, Debug)]
 pub struct ReferenceRelay {
     site_url: String,
@@ -15,8 +16,12 @@ impl ReferenceRelay {
         }
     }
 
-    pub fn refero_url(&self) -> String {
-        format!("{}/integrations/refero/mcp", self.site_url)
+    pub fn screens_url(&self, library: ScreenLibrary) -> String {
+        let path = match library {
+            ScreenLibrary::Mobbin => "mobbin",
+            ScreenLibrary::Refero => "refero",
+        };
+        format!("{}/integrations/{path}/mcp", self.site_url)
     }
 
     pub fn details_url(&self) -> String {

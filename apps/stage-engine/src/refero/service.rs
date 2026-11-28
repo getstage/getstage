@@ -13,9 +13,8 @@ use crate::models::refero::{
 
 use super::client::{ReferoClient, ReferoClientError};
 use super::parse::{
-    decode_image_bytes, extract_reference_values, infer_extension, is_synthetic_reference_id,
-    looks_like_image_bytes, nested_string_field, reference_id, refero_tags, string_array_field,
-    string_field,
+    extract_reference_values, infer_extension, looks_like_image_bytes, nested_string_field,
+    reference_id, refero_tags, string_array_field, string_field,
 };
 
 const MAX_REFERO_SEARCH_RESULTS: u8 = 12;
@@ -24,32 +23,96 @@ const MAX_REFERO_IMAGE_FETCHES: usize = 20;
 // Pull a wider candidate pool per category, then keep only the screens that actually match
 // the category — so off-topic top hits get dropped instead of shown.
 const CATEGORY_CANDIDATE_POOL: u8 = 12;
+const MAX_IMAGE_BYTES: u64 = 10 * 1024 * 1024;
 
+fn media_client() -> reqwest::Client {
+    reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(15))
+        .connect_timeout(std::time::Duration::from_secs(5))
+        .build()
+        .unwrap_or_default()
+}
+
+/// The user's screen library for app Research and the moodboard (STA-62/STA-78).
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, serde::Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum ScreenLibrary {
+    #[default]
+    Mobbin,
+    Refero,
+}
+
+impl ScreenLibrary {
+    fn tool(self, kind: ReferoReferenceKind) -> &'static str {
+        match (self, kind) {
+            (Self::Mobbin, ReferoReferenceKind::Flow) => "search_flows",
+            (Self::Mobbin, _) => "search_screens",
+            (Self::Refero, ReferoReferenceKind::Flow) => "refero_search_flows",
+            (Self::Refero, _) => "refero_search_screens",
+        }
+    }
+
+    fn arguments(self, request: &ReferoSearchRequest) -> Value {
+        match self {
+            Self::Mobbin => {
+                json!({ "query": request.query, "platform": platform_to_library_value(request.platform) })
+            }
+            Self::Refero => json!({
+                "query": request.query,
+                "platform": platform_to_refero_value(request.platform),
+                "response_format": "json",
+            }),
+        }
+    }
+}
+
+// The screen library behind Research and the moodboard: the user's own Mobbin or Refero account, reached
+// through Stage's relay (`/integrations/<library>/mcp`). The type keeps the Refero name it started with.
 #[derive(Clone, Debug)]
 pub struct ReferoService {
     client: ReferoClient,
+    library: ScreenLibrary,
+    /// Downloads the screens' images; never sends the user's token to the image host.
+    media: reqwest::Client,
 }
 
 impl ReferoService {
     pub fn new(client: ReferoClient) -> Self {
-        Self { client }
+        Self {
+            client,
+            library: ScreenLibrary::default(),
+            media: media_client(),
+        }
     }
 
     pub fn is_configured(&self) -> bool {
         self.client.is_configured()
     }
 
-    /// The same service against another MCP endpoint (Stage's backend relay) with another bearer token.
-    pub fn with_endpoint(&self, mcp_url: String, token: String) -> Result<Self, ReferoClientError> {
+    /// The same service against the library's relay with the user's Stage session.
+    pub fn with_endpoint(
+        &self,
+        library: ScreenLibrary,
+        mcp_url: String,
+        token: String,
+    ) -> Result<Self, ReferoClientError> {
         Ok(Self {
             client: ReferoClient::from_parts(mcp_url, Some(token))?,
+            library,
+            media: self.media.clone(),
         })
     }
 
     pub fn with_fresh_call_counter(&self) -> Self {
         Self {
             client: self.client.with_fresh_call_counter(),
+            library: self.library,
+            media: self.media.clone(),
         }
+    }
+
+    pub fn library(&self) -> ScreenLibrary {
+        self.library
     }
 
     pub fn call_count(&self) -> usize {
@@ -169,12 +232,8 @@ impl ReferoService {
         let raw = self
             .client
             .call_tool(
-                "refero_search_screens",
-                json!({
-                    "query": request.query,
-                    "platform": platform_to_refero_value(request.platform),
-                    "response_format": "json",
-                }),
+                self.library.tool(ReferoReferenceKind::Screen),
+                self.library.arguments(request),
             )
             .await?;
 
@@ -203,12 +262,8 @@ impl ReferoService {
         let raw = self
             .client
             .call_tool(
-                "refero_search_flows",
-                json!({
-                    "query": request.query,
-                    "platform": platform_to_refero_value(request.platform),
-                    "response_format": "json",
-                }),
+                self.library.tool(ReferoReferenceKind::Flow),
+                self.library.arguments(request),
             )
             .await?;
 
@@ -263,64 +318,40 @@ impl ReferoService {
             .collect())
     }
 
+    /// The screen's full image, from the image link the search returned.
     pub async fn fetch_screen_image_bytes(
         &self,
-        screen_id: &str,
+        reference: &ReferoReference,
     ) -> Result<Vec<u8>, ReferoServiceError> {
-        let mut last_error = None;
-
-        for image_size in ["full", "thumbnail"] {
-            match self
-                .fetch_screen_image_with_size(screen_id, image_size)
-                .await
-            {
-                Ok(bytes) => return Ok(bytes),
-                Err(error) => {
-                    tracing::debug!(
-                        screen_id = %screen_id,
-                        image_size,
-                        %error,
-                        "Refero get_screen_image attempt failed"
-                    );
-                    last_error = Some(error);
-                }
-            }
+        let missing = || ReferoServiceError::MissingImage {
+            reference_id: reference.id.clone(),
+        };
+        let url = [
+            reference.image_url.as_deref(),
+            reference.thumbnail_url.as_deref(),
+        ]
+        .into_iter()
+        .flatten()
+        .find(|url| url.starts_with("https://"))
+        .ok_or_else(missing)?;
+        let response = self
+            .media
+            .get(url)
+            .send()
+            .await
+            .and_then(reqwest::Response::error_for_status)
+            .map_err(|_| missing())?;
+        if response
+            .content_length()
+            .is_some_and(|length| length > MAX_IMAGE_BYTES)
+        {
+            return Err(missing());
         }
-
-        Err(
-            last_error.unwrap_or_else(|| ReferoServiceError::MissingImage {
-                reference_id: screen_id.to_string(),
-            }),
-        )
-    }
-
-    async fn fetch_screen_image_with_size(
-        &self,
-        screen_id: &str,
-        image_size: &str,
-    ) -> Result<Vec<u8>, ReferoServiceError> {
-        let raw = self
-            .client
-            .call_tool(
-                "refero_get_screen_image",
-                json!({
-                    "screen_id": screen_id,
-                    "image_size": image_size,
-                }),
-            )
-            .await?;
-
-        let bytes = decode_image_bytes(&raw).ok_or_else(|| ReferoServiceError::MissingImage {
-            reference_id: screen_id.to_string(),
-        })?;
-
-        if !looks_like_image_bytes(&bytes) {
-            return Err(ReferoServiceError::MissingImage {
-                reference_id: screen_id.to_string(),
-            });
+        let bytes = response.bytes().await.map_err(|_| missing())?;
+        if bytes.len() as u64 > MAX_IMAGE_BYTES || !looks_like_image_bytes(&bytes) {
+            return Err(missing());
         }
-
-        Ok(bytes)
+        Ok(bytes.to_vec())
     }
 
     pub async fn hydrate_category_screen_images(
@@ -334,16 +365,14 @@ impl ReferoService {
                 if fetched >= MAX_REFERO_IMAGE_FETCHES {
                     break;
                 }
-                // Refero search only yields a low-res thumbnail_url; fetch the full-res screenshot.
-                // Skip flows, already-hydrated screens, and synthetic ids (no real uuid to fetch).
+                // Skip flows and already-hydrated screens.
                 if reference.kind != ReferoReferenceKind::Screen
                     || reference.raw_image_bytes.is_some()
-                    || is_synthetic_reference_id(&reference.id)
                 {
                     continue;
                 }
 
-                match self.fetch_screen_image_bytes(&reference.id).await {
+                match self.fetch_screen_image_bytes(reference).await {
                     Ok(bytes) => {
                         reference.raw_image_bytes = Some(bytes);
                         fetched += 1;
@@ -489,10 +518,17 @@ fn category_keywords(category: ReferoUiPatternCategory) -> &'static [&'static st
 
 fn platform_to_refero_value(platform: ReferoPlatform) -> &'static str {
     match platform {
-        ReferoPlatform::Web => "web",
+        ReferoPlatform::Web | ReferoPlatform::Unknown => "web",
         ReferoPlatform::Ios => "ios",
         ReferoPlatform::Android => "android",
-        ReferoPlatform::Unknown => "web",
+    }
+}
+
+/// Mobbin has web and iOS screens; Android projects get the iOS ones (closest mobile patterns).
+fn platform_to_library_value(platform: ReferoPlatform) -> &'static str {
+    match platform {
+        ReferoPlatform::Web | ReferoPlatform::Unknown => "web",
+        ReferoPlatform::Ios | ReferoPlatform::Android => "ios",
     }
 }
 
@@ -503,11 +539,23 @@ fn normalize_reference(value: &Value, kind: ReferoReferenceKind, index: usize) -
         ReferoReferenceKind::Style => "style",
     };
     let id = reference_id(value, kind_label, index);
+    let product_name = nested_string_field(value, &["site", "name"]).or_else(|| {
+        string_field(
+            value,
+            &[
+                "app_name",
+                "site_name",
+                "productName",
+                "appName",
+                "companyName",
+                "product",
+            ],
+        )
+    });
+    // Mobbin names the app, not the screen.
     let title = string_field(value, &["title", "name", "screenName", "flowName"])
-        .unwrap_or_else(|| "Untitled Refero reference".to_string());
-
-    let product_name = nested_string_field(value, &["site", "name"])
-        .or_else(|| string_field(value, &["productName", "appName", "companyName", "product"]));
+        .or_else(|| product_name.clone())
+        .unwrap_or_else(|| "Untitled reference".to_string());
     let product_url = nested_string_field(value, &["site", "domain"]).or_else(|| {
         string_field(
             value,
@@ -525,6 +573,7 @@ fn normalize_reference(value: &Value, kind: ReferoReferenceKind, index: usize) -
         source_url: string_field(
             value,
             &[
+                "mobbin_url",
                 "refero_url",
                 "referoUrl",
                 "sourceUrl",
@@ -535,6 +584,7 @@ fn normalize_reference(value: &Value, kind: ReferoReferenceKind, index: usize) -
         thumbnail_url: string_field(
             value,
             &[
+                "image_url",
                 "thumbnail_url",
                 "thumbnailUrl",
                 "thumbnail",
@@ -545,6 +595,7 @@ fn normalize_reference(value: &Value, kind: ReferoReferenceKind, index: usize) -
         image_url: string_field(
             value,
             &[
+                "image_url",
                 "preview_url",
                 "previewUrl",
                 "imageUrl",
@@ -590,6 +641,13 @@ pub enum ReferoServiceError {
     MissingImage { reference_id: String },
 }
 
+impl ReferoServiceError {
+    /// The library refused for this account (not connected, signed out, out of credits, over its limit).
+    pub fn is_unavailable(&self) -> bool {
+        matches!(self, Self::Client(ReferoClientError::Unavailable { .. }))
+    }
+}
+
 pub fn infer_refero_file_name(reference_id: &str, mime_type: &str) -> String {
     format!("{reference_id}.{}", infer_extension(mime_type))
 }
@@ -597,6 +655,67 @@ pub fn infer_refero_file_name(reference_id: &str, mime_type: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn reads_mobbin_screens() {
+        // Mobbin's answer as recorded on 2026-11-26.
+        let raw = json!({
+            "structuredContent": {
+                "query": "pricing",
+                "screens": [{
+                    "id": "f30de5ce-54ed-4daf-befe-d30c53d53ab4",
+                    "image_url": "https://mobbin.com/api/mcp/short/BxWWwjak",
+                    "mobbin_url": "https://mobbin.com/screens/f30de5ce",
+                    "app_name": "Mercury"
+                }]
+            }
+        });
+        let records = extract_reference_values(&raw);
+        let screen = normalize_reference(&records[0], ReferoReferenceKind::Screen, 0);
+        assert_eq!(screen.id, "f30de5ce-54ed-4daf-befe-d30c53d53ab4");
+        assert_eq!(screen.title, "Mercury");
+        assert_eq!(screen.product_name.as_deref(), Some("Mercury"));
+        assert_eq!(
+            screen.source_url.as_deref(),
+            Some("https://mobbin.com/screens/f30de5ce")
+        );
+        assert_eq!(
+            screen.image_url.as_deref(),
+            Some("https://mobbin.com/api/mcp/short/BxWWwjak")
+        );
+    }
+
+    #[test]
+    fn speaks_each_librarys_tools() {
+        let request = ReferoSearchRequest {
+            query: "pricing".to_string(),
+            platform: ReferoPlatform::Android,
+            limit: 4,
+            tags: Vec::new(),
+        };
+        assert_eq!(
+            ScreenLibrary::Mobbin.tool(ReferoReferenceKind::Screen),
+            "search_screens"
+        );
+        assert_eq!(
+            ScreenLibrary::Refero.tool(ReferoReferenceKind::Flow),
+            "refero_search_flows"
+        );
+        assert_eq!(
+            ScreenLibrary::Mobbin.arguments(&request),
+            json!({ "query": "pricing", "platform": "ios" })
+        );
+        assert_eq!(
+            ScreenLibrary::Refero.arguments(&request),
+            json!({ "query": "pricing", "platform": "android", "response_format": "json" })
+        );
+    }
+
+    #[test]
+    fn android_projects_search_ios_screens() {
+        assert_eq!(platform_to_library_value(ReferoPlatform::Android), "ios");
+        assert_eq!(platform_to_library_value(ReferoPlatform::Unknown), "web");
+    }
 
     fn screen(title: &str, screen_type: Option<&str>) -> ReferoReference {
         ReferoReference {

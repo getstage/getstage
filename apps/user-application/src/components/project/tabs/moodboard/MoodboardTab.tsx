@@ -908,7 +908,7 @@ function MoodboardGeneratingState({ mode }: { mode: "ai" | "figma" }) {
               />
               <MoodboardLoadingStep
                 icon="/logos/check.svg"
-                label={isFigmaImport ? "Figma import started" : "Refero search started"}
+                label={isFigmaImport ? "Figma import started" : "Mobbin search started"}
               />
               <MoodboardLoadingStep
                 icon="/logos/loader.svg"

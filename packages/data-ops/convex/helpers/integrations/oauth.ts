@@ -133,8 +133,10 @@ export async function fetchFigmaMe(accessToken: string) {
   };
 }
 
+const PROVIDER_LABELS: Record<NativeProvider, string> = { notion: "Notion", figma: "Figma", mobbin: "Mobbin", refero: "Refero", details: "Details" };
+
 export function getProviderLabel(provider: NativeProvider) {
-  return provider === "notion" ? "Notion" : "Figma";
+  return PROVIDER_LABELS[provider];
 }
 
 export function generateOAuthState() {

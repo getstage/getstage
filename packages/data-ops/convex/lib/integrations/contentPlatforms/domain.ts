@@ -20,6 +20,14 @@ export async function getConnection(
     .unique();
 }
 
+/** Which design libraries the user has connected for Research and the moodboard. */
+export async function connectedDesignLibraries(ctx: ConnectionCtx, userId: Id<"users">) {
+  const [mobbin, refero, details] = await Promise.all(
+    (["mobbin", "refero", "details"] as const).map((provider) => getConnection(ctx, userId, provider)),
+  );
+  return { mobbin: mobbin?.status === "active", refero: refero?.status === "active", details: details?.status === "active" };
+}
+
 export async function requireFigmaExportAccess(
   ctx: ConnectionCtx,
   job: Pick<Doc<"figmaExportJobs">, "userId" | "projectId" | "figmaAccountId">,

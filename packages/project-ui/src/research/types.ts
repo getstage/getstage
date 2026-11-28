@@ -50,7 +50,7 @@ export type ResearchTabData = {
     cells: Array<{ competitorId: string; score: string }>;
   }>;
   uiPatternGroups: UiPatternGroupWithPatterns[];
-  uiPatternProvider: "refero" | "details";
+  uiPatternProvider: "refero" | "details" | "mobbin";
   targetUsers: ResearchTargetUser[];
   opportunities: string[];
   customSections: ResearchCustomSection[];

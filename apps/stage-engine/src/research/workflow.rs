@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
-use crate::convex_store::reference_relay::ReferenceRelay;
 use crate::convex_store::asset_upload::ConvexAssetUploader;
+use crate::convex_store::reference_relay::ReferenceRelay;
 use crate::convex_store::research_repository::{
     ResearchRepository, enrich_research_artifact, extract_json_object, extract_research_artifact,
     validate_complete_research_artifact,
@@ -15,7 +15,7 @@ use crate::observability::telemetry::TelemetryStep;
 use crate::providers::adapter::{ProviderRunContext, run_provider_collect};
 use crate::providers::process::{ProviderProcessError, ProviderProcessOutcome};
 use crate::providers::service::assert_provider_ready_for_run;
-use crate::refero::service::ReferoService;
+use crate::refero::service::{ReferoService, ScreenLibrary};
 use crate::research::brief_files::load_brief_files;
 use crate::research::competitive::filter_competitive_analysis;
 use crate::research::prompt::build_research_prompt;
@@ -199,12 +199,19 @@ impl ResearchWorkflow {
                 .await?;
 
             let uploader = ConvexAssetUploader::new(self.repository.deployment_url().to_string());
-            let ui_pattern_provider = if input.project_category == ProjectCategory::Websites {
-                ResearchUiPatternProvider::Details
+            // Apps search the user's Mobbin or Refero (their pick); the saved provider names the one used.
+            let screen_library = if input.project_category == ProjectCategory::Websites {
+                None
             } else {
-                ResearchUiPatternProvider::Refero
+                Some(self.resolve_refero(&auth_token, project_id).await?)
             };
-            let (bundle, image_keys, pattern_screenshots) = if input.project_category == ProjectCategory::Websites {
+            let ui_pattern_provider = match screen_library.as_ref().map(ReferoService::library) {
+                None => ResearchUiPatternProvider::Details,
+                Some(ScreenLibrary::Mobbin) => ResearchUiPatternProvider::Mobbin,
+                Some(ScreenLibrary::Refero) => ResearchUiPatternProvider::Refero,
+            };
+            let (bundle, image_keys, pattern_screenshots) = match screen_library {
+                None => {
                 self.tool_started(
                     api_version,
                     &run_id,
@@ -216,7 +223,20 @@ impl ResearchWorkflow {
                 tracing::info!(run_id = %run_id, project_id, "building Details context");
                 let details_started = std::time::Instant::now();
                 let details = self.resolve_details(&auth_token).await?;
-                let mut context = details.research_context(&input).await?;
+                // Without Details credits Research still runs, only without the website pattern references.
+                let mut context = match details.research_context(&input).await {
+                    Ok(context) => context,
+                    Err(error) if error.is_unavailable() => {
+                        tracing::warn!(run_id = %run_id, project_id, %error, "Details can't be used for this account; Research runs without UI pattern references");
+                        crate::models::refero::ReferoContext {
+                            query: String::new(),
+                            references: Vec::new(),
+                            category_searches: Vec::new(),
+                            fetched_at: crate::helpers::time::now_millis(),
+                        }
+                    }
+                    Err(error) => return Err(error.into()),
+                };
                 let persisted = persist_prepared_context_images(
                     &uploader,
                     &auth_token,
@@ -243,18 +263,21 @@ impl ResearchWorkflow {
                     image_keys,
                     persisted.pattern_screenshots,
                 )
-            } else {
+                }
+                Some(refero) => {
                 self.tool_started(
                     api_version,
                     &run_id,
                     provider_id,
                     &sink,
                     "refero-context",
-                    "Search Refero examples",
+                    match refero.library() {
+                        ScreenLibrary::Mobbin => "Search Mobbin screens",
+                        ScreenLibrary::Refero => "Search Refero screens",
+                    },
                 );
                 tracing::info!(run_id = %run_id, project_id, "building Refero context");
                 let refero_started = std::time::Instant::now();
-                let refero = self.resolve_refero(&auth_token).await?;
                 let research = ResearchService::new(refero.clone());
                 let mut bundle = research.build_prompt_bundle(input.clone()).await?;
                 let persisted = persist_refero_context_images(
@@ -276,6 +299,7 @@ impl ResearchWorkflow {
                 );
                 self.tool_completed(api_version, &run_id, provider_id, &sink, "refero-context");
                 (bundle, image_keys, persisted.pattern_screenshots)
+                }
             };
             uploaded_research_asset_keys = image_keys.values().cloned().collect();
 
@@ -514,15 +538,19 @@ impl ResearchWorkflow {
         }
     }
 
-    async fn resolve_refero(&self, auth_token: &str) -> Result<ReferoService, WorkflowError> {
-        if self.research.refero().is_configured() {
-            return Ok(self.research.refero().with_fresh_call_counter());
-        }
-
-        self.research
-            .refero()
-            .with_endpoint(self.relay.refero_url(), auth_token.to_string())
-            .map_err(|error| WorkflowError::InvalidRequest(error.to_string()))
+    async fn resolve_refero(
+        &self,
+        auth_token: &str,
+        project_id: &str,
+    ) -> Result<ReferoService, WorkflowError> {
+        resolve_screen_library(
+            self.research.refero(),
+            &self.relay,
+            self.repository.deployment_url(),
+            auth_token,
+            project_id,
+        )
+        .await
     }
 
     async fn resolve_details(&self, auth_token: &str) -> Result<DetailsService, WorkflowError> {
@@ -841,4 +869,25 @@ fn user_message(error: &WorkflowError) -> String {
             "The AI response did not match the Research artifact format.".to_string()
         }
     }
+}
+
+/// The user's screen library (Mobbin or Refero) for this project, through Stage's relay. With neither connected
+/// the Mobbin relay answers "not connected" and Research runs without UI pattern references.
+async fn resolve_screen_library(
+    base: &ReferoService,
+    relay: &crate::convex_store::reference_relay::ReferenceRelay,
+    deployment_url: &str,
+    auth_token: &str,
+    project_id: &str,
+) -> Result<ReferoService, WorkflowError> {
+    let library = crate::convex_store::screen_library::fetch_screen_library(
+        deployment_url,
+        auth_token,
+        project_id,
+    )
+    .await
+    .map_err(WorkflowError::Convex)?
+    .unwrap_or_default();
+    base.with_endpoint(library, relay.screens_url(library), auth_token.to_string())
+        .map_err(|error| WorkflowError::InvalidRequest(error.to_string()))
 }

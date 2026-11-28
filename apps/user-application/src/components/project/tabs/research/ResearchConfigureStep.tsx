@@ -32,6 +32,7 @@ import { validateUploadFile } from "@stage/project-ui/r2Uploads";
 import { AiRunSettings } from "@/components/project/AiRunSettings";
 import { PlusIcon } from "@stage/project-ui/research";
 import { ResearchSkillsField } from "./ResearchSkillsField";
+import { ScreenLibraryPicker } from "@/components/integrations/DesignLibraries";
 
 const suggestedIndustries = "e.g. Fintech, E-commerce, SaaS, Health";
 
@@ -519,6 +520,10 @@ export function ResearchConfigureStep({
                   onChange={(detailsSections) => updateField("detailsSections", detailsSections)}
                 />
               </FormField>
+
+              {projectCategory !== "websites" && projectId ? (
+                <ScreenLibraryPicker projectId={projectId} label="Screens from" />
+              ) : null}
 
               <FormField
                 label="Upload Skills"

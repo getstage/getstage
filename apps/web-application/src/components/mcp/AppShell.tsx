@@ -12,6 +12,7 @@ import { useSidebarSearch } from "@stage/project-ui/sidebar/useSidebarSearch";
 import { SidebarSpaceSelect } from "@stage/project-ui/workspace/SidebarSpaceSelect";
 import { useSignOut } from "@/lib/auth";
 import { cn } from "@/lib/utils";
+import { SharedAccessBanner } from "./DesignLibraries";
 
 // Signed-in web app frame: Stage for Mac's sidebar (shared parts) and white content panel.
 
@@ -114,7 +115,10 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       </nav>
       <main className="flex h-full min-w-0 flex-1 flex-col self-stretch overflow-auto rounded-[8px] border border-[#f5f5f5] bg-white px-4 py-11">
-        <div className={cn("mx-auto flex w-full flex-col gap-8", wide ? "max-w-[1120px]" : "max-w-[684px]")}>{children}</div>
+        <div className={cn("mx-auto flex w-full flex-col gap-8", wide ? "max-w-[1120px]" : "max-w-[684px]")}>
+          <SharedAccessBanner />
+          {children}
+        </div>
       </main>
     </div>
   );

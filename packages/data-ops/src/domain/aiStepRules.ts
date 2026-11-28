@@ -1,4 +1,3 @@
-import type { ProjectCategory } from "../contracts/desktop-api/project";
 import type { FlowsArtifact } from "../contracts/flows";
 import type { GeneratedStyleGuide } from "../contracts/moodboard";
 import type { ResearchArtifact } from "../contracts/research";
@@ -49,11 +48,6 @@ function duplicateIds(out: Problems, path: string, ids: string[]) {
 
 // The competitive matrix rows, as the Mac engine writes them.
 const MATRIX_LABELS = ["Navigation", "Onboarding", "Visual Style", "Content Hierarchy", "Mobile Experience", "Dashboard Layout", "Data Visualization"];
-
-/** "details" for website projects, "refero" for apps. */
-export function uiPatternProvider(category: ProjectCategory) {
-  return category === "websites" ? "details" : "refero";
-}
 
 function researchProblems(research: ResearchArtifact): Problems {
   const out: Problems = [];

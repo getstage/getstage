@@ -17,12 +17,9 @@ import {
 } from "../../../../src/domain/moodboard";
 import { CREDIT_COSTS, recordUsage, requireCredits } from "../../credits/service";
 import { resolveProjectCategory } from "../../projects/domain/projectCategory";
-import { r2 } from "../../r2/domain";
-import { buildPublicAssetUrl } from "../../../helpers/r2/keys";
 import { downloadImage } from "../../references/imageUrl";
-import { searchDetailsInspirations } from "../../references/details";
+import { searchDesignLibrary } from "../../references/designLibraries";
 import { importFigmaImages } from "../../references/figma";
-import { fetchReferoScreenImage, imageMimeType, searchReferoScreens, type ReferoPlatform } from "../../references/refero";
 import { connectedFigmaAccessToken } from "./handlers";
 import { assertNoProblems, styleGuideProblems } from "../../../../src/domain/aiStepRules";
 import { findLatestArtifact } from "../domain/latestArtifact";
@@ -32,18 +29,15 @@ import { now } from "../domain/time";
 import { vWorkflowId, type WorkflowCtx } from "@convex-dev/workflow";
 import { vResultValidator, type RunResult } from "@convex-dev/workpool";
 import { saveMoodboardResult } from "./handlers";
+import { sanitizeId, storeProjectImage } from "../domain/storeImage";
 
 // Moodboard and Style guide for AI tools (MCP), done on the backend the way Stage for Mac's engine does it:
-// Refero search with Stage's key, each chosen image stored as Stage's own copy in R2, the same moodboard save,
+// screens found in the user's own Mobbin or Details account, each chosen image stored as Stage's own copy in R2, the same moodboard save,
 // and the same credits as a Mac import.
 
 type StagedReference = Omit<MoodboardReference, "order" | "directionId" | "isInMoodboard">;
 
-const EXTENSION: Record<string, string> = { "image/jpeg": "jpg", "image/webp": "webp", "image/gif": "gif", "image/png": "png" };
 
-function sanitizeId(value: string) {
-  return value.replace(/[^a-zA-Z0-9]+/g, "-").replace(/^-+|-+$/g, "");
-}
 
 function httpsUrl(value: string | undefined) {
   return value && /^https?:\/\//.test(value) ? value : undefined;
@@ -56,32 +50,26 @@ async function loadMoodboard(ctx: QueryCtx | MutationCtx, projectId: Id<"project
     : emptyMoodboardArtifact(String(projectId), title, Date.now());
 }
 
-/** Stores image bytes as a tracked R2 upload for the project (same purposes and keys as the Mac engine). */
-async function storeImage(ctx: ActionCtx, args: { userId: Id<"users">; projectId: Id<"projects">; purpose: "moodboard-refero" | "moodboard-url" | "moodboard-figma"; name: string; bytes: Uint8Array<ArrayBuffer>; mimeType: string }) {
-  const { key, uploadUrl } = await ctx.runMutation(internal.r2.generateUploadUrlForApi, {
-    userId: args.userId,
-    purpose: args.purpose,
-    fileName: `${sanitizeId(args.name) || "image"}.${EXTENSION[args.mimeType] ?? "png"}`,
-    fileSize: args.bytes.length,
-    mimeType: args.mimeType,
-    scopeId: String(args.projectId),
-  });
-  const response = await fetch(uploadUrl, { method: "PUT", headers: { "Content-Type": args.mimeType }, body: args.bytes });
-  if (!response.ok) throw new Error("Could not store the image.");
-  await r2.syncMetadata(ctx, key);
-  // The moodboard shows Stage's own copy, so it never breaks when the source link expires (Figma renders do).
-  return { key, url: buildPublicAssetUrl(key) };
-}
-
 export const searchReferencesForApiArgs = {
+  userId: v.id("users"),
   query: v.string(),
-  source: v.union(v.literal("refero"), v.literal("details")),
-  platform: v.union(v.literal("web"), v.literal("ios"), v.literal("android")),
+  source: v.union(v.literal("mobbin-screens"), v.literal("refero-screens"), v.literal("mobbin-sections"), v.literal("details")),
+  platform: v.union(v.literal("web"), v.literal("ios")),
 };
 
-/** Refero screens (apps, moodboard) or Details website sections (website Research), as the Mac engine uses them. */
-export async function searchReferencesForApiHandler(_ctx: ActionCtx, args: { query: string; source: "refero" | "details"; platform: ReferoPlatform }) {
-  return args.source === "details" ? searchDetailsInspirations(args.query) : searchReferoScreens(args.query, args.platform);
+/** Screens from the user's own Mobbin or Refero (app and web screens) or Details (website sections) account. */
+export async function searchReferencesForApiHandler(
+  ctx: ActionCtx,
+  args: { userId: Id<"users">; query: string; source: "mobbin-screens" | "refero-screens" | "mobbin-sections" | "details"; platform: "web" | "ios" },
+) {
+  const { query, platform } = args;
+  return searchDesignLibrary(ctx, args.userId, args.source === "details"
+    ? { library: "details", query }
+    : args.source === "refero-screens"
+      ? { library: "refero", query, platform }
+      : args.source === "mobbin-sections"
+        ? { library: "mobbin", kind: "sections", query }
+        : { library: "mobbin", kind: "screens", query, platform });
 }
 
 const screenValidator = v.object({ id: v.string(), title: v.string(), sourceUrl: v.optional(v.string()), thumbnailUrl: v.optional(v.string()), imageUrl: v.optional(v.string()) });
@@ -89,11 +77,11 @@ type Screen = { id: string; title: string; sourceUrl?: string; thumbnailUrl?: st
 
 // One thing to import; each becomes one step of the import job.
 export const importItemValidator = v.union(
-  v.object({ kind: v.literal("refero"), screen: screenValidator }),
+  v.object({ kind: v.literal("screen"), screen: screenValidator }),
   v.object({ kind: v.literal("url"), url: v.string() }),
   v.object({ kind: v.literal("figma"), url: v.string() }),
 );
-export type ImportItem = { kind: "refero"; screen: Screen } | { kind: "url"; url: string } | { kind: "figma"; url: string };
+export type ImportItem = { kind: "screen"; screen: Screen } | { kind: "url"; url: string } | { kind: "figma"; url: string };
 
 export const startMoodboardImportForApiArgs = {
   userId: v.id("users"),
@@ -111,7 +99,7 @@ export async function startMoodboardImportForApiHandler(
   args: { userId: Id<"users">; projectId: Id<"projects">; items: ImportItem[]; direction?: string },
 ) {
   const { project } = await requireProjectAccessForUserId(ctx, args);
-  if (args.items.length === 0) throw new Error("Pick at least one Refero screen, image URL or Figma link.");
+  if (args.items.length === 0) throw new Error("Pick at least one Mobbin or Details screen, image URL or Figma link.");
   // Same order as the Mac app: the moodboard follows the Strategy.
   if (!(await findLatestArtifact(ctx, args.projectId, "strategy", "strategyArtifact"))) {
     throw new Error("Save Strategy first: the Moodboard comes after Strategy.");
@@ -150,15 +138,18 @@ export async function importMoodboardItemForApiHandler(
   const { item } = args;
   try {
     switch (item.kind) {
-      case "refero": {
-        const bytes = await fetchReferoScreenImage(item.screen.id);
-        const { key, url } = await storeImage(ctx, { ...args, purpose: "moodboard-refero", name: item.screen.id, bytes, mimeType: imageMimeType(bytes) });
-        const display = url ?? httpsUrl(item.screen.imageUrl) ?? httpsUrl(item.screen.thumbnailUrl) ?? key;
-        return { references: [{ id: `refero-${item.screen.id}-${Date.now()}`, title: item.screen.title, imageUrl: display, imageAssetKey: key, thumbnailAssetKey: key, thumbnailUrl: display, source: "url", sourceUrl: httpsUrl(item.screen.sourceUrl) }] };
+      case "screen": {
+        // Mobbin's image links expire after 30 days, so the moodboard keeps Stage's own copy.
+        const link = item.screen.imageUrl ?? item.screen.thumbnailUrl;
+        if (!link) throw new Error("the screen has no image link");
+        const image = await downloadImage(link);
+        const { key, url } = await storeProjectImage(ctx, { ...args, purpose: "moodboard-refero", name: item.screen.id, bytes: image.bytes, mimeType: image.mimeType });
+        const display = url ?? image.url;
+        return { references: [{ id: `screen-${sanitizeId(item.screen.id)}-${Date.now()}`, title: item.screen.title, imageUrl: display, imageAssetKey: key, thumbnailAssetKey: key, thumbnailUrl: display, source: "url", sourceUrl: httpsUrl(item.screen.sourceUrl) }] };
       }
       case "url": {
         const image = await downloadImage(item.url);
-        const { key, url } = await storeImage(ctx, { ...args, purpose: "moodboard-url", name: image.title, bytes: image.bytes, mimeType: image.mimeType });
+        const { key, url } = await storeProjectImage(ctx, { ...args, purpose: "moodboard-url", name: image.title, bytes: image.bytes, mimeType: image.mimeType });
         return { references: [{ id: `url-${sanitizeId(image.title)}-${Date.now()}`, title: image.title, imageUrl: url ?? image.url, imageAssetKey: key, thumbnailUrl: url ?? image.url, thumbnailAssetKey: key, source: "url", sourceUrl: image.url }] };
       }
       case "figma": {
@@ -168,14 +159,14 @@ export async function importMoodboardItemForApiHandler(
         const references: StagedReference[] = [];
         // Same as a Mac Figma import: each frame rendered as a PNG, stored as Stage's own copy, linked back to Figma.
         for (const image of await importFigmaImages(token, item.url)) {
-          const { key, url } = await storeImage(ctx, { ...args, purpose: "moodboard-figma", name: image.id, bytes: image.bytes, mimeType: "image/png" });
+          const { key, url } = await storeProjectImage(ctx, { ...args, purpose: "moodboard-figma", name: image.id, bytes: image.bytes, mimeType: "image/png" });
           references.push({ id: `figma-${sanitizeId(image.id)}-${Date.now()}`, title: image.title, imageUrl: url ?? image.renderUrl, imageAssetKey: key, thumbnailAssetKey: key, thumbnailUrl: url ?? image.renderUrl, source: "figma", sourceUrl: image.sourceUrl });
         }
         return { references };
       }
     }
   } catch (error) {
-    const label = item.kind === "refero" ? item.screen.title : item.url;
+    const label = item.kind === "screen" ? item.screen.title : item.url;
     const reason = error instanceof Error ? error.message : "could not import";
     // The job keeps going with the other items; this line makes the failure visible in the Convex logs.
     console.warn("Moodboard import item failed", { kind: item.kind, projectId: args.projectId, reason });
@@ -202,7 +193,7 @@ export async function importMoodboardReferencesHandler(
   const references = results.flatMap((result) => result.references);
   const failed = results.flatMap((result) => (result.failed ? [result.failed] : []));
   if (references.length === 0) throw new Error(`No image could be imported: ${failed.join("; ")}`);
-  const importMode = args.items.some((item) => item.kind === "figma") ? "figma" : args.items.some((item) => item.kind === "refero") ? "ai" : "url";
+  const importMode = args.items.some((item) => item.kind === "figma") ? "figma" : args.items.some((item) => item.kind === "screen") ? "ai" : "url";
   await step.runMutation(internal.workflows.moodboardImport.addToMoodboard, {
     userId: args.userId,
     projectId: args.projectId,

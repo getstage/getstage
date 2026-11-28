@@ -1,6 +1,6 @@
 // Each tool's name and behaviour for clients and the Claude/ChatGPT directories, matching what it really does:
 // read-only tools only read Stage; "replaces" tools overwrite a saved result; open-world tools reach outside
-// Stage (Refero, Details, image links, Figma).
+// Stage (the user's Mobbin and Details accounts, image links, Figma).
 const READ = { readOnlyHint: true, destructiveHint: false, openWorldHint: false };
 const WRITE = { readOnlyHint: false, destructiveHint: false, openWorldHint: false };
 const REPLACES = { readOnlyHint: false, destructiveHint: true, openWorldHint: false };

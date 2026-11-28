@@ -27,6 +27,9 @@ const INTEGRATION_ICON_SRC = {
   codex: "/logos/integrations/codex.svg",
   figma: "/logos/integrations/figma.svg",
   notion: "/logos/integrations/notion.svg",
+  mobbin: "/logos/integrations/mobbin.svg",
+  refero: "/logos/refero.svg",
+  details: "/logos/integrations/details.png",
 };
 
 function ConnectedBadge() {
@@ -74,9 +77,12 @@ function IntegrationRow({
   );
 }
 
-function IntegrationConnectingState({ tool }: { tool: "figma" | "notion" }) {
-  const label = tool === "figma" ? "Figma" : "Notion";
-  const iconSrc = tool === "figma" ? INTEGRATION_ICON_SRC.figma : INTEGRATION_ICON_SRC.notion;
+type OAuthTool = "figma" | "notion" | "mobbin" | "refero" | "details";
+const OAUTH_TOOL_LABEL: Record<OAuthTool, string> = { figma: "Figma", notion: "Notion", mobbin: "Mobbin", refero: "Refero", details: "Details" };
+
+function IntegrationConnectingState({ tool }: { tool: OAuthTool }) {
+  const label = OAUTH_TOOL_LABEL[tool];
+  const iconSrc = INTEGRATION_ICON_SRC[tool];
 
   return (
     <FigmaOnboardingFrame className="py-[22px]">
@@ -85,7 +91,7 @@ function IntegrationConnectingState({ tool }: { tool: "figma" | "notion" }) {
           <img
             src={iconSrc}
             alt=""
-            className={cn(tool === "figma" ? "h-7 w-[19px]" : "h-6 w-[23px]", "object-contain")}
+            className={cn(tool === "figma" ? "h-7 w-[19px]" : tool === "mobbin" ? "h-[13px] w-7" : "h-6 w-[23px]", "object-contain")}
           />
           <h3 className="text-[21px] leading-[1.2] font-semibold text-[#0A0A0A]">
             Connecting {label}
@@ -206,7 +212,7 @@ export function FigmaIntegrationConfig({
   claudeConnection: ClaudeConnectionSummary;
   onActivate: () => void;
 }) {
-  const [view, setView] = useState<"list" | "codex" | "claude" | "connecting-figma" | "connecting-notion">("list");
+  const [view, setView] = useState<"list" | "codex" | "claude" | { connecting: OAuthTool }>("list");
   const { isAuthenticated } = useConvexAuth();
   const providers = useProviderStatus();
   const providerPreferences = useProviderPreferences();
@@ -227,6 +233,7 @@ export function FigmaIntegrationConfig({
     (claudeConnection?.status === "connected" && claudeConnection.stageApiVerified);
   const figmaConnected = nativeConnectionStatus?.figma?.status === "active";
   const notionConnected = nativeConnectionStatus?.notion?.status === "active";
+  const libraryConnected = (library: "mobbin" | "refero" | "details") => nativeConnectionStatus?.[library]?.status === "active";
 
   useEffect(() => {
     if (!window.stageDesktop?.integrations?.onOAuthCompleted) return;
@@ -245,24 +252,20 @@ export function FigmaIntegrationConfig({
     });
   }, []);
 
-  async function showConnecting(tool: "figma" | "notion") {
-    setView(tool === "figma" ? "connecting-figma" : "connecting-notion");
+  async function showConnecting(tool: OAuthTool) {
+    setView({ connecting: tool });
     try {
       const returnUrl = await window.stageDesktop.integrations.getOAuthReturnUrl(tool);
       const result = await startOAuthConnect({ provider: tool, returnUrl });
       await openExternalLink(result.url);
     } catch (error) {
-      window.alert(error instanceof Error ? error.message : `Could not connect ${tool}.`);
+      window.alert(error instanceof Error ? error.message : `Could not connect ${OAUTH_TOOL_LABEL[tool]}.`);
       setView("list");
     }
   }
 
-  if (view === "connecting-figma" || view === "connecting-notion") {
-    return (
-      <IntegrationConnectingState
-        tool={view === "connecting-figma" ? "figma" : "notion"}
-      />
-    );
+  if (typeof view === "object") {
+    return <IntegrationConnectingState tool={view.connecting} />;
   }
 
   if (view === "codex") {
@@ -290,7 +293,7 @@ export function FigmaIntegrationConfig({
       <FigmaStepHeader
         step="claude"
         title="Configure your integration"
-        subtitle="Connect Claude or Codex via Terminal, then Figma and Notion with OAuth."
+        subtitle="Connect Claude or Codex via Terminal, then your own inspiration library (Mobbin, Refero or Details), Figma and Notion."
         showProgress={false}
       />
       <div className="mt-6 space-y-3">
@@ -314,6 +317,16 @@ export function FigmaIntegrationConfig({
         </FigmaSection>
         <FigmaSection label="Select tools you want to integrate">
           <ul className="space-y-4">
+            {(["mobbin", "refero", "details"] as const).map((library) => (
+              <IntegrationRow
+                key={library}
+                iconSrc={INTEGRATION_ICON_SRC[library]}
+                label={OAUTH_TOOL_LABEL[library]}
+                connected={libraryConnected(library)}
+                actionLabel={`Connect ${OAUTH_TOOL_LABEL[library]}`}
+                onAction={() => void showConnecting(library)}
+              />
+            ))}
             <IntegrationRow
               iconSrc={INTEGRATION_ICON_SRC.figma}
               label="Figma"

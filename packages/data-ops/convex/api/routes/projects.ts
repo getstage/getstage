@@ -353,7 +353,7 @@ export function createProjectRoutes() {
       try {
         // Starts the import job and returns its run at once; GET /:id/runs/:runId reports the outcome.
         const items = [
-          ...body.screens.map((screen) => ({ kind: "refero" as const, screen })),
+          ...body.screens.map((screen) => ({ kind: "screen" as const, screen })),
           ...body.imageUrls.map((url) => ({ kind: "url" as const, url })),
           ...(body.figmaUrl ? [{ kind: "figma" as const, url: body.figmaUrl }] : []),
         ];

@@ -89,15 +89,15 @@ impl ReferoClient {
             }),
         };
 
-        let response = self
-            .http
-            .post(&self.mcp_url)
-            .json(&request)
-            .send()
-            .await?
-            .error_for_status()?
-            .json::<JsonRpcResponse>()
-            .await?;
+        let response = self.http.post(&self.mcp_url).json(&request).send().await?;
+        let status = response.status().as_u16();
+        // Not connected (428), signed out (401), out of credits (402) or over its limit (429):
+        // Research then runs without UI pattern references instead of failing.
+        if matches!(status, 401 | 402 | 428 | 429) {
+            return Err(ReferoClientError::Unavailable { status });
+        }
+        let text = response.error_for_status()?.text().await?;
+        let response = parse_json_rpc(&text)?;
 
         if let Some(error) = response.error {
             return Err(ReferoClientError::ToolCallFailed {
@@ -128,6 +128,21 @@ struct JsonRpcError {
     message: String,
 }
 
+/// The server answers either as JSON or as an event stream whose last `data:` line holds the JSON.
+fn parse_json_rpc(text: &str) -> Result<JsonRpcResponse, ReferoClientError> {
+    let json = if text.trim_start().starts_with('{') {
+        text
+    } else {
+        text.lines()
+            .rev()
+            .find_map(|line| line.strip_prefix("data:"))
+            .unwrap_or_default()
+    };
+    serde_json::from_str(json).map_err(|error| ReferoClientError::ToolCallFailed {
+        message: format!("unreadable answer: {error}"),
+    })
+}
+
 #[derive(Debug, Error)]
 pub enum ReferoClientError {
     #[error("failed to build Refero HTTP client: {0}")]
@@ -138,4 +153,7 @@ pub enum ReferoClientError {
 
     #[error("Refero tool call failed: {message}")]
     ToolCallFailed { message: String },
+
+    #[error("the reference library can't be used for this account right now (status {status})")]
+    Unavailable { status: u16 },
 }

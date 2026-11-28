@@ -1,6 +1,7 @@
+import type { DesktopOAuthProvider } from "@shared/models/desktop";
 import type { ProviderId } from "@stage/data-ops/contracts";
 
-export type NativeIntegrationId = "figma" | "notion" | "google-sheets" | "paper";
+export type NativeIntegrationId = DesktopOAuthProvider | "google-sheets" | "paper";
 
 export type IntegrationRowModel = {
   id: string;

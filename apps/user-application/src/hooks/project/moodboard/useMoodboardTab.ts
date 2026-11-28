@@ -332,7 +332,7 @@ export function useMoodboardTab(project: Pick<Project, "id" | "name">) {
     async (query: string) => {
       const trimmed = query.trim();
       if (!trimmed) {
-        throw new Error("Enter a Refero search query.");
+        throw new Error("Enter a Mobbin search query.");
       }
 
       const providerId = aiProvider.resolvedProviderId;
@@ -429,8 +429,8 @@ export function useMoodboardTab(project: Pick<Project, "id" | "name">) {
       (providerRun.startRun.isPending ||
         providerRun.isRunActive ||
         hasPersistedRunningRun),
-    // Figma vs Refero label for the generating screen. After a remount the in-memory
-    // source may be gone (restored from Convex), so default to the Refero ("ai") label.
+    // Figma vs Mobbin label for the generating screen. After a remount the in-memory
+    // source may be gone (restored from Convex), so default to the Mobbin ("ai") label.
     generatingMode: (providerRun.activeRunSource === "figma" ? "figma" : "ai") as
       | "ai"
       | "figma",

@@ -1,5 +1,6 @@
 import type { ProviderStatusRecord } from "@stage/data-ops/contracts";
 import type { PaperConnectionStatusResponse } from "@stage/data-ops/contracts";
+import type { DesktopOAuthProvider } from "@shared/models/desktop";
 import type { IntegrationRowModel } from "@/types/settings/integrations";
 import { PROVIDER_CLI_MISSING_ROW_NOTE } from "@/lib/settings/providerCliHints";
 
@@ -48,24 +49,27 @@ type GoogleSheetConnectionSummary = {
   lastImportError: string | null;
 } | null;
 
+const NATIVE_INTEGRATIONS: Record<DesktopOAuthProvider, { label: string; description: string; icon: string }> = {
+  mobbin: { label: "Mobbin", description: "Your Mobbin account: real app and web screens for Research UI patterns and moodboards", icon: "mobbin" },
+  refero: { label: "Refero", description: "Your Refero account: real app and web screens for Research UI patterns and moodboards", icon: "refero" },
+  details: { label: "Details", description: "Your Details account: real website sections for website Research", icon: "details" },
+  figma: { label: "Figma", description: "Native design export and handoff", icon: "figma" },
+  notion: { label: "Notion", description: "Native document export and review", icon: "document" },
+};
+
 export function nativeIntegrationToRow(
-  id: "figma" | "notion",
+  id: DesktopOAuthProvider,
   connection: NativeConnectionSummary,
 ): IntegrationRowModel {
-  const connected = connection?.status === "active";
-  const label = id === "figma" ? "Figma" : "Notion";
-
+  const { label, description, icon } = NATIVE_INTEGRATIONS[id];
   return {
     id,
     nativeIntegrationId: id,
     name: label,
-    description:
-      id === "figma"
-        ? "Native design export and handoff"
-        : "Native document export and review",
-    icon: id === "figma" ? "figma" : "document",
-    connected,
-    detail: nativeConnectionDetail(connection, label),
+    description,
+    icon,
+    connected: connection?.status === "active",
+    detail: nativeConnectionDetail(connection),
     status: connection?.status ?? "disconnected",
   };
 }
@@ -144,23 +148,13 @@ function providerStatusDetail(provider: ProviderStatusRecord, enabled: boolean) 
   return parts.join(" · ");
 }
 
-function nativeConnectionDetail(
-  connection: NativeConnectionSummary,
-  fallbackLabel: string,
-) {
-  if (!connection) return "Not connected";
-  if (connection.lastError) return connection.lastError;
+// A started sign-in (pending) or a disconnect both mean not connected; only an error says more.
+function nativeConnectionDetail(connection: NativeConnectionSummary) {
+  if (connection?.status === "error") return connection.lastError ?? "Signed out. Connect again.";
+  if (connection?.status !== "active") return "Not connected";
 
-  const identity =
-    connection.workspaceName ??
-    connection.displayName ??
-    connection.accountEmail ??
-    connection.accountName ??
-    fallbackLabel;
-
-  return connection.status === "active"
-    ? `Connected as ${identity}`
-    : connection.status.replaceAll("_", " ");
+  const identity = connection.workspaceName ?? connection.displayName ?? connection.accountEmail ?? connection.accountName;
+  return identity ? `Connected as ${identity}` : "Connected";
 }
 
 function googleSheetsConnectionDetail(connection: GoogleSheetConnectionSummary) {

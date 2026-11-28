@@ -104,24 +104,41 @@ export function IntegrationsPage() {
   );
 }
 
+type ConnectableTool = "mobbin" | "refero" | "details" | "figma";
+
+const TOOL_LABEL: Record<ConnectableTool, string> = { mobbin: "Mobbin", refero: "Refero", details: "Details", figma: "Figma" };
+
 function DesignTools() {
   const status = useQuery(api.integrations.contentPlatforms.getNativeConnectionStatus);
   const startConnect = useAction(api.integrations.contentPlatforms.startOAuthConnect);
   const disconnect = useMutation(api.integrations.contentPlatforms.disconnectConnection);
   const [error, setError] = useState<string>();
-  const figmaConnected = status?.figma?.status === "active";
 
-  const toggleFigma = async () => {
+  const toggle = async (provider: ConnectableTool) => {
     setError(undefined);
     try {
-      if (figmaConnected) await disconnect({ provider: "figma" });
+      if (status?.[provider]?.status === "active") await disconnect({ provider });
       else {
-        const { url } = await startConnect({ provider: "figma" });
+        const { url } = await startConnect({ provider });
         if (url) window.location.assign(url);
       }
     } catch {
-      setError("Could not change the Figma connection. Try again.");
+      setError(`Could not change the ${TOOL_LABEL[provider]} connection. Try again.`);
     }
+  };
+
+  // A library that signed Stage out shows why, until the user connects it again.
+  const row = (provider: ConnectableTool, detail: string) => {
+    const connection = status?.[provider];
+    const connected = connection?.status === "active";
+    return {
+      name: TOOL_LABEL[provider],
+      status: connected ? ("connected" as const) : connection?.status === "error" ? ("warning" as const) : ("off" as const),
+      detail: connection?.status === "error" && connection.lastError ? connection.lastError : detail,
+      on: connected,
+      onToggle: () => void toggle(provider),
+      toggleLabel: `${connected ? "Disconnect" : "Connect"} ${TOOL_LABEL[provider]}`,
+    };
   };
 
   return (
@@ -129,23 +146,14 @@ function DesignTools() {
       <ToolRow
         icon="/logos/integrations/mobbin.svg"
         iconClassName="h-[7.367px] w-4"
-        name="Mobbin"
-        status="off"
-        detail="Real app and web references for research and moodboards"
-        on={false}
-        disabled
-        toggleLabel="Mobbin is coming soon"
+        {...row("mobbin", "Your Mobbin account: real app and web screens for Research UI patterns and moodboards (Pro plan)")}
       />
       <ToolRow
-        icon={figmaIcon}
-        iconClassName="h-[13.5px] w-[9px]"
-        name="Figma"
-        status={figmaConnected ? "connected" : "off"}
-        detail="Native design export and handoff"
-        on={figmaConnected}
-        onToggle={() => void toggleFigma()}
-        toggleLabel={figmaConnected ? "Disconnect Figma" : "Connect Figma"}
+        icon="/logos/refero.svg"
+        {...row("refero", "Your Refero account: real app and web screens for Research UI patterns and moodboards")}
       />
+      <ToolRow icon="/logos/integrations/details.png" {...row("details", "Your Details account: real website sections for website Research (Pro plan)")} />
+      <ToolRow icon={figmaIcon} iconClassName="h-[13.5px] w-[9px]" {...row("figma", "Native design export and handoff")} />
       <ToolRow
         icon={paperIcon}
         iconClassName="size-[13px]"

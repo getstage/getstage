@@ -9,9 +9,11 @@ import {
   RegenerateIcon,
 } from "./researchIcons";
 
+const PROVIDER_LABEL = { refero: "Refero", details: "Details", mobbin: "Mobbin" } as const;
+
 type UiPatternsProps = {
   groups: UiPatternGroupWithPatterns[];
-  provider: "refero" | "details";
+  provider: "refero" | "details" | "mobbin";
   isEditing: boolean;
   openGroupId: string | null;
   onToggleGroup: (groupId: string) => void;
@@ -59,7 +61,7 @@ export function UiPatterns({
           <div className="flex items-center gap-2">
             {provider === "refero" ? <img src="/logos/refero.svg" alt="" className="h-4 w-4" /> : null}
             <p className="text-[12px] font-medium leading-[1.25] text-[#525252]">
-              Analysed with {provider === "details" ? "Details" : "Refero"}
+              Analysed with {PROVIDER_LABEL[provider]}
             </p>
           </div>
         </div>

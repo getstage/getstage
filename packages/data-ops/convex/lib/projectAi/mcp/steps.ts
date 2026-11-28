@@ -23,13 +23,11 @@ import { saveFlowsResult } from "../flows/handlers";
 import { saveResearchResult } from "../research/handlers";
 import { saveStrategyResult } from "../strategy/handlers";
 import { saveWireframesResult } from "../wireframes/handlers";
-import type { ProjectCategory } from "../../../../src/contracts/desktop-api/project";
-import { resolveProjectCategory } from "../../projects/domain/projectCategory";
 import { flowsArtifactSchema } from "../../../../src/contracts/flows";
 import { researchArtifactSchema } from "../../../../src/contracts/research";
 import { strategyArtifactSchema } from "../../../../src/contracts/strategy";
 import { wireframesArtifactSchema } from "../../../../src/contracts/wireframes";
-import { aiStepProblems, assertNoProblems, sanitizeWireframeHtml, staleSteps, uiPatternProvider, type SavedStep } from "../../../../src/domain/aiStepRules";
+import { aiStepProblems, assertNoProblems, sanitizeWireframeHtml, staleSteps, type SavedStep } from "../../../../src/domain/aiStepRules";
 import { buildUiPatterns, groupPatternInsights, type GroupInsights, type ReferenceGroup } from "../../../../src/domain/researchReferences";
 import { CREDIT_COSTS, recordUsage } from "../../credits/service";
 import { researchReferenceGroups } from "../research/mcp";
@@ -332,7 +330,6 @@ export async function saveStepForApiHandler(
 
   const contentJson = checkedContent(args.step, args.contentJson, {
     flows: before.flows,
-    category: resolveProjectCategory(access.project.type),
     references: runId ? await researchReferenceGroups(ctx, runId) : [],
   });
   const base = { projectId: args.projectId, title: args.title, summary: args.summary, contentJson };
@@ -383,7 +380,7 @@ async function loadSteps(ctx: MutationCtx, projectId: Id<"projects">) {
 function checkedContent(
   step: keyof typeof REQUIRES,
   contentJson: string,
-  { flows, category, references }: { flows: SavedStep; category: ProjectCategory; references: ReferenceGroup[] },
+  { flows, references }: { flows: SavedStep; references: ReferenceGroup[] },
 ) {
   const json: unknown = JSON.parse(contentJson);
   switch (step) {
@@ -391,7 +388,7 @@ function checkedContent(
       // UI patterns are the screens Stage collected plus the AI's recognized patterns, as on Mac; the label is Stage's.
       const { uiPatternInsights = [], ...result } = json as { uiPatternInsights?: GroupInsights[] };
       const { insights, problems } = groupPatternInsights(references, uiPatternInsights);
-      const content = { ...result, uiPatterns: buildUiPatterns(references, insights), uiPatternProvider: uiPatternProvider(category) };
+      const content = { ...result, uiPatterns: buildUiPatterns(references, insights), uiPatternProvider: references[0]?.provider };
       assertNoProblems("Research", [...problems, ...aiStepProblems({ step, artifact: researchArtifactSchema.parse(content) })]);
       return JSON.stringify(content);
     }

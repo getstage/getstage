@@ -92,7 +92,7 @@ export function GenerateWithAiPanel({
   return (
     <div className={`flex flex-col gap-2 ${compact ? "w-full" : "w-full max-w-[611px]"}`}>
       <label className="text-[13px] font-medium leading-none text-[#171717]" htmlFor="moodboard-refero-query">
-        Search Refero
+        Search Mobbin
       </label>
       <div className="flex flex-wrap items-center gap-2">
         <input

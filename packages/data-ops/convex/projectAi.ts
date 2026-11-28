@@ -41,6 +41,11 @@ export const upsertContext = mutation({
   handler: contextHandlers.upsertContextHandler,
 });
 
+export const setScreenLibrary = mutation({
+  args: contextHandlers.setScreenLibraryArgs,
+  handler: contextHandlers.setScreenLibraryHandler,
+});
+
 export const listRuns = query({
   args: runHandlers.listRunsArgs,
   handler: runHandlers.listRunsHandler,
@@ -301,6 +306,11 @@ export const upsertArtifactExportForApi = internalMutation({
 export const saveStepForApi = internalMutation({
   args: apiHandlers.saveStepForApiArgs,
   handler: apiHandlers.saveStepForApiHandler,
+});
+
+export const getScreenLibrary = query({
+  args: researchStartHandlers.screenLibraryArgs,
+  handler: researchStartHandlers.screenLibraryHandler,
 });
 
 export const researchInputsForApi = internalQuery({

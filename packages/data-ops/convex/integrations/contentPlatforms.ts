@@ -57,6 +57,16 @@ export const getConnectionTokenForProvider = internalQuery({
   handler: connectionHandlers.getConnectionTokenForProviderHandler,
 });
 
+export const storeRenewedTokens = internalMutation({
+  args: connectionHandlers.storeRenewedTokensArgs,
+  handler: connectionHandlers.storeRenewedTokensHandler,
+});
+
+export const markConnectionExpired = internalMutation({
+  args: connectionHandlers.markConnectionExpiredArgs,
+  handler: connectionHandlers.markConnectionExpiredHandler,
+});
+
 export const getResearchArtifactForNotionExport = internalQuery({
   args: notionExportHandlers.getResearchArtifactForNotionExportArgs,
   handler: notionExportHandlers.getResearchArtifactForNotionExportHandler,
@@ -93,6 +103,18 @@ export const notionConnectCallback = httpAction(async (ctx, req) => {
 
 export const figmaConnectCallback = httpAction(async (ctx, req) => {
   return oauthHandlers.figmaConnectCallbackHandler(ctx, req);
+});
+
+export const mobbinConnectCallback = httpAction(async (ctx, req) => {
+  return oauthHandlers.mobbinConnectCallbackHandler(ctx, req);
+});
+
+export const referoConnectCallback = httpAction(async (ctx, req) => {
+  return oauthHandlers.referoConnectCallbackHandler(ctx, req);
+});
+
+export const detailsConnectCallback = httpAction(async (ctx, req) => {
+  return oauthHandlers.detailsConnectCallbackHandler(ctx, req);
 });
 
 export const createFigmaCanvasExportJob = mutation({

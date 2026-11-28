@@ -1,15 +1,12 @@
-import { callReferenceTool, isObject, stringField, unwrapToolResult, type Json, type JsonObject } from "./refero";
+import type { ActionCtx } from "../../_generated/server";
+import { DESIGN_LIBRARY_MCP } from "../../helpers/integrations/designLibraryOAuth";
+import { callLibraryTool, isObject, stringField, unwrapToolResult, type Json, type JsonObject } from "./mcpTools";
+import type { LibraryScreen } from "./mobbin";
 
-// Details website-section search for the backend (MCP Research on website projects), with Stage's key.
+// Details website-section search with the user's own Details account (website Research, moodboard).
 // Port of the engine's Details client (`apps/stage-engine/src/details/{service,parse}.rs`).
 
-export type DetailsInspiration = {
-  id: string;
-  title: string;
-  productName?: string;
-  sourceUrl?: string;
-  thumbnailUrl?: string;
-};
+export type DetailsInspiration = LibraryScreen;
 
 const MAX_SEARCH_RESULTS = 12;
 
@@ -35,11 +32,13 @@ function toInspiration(item: JsonObject): DetailsInspiration | null {
     productName,
     sourceUrl: stringField(item, ["url", "sourceUrl", "pageUrl", "siteUrl"]),
     thumbnailUrl: stringField(item, ["previewUrl", "preview_url", "thumbnailUrl", "imageUrl", "posterUrl", "coverUrl"]),
+    imageUrl: stringField(item, ["previewUrl", "preview_url", "imageUrl", "posterUrl", "thumbnailUrl", "coverUrl"]),
   };
 }
 
 /** Real website sections (hero, pricing, footer…) for a query, like the Mac's Research on website projects. */
-export async function searchDetailsInspirations(query: string): Promise<DetailsInspiration[]> {
-  const raw = await callReferenceTool("details", "search_inspirations", { query });
+export async function searchDetailsInspirations(ctx: Pick<ActionCtx, "runAction">, token: string, query: string): Promise<DetailsInspiration[]> {
+  const { label, url } = DESIGN_LIBRARY_MCP.details;
+  const raw = await callLibraryTool(ctx, { label, url, token }, "search_inspirations", { query });
   return hits(raw).map(toInspiration).filter((hit): hit is DetailsInspiration => hit !== null).slice(0, MAX_SEARCH_RESULTS);
 }

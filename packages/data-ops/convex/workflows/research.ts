@@ -10,4 +10,6 @@ export const collect = jobs.define({ args: research.collectResearchReferencesArg
 
 export const searchGroup = internalAction({ args: research.searchReferenceGroupForApiArgs, handler: research.searchReferenceGroupForApiHandler });
 
+export const storeGroupScreens = internalAction({ args: research.storeGroupScreensArgs, handler: research.storeGroupScreensHandler });
+
 export const collected = internalMutation({ args: research.researchReferencesCollectedArgs, handler: research.researchReferencesCollectedHandler });

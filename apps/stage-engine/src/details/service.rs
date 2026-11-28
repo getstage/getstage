@@ -289,7 +289,8 @@ fn details_section_query(section: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{DEFAULT_DETAILS_SECTIONS, details_section_search_requests};
+    use super::{DEFAULT_DETAILS_SECTIONS, DetailsServiceError, details_section_search_requests};
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
     #[test]
     fn searches_use_selected_sections() {
@@ -299,6 +300,29 @@ mod tests {
             details_section_search_requests(&[]),
             DEFAULT_DETAILS_SECTIONS.map(str::to_string)
         );
+    }
+
+    /// The error a Details call gives when the server answers with `status`.
+    async fn error_for(status: &str) -> DetailsServiceError {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let address = listener.local_addr().unwrap();
+        let reply = format!("HTTP/1.1 {status}\r\ncontent-length: 0\r\nconnection: close\r\n\r\n");
+        tokio::spawn(async move {
+            let (mut socket, _) = listener.accept().await.unwrap();
+            let mut request = [0u8; 1024];
+            let _ = socket.read(&mut request).await;
+            socket.write_all(reply.as_bytes()).await.unwrap();
+        });
+        let response = reqwest::get(format!("http://{address}")).await.unwrap();
+        DetailsServiceError::Http(response.error_for_status().unwrap_err())
+    }
+
+    #[tokio::test]
+    async fn only_account_refusals_count_as_unavailable() {
+        for status in ["401 Unauthorized", "402 Payment Required", "428 Precondition Required", "429 Too Many Requests"] {
+            assert!(error_for(status).await.is_unavailable(), "{status}");
+        }
+        assert!(!error_for("500 Internal Server Error").await.is_unavailable());
     }
 }
 
@@ -339,4 +363,12 @@ pub enum DetailsServiceError {
 
     #[error("Details inspiration {0} did not include a usable still image")]
     MissingMedia(String),
+}
+
+impl DetailsServiceError {
+    /// Details can't be used for this account: not connected in Stage (428), signed out (401),
+    /// out of credits (402) or over its limit (429).
+    pub fn is_unavailable(&self) -> bool {
+        matches!(self, Self::Http(error) if matches!(error.status().map(|status| status.as_u16()), Some(401 | 402 | 428 | 429)))
+    }
 }

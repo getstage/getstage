@@ -127,6 +127,7 @@ export const upsertContextArgs = {
     ),
   ),
   notes: v.optional(v.string()),
+  screenLibrary: v.optional(v.union(v.literal("mobbin"), v.literal("refero"))),
 };
 
 export async function upsertContextHandler(
@@ -144,6 +145,7 @@ export async function upsertContextHandler(
     briefAttachmentR2ObjectKey?: string | null;
     briefAttachments?: Array<{ name: string; r2ObjectKey: string }> | null;
     notes?: string;
+    screenLibrary?: "mobbin" | "refero";
   },
 ) {
   const { user } = await requireProjectAccess(ctx, args.projectId);
@@ -162,7 +164,21 @@ export async function upsertContextHandler(
     briefAttachmentR2ObjectKey: args.briefAttachmentR2ObjectKey,
     briefAttachments,
     notes: args.notes,
+    screenLibrary: args.screenLibrary,
   });
 
   return { saved: true, updatedAt: now() };
+}
+
+export const setScreenLibraryArgs = { projectId: v.id("projects"), screenLibrary: v.union(v.literal("mobbin"), v.literal("refero")) };
+
+/** The Research form's pick between the user's Mobbin and Refero accounts (shown only when both are connected). */
+export async function setScreenLibraryHandler(ctx: MutationCtx, args: { projectId: Id<"projects">; screenLibrary: "mobbin" | "refero" }) {
+  const { user } = await requireProjectAccess(ctx, args.projectId);
+  const existing = await getContextRecord(ctx, args.projectId);
+  if (existing) {
+    await ctx.db.patch(existing._id, { screenLibrary: args.screenLibrary, updatedAt: now() });
+    return;
+  }
+  await upsertContextRecord(ctx, { userId: user._id, projectId: args.projectId, competitorUrls: [], referenceUrls: [], screenLibrary: args.screenLibrary });
 }

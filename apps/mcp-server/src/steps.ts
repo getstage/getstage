@@ -101,7 +101,7 @@ ${ACCEPTS}`,
 export const INSTRUCTIONS = `Stage runs a project in 6 steps: Research → Strategy → Moodboard & Style guide → Flows → Wireframes → Delivery. Each step builds on the saved earlier ones, and the user reviews every step in Stage (web or Mac).
 - Project: list_projects, or create_project for a new one. A project's phases (Discovery, Design, …) are the client's timeline, not these steps. get_project and get_step_results give the saved context each step builds on.
 - Research: get_research_inputs; missing form fields (industry, website, brief, up to 4 competitors, screens to analyze) come from the user and are saved with set_research_inputs. start_research collects UI pattern screens in the background and returns a runId; get_run_status reports progress and returns the groups when ready (usually under a minute); save_research saves the result with that runId.
-- Moodboard & Style guide (after Strategy): search_references finds real screens on Refero; add_to_moodboard imports chosen screens, image links or a Figma link into a named direction and returns a runId; get_run_status reports when the import is done; save_style_guide saves that direction's style guide.
+- Moodboard & Style guide (after Strategy): search_references finds real screens in the user's Mobbin or Details account (connected in Stage → Integrations); add_to_moodboard imports chosen screens, image links or a Figma link into a named direction and returns a runId; get_run_status reports when the import is done; save_style_guide saves that direction's style guide.
 - Flows, then Wireframes: save_flows and save_wireframes.
 - Delivery: get_build_brief returns everything saved for the project in one spec. Figma and Paper exports are in Stage for Mac.
 Saving a step again keeps the later steps; the response's "stale" list names the ones built on the old result, and the user decides whether to redo them. Results are grounded in the project's saved context; Stage refuses placeholders and names the field when a save fails.`;
@@ -114,6 +114,8 @@ export const RESEARCH_INPUTS = z.object({
   competitorUrls: z.array(z.string()).max(4).default([]).describe("Up to 4 competitor websites"),
   screenTypes: z.array(z.enum(RESEARCH_REFERENCE_SECTIONS)).min(1).max(6)
     .describe("Screens to analyze. Apps: e.g. Onboarding, Homepage, Pricing, Checkout, Dashboard, Settings. Websites: e.g. Hero, Features, Social Proof, Pricing, Contact."),
+  screenLibrary: z.enum(["mobbin", "refero"]).optional()
+    .describe("App projects, only when get_research_inputs lists screenLibraryChoices: the user's pick between their Mobbin and Refero accounts."),
 });
 
 /** A save tool's input. Research saves into the run start_research opened; the other steps have no run. */

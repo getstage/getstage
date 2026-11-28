@@ -171,9 +171,13 @@ export const desktopShortcutSettingsResultSchema = z.object({
   }),
 });
 
+/** Accounts the Mac connects through the browser and a `stage://integrations/<provider>` return link. */
+export const DESKTOP_OAUTH_PROVIDERS = ["figma", "notion", "mobbin", "refero", "details"] as const;
+export type DesktopOAuthProvider = (typeof DESKTOP_OAUTH_PROVIDERS)[number];
+
 export const desktopIntegrationOAuthResultSchema = z.object({
   ok: z.literal(true),
-  provider: z.enum(["figma", "notion"]),
+  provider: z.enum(DESKTOP_OAUTH_PROVIDERS),
   status: z.enum(["connected", "error"]),
   reason: z.string().optional(),
 });

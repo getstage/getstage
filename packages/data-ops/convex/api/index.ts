@@ -48,11 +48,11 @@ export function createApiApp() {
     return c.json({ user });
   });
 
-  // Refero screen search for AI tools (MCP search_references); Stage's key stays on the backend.
+  // Screen search for AI tools (MCP search_references), with the user's own Mobbin or Details account.
   app.post("/api/v1/references/search", zValidator("json", referenceSearchBodySchema, validationHook), async (c) => {
-    await authenticateApiKey(c);
+    const { userId } = await authenticateApiKey(c);
     const body = c.req.valid("json");
-    const screens = await c.env.runAction(internal.projectAi.searchReferencesForApi, body);
+    const screens = await c.env.runAction(internal.projectAi.searchReferencesForApi, { ...body, userId });
     return c.json({ screens });
   });
 

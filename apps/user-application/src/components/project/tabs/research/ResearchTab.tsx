@@ -28,6 +28,9 @@ import { GenerateStrategyRunDialog } from "@/components/project/GenerateStrategy
 import { ResearchActions } from "./ResearchActions";
 import { ResearchConfigureStep } from "./ResearchConfigureStep";
 import { ResearchSkillReport } from "./ResearchSkillReport";
+import { UiPatternsEmptyState } from "@/components/integrations/DesignLibraries";
+
+const PREVIEW_LABEL = { refero: "Refero screen", details: "Details inspiration", mobbin: "Mobbin screen" } as const;
 
 export function ResearchTab({
   project,
@@ -355,6 +358,8 @@ export function ResearchTab({
               onGroupsChange={(uiPatternGroups) => updateDraftTabData({ uiPatternGroups })}
               onRegenerate={() => void handleRegenerateSection("uiPatterns")}
             />
+            {tabData.uiPatternGroups.length === 0 && !isEditing ? <UiPatternsEmptyState projectCategory={projectCategory} /> : null}
+
             <Divider />
             <TargetUsers
               users={tabData.targetUsers}
@@ -417,7 +422,7 @@ export function ResearchTab({
       {openPhoto ? (
         <PhotoLightbox
           src={openPhoto}
-          label={`${tabData.uiPatternProvider === "details" ? "Details inspiration" : "Refero screen"} preview`}
+          label={`${PREVIEW_LABEL[tabData.uiPatternProvider]} preview`}
           onClose={() => setOpenPhoto(null)}
         />
       ) : null}
